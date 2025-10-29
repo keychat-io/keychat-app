@@ -171,19 +171,17 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.1),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
                       ),
                       child: Text(
                         controller.identity.value.npub,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -225,162 +223,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 platform: DevicePlatform.iOS,
                 sections: [
                   SettingsSection(
-                    title: const Text('Profile'),
-                    tiles: [
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.person),
-                        title: const Text('Name'),
-                        value: Obx(
-                          () => Text(controller.identity.value.displayName),
-                        ),
-                        onPressed: (context) async {
-                          await _updateIdentityNameDialog(
-                            context,
-                            controller.identity.value,
-                          );
-                        },
-                      ),
-                      SettingsTile.navigation(
-                        leading: const Icon(Icons.note),
-                        title: const Text('Bio'),
-                        onPressed: (context) async {
-                          final identity = controller.identity.value;
-                          final aboutController =
-                              TextEditingController(text: identity.about ?? '');
-
-                          await showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            builder: (BuildContext context) {
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom:
-                                      MediaQuery.of(context).viewInsets.bottom,
-                                  left: 16,
-                                  right: 16,
-                                  top: 16,
-                                ),
-                                child: SafeArea(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 4,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius:
-                                              BorderRadius.circular(2),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          TextButton(
-                                            onPressed: Get.back,
-                                            child: const Text('Cancel'),
-                                          ),
-                                          const Text(
-                                            'Update Bio',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () async {
-                                              try {
-                                                final newAbout =
-                                                    aboutController.text.trim();
-                                                identity.about =
-                                                    newAbout.isEmpty
-                                                        ? null
-                                                        : newAbout;
-                                                await IdentityService.instance
-                                                    .updateIdentity(identity);
-                                                controller.identity.value =
-                                                    identity;
-                                                controller.identity.refresh();
-                                                await Get.find<HomeController>()
-                                                    .loadIdentity();
-
-                                                // Close the bottom sheet first
-                                                Navigator.of(context).pop();
-
-                                                // Clear controller and show success message
-                                                aboutController.clear();
-                                                EasyLoading.showSuccess(
-                                                  'Bio updated successfully',
-                                                );
-                                              } catch (e) {
-                                                // Handle error but still close the sheet
-                                                Navigator.of(context).pop();
-                                                aboutController.clear();
-                                                EasyLoading.showError(
-                                                  'Failed to update bio: $e',
-                                                );
-                                              }
-                                            },
-                                            child: const Text('Save'),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      TextField(
-                                        controller: aboutController,
-                                        autofocus: true,
-                                        maxLines: 5,
-                                        maxLength: 200,
-                                        textInputAction:
-                                            TextInputAction.newline,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Bio',
-                                          border: OutlineInputBorder(),
-                                          hintText: 'Tell us about yourself...',
-                                          alignLabelWithHint: true,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      SettingsTile.navigation(
-                        leading: SizedBox(
-                          width: 24,
-                          child: Image.asset(
-                            'assets/images/lightning.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        title: const Text('Lightning Address'),
-                        onPressed: (context) async {
-                          final result = await Get.dialog<String>(
-                            LightningAddressEditDialog(
-                              identity: controller.identity.value,
-                            ),
-                          );
-
-                          if (result != null) {
-                            controller.identity.value.lightning = result;
-                            controller.identity.refresh();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  SettingsSection(
                     tiles: [
                       SettingsTile.switchTile(
                         initialValue: controller.identity.value.enableChat,
@@ -388,28 +230,35 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         title: const Text('Chat ID'),
                         onToggle: (value) async {
                           EasyThrottle.throttle(
-                              'enableChat', const Duration(seconds: 2),
-                              () async {
-                            if (!value) {
-                              final count = await DBProvider.database.identitys
-                                  .filter()
-                                  .enableChatEqualTo(true)
-                                  .count();
-                              if (count == 1) {
-                                EasyLoading.showError(
-                                  'You cannot disable the last ID',
-                                );
-                                return;
+                            'enableChat',
+                            const Duration(seconds: 2),
+                            () async {
+                              if (!value) {
+                                final count = await DBProvider
+                                    .database
+                                    .identitys
+                                    .filter()
+                                    .enableChatEqualTo(true)
+                                    .count();
+                                if (count == 1) {
+                                  EasyLoading.showError(
+                                    'You cannot disable the last ID',
+                                  );
+                                  return;
+                                }
                               }
-                            }
-                            controller.identity.value.enableChat = value;
-                            await IdentityService.instance
-                                .updateIdentity(controller.identity.value);
-                            NotifyService.syncPubkeysToServer();
-                            Get.find<WebsocketService>().start();
-                            controller.identity.refresh();
-                            Get.find<HomeController>().loadRoomList(init: true);
-                          });
+                              controller.identity.value.enableChat = value;
+                              await IdentityService.instance.updateIdentity(
+                                controller.identity.value,
+                              );
+                              NotifyService.syncPubkeysToServer();
+                              Get.find<WebsocketService>().start();
+                              controller.identity.refresh();
+                              Get.find<HomeController>().loadRoomList(
+                                init: true,
+                              );
+                            },
+                          );
                         },
                       ),
                       if (controller.identity.value.enableChat) ...[
@@ -434,6 +283,164 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             EasyLoading.showSuccess('Copied');
                           },
                           value: const Text('Copy'),
+                        ),
+                        SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.person),
+                          title: const Text('Name'),
+                          value: Obx(
+                            () => Text(controller.identity.value.displayName),
+                          ),
+                          onPressed: (context) async {
+                            await _updateIdentityNameDialog(
+                              context,
+                              controller.identity.value,
+                            );
+                          },
+                        ),
+                        SettingsTile.navigation(
+                          leading: const Icon(Icons.note),
+                          title: const Text('Bio'),
+                          onPressed: (context) async {
+                            final identity = controller.identity.value;
+                            final aboutController = TextEditingController(
+                              text: identity.about ?? '',
+                            );
+
+                            await showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(16),
+                                ),
+                              ),
+                              builder: (BuildContext context) {
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: MediaQuery.of(
+                                      context,
+                                    ).viewInsets.bottom,
+                                    left: 16,
+                                    right: 16,
+                                    top: 16,
+                                  ),
+                                  child: SafeArea(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[300],
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            TextButton(
+                                              onPressed: Get.back,
+                                              child: const Text('Cancel'),
+                                            ),
+                                            const Text(
+                                              'Update Bio',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            FilledButton(
+                                              onPressed: () async {
+                                                try {
+                                                  final newAbout =
+                                                      aboutController.text
+                                                          .trim();
+                                                  identity.about =
+                                                      newAbout.isEmpty
+                                                      ? null
+                                                      : newAbout;
+                                                  await IdentityService.instance
+                                                      .updateIdentity(identity);
+                                                  controller.identity.value =
+                                                      identity;
+                                                  controller.identity.refresh();
+                                                  await Get.find<
+                                                        HomeController
+                                                      >()
+                                                      .loadIdentity();
+
+                                                  // Close the bottom sheet first
+                                                  Navigator.of(context).pop();
+
+                                                  // Clear controller and show success message
+                                                  aboutController.clear();
+                                                  EasyLoading.showSuccess(
+                                                    'Bio updated successfully',
+                                                  );
+                                                } catch (e) {
+                                                  // Handle error but still close the sheet
+                                                  Navigator.of(context).pop();
+                                                  aboutController.clear();
+                                                  EasyLoading.showError(
+                                                    'Failed to update bio: $e',
+                                                  );
+                                                }
+                                              },
+                                              child: const Text('Save'),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextField(
+                                          controller: aboutController,
+                                          autofocus: true,
+                                          maxLines: 5,
+                                          maxLength: 200,
+                                          textInputAction:
+                                              TextInputAction.newline,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Bio',
+                                            border: OutlineInputBorder(),
+                                            hintText:
+                                                'Tell us about yourself...',
+                                            alignLabelWithHint: true,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        SettingsTile.navigation(
+                          leading: SizedBox(
+                            width: 24,
+                            child: Image.asset(
+                              'assets/images/lightning.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          title: const Text('Lightning Address'),
+                          onPressed: (context) async {
+                            final result = await Get.dialog<String>(
+                              LightningAddressEditDialog(
+                                identity: controller.identity.value,
+                              ),
+                            );
+
+                            if (result != null) {
+                              controller.identity.value.lightning = result;
+                              controller.identity.refresh();
+                            }
+                          },
                         ),
                         SettingsTile.navigation(
                           leading: const Icon(
@@ -476,8 +483,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             );
                           }
                           controller.identity.value.enableBrowser = value;
-                          await IdentityService.instance
-                              .updateIdentity(controller.identity.value);
+                          await IdentityService.instance.updateIdentity(
+                            controller.identity.value,
+                          );
                           controller.identity.refresh();
                         },
                       ),
@@ -598,14 +606,16 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             if (kDebugMode)
               SettingsTile(
                 title: const Text('Secp256k1 Pubkey'),
-                description:
-                    Obx(() => Text(controller.identity.value.secp256k1PKHex)),
+                description: Obx(
+                  () => Text(controller.identity.value.secp256k1PKHex),
+                ),
               ),
             if (kDebugMode && controller.identity.value.curve25519PkHex != null)
               SettingsTile(
                 title: const Text('Curve25519 Pubkey'),
-                description:
-                    Text(controller.identity.value.curve25519PkHex ?? ''),
+                description: Text(
+                  controller.identity.value.curve25519PkHex ?? '',
+                ),
               ),
             _getNsec(false),
             SettingsTile.navigation(
@@ -650,8 +660,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     BuildContext context,
     Identity identity,
   ) async {
-    final usernameController =
-        TextEditingController(text: identity.displayName);
+    final usernameController = TextEditingController(
+      text: identity.displayName,
+    );
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -734,8 +745,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               }
               controller.confirmDeleteController.clear();
               final hc = Get.find<HomeController>();
-              final identities =
-                  await IdentityService.instance.getIdentityList();
+              final identities = await IdentityService.instance
+                  .getIdentityList();
               if (identities.length == 1) {
                 Get.back<void>(); // close dialog
                 EasyLoading.showError('You cannot delete the last ID');
@@ -752,8 +763,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               }
               try {
                 EasyLoading.showInfo('Deleting...');
-                await IdentityService.instance
-                    .delete(controller.identity.value);
+                await IdentityService.instance.delete(
+                  controller.identity.value,
+                );
                 hc.loadRoomList(init: true);
 
                 EasyLoading.showSuccess('ID deleted');
@@ -822,8 +834,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       final localFileFullPath = '$avatarsFolder/$fileName';
       final localFile = await File(localFileFullPath).create();
       await localFile.writeAsBytes(fileBytes);
-      controller.identity.value.avatarLocalPath =
-          localFileFullPath.replaceFirst(Utils.appFolder.path, '');
+      controller.identity.value.avatarLocalPath = localFileFullPath
+          .replaceFirst(Utils.appFolder.path, '');
       controller.identity.value.avatarRemoteUrl = null;
       controller.identity.value.avatarUpdatedAt = null;
       await IdentityService.instance.updateIdentity(controller.identity.value);

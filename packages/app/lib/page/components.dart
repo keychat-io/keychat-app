@@ -41,8 +41,11 @@ Text textP(String title, {Color? color, int? maxLength}) {
   }
   return Text(
     title,
-    style:
-        TextStyle(fontSize: 16, color: color, overflow: TextOverflow.ellipsis),
+    style: TextStyle(
+      fontSize: 16,
+      color: color,
+      overflow: TextOverflow.ellipsis,
+    ),
   );
 }
 
@@ -282,8 +285,9 @@ void getGroupInfoBottomSheetWidget(BuildContext context) {
                 'Small Group - Signal Protocol',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle:
-                  Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
+              subtitle: Text(
+                RoomUtil.getGroupModeDescription(GroupType.sendAll),
+              ),
             ),
           ],
         ),
@@ -340,8 +344,8 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                   Text(
                     'Message Status',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -375,8 +379,8 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                       color: es.isReceive
                           ? Colors.blue.withValues(alpha: 0.1)
                           : (isSuccess
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.orange.withValues(alpha: 0.1)),
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.orange.withValues(alpha: 0.1)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: es.isReceive
@@ -398,10 +402,10 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                       children: [
                         Text(
                           es.relay,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -417,20 +421,18 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '-${es.ecashAmount} ${es.ecashName}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
                                     fontWeight: FontWeight.w600,
                                   ),
                             ),
@@ -530,22 +532,6 @@ Text textSmallGray(
       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
     ),
   );
-}
-
-void copyAllContacts(List<Contact> contactList) {
-  final allContacts = <String>[];
-  allContacts.add('ContactName \t ContactAddress');
-
-  for (final contact in contactList) {
-    final contactInfo = '${contact.displayName} \t ${contact.npubkey}';
-    allContacts.add(contactInfo);
-  }
-
-  final allContactsString = allContacts.join('\n');
-
-  Clipboard.setData(ClipboardData(text: allContactsString));
-
-  EasyLoading.showToast('Copied all contacts to clipboard');
 }
 
 void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
@@ -653,8 +639,9 @@ Future<void> showMyQrCode(
   bool showMore,
 ) async {
   // get one time keys from db
-  final oneTimeKeys =
-      await Get.find<ChatxService>().getOneTimePubkey(identity.id);
+  final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
+    identity.id,
+  );
   // every time create one, due to need update signalKeyId
   late SignalId signalId;
   try {
@@ -666,7 +653,8 @@ Future<void> showMyQrCode(
     return;
   }
 
-  final expiredTime = DateTime.now().millisecondsSinceEpoch +
+  final expiredTime =
+      DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
   Get.bottomSheet(

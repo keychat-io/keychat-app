@@ -25,6 +25,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatPage extends StatefulWidget {
@@ -44,15 +45,11 @@ class _ChatPage2State extends State<ChatPage> {
   late MarkdownConfig markdownDarkConfig;
   late MarkdownConfig markdownLightConfig;
   bool isSendGreeting = false;
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  late Room room;
 
   @override
   void initState() {
-    final room = _getRoomAndInit();
+    room = _getRoomAndInit();
     myAvatar = Utils.getAvatarByIdentity(room.getIdentity());
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(
@@ -60,8 +57,9 @@ class _ChatPage2State extends State<ChatPage> {
         LinkConfig(
           onTap: (url) async {
             Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>()
-                .launchWebview(initUrl: url);
+            await Get.find<MultiWebviewController>().launchWebview(
+              initUrl: url,
+            );
           },
           style: const TextStyle(
             color: Colors.white,
@@ -81,8 +79,9 @@ class _ChatPage2State extends State<ChatPage> {
         LinkConfig(
           onTap: (url) async {
             Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>()
-                .launchWebview(initUrl: url);
+            await Get.find<MultiWebviewController>().launchWebview(
+              initUrl: url,
+            );
           },
           style: const TextStyle(
             color: Colors.blue,
@@ -207,8 +206,9 @@ class _ChatPage2State extends State<ChatPage> {
                             if (!message.isMeSend &&
                                 controller.roomObs.value.type ==
                                     RoomType.group) {
-                              rm = controller
-                                  .getMemberByIdPubkey(message.idPubkey);
+                              rm = controller.getMemberByIdPubkey(
+                                message.idPubkey,
+                              );
                               if (rm != null) {
                                 message.senderName = rm.name;
                               }
@@ -228,8 +228,8 @@ class _ChatPage2State extends State<ChatPage> {
                               backgroundColor: message.isMeSend
                                   ? KeychatGlobal.secondaryColor
                                   : Get.isDarkMode
-                                      ? const Color(0xFF2c2c2c)
-                                      : const Color(0xFFFFFFFF),
+                                  ? const Color(0xFF2c2c2c)
+                                  : const Color(0xFFFFFFFF),
                               fontColor: Get.isDarkMode
                                   ? Colors.white
                                   : Colors.black87,
@@ -246,7 +246,8 @@ class _ChatPage2State extends State<ChatPage> {
                 Obx(
                   () => getSendMessageInput(
                     status: controller.roomObs.value.status,
-                    needSendGreeting: controller.roomObs.value.isMLSGroup &&
+                    needSendGreeting:
+                        controller.roomObs.value.isMLSGroup &&
                         !controller.roomObs.value.sentHelloToMLS,
                   ),
                 ),
@@ -339,8 +340,8 @@ class _ChatPage2State extends State<ChatPage> {
                           return;
                         }
 
-                        final isCmdPressed = HardwareKeyboard
-                                .instance.logicalKeysPressed
+                        final isCmdPressed =
+                            HardwareKeyboard.instance.logicalKeysPressed
                                 .contains(LogicalKeyboardKey.metaLeft) ||
                             HardwareKeyboard.instance.logicalKeysPressed
                                 .contains(LogicalKeyboardKey.metaRight);
@@ -349,8 +350,8 @@ class _ChatPage2State extends State<ChatPage> {
                           controller.handlePasteboardFile();
                           return;
                         }
-                        final isShiftPressed = HardwareKeyboard
-                                .instance.logicalKeysPressed
+                        final isShiftPressed =
+                            HardwareKeyboard.instance.logicalKeysPressed
                                 .contains(LogicalKeyboardKey.shiftLeft) ||
                             HardwareKeyboard.instance.logicalKeysPressed
                                 .contains(LogicalKeyboardKey.altLeft) ||
@@ -363,17 +364,19 @@ class _ChatPage2State extends State<ChatPage> {
                           final selection =
                               controller.textEditingController.selection;
 
-                          controller.textEditingController.value =
-                              controller.textEditingController.value.copyWith(
-                            text: text.replaceRange(
-                              selection.start,
-                              selection.end,
-                              '\n',
-                            ),
-                            selection: TextSelection.collapsed(
-                              offset: selection.start + 1,
-                            ),
-                          );
+                          controller.textEditingController.value = controller
+                              .textEditingController
+                              .value
+                              .copyWith(
+                                text: text.replaceRange(
+                                  selection.start,
+                                  selection.end,
+                                  '\n',
+                                ),
+                                selection: TextSelection.collapsed(
+                                  offset: selection.start + 1,
+                                ),
+                              );
                         }
                       }
                     },
@@ -406,12 +409,14 @@ class _ChatPage2State extends State<ChatPage> {
                         onEditingComplete: controller.handleSubmitted,
                         contextMenuBuilder: (context, editableTextState) {
                           final selection = editableTextState
-                              .currentTextEditingValue.selection;
+                              .currentTextEditingValue
+                              .selection;
                           final text =
                               editableTextState.currentTextEditingValue.text;
                           final hasSelection = !selection.isCollapsed;
                           final hasText = text.isNotEmpty;
-                          final canSelectAll = hasText &&
+                          final canSelectAll =
+                              hasText &&
                               (selection.start != 0 ||
                                   selection.end != text.length);
 
@@ -444,9 +449,10 @@ class _ChatPage2State extends State<ChatPage> {
                           buttonItems.add(
                             ContextMenuButtonItem(
                               onPressed: () {
-                                controller
-                                    .handlePasteboard()
-                                    .catchError((error, stackTrace) {
+                                controller.handlePasteboard().catchError((
+                                  error,
+                                  stackTrace,
+                                ) {
                                   loggerNoLine.e(
                                     'Error pasting clipboard content: $error',
                                     stackTrace: stackTrace,
@@ -481,10 +487,9 @@ class _ChatPage2State extends State<ChatPage> {
                         minLines: 1,
                         scrollController: controller.textFieldScrollController,
                         textAlign: TextAlign.left,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontSize: 16),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(fontSize: 16),
                         cursorColor: Colors.green,
                         onTap: () {
                           controller.hideEmoji.value = true;
@@ -514,10 +519,9 @@ class _ChatPage2State extends State<ChatPage> {
                             size: 28,
                             CupertinoIcons.add_circled,
                             weight: 300,
-                            color: Theme.of(context)
-                                .iconTheme
-                                .color
-                                ?.withAlpha(155),
+                            color: Theme.of(
+                              context,
+                            ).iconTheme.color?.withAlpha(155),
                           ),
                   ),
                 ),
@@ -530,9 +534,52 @@ class _ChatPage2State extends State<ChatPage> {
               opacity: !controller.hideAdd.value ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 500),
               child: AnimatedContainer(
-                height: !controller.hideAdd.value ? 220.0 : 0.0,
+                // height: !controller.hideAdd.value ? 220.0 : 0.0,
                 duration: const Duration(milliseconds: 500),
-                child: getFeaturesWidget(context),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ResponsiveGridList(
+                    listViewBuilderOptions: ListViewBuilderOptions(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      physics: const NeverScrollableScrollPhysics(),
+                    ),
+                    minItemWidth: 80,
+                    children: controller.featuresIcons.indexed.map((record) {
+                      final (index, item) = record;
+                      return GestureDetector(
+                        onTap: () {
+                          (controller.featuresOnTaps[index] as Function)();
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: Image.asset(
+                                    item,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Text(controller.featuresTitles[index]),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ),
           ),
@@ -611,51 +658,6 @@ class _ChatPage2State extends State<ChatPage> {
           color: Theme.of(context).iconTheme.color?.withAlpha(155),
         ),
       ),
-    );
-  }
-
-  Widget getFeaturesWidget(BuildContext context) {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1.6,
-      ),
-      itemCount: controller.featuresIcons.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            controller.featuresOnTaps[index]();
-          },
-          child: Column(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Center(
-                  child: SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: Image.asset(
-                      controller.featuresIcons[index],
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              Text(controller.featuresTitles[index]),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -750,8 +752,9 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             OutlinedButton(
               onPressed: () {
-                MessageService.instance
-                    .deleteMessageByRoomId(controller.roomObs.value.id);
+                MessageService.instance.deleteMessageByRoomId(
+                  controller.roomObs.value.id,
+                );
                 Get.back<void>();
               },
               child: const Text('clean'),
@@ -780,10 +783,10 @@ class _ChatPage2State extends State<ChatPage> {
         ),
         title: Text(
           'Reply to: ${controller.inputReplys.first.fromContact!.name}',
-          style: Theme.of(Get.context!)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Colors.blue.shade700, height: 1),
+          style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
+            color: Colors.blue.shade700,
+            height: 1,
+          ),
         ),
         subtitle: RoomUtil.getRelaySubtitle(controller.inputReplys.first),
         trailing: IconButton(
@@ -832,10 +835,9 @@ class _ChatPage2State extends State<ChatPage> {
               body: ListView.separated(
                 controller: ScrollController(),
                 separatorBuilder: (BuildContext context2, int index) => Divider(
-                  color: Theme.of(context)
-                      .dividerTheme
-                      .color
-                      ?.withValues(alpha: 0.05),
+                  color: Theme.of(
+                    context,
+                  ).dividerTheme.color?.withValues(alpha: 0.05),
                 ),
                 itemCount: members.length,
                 itemBuilder: (context, index) {
@@ -878,16 +880,16 @@ class _ChatPage2State extends State<ChatPage> {
     int memberCount = 0,
   }) {
     return Wrap(
+      key: ValueKey('title:${room.toMainPubkey}'),
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (memberCount > 0) Text('$title ($memberCount)') else Text(title),
         if (isMute)
           Icon(
             Icons.notifications_off_outlined,
-            color: Theme.of(Get.context!)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.6),
+            color: Theme.of(
+              Get.context!,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
             size: 18,
           ),
       ],
@@ -906,12 +908,14 @@ class _ChatPage2State extends State<ChatPage> {
   Widget _exitInputSection() {
     return _inputSectionContainer(
       FilledButton(
-        style:
-            ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.red)),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.all(Colors.red),
+        ),
         onPressed: () async {
           await RoomService.instance.deleteRoom(controller.roomObs.value);
-          Get.find<HomeController>()
-              .loadIdentityRoomList(controller.roomObs.value.identityId);
+          Get.find<HomeController>().loadIdentityRoomList(
+            controller.roomObs.value.identityId,
+          );
           await Utils.offAllNamedRoom(Routes.root);
         },
         child: const Text(
@@ -938,8 +942,9 @@ class _ChatPage2State extends State<ChatPage> {
               FilledButton(
                 onPressed: () async {
                   try {
-                    final room = await RoomService.instance
-                        .getRoomByIdOrFail(controller.roomObs.value.id);
+                    final room = await RoomService.instance.getRoomByIdOrFail(
+                      controller.roomObs.value.id,
+                    );
                     if (room.status != RoomStatus.approving) return;
                     final displayName = room.getIdentity().displayName;
                     await SignalChatService.instance.sendMessage(
@@ -973,8 +978,9 @@ class _ChatPage2State extends State<ChatPage> {
                 onPressed: () async {
                   try {
                     final identityId = controller.roomObs.value.identityId;
-                    await RoomService.instance
-                        .deleteRoom(controller.roomObs.value);
+                    await RoomService.instance.deleteRoom(
+                      controller.roomObs.value,
+                    );
                     Get.find<HomeController>().loadIdentityRoomList(identityId);
                     await Utils.offAllNamedRoom(Routes.root);
                   } catch (e) {
@@ -986,8 +992,10 @@ class _ChatPage2State extends State<ChatPage> {
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red),
                 ),
-                child:
-                    const Text('Ignore', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Ignore',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -1004,12 +1012,11 @@ class _ChatPage2State extends State<ChatPage> {
           'Friend request sent. Waiting for their response.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.7),
-                fontSize: 16,
-              ),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+            fontSize: 16,
+          ),
         ),
       ),
     );
@@ -1043,8 +1050,9 @@ class _ChatPage2State extends State<ChatPage> {
         }
       }
     }
-    final exist =
-        Utils.getGetxController<ChatController>(tag: roomId.toString());
+    final exist = Utils.getGetxController<ChatController>(
+      tag: roomId.toString(),
+    );
     if (exist != null) {
       controller = exist;
       if (searchMessageId != null) {
@@ -1068,8 +1076,9 @@ class _ChatPage2State extends State<ChatPage> {
     return ListTile(
       leading: const Icon(Icons.warning, color: Colors.yellow),
       title: Text('NotContacts: ${controller.kpaIsNullRooms.length}'),
-      subtitle:
-          const Text('You are not friends, cannot send and receive messages'),
+      subtitle: const Text(
+        'You are not friends, cannot send and receive messages',
+      ),
       trailing: FilledButton(
         onPressed: () {
           showModalBottomSheetWidget(
@@ -1091,11 +1100,11 @@ class _ChatPage2State extends State<ChatPage> {
                       itemCount: controller.kpaIsNullRooms.length,
                       itemBuilder: (context, index) {
                         final room = controller.kpaIsNullRooms[index];
-                        room.contact ??=
-                            ContactService.instance.getOrCreateContactSync(
-                          room.identityId,
-                          room.toMainPubkey,
-                        );
+                        room.contact ??= ContactService.instance
+                            .getOrCreateContactSync(
+                              room.identityId,
+                              room.toMainPubkey,
+                            );
                         return ListTile(
                           leading: Utils.getAvatarByRoom(room),
                           key: Key('room:${room.id}'),
@@ -1104,11 +1113,11 @@ class _ChatPage2State extends State<ChatPage> {
                             onPressed: () async {
                               final room0 = await RoomService.instance
                                   .createRoomAndsendInvite(
-                                room.toMainPubkey,
-                                autoJump: false,
-                                greeting:
-                                    'From group: ${controller.roomObs.value.getRoomName()}',
-                              );
+                                    room.toMainPubkey,
+                                    autoJump: false,
+                                    greeting:
+                                        'From group: ${controller.roomObs.value.getRoomName()}',
+                                  );
                               if (room0 != null) {
                                 controller.kpaIsNullRooms[index] = room0;
                                 controller.kpaIsNullRooms.refresh();
@@ -1147,8 +1156,9 @@ class _ChatPage2State extends State<ChatPage> {
             EasyLoading.show(
               status: '1. Receving all messages... \n2. Sending greeting...',
             );
-            var room = await RoomService.instance
-                .getRoomByIdOrFail(controller.roomObs.value.id);
+            var room = await RoomService.instance.getRoomByIdOrFail(
+              controller.roomObs.value.id,
+            );
 
             while (true) {
               final receivingKey = room.onetimekey!;
@@ -1158,8 +1168,9 @@ class _ChatPage2State extends State<ChatPage> {
                 relays: controller.roomObs.value.sendingRelays,
               );
               await Future.delayed(const Duration(milliseconds: 500));
-              room = await RoomService.instance
-                  .getRoomByIdOrFail(controller.roomObs.value.id);
+              room = await RoomService.instance.getRoomByIdOrFail(
+                controller.roomObs.value.id,
+              );
 
               if (receivingKey == room.onetimekey &&
                   DateTime.now()
@@ -1169,12 +1180,14 @@ class _ChatPage2State extends State<ChatPage> {
                 loggerNoLine.i('Receiving key matched: $receivingKey');
                 break;
               }
-              loggerNoLine
-                  .i('Waiting for receiving key to match: $receivingKey');
+              loggerNoLine.i(
+                'Waiting for receiving key to match: $receivingKey',
+              );
             }
 
-            await MlsGroupService.instance
-                .sendGreetingMessage(controller.roomObs.value);
+            await MlsGroupService.instance.sendGreetingMessage(
+              controller.roomObs.value,
+            );
             EasyLoading.dismiss();
           } catch (e) {
             final msg = Utils.getErrorMessage(e);

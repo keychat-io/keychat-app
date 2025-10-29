@@ -32,8 +32,9 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
   _ChatSettingContactPageState();
   Relay? relay;
 
-  final TextEditingController _usernameController =
-      TextEditingController(text: '');
+  final TextEditingController _usernameController = TextEditingController(
+    text: '',
+  );
   late ChatController cc;
 
   @override
@@ -224,9 +225,9 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                       SettingsTile(
                         description:
                             (cc.roomContact.value.lightning?.isNotEmpty ??
-                                    false)
-                                ? Text(cc.roomContact.value.lightning ?? '')
-                                : null,
+                                false)
+                            ? Text(cc.roomContact.value.lightning ?? '')
+                            : null,
                         leading: SizedBox(
                           width: 24,
                           child: Image.asset(
@@ -235,8 +236,8 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                           ),
                         ),
                         title: const Text('Lightning Address'),
-                        trailing: (cc.roomContact.value.lightning?.isEmpty ??
-                                true)
+                        trailing:
+                            (cc.roomContact.value.lightning?.isEmpty ?? true)
                             ? textSmallGray(context, 'Not set')
                             : IconButton(
                                 icon: const Icon(
@@ -368,10 +369,13 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
             onPressed: () async {
               try {
                 Get.back<void>();
-                await RoomService.instance
-                    .deleteRoomHandler(room.toMainPubkey, room.identityId);
-                Get.find<HomeController>()
-                    .loadIdentityRoomList(room.identityId);
+                await RoomService.instance.deleteRoomHandler(
+                  room.toMainPubkey,
+                  room.identityId,
+                );
+                Get.find<HomeController>().loadIdentityRoomList(
+                  room.identityId,
+                );
                 await Utils.offAllNamedRoom(Routes.root);
               } catch (e) {
                 final msg = Utils.getErrorMessage(e);
@@ -393,8 +397,10 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
     final contact0 = cc.roomContact.value
       ..petname = usernameController.text.trim();
     await ContactService.instance.saveContact(contact0);
-    cc.roomContact.value = contact0;
-    cc.roomContact.refresh();
+    await RoomService.instance.refreshRoom(
+      cc.roomObs.value,
+      refreshContact: true,
+    );
 
     Get.back<void>();
   }

@@ -17,26 +17,14 @@ const ContactReceiveKeySchema = CollectionSchema(
   name: r'ContactReceiveKey',
   id: -6957644385311737856,
   properties: {
-    r'hashCode': PropertySchema(
-      id: 0,
-      name: r'hashCode',
-      type: IsarType.long,
-    ),
+    r'hashCode': PropertySchema(id: 0, name: r'hashCode', type: IsarType.long),
     r'identityId': PropertySchema(
       id: 1,
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isMute': PropertySchema(
-      id: 2,
-      name: r'isMute',
-      type: IsarType.bool,
-    ),
-    r'pubkey': PropertySchema(
-      id: 3,
-      name: r'pubkey',
-      type: IsarType.string,
-    ),
+    r'isMute': PropertySchema(id: 2, name: r'isMute', type: IsarType.bool),
+    r'pubkey': PropertySchema(id: 3, name: r'pubkey', type: IsarType.string),
     r'receiveKeys': PropertySchema(
       id: 4,
       name: r'receiveKeys',
@@ -47,17 +35,14 @@ const ContactReceiveKeySchema = CollectionSchema(
       name: r'removeReceiveKeys',
       type: IsarType.stringList,
     ),
-    r'roomId': PropertySchema(
-      id: 6,
-      name: r'roomId',
-      type: IsarType.long,
-    ),
+    r'roomId': PropertySchema(id: 6, name: r'roomId', type: IsarType.long),
     r'stringify': PropertySchema(
       id: 7,
       name: r'stringify',
       type: IsarType.bool,
-    )
+    ),
   },
+
   estimateSize: _contactReceiveKeyEstimateSize,
   serialize: _contactReceiveKeySerialize,
   deserialize: _contactReceiveKeyDeserialize,
@@ -79,16 +64,17 @@ const ContactReceiveKeySchema = CollectionSchema(
           name: r'identityId',
           type: IndexType.value,
           caseSensitive: false,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _contactReceiveKeyGetId,
   getLinks: _contactReceiveKeyGetLinks,
   attach: _contactReceiveKeyAttach,
-  version: '3.3.0-dev.1',
+  version: '3.3.0-dev.3',
 );
 
 int _contactReceiveKeyEstimateSize(
@@ -182,18 +168,24 @@ Id _contactReceiveKeyGetId(ContactReceiveKey object) {
 }
 
 List<IsarLinkBase<dynamic>> _contactReceiveKeyGetLinks(
-    ContactReceiveKey object) {
+  ContactReceiveKey object,
+) {
   return [];
 }
 
 void _contactReceiveKeyAttach(
-    IsarCollection<dynamic> col, Id id, ContactReceiveKey object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  ContactReceiveKey object,
+) {
   object.id = id;
 }
 
 extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
   Future<ContactReceiveKey?> getByPubkeyIdentityId(
-      String pubkey, int identityId) {
+    String pubkey,
+    int identityId,
+  ) {
     return getByIndex(r'pubkey_identityId', [pubkey, identityId]);
   }
 
@@ -210,10 +202,14 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
   }
 
   Future<List<ContactReceiveKey?>> getAllByPubkeyIdentityId(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -223,10 +219,14 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
   }
 
   List<ContactReceiveKey?> getAllByPubkeyIdentityIdSync(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -236,10 +236,14 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
   }
 
   Future<int> deleteAllByPubkeyIdentityId(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -249,10 +253,14 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
   }
 
   int deleteAllByPubkeyIdentityIdSync(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -265,8 +273,10 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
     return putByIndex(r'pubkey_identityId', object);
   }
 
-  Id putByPubkeyIdentityIdSync(ContactReceiveKey object,
-      {bool saveLinks = true}) {
+  Id putByPubkeyIdentityIdSync(
+    ContactReceiveKey object, {
+    bool saveLinks = true,
+  }) {
     return putByIndexSync(r'pubkey_identityId', object, saveLinks: saveLinks);
   }
 
@@ -274,10 +284,15 @@ extension ContactReceiveKeyByIndex on IsarCollection<ContactReceiveKey> {
     return putAllByIndex(r'pubkey_identityId', objects);
   }
 
-  List<Id> putAllByPubkeyIdentityIdSync(List<ContactReceiveKey> objects,
-      {bool saveLinks = true}) {
-    return putAllByIndexSync(r'pubkey_identityId', objects,
-        saveLinks: saveLinks);
+  List<Id> putAllByPubkeyIdentityIdSync(
+    List<ContactReceiveKey> objects, {
+    bool saveLinks = true,
+  }) {
+    return putAllByIndexSync(
+      r'pubkey_identityId',
+      objects,
+      saveLinks: saveLinks,
+    );
   }
 }
 
@@ -293,17 +308,14 @@ extension ContactReceiveKeyQueryWhereSort
 extension ContactReceiveKeyQueryWhere
     on QueryBuilder<ContactReceiveKey, ContactReceiveKey, QWhereClause> {
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      idEqualTo(Id id) {
+  idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -326,7 +338,7 @@ extension ContactReceiveKeyQueryWhere
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -335,7 +347,7 @@ extension ContactReceiveKeyQueryWhere
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -344,146 +356,172 @@ extension ContactReceiveKeyQueryWhere
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      idBetween(
+  idBetween(
     Id lowerId,
     Id upperId, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyEqualToAnyIdentityId(String pubkey) {
+  pubkeyEqualToAnyIdentityId(String pubkey) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'pubkey_identityId',
-        value: [pubkey],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'pubkey_identityId',
+          value: [pubkey],
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyNotEqualToAnyIdentityId(String pubkey) {
+  pubkeyNotEqualToAnyIdentityId(String pubkey) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [],
-              upper: [pubkey],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [],
+                upper: [pubkey],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [],
-              upper: [pubkey],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [],
+                upper: [pubkey],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyIdentityIdEqualTo(String pubkey, int identityId) {
+  pubkeyIdentityIdEqualTo(String pubkey, int identityId) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'pubkey_identityId',
-        value: [pubkey, identityId],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'pubkey_identityId',
+          value: [pubkey, identityId],
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdNotEqualTo(String pubkey, int identityId) {
+  pubkeyEqualToIdentityIdNotEqualTo(String pubkey, int identityId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              upper: [pubkey, identityId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey, identityId],
-              includeLower: false,
-              upper: [pubkey],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                upper: [pubkey, identityId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey, identityId],
+                includeLower: false,
+                upper: [pubkey],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey, identityId],
-              includeLower: false,
-              upper: [pubkey],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              upper: [pubkey, identityId],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey, identityId],
+                includeLower: false,
+                upper: [pubkey],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                upper: [pubkey, identityId],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdGreaterThan(
+  pubkeyEqualToIdentityIdGreaterThan(
     String pubkey,
     int identityId, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey, identityId],
-        includeLower: include,
-        upper: [pubkey],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey, identityId],
+          includeLower: include,
+          upper: [pubkey],
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdLessThan(
+  pubkeyEqualToIdentityIdLessThan(
     String pubkey,
     int identityId, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey],
-        upper: [pubkey, identityId],
-        includeUpper: include,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey],
+          upper: [pubkey, identityId],
+          includeUpper: include,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdBetween(
+  pubkeyEqualToIdentityIdBetween(
     String pubkey,
     int lowerIdentityId,
     int upperIdentityId, {
@@ -491,13 +529,15 @@ extension ContactReceiveKeyQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey, lowerIdentityId],
-        includeLower: includeLower,
-        upper: [pubkey, upperIdentityId],
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey, lowerIdentityId],
+          includeLower: includeLower,
+          upper: [pubkey, upperIdentityId],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -505,231 +545,230 @@ extension ContactReceiveKeyQueryWhere
 extension ContactReceiveKeyQueryFilter
     on QueryBuilder<ContactReceiveKey, ContactReceiveKey, QFilterCondition> {
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      hashCodeEqualTo(int value) {
+  hashCodeEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hashCode', value: value),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      hashCodeGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  hashCodeGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hashCode',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      hashCodeLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  hashCodeLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hashCode',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      hashCodeBetween(
+  hashCodeBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hashCode',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hashCode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      identityIdEqualTo(int value) {
+  identityIdEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'identityId', value: value),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      identityIdGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  identityIdGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'identityId',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      identityIdLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  identityIdLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'identityId',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      identityIdBetween(
+  identityIdBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'identityId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'identityId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      isMuteEqualTo(bool value) {
+  isMuteEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isMute',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isMute', value: value),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pubkeyEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyLessThan(
+  pubkeyGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyBetween(
+  pubkeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  pubkeyBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -737,135 +776,140 @@ extension ContactReceiveKeyQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'pubkey',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pubkey',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pubkeyStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pubkeyEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyContains(String value, {bool caseSensitive = true}) {
+  pubkeyContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyMatches(String pattern, {bool caseSensitive = true}) {
+  pubkeyMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'pubkey',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pubkey',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyIsEmpty() {
+  pubkeyIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pubkey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pubkey', value: ''),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      pubkeyIsNotEmpty() {
+  pubkeyIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'pubkey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pubkey', value: ''),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  receiveKeysElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementLessThan(
+  receiveKeysElementGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementBetween(
+  receiveKeysElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysElementBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -873,160 +917,126 @@ extension ContactReceiveKeyQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'receiveKeys',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'receiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'receiveKeys',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'receiveKeys',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'receiveKeys',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'receiveKeys',
-        length,
-        true,
-        length,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'receiveKeys',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysIsEmpty() {
+  receiveKeysElementStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'receiveKeys',
-        0,
-        true,
-        0,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysIsNotEmpty() {
+  receiveKeysElementEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'receiveKeys',
-        0,
-        false,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
+  receiveKeysElementContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'receiveKeys',
-        0,
-        true,
-        length,
-        include,
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'receiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
+  receiveKeysElementMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'receiveKeys',
-        length,
-        include,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'receiveKeys',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      receiveKeysLengthBetween(
+  receiveKeysElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'receiveKeys', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'receiveKeys', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'receiveKeys', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'receiveKeys', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'receiveKeys', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'receiveKeys', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'receiveKeys', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  receiveKeysLengthBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -1044,53 +1054,56 @@ extension ContactReceiveKeyQueryFilter
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  removeReceiveKeysElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementLessThan(
+  removeReceiveKeysElementGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementBetween(
+  removeReceiveKeysElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysElementBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1098,149 +1111,122 @@ extension ContactReceiveKeyQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'removeReceiveKeys',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'removeReceiveKeys',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementStartsWith(
+  removeReceiveKeysElementStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementContains(String value,
-          {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'removeReceiveKeys',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementMatches(String pattern,
-          {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'removeReceiveKeys',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'removeReceiveKeys',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'removeReceiveKeys',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'removeReceiveKeys',
-        length,
-        true,
-        length,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysIsEmpty() {
+  removeReceiveKeysElementEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'removeReceiveKeys',
-        0,
-        true,
-        0,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysIsNotEmpty() {
+  removeReceiveKeysElementContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'removeReceiveKeys',
-        0,
-        false,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'removeReceiveKeys',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
+  removeReceiveKeysElementMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'removeReceiveKeys',
-        0,
-        true,
-        length,
-        include,
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'removeReceiveKeys',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
+  removeReceiveKeysElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'removeReceiveKeys', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'removeReceiveKeys', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'removeReceiveKeys', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'removeReceiveKeys', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'removeReceiveKeys', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'removeReceiveKeys', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+  removeReceiveKeysLengthGreaterThan(int length, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
         r'removeReceiveKeys',
@@ -1253,7 +1239,7 @@ extension ContactReceiveKeyQueryFilter
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      removeReceiveKeysLengthBetween(
+  removeReceiveKeysLengthBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -1271,86 +1257,84 @@ extension ContactReceiveKeyQueryFilter
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      roomIdEqualTo(int value) {
+  roomIdEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'roomId', value: value),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      roomIdGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  roomIdGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'roomId',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      roomIdLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  roomIdLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'roomId',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      roomIdBetween(
+  roomIdBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'roomId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'roomId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      stringifyIsNull() {
+  stringifyIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'stringify',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'stringify'),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      stringifyIsNotNull() {
+  stringifyIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'stringify',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'stringify'),
+      );
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
-      stringifyEqualTo(bool? value) {
+  stringifyEqualTo(bool? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'stringify',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'stringify', value: value),
+      );
     });
   }
 }
@@ -1364,84 +1348,84 @@ extension ContactReceiveKeyQueryLinks
 extension ContactReceiveKeyQuerySortBy
     on QueryBuilder<ContactReceiveKey, ContactReceiveKey, QSortBy> {
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByHashCode() {
+  sortByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByHashCodeDesc() {
+  sortByHashCodeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByIdentityId() {
+  sortByIdentityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'identityId', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByIdentityIdDesc() {
+  sortByIdentityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'identityId', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByIsMute() {
+  sortByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByIsMuteDesc() {
+  sortByIsMuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByPubkey() {
+  sortByPubkey() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pubkey', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByPubkeyDesc() {
+  sortByPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pubkey', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByRoomId() {
+  sortByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByRoomIdDesc() {
+  sortByRoomIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByStringify() {
+  sortByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      sortByStringifyDesc() {
+  sortByStringifyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.desc);
     });
@@ -1451,14 +1435,14 @@ extension ContactReceiveKeyQuerySortBy
 extension ContactReceiveKeyQuerySortThenBy
     on QueryBuilder<ContactReceiveKey, ContactReceiveKey, QSortThenBy> {
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByHashCode() {
+  thenByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByHashCodeDesc() {
+  thenByHashCodeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.desc);
     });
@@ -1471,77 +1455,77 @@ extension ContactReceiveKeyQuerySortThenBy
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByIdDesc() {
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByIdentityId() {
+  thenByIdentityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'identityId', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByIdentityIdDesc() {
+  thenByIdentityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'identityId', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByIsMute() {
+  thenByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByIsMuteDesc() {
+  thenByIsMuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByPubkey() {
+  thenByPubkey() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pubkey', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByPubkeyDesc() {
+  thenByPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pubkey', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByRoomId() {
+  thenByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByRoomIdDesc() {
+  thenByRoomIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.desc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByStringify() {
+  thenByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.asc);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
-      thenByStringifyDesc() {
+  thenByStringifyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.desc);
     });
@@ -1551,56 +1535,56 @@ extension ContactReceiveKeyQuerySortThenBy
 extension ContactReceiveKeyQueryWhereDistinct
     on QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct> {
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByHashCode() {
+  distinctByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hashCode');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByIdentityId() {
+  distinctByIdentityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'identityId');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByIsMute() {
+  distinctByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMute');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByPubkey({bool caseSensitive = true}) {
+  distinctByPubkey({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pubkey', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByReceiveKeys() {
+  distinctByReceiveKeys() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'receiveKeys');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByRemoveReceiveKeys() {
+  distinctByRemoveReceiveKeys() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'removeReceiveKeys');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByRoomId() {
+  distinctByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'roomId');
     });
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
-      distinctByStringify() {
+  distinctByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'stringify');
     });
@@ -1640,14 +1624,14 @@ extension ContactReceiveKeyQueryProperty
   }
 
   QueryBuilder<ContactReceiveKey, List<String>, QQueryOperations>
-      receiveKeysProperty() {
+  receiveKeysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'receiveKeys');
     });
   }
 
   QueryBuilder<ContactReceiveKey, List<String>, QQueryOperations>
-      removeReceiveKeysProperty() {
+  removeReceiveKeysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'removeReceiveKeys');
     });

@@ -26,6 +26,6 @@ Map<String, dynamic> _$PrekeyMessageModelToJson(PrekeyMessageModel instance) =>
       'sig': instance.sig,
       'name': instance.name,
       'message': instance.message,
-      if (instance.lightning case final value?) 'lightning': value,
-      if (instance.avatar case final value?) 'avatar': value,
+      'lightning': ?instance.lightning,
+      'avatar': ?instance.avatar,
     };

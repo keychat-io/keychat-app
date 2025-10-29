@@ -116,21 +116,22 @@ class MessageWidget extends StatelessWidget {
                   future: rust_cashu.decodeToken(encodedToken: mfi.ecashToken!),
                   builder: (context, snapshot) =>
                       snapshot.connectionState == ConnectionState.done
-                          ? ListTile(
-                              title: const Text('Fee (Pay to FileServer)'),
-                              // subtitle: Text(snapshot.data?.mint ?? ''),
-                              trailing: Text(
-                                '${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            )
-                          : Container(),
+                      ? ListTile(
+                          title: const Text('Fee (Pay to FileServer)'),
+                          // subtitle: Text(snapshot.data?.mint ?? ''),
+                          trailing: Text(
+                            '${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        )
+                      : Container(),
                 ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: TextButton(
                   onPressed: () {
-                    final str = '''
+                    final str =
+                        '''
 {"url": "${mfi.url}",
 "IV": "${mfi.iv}",
 "Key": "${mfi.key}"}
@@ -303,8 +304,9 @@ class MessageWidget extends StatelessWidget {
                       EasyLoading.showError('Failed to resend: $msg');
                     }
                   }
-                  await MessageService.instance
-                      .checkMessageStatus(message: message);
+                  await MessageService.instance.checkMessageStatus(
+                    message: message,
+                  );
                   Get.back<void>();
                 },
               ),
@@ -396,7 +398,7 @@ class MessageWidget extends StatelessWidget {
                     direction: Axis.horizontal,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
-                      if (messageStatus != null) messageStatus,
+                      ?messageStatus,
                       Flexible(child: widget),
                     ],
                   ),
@@ -435,8 +437,8 @@ class MessageWidget extends StatelessWidget {
                               color: message.successRelays <= 0
                                   ? Colors.red
                                   : (Get.isDarkMode
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade400),
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade400),
                               fontSize: 10,
                             ),
                           ),
@@ -457,8 +459,8 @@ class MessageWidget extends StatelessWidget {
         ),
       );
     }
-    // isMeSend == false
 
+    // isMeSend == false
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -466,7 +468,7 @@ class MessageWidget extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 5),
             child: Text(
-              message.senderName ?? message.idPubkey,
+              cc.getContactByPubkey(message.idPubkey).displayName,
               maxLines: 1,
               style: TextStyle(fontSize: 14, color: toDisplayNameColor),
             ),
@@ -503,8 +505,10 @@ class MessageWidget extends StatelessWidget {
     }
 
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
-      final (ess, event) =
-          await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
+      final (ess, event) = await _getRawMessageData(
+        message.eventIds[0],
+        message.rawEvents[0],
+      );
 
       // fix message sent status
       if (message.sent != SendStatusType.success) {
@@ -542,10 +546,13 @@ class MessageWidget extends StatelessWidget {
     final result1 = <List<NostrEventStatus>>[];
     final result2 = <NostrEventModel?>[];
     for (var i = 0; i < message.eventIds.length; i++) {
-      final rawString =
-          message.rawEvents.length > i ? message.rawEvents[i] : null;
-      final (ess, event) =
-          await _getRawMessageData(message.eventIds[i], rawString);
+      final rawString = message.rawEvents.length > i
+          ? message.rawEvents[i]
+          : null;
+      final (ess, event) = await _getRawMessageData(
+        message.eventIds[i],
+        rawString,
+      );
       result1.add(ess);
       result2.add(event);
     }
@@ -569,8 +576,9 @@ class MessageWidget extends StatelessWidget {
       )
       ..sort(
         (a, b) {
-          final receiveCompare =
-              (a.isReceive ? 1 : 0).compareTo(b.isReceive ? 1 : 0);
+          final receiveCompare = (a.isReceive ? 1 : 0).compareTo(
+            b.isReceive ? 1 : 0,
+          );
           if (receiveCompare != 0) return receiveCompare;
           return b.sendStatus.index.compareTo(a.sendStatus.index);
         },
@@ -594,15 +602,23 @@ class MessageWidget extends StatelessWidget {
       children: [
         TableCell(
           child: Padding(
-            padding:
-                const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
+            padding: const EdgeInsets.only(
+              left: 10,
+              right: 4,
+              top: 8,
+              bottom: 4,
+            ),
             child: Text(title),
           ),
         ),
         TableCell(
           child: Padding(
-            padding:
-                const EdgeInsets.only(left: 5, right: 10, top: 10, bottom: 5),
+            padding: const EdgeInsets.only(
+              left: 5,
+              right: 10,
+              top: 10,
+              bottom: 5,
+            ),
             child: GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: text));
@@ -632,7 +648,9 @@ class MessageWidget extends StatelessWidget {
             child: GestureDetector(
               onLongPress: () {
                 final userName = isGroup
-                    ? (roomMember?.name ?? 'Unknow')
+                    ? (cc.getContactByPubkey(message.idPubkey).name ??
+                          roomMember?.name ??
+                          idPubkey)
                     : cc.roomObs.value.getRoomName();
                 cc.addMetionName(userName);
                 cc.chatContentFocus.unfocus();
@@ -650,8 +668,10 @@ class MessageWidget extends StatelessWidget {
                   );
                 } else {
                   await Get.toNamed<void>(
-                    Routes.roomSettingContact
-                        .replaceFirst(':id', cc.roomObs.value.id.toString()),
+                    Routes.roomSettingContact.replaceFirst(
+                      ':id',
+                      cc.roomObs.value.id.toString(),
+                    ),
                   );
                 }
               },
@@ -681,30 +701,34 @@ class MessageWidget extends StatelessWidget {
         child: Text(
           message.reply!.content,
           style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                color: fontColor.withValues(alpha: 0.7),
-                height: 1.1,
-              ),
+            color: fontColor.withValues(alpha: 0.7),
+            height: 1.1,
+          ),
           maxLines: 5,
         ),
       );
     } else {
-      final msg =
-          MessageService.instance.getMessageByMsgIdSync(message.reply!.id!);
+      final msg = MessageService.instance.getMessageByMsgIdSync(
+        message.reply!.id!,
+      );
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
           final mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
-          subTitleChild =
-              RoomUtil.getImageViewWidget(msg, cc, mfi, _textCallback);
+          subTitleChild = RoomUtil.getImageViewWidget(
+            msg,
+            cc,
+            mfi,
+            _textCallback,
+          );
         } else {
           final content = msg.mediaType == MessageMediaType.text
               ? (msg.realMessage ?? msg.content)
               : msg.mediaType.name;
           subTitleChild = Text(
             content,
-            style: Theme.of(Get.context!)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: fontColor, height: 1.2),
+            style: Theme.of(
+              Get.context!,
+            ).textTheme.bodyMedium?.copyWith(color: fontColor, height: 1.2),
             maxLines: 5,
           );
         }
@@ -718,10 +742,11 @@ class MessageWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (message.isMeSend
-                      ? MaterialTheme.lightScheme().surface
-                      : Theme.of(Get.context!).colorScheme.surface)
-                  .withValues(alpha: 0.5),
+              color:
+                  (message.isMeSend
+                          ? MaterialTheme.lightScheme().surface
+                          : Theme.of(Get.context!).colorScheme.surface)
+                      .withValues(alpha: 0.5),
               border: Border(
                 left: BorderSide(color: Colors.purple.shade200, width: 2),
               ),
@@ -732,17 +757,15 @@ class MessageWidget extends StatelessWidget {
                 Text(
                   message.reply!.user,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(Get.context!)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.purple, height: 1),
+                  style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
+                    color: Colors.purple,
+                    height: 1,
+                  ),
                 ),
                 subTitleChild ??
                     Text(
                       message.reply!.content,
-                      style: Theme.of(Get.context!)
-                          .textTheme
-                          .bodyLarge
+                      style: Theme.of(Get.context!).textTheme.bodyLarge
                           ?.copyWith(color: fontColor, height: 1),
                     ),
               ],
@@ -770,8 +793,9 @@ class MessageWidget extends StatelessWidget {
                 ? BubbleType.sendBubble
                 : BubbleType.receiverBubble,
           ),
-          alignment:
-              message.isMeSend ? Alignment.centerRight : Alignment.centerLeft,
+          alignment: message.isMeSend
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
           backGroundColor: backgroundColor,
           child: child,
         ),
@@ -799,16 +823,18 @@ class MessageWidget extends StatelessWidget {
                 if (message.mediaType == MessageMediaType.file ||
                     message.mediaType == MessageMediaType.image ||
                     message.mediaType == MessageMediaType.video) {
-                  final mfi =
-                      MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+                  final mfi = MsgFileInfo.fromJson(
+                    jsonDecode(message.realMessage!),
+                  );
                   if (mfi.localPath != null) {
                     final filePath = '${Utils.appFolder.path}${mfi.localPath}';
                     final fileExists = File(filePath).existsSync();
                     if (fileExists) {
                       await File(filePath).delete();
                       if (message.mediaType == MessageMediaType.video) {
-                        final thumbail =
-                            FileService.instance.getVideoThumbPath(filePath);
+                        final thumbail = FileService.instance.getVideoThumbPath(
+                          filePath,
+                        );
                         final thumbExists = await File(thumbail).exists();
                         if (thumbExists) {
                           await File(thumbail).delete();
@@ -1106,9 +1132,9 @@ class MessageWidget extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
             ),
@@ -1136,12 +1162,11 @@ class MessageWidget extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w500,
-                  ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           Expanded(
@@ -1155,8 +1180,8 @@ class MessageWidget extends StatelessWidget {
               child: Text(
                 value,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                    ),
+                  fontFamily: 'monospace',
+                ),
               ),
             ),
           ),
@@ -1177,9 +1202,9 @@ class MessageWidget extends StatelessWidget {
         child: Text(
           text,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.w500,
-              ),
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -1258,8 +1283,9 @@ class MessageWidget extends StatelessWidget {
               ],
             ),
             onTap: () {
-              final mfi =
-                  MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+              final mfi = MsgFileInfo.fromJson(
+                jsonDecode(message.realMessage!),
+              );
               if (mfi.status != FileStatus.decryptSuccess) {
                 EasyLoading.showToast('File not decrypted');
                 return;
@@ -1268,8 +1294,10 @@ class MessageWidget extends StatelessWidget {
                 EasyLoading.showToast('File not exist');
                 return;
               }
-              final filePath = FileService.instance
-                  .getAbsolutelyFilePath(Utils.appFolder.path, mfi.localPath!);
+              final filePath = FileService.instance.getAbsolutelyFilePath(
+                Utils.appFolder.path,
+                mfi.localPath!,
+              );
 
               // Get the directory of the file
               final fileDir = File(filePath).parent.path;
@@ -1336,10 +1364,9 @@ class MessageWidget extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Delete',
-                style: Theme.of(Get.context!)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: Colors.red),
+                style: Theme.of(
+                  Get.context!,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.red),
               ),
             ],
           ),
@@ -1416,10 +1443,9 @@ class MessageWidget extends StatelessWidget {
                 },
                 title: Text(
                   'Delete',
-                  style: Theme.of(Get.context!)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(color: Colors.red),
+                  style: Theme.of(
+                    Get.context!,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.red),
                 ),
               ),
             ],

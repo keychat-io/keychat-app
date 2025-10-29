@@ -17,12 +17,12 @@ ProfileRequestModel _$ProfileRequestModelFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$ProfileRequestModelToJson(
-        ProfileRequestModel instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'pubkey': instance.pubkey,
-      if (instance.avatar case final value?) 'avatar': value,
-      if (instance.lightning case final value?) 'lightning': value,
-      if (instance.bio case final value?) 'bio': value,
-      if (instance.note case final value?) 'note': value,
-    };
+  ProfileRequestModel instance,
+) => <String, dynamic>{
+  'name': instance.name,
+  'pubkey': instance.pubkey,
+  'avatar': ?instance.avatar,
+  'lightning': ?instance.lightning,
+  'bio': ?instance.bio,
+  'note': ?instance.note,
+};

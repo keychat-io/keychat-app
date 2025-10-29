@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/contact/ContactDetail/ContactDetail_page.dart';
+import 'package:app/page/contact/contact_detail_page.dart';
 import 'package:app/page/contact/contact_index_bar.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/utils.dart';
@@ -25,14 +25,15 @@ class _ContactsPageState extends State<ContactsPage> {
 
   final double _cellHeight = 54;
   final double _groupHeight = 30;
-  final Map _groupOffsetMap = {
+  final Map<String, double> _groupOffsetMap = {
     INDEX_WORDS[0]: 0.0,
     INDEX_WORDS[0]: 0.0,
   };
 
   Future<void> _getData() async {
-    final contactList =
-        await ContactService.instance.getFriendContacts(widget.identity.id);
+    final contactList = await ContactService.instance.getFriendContacts(
+      widget.identity.id,
+    );
 
     final contactStartNum = <Contact>[];
     final restContacts = <Contact>[];
@@ -107,17 +108,9 @@ class _ContactsPageState extends State<ContactsPage> {
             },
             icon: const Icon(CupertinoIcons.search),
           ),
-          IconButton(
-            onPressed: () {
-              copyAllContacts(_listDatas);
-            },
-            icon: const Icon(CupertinoIcons.down_arrow),
-          ),
         ],
         centerTitle: true,
-        title: const Text(
-          'Contacts',
-        ),
+        title: const Text('Contacts'),
       ),
       body: _listDatas.isEmpty
           ? Center(
@@ -138,8 +131,8 @@ class _ContactsPageState extends State<ContactsPage> {
                   Text(
                     'Add contacts to start chatting',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -147,8 +140,9 @@ class _ContactsPageState extends State<ContactsPage> {
                       Get.bottomSheet(
                         clipBehavior: Clip.antiAlias,
                         shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(4)),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(4),
+                          ),
                         ),
                         const AddtoContactsPage(''),
                         isScrollControlled: true,
@@ -177,8 +171,8 @@ class _ContactsPageState extends State<ContactsPage> {
                   String? groupTitle = _listDatas[index].indexLetter;
 
                   if (index - _headerData.length > 0) {
-                    final isShowT = _listDatas[index - _headerData.length]
-                            .indexLetter ==
+                    final isShowT =
+                        _listDatas[index - _headerData.length].indexLetter ==
                         _listDatas[index - _headerData.length - 1].indexLetter;
 
                     if (isShowT) {
@@ -227,7 +221,8 @@ class _FriendCell extends StatelessWidget {
         ),
         InkWell(
           onTap: () async {
-            await Get.bottomSheet(
+            // Open detail as a bottom sheet and capture the result.
+            final res = await Get.bottomSheet<bool?>(
               clipBehavior: Clip.antiAlias,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -236,7 +231,9 @@ class _FriendCell extends StatelessWidget {
               isScrollControlled: true,
               ignoreSafeArea: false,
             );
-            updateList();
+            if (res ?? false) {
+              updateList();
+            }
           },
           child: ListTile(
             leading: Utils.getRandomAvatar(

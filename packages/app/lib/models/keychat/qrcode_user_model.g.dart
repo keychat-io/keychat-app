@@ -36,6 +36,6 @@ Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
       'globalSign': instance.globalSign,
       'relay': instance.relay,
       'time': instance.time,
-      if (instance.avatar case final value?) 'avatar': value,
-      if (instance.lightning case final value?) 'lightning': value,
+      'avatar': ?instance.avatar,
+      'lightning': ?instance.lightning,
     };

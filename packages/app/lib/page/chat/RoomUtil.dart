@@ -155,8 +155,9 @@ Let's start an encrypted chat.''';
             .deleteAll();
       });
       // excute auto delete message by user setting
-      final timestamp =
-          Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+      final timestamp = Storage.getIntOrZero(
+        StorageKeyString.autoDeleteMessageDays,
+      );
       if (timestamp > 0 &&
           DateTime.now()
                   .difference(DateTime.fromMillisecondsSinceEpoch(timestamp))
@@ -211,8 +212,10 @@ Let's start an encrypted chat.''';
           .deleteAll();
     });
 
-    final dir = await FileService.instance
-        .getRoomFolder(identityId: identityId, roomId: roomId);
+    final dir = await FileService.instance.getRoomFolder(
+      identityId: identityId,
+      roomId: roomId,
+    );
     FileService.instance.deleteFilesByTime(dir, fromAt);
   }
 
@@ -288,8 +291,9 @@ Let's start an encrypted chat.''';
         await RoomService.instance.updateRoom(cc.roomObs.value);
         cc.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
-        Get.find<HomeController>()
-            .loadIdentityRoomList(cc.roomObs.value.identityId);
+        Get.find<HomeController>().loadIdentityRoomList(
+          cc.roomObs.value.identityId,
+        );
       },
     );
   }
@@ -418,8 +422,9 @@ Let's start an encrypted chat.''';
                     onDeletRoom();
                   }
                   EasyLoading.showSuccess('Success');
-                  Get.find<HomeController>()
-                      .loadIdentityRoomList(room.identityId);
+                  Get.find<HomeController>().loadIdentityRoomList(
+                    room.identityId,
+                  );
                 } catch (e, s) {
                   EasyLoading.dismiss();
                   logger.e(e.toString(), error: e, stackTrace: s);
@@ -492,8 +497,9 @@ Let's start an encrypted chat.''';
                   Get.back<void>();
                   try {
                     EasyLoading.show(status: 'Processing');
-                    await RoomService.instance
-                        .deleteRoomMessage(cc.roomObs.value);
+                    await RoomService.instance.deleteRoomMessage(
+                      cc.roomObs.value,
+                    );
                     cc.messages.clear();
                     EasyLoading.showSuccess('Successfully');
                   } catch (e) {
@@ -510,13 +516,16 @@ Let's start an encrypted chat.''';
 
   static SettingsTile fromContactClick(
     String pubkey,
-    int identityId, [
+    int identityId, {
     String? greeting,
-  ]) {
+    Contact? contact,
+  }) {
     return SettingsTile(
       title: FutureBuilder(
-        future:
-            RoomService.instance.getRoomAndContainSession(pubkey, identityId),
+        future: RoomService.instance.getRoomAndContainSession(
+          pubkey,
+          identityId,
+        ),
         builder: (context, snapshot) {
           final room = snapshot.data;
           if (room == null) {
@@ -530,14 +539,13 @@ Let's start an encrypted chat.''';
                   greeting: greeting,
                 );
               },
-              child: const Text('Add'),
+              child: const Text('Start a Private Chat'),
             );
           }
           return FilledButton(
             onPressed: () async {
-              await Utils.offAndToNamedRoom(
-                room,
-              );
+              if (contact != null) room.contact = contact;
+              await Utils.offAndToNamedRoom(room);
               Get.find<HomeController>().loadIdentityRoomList(room.identityId);
             },
             child: const Text('Send Message'),
@@ -690,8 +698,9 @@ Let's start an encrypted chat.''';
 
       if (hc.roomLastMessage[a.id] == null) return 1;
       if (hc.roomLastMessage[b.id] == null) return -1;
-      return hc.roomLastMessage[b.id]!.createdAt
-          .compareTo(hc.roomLastMessage[a.id]!.createdAt);
+      return hc.roomLastMessage[b.id]!.createdAt.compareTo(
+        hc.roomLastMessage[a.id]!.createdAt,
+      );
     });
     return rooms;
   }
@@ -927,7 +936,8 @@ Let's start an encrypted chat.''';
       await RoomService.instance.receiveDM(
         room,
         nostrEvent,
-        decodedContent: '''
+        decodedContent:
+            '''
 $error
 
 track: $content''',

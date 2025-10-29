@@ -166,8 +166,9 @@ class _WebviewTabState extends State<WebviewTab> {
                                       horizontal: 2,
                                     ),
                                     onPressed: () {
-                                      multiWebviewController
-                                          .removeTab(widget.uniqueKey);
+                                      multiWebviewController.removeTab(
+                                        widget.uniqueKey,
+                                      );
                                     },
                                     icon: const Icon(Icons.close),
                                   ),
@@ -236,8 +237,8 @@ class _WebviewTabState extends State<WebviewTab> {
                   ],
                 )
               : null,
-          floatingActionButton: GetPlatform.isMobile &&
-                  multiWebviewController.showFAB()
+          floatingActionButton:
+              GetPlatform.isMobile && multiWebviewController.showFAB()
               ? Padding(
                   padding: const EdgeInsets.only(bottom: 60),
                   child: Tooltip(
@@ -289,16 +290,16 @@ class _WebviewTabState extends State<WebviewTab> {
                               ),
                               child: Container(
                                 margin: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.grey[200],
+                                  color: Colors.white70,
                                 ),
                                 child: popMenu(
                                   tooltip: '',
                                   child: const Icon(
                                     CupertinoIcons.circle_fill,
-                                    size: 20,
-                                    color: Colors.white70,
+                                    size: 18,
+                                    color: Colors.transparent,
                                   ),
                                 ),
                               ),
@@ -312,12 +313,14 @@ class _WebviewTabState extends State<WebviewTab> {
               : null,
           floatingActionButtonLocation:
               multiWebviewController.config['fabPosition'] == 'left'
-                  ? FloatingActionButtonLocation.miniStartFloat
-                  : FloatingActionButtonLocation.miniEndFloat,
+              ? FloatingActionButtonLocation.miniStartFloat
+              : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            bottom: GetPlatform.isAndroid ||
-                multiWebviewController.bottomSafeHosts
-                    .contains(WebUri(widget.initUrl).host),
+            bottom:
+                GetPlatform.isAndroid ||
+                multiWebviewController.bottomSafeHosts.contains(
+                  WebUri(widget.initUrl).host,
+                ),
             child: Column(
               children: [
                 Expanded(
@@ -408,8 +411,8 @@ class _WebviewTabState extends State<WebviewTab> {
           children: [
             FutureBuilder(
               future: () async {
-                final url =
-                    await tabController.inAppWebViewController?.getUrl();
+                final url = await tabController.inAppWebViewController
+                    ?.getUrl();
                 if (url == null) return null;
                 return DBProvider.database.browserBookmarks
                     .filter()
@@ -581,8 +584,9 @@ class _WebviewTabState extends State<WebviewTab> {
                   );
                 }
                 return Switch(
-                  value: multiWebviewController.mobileKeepAlive.keys
-                      .contains(initDomain),
+                  value: multiWebviewController.mobileKeepAlive.keys.contains(
+                    initDomain,
+                  ),
                   onChanged: (value) async {
                     _menuController.close();
                     if (value) {
@@ -625,8 +629,9 @@ class _WebviewTabState extends State<WebviewTab> {
         initialUrlRequest: URLRequest(url: WebUri(tabController.url)),
         initialSettings: tabController.settings,
         pullToRefreshController: pullToRefreshController,
-        initialUserScripts:
-            UnmodifiableListView([multiWebviewController.textSizeUserScript]),
+        initialUserScripts: UnmodifiableListView([
+          multiWebviewController.textSizeUserScript,
+        ]),
         onScrollChanged: (controller, x, y) async {
           // Save scroll position by current URL
           if (GetPlatform.isAndroid) {
@@ -702,63 +707,69 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         shouldOverrideUrlLoading:
             (controller, NavigationAction navigationAction) async {
-          final uri = navigationAction.request.url;
-          logger.i(
-            'shouldOverrideUrlLoading: $uri download: ${navigationAction.shouldPerformDownload}',
-          );
-          if (uri == null) return NavigationActionPolicy.ALLOW;
-
-          try {
-            final str = uri.toString();
-
-            // Handle special URLs
-            if (await handleSpecialUrls(str)) {
-              return NavigationActionPolicy.CANCEL;
-            }
-
-            if (isPdfUrl(str) &&
-                !str.startsWith('https://docs.google.com/gview')) {
-              final googleDocsUrl =
-                  'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-              logger.i('load pdf: $googleDocsUrl');
-              await controller.loadUrl(
-                urlRequest:
-                    URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
+              final uri = navigationAction.request.url;
+              logger.i(
+                'shouldOverrideUrlLoading: $uri download: ${navigationAction.shouldPerformDownload}',
               );
-              return NavigationActionPolicy.CANCEL;
-            }
+              if (uri == null) return NavigationActionPolicy.ALLOW;
 
-            // download file
+              try {
+                final str = uri.toString();
 
-            final shouldPerformDownload =
-                navigationAction.shouldPerformDownload ?? false;
-            final url = navigationAction.request.url;
-            if ((shouldPerformDownload && url != null) ||
-                url.toString().startsWith('blob:')) {
-              await downloadFile(url.toString());
-              return NavigationActionPolicy.DOWNLOAD;
-            }
-            if (['http', 'https', 'data', 'javascript', 'about']
-                .contains(uri.scheme)) {
-              return NavigationActionPolicy.ALLOW;
-            }
-            try {
-              await launchUrl(uri);
-            } catch (e) {
-              if (e is PlatformException) {
-                await EasyLoading.showError(
-                  'Failed to open link: ${e.message}',
-                );
-                return NavigationActionPolicy.CANCEL;
+                // Handle special URLs
+                if (await handleSpecialUrls(str)) {
+                  return NavigationActionPolicy.CANCEL;
+                }
+
+                if (isPdfUrl(str) &&
+                    !str.startsWith('https://docs.google.com/gview')) {
+                  final googleDocsUrl =
+                      'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+                  logger.i('load pdf: $googleDocsUrl');
+                  await controller.loadUrl(
+                    urlRequest: URLRequest(
+                      url: WebUri.uri(Uri.parse(googleDocsUrl)),
+                    ),
+                  );
+                  return NavigationActionPolicy.CANCEL;
+                }
+
+                // download file
+
+                final shouldPerformDownload =
+                    navigationAction.shouldPerformDownload ?? false;
+                final url = navigationAction.request.url;
+                if ((shouldPerformDownload && url != null) ||
+                    url.toString().startsWith('blob:')) {
+                  await downloadFile(url.toString());
+                  return NavigationActionPolicy.DOWNLOAD;
+                }
+                if ([
+                  'http',
+                  'https',
+                  'data',
+                  'javascript',
+                  'about',
+                ].contains(uri.scheme)) {
+                  return NavigationActionPolicy.ALLOW;
+                }
+                try {
+                  await launchUrl(uri);
+                } catch (e) {
+                  if (e is PlatformException) {
+                    await EasyLoading.showError(
+                      'Failed to open link: ${e.message}',
+                    );
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  logger.i(e.toString(), error: e);
+                  await EasyLoading.showError('Failed to open link: $e');
+                }
+              } catch (e) {
+                logger.i(e.toString(), error: e);
               }
-              logger.i(e.toString(), error: e);
-              await EasyLoading.showError('Failed to open link: $e');
-            }
-          } catch (e) {
-            logger.i(e.toString(), error: e);
-          }
-          return NavigationActionPolicy.CANCEL;
-        },
+              return NavigationActionPolicy.CANCEL;
+            },
         onLoadStop: (controller, url) async {
           if (url == null) return;
           logger.d('onLoadStop: $url');
@@ -821,40 +832,45 @@ class _WebviewTabState extends State<WebviewTab> {
           logger.i('onWebContentProcessDidTerminate: ${controller.hashCode}');
           unawaited(refreshPage());
         },
-        onReceivedError: (
-          InAppWebViewController controller,
-          WebResourceRequest request,
-          error,
-        ) async {
-          final url = request.url.toString();
-          logger.i('onReceivedError: $url ${error.type} ${error.description}');
-          final isForMainFrame = request.isForMainFrame ?? false;
-          final isCancel = error.type == WebResourceErrorType.CANCELLED;
-          if (!isForMainFrame || isCancel) {
-            return;
-          }
-          pullToRefreshController?.endRefreshing();
-          if (error.description
-              .contains('domain=WebKitErrorDomain, code=102')) {
-            return renderAssetAsHtml(controller, request);
-          }
-          if ((GetPlatform.isIOS ||
-                  GetPlatform.isMacOS ||
-                  GetPlatform.isWindows) &&
-              error.type == WebResourceErrorType.CANCELLED) {
-            // NSURLErrorDomain
-            return;
-          }
-          if (GetPlatform.isWindows &&
-              error.type == WebResourceErrorType.CONNECTION_ABORTED) {
-            // CONNECTION_ABORTED
-            return;
-          }
+        onReceivedError:
+            (
+              InAppWebViewController controller,
+              WebResourceRequest request,
+              error,
+            ) async {
+              final url = request.url.toString();
+              logger.i(
+                'onReceivedError: $url ${error.type} ${error.description}',
+              );
+              final isForMainFrame = request.isForMainFrame ?? false;
+              final isCancel = error.type == WebResourceErrorType.CANCELLED;
+              if (!isForMainFrame || isCancel) {
+                return;
+              }
+              pullToRefreshController?.endRefreshing();
+              if (error.description.contains(
+                'domain=WebKitErrorDomain, code=102',
+              )) {
+                return renderAssetAsHtml(controller, request);
+              }
+              if ((GetPlatform.isIOS ||
+                      GetPlatform.isMacOS ||
+                      GetPlatform.isWindows) &&
+                  error.type == WebResourceErrorType.CANCELLED) {
+                // NSURLErrorDomain
+                return;
+              }
+              if (GetPlatform.isWindows &&
+                  error.type == WebResourceErrorType.CONNECTION_ABORTED) {
+                // CONNECTION_ABORTED
+                return;
+              }
 
-          final errorUrl = request.url;
-          pageFailed = true;
-          await tabController.inAppWebViewController?.loadData(
-            data: '''
+              final errorUrl = request.url;
+              pageFailed = true;
+              await tabController.inAppWebViewController?.loadData(
+                data:
+                    '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -898,11 +914,11 @@ class _WebviewTabState extends State<WebviewTab> {
     </div>
 </body>
     ''',
-            baseUrl: errorUrl,
-            historyUrl: WebUri(widget.initUrl),
-          );
-          await _checkGoBackState(url);
-        },
+                baseUrl: errorUrl,
+                historyUrl: WebUri(widget.initUrl),
+              );
+              await _checkGoBackState(url);
+            },
         onConsoleMessage: (controller, consoleMessage) {
           if (kDebugMode) {
             print('console: ${consoleMessage.message}');
@@ -1129,8 +1145,11 @@ class _WebviewTabState extends State<WebviewTab> {
         final plaintext = data[2] as String;
         String ciphertext;
         if (identity.isFromSigner) {
-          ciphertext = await SignerService.instance
-              .nip44Encrypt(plaintext, to, identity.secp256k1PKHex);
+          ciphertext = await SignerService.instance.nip44Encrypt(
+            plaintext,
+            to,
+            identity.secp256k1PKHex,
+          );
         } else {
           ciphertext = await rust_nostr.encryptNip44(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -1143,8 +1162,11 @@ class _WebviewTabState extends State<WebviewTab> {
         final to = data[1] as String;
         final ciphertext = data[2] as String;
         if (identity.isFromSigner) {
-          final plaintext = await SignerService.instance
-              .nip44Decrypt(ciphertext, to, identity.secp256k1PKHex);
+          final plaintext = await SignerService.instance.nip44Decrypt(
+            ciphertext,
+            to,
+            identity.secp256k1PKHex,
+          );
           return plaintext;
         }
         return rust_nostr.decryptNip44(
@@ -1161,8 +1183,9 @@ class _WebviewTabState extends State<WebviewTab> {
   Future<Identity?> getOrSelectIdentity(String host) async {
     final bc = await BrowserConnect.getByHost(host);
     if (bc != null) {
-      final identity =
-          await IdentityService.instance.getIdentityByNostrPubkey(bc.pubkey);
+      final identity = await IdentityService.instance.getIdentityByNostrPubkey(
+        bc.pubkey,
+      );
       if (identity == null) {
         BrowserConnect.delete(bc.id);
       } else {
@@ -1226,8 +1249,8 @@ class _WebviewTabState extends State<WebviewTab> {
             tabController.inAppWebViewController!,
             currentUri.host,
           );
-          final siteTitle =
-              await tabController.inAppWebViewController?.getTitle();
+          final siteTitle = await tabController.inAppWebViewController
+              ?.getTitle();
           await BrowserBookmark.add(
             url: currentUri.toString(),
             favicon: favicon,
@@ -1244,8 +1267,8 @@ class _WebviewTabState extends State<WebviewTab> {
             tabController.inAppWebViewController!,
             currentUri.host,
           );
-          final siteTitle =
-              await tabController.inAppWebViewController?.getTitle();
+          final siteTitle = await tabController.inAppWebViewController
+              ?.getTitle();
           await BrowserFavorite.add(
             url: currentUri.toString(),
             favicon: favicon,
@@ -1315,37 +1338,39 @@ class _WebviewTabState extends State<WebviewTab> {
   Future<void> onUpdateVisitedHistory(WebUri? uri) async {
     if (tabController.inAppWebViewController == null || uri == null) return;
     EasyDebounce.debounce(
-        'onUpdateVisitedHistory:$uri', const Duration(milliseconds: 200),
-        () async {
-      await _checkGoBackState(uri.toString());
-      if (uri.toString() == 'about:blank') {
-        return;
-      }
-      final newTitle = await tabController.inAppWebViewController?.getTitle();
-      var title = newTitle ?? tabController.title.value;
-      if (title.isEmpty) {
-        title = tabController.title.value;
-      }
-      updateTabInfo(widget.uniqueKey, uri.toString(), title);
-      await multiWebviewController.addHistory(uri.toString(), title);
-      await multiWebviewController
-          .getFavicon(tabController.inAppWebViewController!, uri.host)
-          .then((favicon) {
-        if (favicon != null && tabController.favicon != favicon) {
-          tabController.favicon = favicon;
-          multiWebviewController.setTabDataFavicon(
-            uniqueId: widget.uniqueKey,
-            favicon: favicon,
-          );
+      'onUpdateVisitedHistory:$uri',
+      const Duration(milliseconds: 200),
+      () async {
+        await _checkGoBackState(uri.toString());
+        if (uri.toString() == 'about:blank') {
+          return;
         }
-      });
-    });
+        final newTitle = await tabController.inAppWebViewController?.getTitle();
+        var title = newTitle ?? tabController.title.value;
+        if (title.isEmpty) {
+          title = tabController.title.value;
+        }
+        updateTabInfo(widget.uniqueKey, uri.toString(), title);
+        await multiWebviewController.addHistory(uri.toString(), title);
+        await multiWebviewController
+            .getFavicon(tabController.inAppWebViewController!, uri.host)
+            .then((favicon) {
+              if (favicon != null && tabController.favicon != favicon) {
+                tabController.favicon = favicon;
+                multiWebviewController.setTabDataFavicon(
+                  uniqueId: widget.uniqueKey,
+                  favicon: favicon,
+                );
+              }
+            });
+      },
+    );
   }
 
   Future<void> _checkGoBackState(String url) async {
     final canGoBack = await tabController.inAppWebViewController?.canGoBack();
-    final canGoForward =
-        await tabController.inAppWebViewController?.canGoForward();
+    final canGoForward = await tabController.inAppWebViewController
+        ?.canGoForward();
     logger.i('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
     tabController.canGoBack.value = canGoBack ?? false;
     tabController.canGoForward.value = canGoForward ?? false;
@@ -1405,7 +1430,8 @@ class _WebviewTabState extends State<WebviewTab> {
     InAppWebViewController controller,
     WebResourceRequest request,
   ) async {
-    final htmlContent = '''
+    final htmlContent =
+        '''
 <html>
 <head>
 <style>
@@ -1493,8 +1519,10 @@ img {
           return 'Error: Invoice is empty';
         }
         try {
-          final tr =
-              await ecashController.proccessPayLightningBill(lnbc, isPay: true);
+          final tr = await ecashController.proccessPayLightningBill(
+            lnbc,
+            isPay: true,
+          );
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
@@ -1506,12 +1534,14 @@ img {
       case 'makeInvoice':
         try {
           final source = data[1] as Map? ?? {};
-          final amount = source['amount'] != null &&
+          final amount =
+              source['amount'] != null &&
                   source['amount'] is String &&
                   (source['amount'] as String).isNotEmpty
               ? int.parse(source['amount'] as String)
               : 0;
-          final defaultAmount = source['defaultAmount'] != null &&
+          final defaultAmount =
+              source['defaultAmount'] != null &&
                   source['defaultAmount'] is String &&
                   (source['defaultAmount'] as String).isNotEmpty
               ? int.parse(source['defaultAmount'] as String)
@@ -1629,8 +1659,9 @@ img {
         color: Theme.of(Get.context!).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              Theme.of(Get.context!).colorScheme.outline.withValues(alpha: 0.2),
+          color: Theme.of(
+            Get.context!,
+          ).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -1642,8 +1673,10 @@ img {
               const SizedBox(width: 8),
               Text(
                 title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1652,10 +1685,9 @@ img {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(Get.context!)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.3),
+              color: Theme.of(
+                Get.context!,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -1703,11 +1735,13 @@ img {
 
   Future<void> pausePlayingMedia() async {
     try {
-      await tabController.inAppWebViewController?.evaluateJavascript(
-        source: """
+      await tabController.inAppWebViewController
+          ?.evaluateJavascript(
+            source: """
       document.querySelectorAll('audio, video').forEach(media => media.pause());
     """,
-      ).timeout(const Duration(seconds: 2));
+          )
+          .timeout(const Duration(seconds: 2));
     } catch (e) {
       logger.e(e.toString(), error: e);
     }
@@ -1715,29 +1749,34 @@ img {
 
   Future<void> refreshPage() async {
     try {
-      await tabController.inAppWebViewController!
-          .getUrl()
-          .timeout(const Duration(seconds: 2));
+      await tabController.inAppWebViewController!.getUrl().timeout(
+        const Duration(seconds: 2),
+      );
       await tabController.inAppWebViewController!.reload().timeout(
-            const Duration(
-              seconds: 4,
-            ),
-          );
+        const Duration(
+          seconds: 4,
+        ),
+      );
     } catch (e) {
       // ⛔ A MacOSInAppWebViewController was used after being disposed.
       // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
       logger.e(e.toString(), error: e);
-      tabController.url =
-          lastViewUri != null ? lastViewUri.toString() : widget.initUrl;
-      tabController.pageStorageKey.value =
-          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
+      tabController.url = lastViewUri != null
+          ? lastViewUri.toString()
+          : widget.initUrl;
+      tabController.pageStorageKey.value = PageStorageKey<String>(
+        Random().nextInt(1 << 32).toString(),
+      );
     }
   }
 
   void initPullToRefreshController() {
-    pullToRefreshController = kIsWeb ||
-            ![TargetPlatform.iOS, TargetPlatform.android]
-                .contains(defaultTargetPlatform)
+    pullToRefreshController =
+        kIsWeb ||
+            ![
+              TargetPlatform.iOS,
+              TargetPlatform.android,
+            ].contains(defaultTargetPlatform)
         ? null
         : PullToRefreshController(
             settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
@@ -1774,8 +1813,10 @@ img {
       }
       // Handle Bitcoin URIs
       if (urlString.startsWith('bitcoin:')) {
-        await QrScanService.instance
-            .handleBitcoinUri(urlString, ecashController);
+        await QrScanService.instance.handleBitcoinUri(
+          urlString,
+          ecashController,
+        );
         return true;
       }
     } catch (e) {

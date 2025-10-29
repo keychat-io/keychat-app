@@ -60,8 +60,8 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
         lightning: profile.lightning,
         bio: profile.bio,
       );
-      Get.find<HomeController>().loadIdentityRoomList(widget.room.identityId);
       await RoomService.instance.refreshRoom(widget.room, refreshContact: true);
+      Get.find<HomeController>().loadIdentityRoomList(widget.room.identityId);
 
       // Update message status
       await _updateMessageStatus(RequestConfrimEnum.approved);
@@ -101,8 +101,9 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
   Widget build(BuildContext context) {
     ProfileRequestModel map;
     try {
-      final keychatMessage =
-          KeychatMessage.fromJson(jsonDecode(widget.message.content));
+      final keychatMessage = KeychatMessage.fromJson(
+        jsonDecode(widget.message.content),
+      );
       map = ProfileRequestModel.fromJson(
         jsonDecode(keychatMessage.name!),
       );
@@ -197,8 +198,11 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
             OutlinedButton(
               onPressed: _isLoading
                   ? null
-                  : () =>
-                      _handleApprove(context, profile, widget.message.idPubkey),
+                  : () => _handleApprove(
+                      context,
+                      profile,
+                      widget.message.idPubkey,
+                    ),
               child: _isLoading
                   ? const SizedBox(
                       height: 16,

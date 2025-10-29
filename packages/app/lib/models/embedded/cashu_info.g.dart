@@ -13,53 +13,26 @@ const CashuInfoModelSchema = Schema(
   name: r'CashuInfoModel',
   id: 5289943811267851385,
   properties: {
-    r'amount': PropertySchema(
-      id: 0,
-      name: r'amount',
-      type: IsarType.long,
-    ),
+    r'amount': PropertySchema(id: 0, name: r'amount', type: IsarType.long),
     r'expiredAt': PropertySchema(
       id: 1,
       name: r'expiredAt',
       type: IsarType.dateTime,
     ),
-    r'hash': PropertySchema(
-      id: 2,
-      name: r'hash',
-      type: IsarType.string,
-    ),
-    r'id': PropertySchema(
-      id: 3,
-      name: r'id',
-      type: IsarType.string,
-    ),
-    r'memo': PropertySchema(
-      id: 4,
-      name: r'memo',
-      type: IsarType.string,
-    ),
-    r'mint': PropertySchema(
-      id: 5,
-      name: r'mint',
-      type: IsarType.string,
-    ),
+    r'hash': PropertySchema(id: 2, name: r'hash', type: IsarType.string),
+    r'id': PropertySchema(id: 3, name: r'id', type: IsarType.string),
+    r'memo': PropertySchema(id: 4, name: r'memo', type: IsarType.string),
+    r'mint': PropertySchema(id: 5, name: r'mint', type: IsarType.string),
     r'status': PropertySchema(
       id: 6,
       name: r'status',
       type: IsarType.int,
       enumMap: _CashuInfoModelstatusEnumValueMap,
     ),
-    r'token': PropertySchema(
-      id: 7,
-      name: r'token',
-      type: IsarType.string,
-    ),
-    r'unit': PropertySchema(
-      id: 8,
-      name: r'unit',
-      type: IsarType.string,
-    )
+    r'token': PropertySchema(id: 7, name: r'token', type: IsarType.string),
+    r'unit': PropertySchema(id: 8, name: r'unit', type: IsarType.string),
   },
+
   estimateSize: _cashuInfoModelEstimateSize,
   serialize: _cashuInfoModelSerialize,
   deserialize: _cashuInfoModelDeserialize,
@@ -133,7 +106,7 @@ CashuInfoModel _cashuInfoModelDeserialize(
   object.mint = reader.readString(offsets[5]);
   object.status =
       _CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offsets[6])] ??
-          TransactionStatus.pending;
+      TransactionStatus.pending;
   object.token = reader.readString(offsets[7]);
   object.unit = reader.readStringOrNull(offsets[8]);
   return object;
@@ -160,7 +133,8 @@ P _cashuInfoModelDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 6:
       return (_CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offset)] ??
-          TransactionStatus.pending) as P;
+              TransactionStatus.pending)
+          as P;
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
@@ -186,201 +160,202 @@ const _CashuInfoModelstatusValueEnumMap = {
 extension CashuInfoModelQueryFilter
     on QueryBuilder<CashuInfoModel, CashuInfoModel, QFilterCondition> {
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      amountEqualTo(int value) {
+  amountEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'amount',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'amount', value: value),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      amountGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  amountGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'amount',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'amount',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      amountLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  amountLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'amount',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'amount',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      amountBetween(
+  amountBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'amount',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'amount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtIsNull() {
+  expiredAtIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'expiredAt',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'expiredAt'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtIsNotNull() {
+  expiredAtIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'expiredAt',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'expiredAt'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtEqualTo(DateTime? value) {
+  expiredAtEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'expiredAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'expiredAt', value: value),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtGreaterThan(
-    DateTime? value, {
-    bool include = false,
-  }) {
+  expiredAtGreaterThan(DateTime? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'expiredAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'expiredAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtLessThan(
-    DateTime? value, {
-    bool include = false,
-  }) {
+  expiredAtLessThan(DateTime? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'expiredAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'expiredAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      expiredAtBetween(
+  expiredAtBetween(
     DateTime? lower,
     DateTime? upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'expiredAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'expiredAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashIsNull() {
+  hashIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'hash',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'hash'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashIsNotNull() {
+  hashIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'hash',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'hash'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+  hashEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashLessThan(
+  hashGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashBetween(
+  hashLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  hashBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -388,102 +363,104 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hash',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hash',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  hashStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  hashEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashContains(String value, {bool caseSensitive = true}) {
+  hashContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'hash',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'hash',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashMatches(String pattern, {bool caseSensitive = true}) {
+  hashMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'hash',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'hash',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashIsEmpty() {
+  hashIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hash',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hash', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      hashIsNotEmpty() {
+  hashIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'hash',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'hash', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idIsNull() {
+  idIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'id',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'id'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idIsNotNull() {
+  idIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'id',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'id'),
+      );
     });
   }
 
@@ -492,43 +469,45 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idGreaterThan(
+  idGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  idLessThan(String? value, {bool include = false, bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -540,154 +519,160 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idContains(String value, {bool caseSensitive = true}) {
+  idContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'id',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'id',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition> idMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'id',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      idIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'id',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'memo',
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'memo',
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoEqualTo(
-    String? value, {
+    String pattern, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'id',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  idIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoLessThan(
+  idIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'id', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  memoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'memo'),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  memoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'memo'),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  memoEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  memoGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoBetween(
+  memoLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  memoBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -695,135 +680,140 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'memo',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'memo',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  memoStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  memoEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoContains(String value, {bool caseSensitive = true}) {
+  memoContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'memo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'memo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoMatches(String pattern, {bool caseSensitive = true}) {
+  memoMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'memo',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'memo',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoIsEmpty() {
+  memoIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'memo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'memo', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      memoIsNotEmpty() {
+  memoIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'memo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'memo', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  mintEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintLessThan(
+  mintGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintBetween(
+  mintLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  mintBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -831,191 +821,195 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'mint',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'mint',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  mintStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  mintEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintContains(String value, {bool caseSensitive = true}) {
+  mintContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'mint',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'mint',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintMatches(String pattern, {bool caseSensitive = true}) {
+  mintMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'mint',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'mint',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintIsEmpty() {
+  mintIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'mint',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'mint', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      mintIsNotEmpty() {
+  mintIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'mint',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'mint', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      statusEqualTo(TransactionStatus value) {
+  statusEqualTo(TransactionStatus value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'status',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'status', value: value),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      statusGreaterThan(
-    TransactionStatus value, {
-    bool include = false,
-  }) {
+  statusGreaterThan(TransactionStatus value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'status',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'status',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      statusLessThan(
-    TransactionStatus value, {
-    bool include = false,
-  }) {
+  statusLessThan(TransactionStatus value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'status',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'status',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      statusBetween(
+  statusBetween(
     TransactionStatus lower,
     TransactionStatus upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'status',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'status',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tokenEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenLessThan(
+  tokenGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenBetween(
+  tokenLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  tokenBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1023,153 +1017,158 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'token',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'token',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tokenStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tokenEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenContains(String value, {bool caseSensitive = true}) {
+  tokenContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'token',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'token',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenMatches(String pattern, {bool caseSensitive = true}) {
+  tokenMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'token',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'token',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenIsEmpty() {
+  tokenIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'token',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'token', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      tokenIsNotEmpty() {
+  tokenIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'token',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'token', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitIsNull() {
+  unitIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'unit',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'unit'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitIsNotNull() {
+  unitIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'unit',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'unit'),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+  unitEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitLessThan(
+  unitGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitBetween(
+  unitLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+  unitBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -1177,84 +1176,86 @@ extension CashuInfoModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'unit',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'unit',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  unitStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  unitEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitContains(String value, {bool caseSensitive = true}) {
+  unitContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'unit',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'unit',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitMatches(String pattern, {bool caseSensitive = true}) {
+  unitMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'unit',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'unit',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitIsEmpty() {
+  unitIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'unit',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'unit', value: ''),
+      );
     });
   }
 
   QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
-      unitIsNotEmpty() {
+  unitIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'unit',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'unit', value: ''),
+      );
     });
   }
 }
@@ -1284,10 +1285,9 @@ Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
       'mint': instance.mint,
       'token': instance.token,
       'amount': instance.amount,
-      if (instance.id case final value?) 'id': value,
-      if (instance.unit case final value?) 'unit': value,
-      if (instance.memo case final value?) 'memo': value,
-      if (instance.hash case final value?) 'hash': value,
-      if (instance.expiredAt?.toIso8601String() case final value?)
-        'expiredAt': value,
+      'id': ?instance.id,
+      'unit': ?instance.unit,
+      'memo': ?instance.memo,
+      'hash': ?instance.hash,
+      'expiredAt': ?instance.expiredAt?.toIso8601String(),
     };

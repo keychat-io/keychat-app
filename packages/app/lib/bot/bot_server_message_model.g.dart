@@ -7,24 +7,24 @@ part of 'bot_server_message_model.dart';
 // **************************************************************************
 
 BotServerMessageModel _$BotServerMessageModelFromJson(
-        Map<String, dynamic> json) =>
-    BotServerMessageModel(
-      type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
-      message: json['message'] as String,
-      priceModels: (json['priceModels'] as List<dynamic>)
-          .map((e) => BotMessageData.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      id: json['id'] as String?,
-    );
+  Map<String, dynamic> json,
+) => BotServerMessageModel(
+  type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
+  message: json['message'] as String,
+  priceModels: (json['priceModels'] as List<dynamic>)
+      .map((e) => BotMessageData.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  id: json['id'] as String?,
+);
 
 Map<String, dynamic> _$BotServerMessageModelToJson(
-        BotServerMessageModel instance) =>
-    <String, dynamic>{
-      'type': _$MessageMediaTypeEnumMap[instance.type]!,
-      'message': instance.message,
-      'priceModels': instance.priceModels,
-      'id': instance.id,
-    };
+  BotServerMessageModel instance,
+) => <String, dynamic>{
+  'type': _$MessageMediaTypeEnumMap[instance.type]!,
+  'message': instance.message,
+  'priceModels': instance.priceModels,
+  'id': instance.id,
+};
 
 const _$MessageMediaTypeEnumMap = {
   MessageMediaType.text: 'text',
@@ -53,8 +53,9 @@ BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String,
       price: (json['price'] as num).toInt(),
       unit: json['unit'] as String,
-      mints:
-          (json['mints'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      mints: (json['mints'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$BotMessageDataToJson(BotMessageData instance) =>

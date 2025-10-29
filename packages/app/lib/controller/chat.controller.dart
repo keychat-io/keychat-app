@@ -223,8 +223,9 @@ class ChatController extends GetxController {
         imageFiles.add(file);
       }
     }
-    imageFiles
-        .sort((a, b) => b.statSync().changed.compareTo(a.statSync().changed));
+    imageFiles.sort(
+      (a, b) => b.statSync().changed.compareTo(a.statSync().changed),
+    );
     if (imageFiles.length > 30) return imageFiles.sublist(0, 30);
     return imageFiles;
   }
@@ -374,12 +375,12 @@ class ChatController extends GetxController {
   }
 
   Future<int> _loadLatestMessages(int searchMsgIndex) async {
-    final sortedNewMessages =
-        await MessageService.instance.listLatestMessageByTime(
-      roomId: roomObs.value.id,
-      messageId: searchMsgIndex,
-      limit: messageLimitPerPage,
-    );
+    final sortedNewMessages = await MessageService.instance
+        .listLatestMessageByTime(
+          roomId: roomObs.value.id,
+          messageId: searchMsgIndex,
+          limit: messageLimitPerPage,
+        );
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages');
@@ -427,8 +428,9 @@ class ChatController extends GetxController {
     if (messages.isEmpty) return [];
 
     final from = messages.first.createdAt;
-    final message =
-        MessageService.instance.listLastestMessage(roomId: roomObs.value.id);
+    final message = MessageService.instance.listLastestMessage(
+      roomId: roomObs.value.id,
+    );
     if (message != null && message.createdAt == from) {
       return [];
     }
@@ -447,12 +449,12 @@ class ChatController extends GetxController {
       return;
     }
     // trailing
-    final sortedNewMessages =
-        await MessageService.instance.listOldMessageByTime(
-      roomId: roomObs.value.id,
-      messageId: messages.last.id,
-      limit: messageLimitPerPage,
-    );
+    final sortedNewMessages = await MessageService.instance
+        .listOldMessageByTime(
+          roomId: roomObs.value.id,
+          messageId: messages.last.id,
+          limit: messageLimitPerPage,
+        );
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages');
@@ -541,8 +543,9 @@ Add as a friend and start the signal protocol chat
                 child: const Text('Start Private Chat'),
                 onPressed: () async {
                   Get.back<void>();
-                  await SignalChatService.instance
-                      .resetSignalSession(roomObs.value);
+                  await SignalChatService.instance.resetSignalSession(
+                    roomObs.value,
+                  );
                 },
               ),
             ],
@@ -819,12 +822,13 @@ Add as a friend and start the signal protocol chat
           lightning: identity.lightning,
         );
 
-        final sm = KeychatMessage(
-          c: MessageType.signal,
-          type: KeyChatEventKinds.signalSendProfile,
-        )
-          ..name = prm.toString()
-          ..msg = "[${identity.name}'s Profile]";
+        final sm =
+            KeychatMessage(
+                c: MessageType.signal,
+                type: KeyChatEventKinds.signalSendProfile,
+              )
+              ..name = prm.toString()
+              ..msg = "[${identity.name}'s Profile]";
         await RoomService.instance.sendMessage(
           roomObs.value,
           sm.toString(),
@@ -867,8 +871,9 @@ Add as a friend and start the signal protocol chat
   }
 
   Future<void> _initBotInfo() async {
-    final list =
-        await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
+    final list = await NostrAPI.instance.fetchMetadata([
+      roomObs.value.toMainPubkey,
+    ]);
     if (list.isEmpty) return;
     final res = list.last;
     final metadata = Map<String, dynamic>.from(
@@ -943,8 +948,9 @@ Add as a friend and start the signal protocol chat
       } else {
         roomContact.value = roomObs.value.contact!;
       }
-      // use the local file first.
-      if (roomContact.value.avatarLocalPath == null) {
+      // use the local file first. if not exist, fetch from relay
+      if (roomContact.value.about == null &&
+          roomContact.value.avatarLocalPath == null) {
         fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
@@ -953,8 +959,9 @@ Add as a friend and start the signal protocol chat
           roomContact.value = item;
           roomObs.value.contact = item;
           roomObs.refresh();
-          Get.find<HomeController>()
-              .loadIdentityRoomList(roomContact.value.identityId);
+          Get.find<HomeController>().loadIdentityRoomList(
+            roomContact.value.identityId,
+          );
         });
       }
       return;
@@ -1003,9 +1010,9 @@ Add as a friend and start the signal protocol chat
           (metadata['displayName'] ?? metadata['name']) as String?;
       final avatarFromRelay =
           (metadata['picture'] ?? metadata['avatar']) as String?;
-      final description = (metadata['description'] ??
-          metadata['about'] ??
-          metadata['bio']) as String?;
+      final description =
+          (metadata['description'] ?? metadata['about'] ?? metadata['bio'])
+              as String?;
       for (final contact in contacts) {
         if (contact.versionFromRelay >= res.createdAt) {
           continue;
@@ -1180,7 +1187,8 @@ Add as a friend and start the signal protocol chat
 
     // If there's selected text, replace it
     if (selection.isValid && !selection.isCollapsed) {
-      newText = currentText.substring(0, selection.start) +
+      newText =
+          currentText.substring(0, selection.start) +
           text +
           currentText.substring(selection.end);
       newCursorPosition = selection.start + text.length;
@@ -1193,7 +1201,8 @@ Add as a friend and start the signal protocol chat
         cursorPosition = currentText.length;
       }
 
-      newText = currentText.substring(0, cursorPosition) +
+      newText =
+          currentText.substring(0, cursorPosition) +
           text +
           currentText.substring(cursorPosition);
       newCursorPosition = cursorPosition + text.length;
@@ -1202,8 +1211,9 @@ Add as a friend and start the signal protocol chat
     textEditingController.text = newText;
 
     // Set cursor position after inserted text
-    textEditingController.selection =
-        TextSelection.fromPosition(TextPosition(offset: newCursorPosition));
+    textEditingController.selection = TextSelection.fromPosition(
+      TextPosition(offset: newCursorPosition),
+    );
   }
 
   Future<void> _readFromStream(
@@ -1256,8 +1266,12 @@ Add as a friend and start the signal protocol chat
           }
           _isUploading = true;
           try {
-            await FileService.instance
-                .handleSendMediaFile(roomObs.value, xfile, type, compress);
+            await FileService.instance.handleSendMediaFile(
+              roomObs.value,
+              xfile,
+              type,
+              compress,
+            );
           } finally {
             _isUploading = false;
           }

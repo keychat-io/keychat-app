@@ -410,7 +410,6 @@ class HomeController extends GetxController
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
     final mys = await loadIdentity();
-
     var firstUnreadIndex = -1;
     var unReadSum = 0;
     final thisTabBodyDatas = <int, TabData>{};

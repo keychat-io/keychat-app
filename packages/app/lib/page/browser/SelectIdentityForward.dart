@@ -45,11 +45,9 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
                 tiles: identities
                     .map(
                       (identity) => SettingsTile(
-                        leading: Utils.getRandomAvatar(
-                          identity.secp256k1PKHex,
-                          localPath: identity.avatarLocalPath ??
-                              identity.avatarFromRelayLocalPath,
-                          size: 30,
+                        leading: Utils.getAvatarByIdentity(
+                          identity,
+                          size: 32,
                         ),
                         value: Text(getPublicKeyDisplay(identity.npub)),
                         title: Text(identity.displayName),

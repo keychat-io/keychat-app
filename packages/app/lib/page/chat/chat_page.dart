@@ -951,12 +951,21 @@ class _ChatPage2State extends State<ChatPage> {
                       room,
                       RoomUtil.getHelloMessage(displayName),
                     );
-                    await ContactService.instance.addContactToFriend(
-                      pubkey: room.toMainPubkey,
-                      identityId: room.identityId,
+                    final contact = await ContactService.instance
+                        .addContactToFriend(
+                          pubkey: room.toMainPubkey,
+                          identityId: room.identityId,
+                          fetchAvatar: true,
+                        );
+
+                    room
+                      ..status = RoomStatus.enabled
+                      ..contact = contact;
+                    Utils.removeAvatarCacheByPubkey(room.toMainPubkey);
+                    await RoomService.instance.updateRoomAndRefresh(
+                      room,
+                      refreshContact: true,
                     );
-                    room.status = RoomStatus.enabled;
-                    await RoomService.instance.updateRoomAndRefresh(room);
                   } catch (e, s) {
                     final msg = Utils.getErrorMessage(e);
                     await EasyLoading.showError(msg);

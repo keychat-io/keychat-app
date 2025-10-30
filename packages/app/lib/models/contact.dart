@@ -46,6 +46,7 @@ class Contact extends Equatable {
   String? avatarLocalPath;
   String? avatarRemoteUrl;
   String? lightning;
+  int version = 0;
 
   bool autoCreateFromGroup =
       false; // auto create contact when create group, if equal true,is my friends
@@ -83,10 +84,11 @@ class Contact extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        pubkey,
-        name,
-        petname,
-        about,
-      ];
+    id,
+    pubkey,
+    name,
+    petname,
+    about,
+    avatarLocalPath,
+  ];
 }

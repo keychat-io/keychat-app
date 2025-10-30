@@ -126,29 +126,31 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                         ),
                         CupertinoActionSheetAction(
                           onPressed: () {
-                            Get.back<void>();
-                            Get.dialog(
-                              CupertinoAlertDialog(
-                                content: SizedBox(
-                                  height: 240,
-                                  width: 240,
-                                  child: Utils.genQRImage(url, size: 240),
-                                ),
-                                actions: [
-                                  CupertinoDialogAction(
-                                    onPressed: Get.back,
-                                    child: const Text('Close'),
+                            Get
+                              ..back<void>()
+                              ..dialog(
+                                CupertinoAlertDialog(
+                                  content: SizedBox(
+                                    height: 240,
+                                    width: 240,
+                                    child: Utils.genQRImage(url, size: 240),
                                   ),
-                                ],
-                              ),
-                            );
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      onPressed: Get.back,
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              );
                           },
                           child: const Text('QR Code'),
                         ),
                         CupertinoActionSheetAction(
                           onPressed: () {
-                            SharePlus.instance
-                                .share(ShareParams(uri: Uri.tryParse(url)));
+                            SharePlus.instance.share(
+                              ShareParams(uri: Uri.tryParse(url)),
+                            );
                             Get.back<void>();
                           },
                           child: const Text('Share'),
@@ -199,7 +201,11 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
           EasyLoading.showToast('Invalid Input');
           return;
         }
-        await RoomUtil.processUserQRCode(model, true, selectedIdentity);
+        await RoomUtil.processUserQRCode(
+          model,
+          fromAddPage: true,
+          identity: selectedIdentity,
+        );
       } else {
         EasyLoading.showError('Error base64 format');
       }
@@ -223,8 +229,10 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
             type: RoomType.bot,
             identity: selectedIdentity,
           );
-          await SignalChatService.instance
-              .sendHelloMessage(room, selectedIdentity);
+          await SignalChatService.instance.sendHelloMessage(
+            room,
+            selectedIdentity,
+          );
           await ContactService.instance.addContactToFriend(
             pubkey: hexPubkey,
             identityId: selectedIdentity.id,

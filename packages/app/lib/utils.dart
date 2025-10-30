@@ -558,9 +558,6 @@ Init File: $time \n
       );
     }
 
-    // Cache the base avatar widget
-    _avatarWidgetCache[cacheKey] = child;
-
     if (room.unReadCount == 0) return child;
 
     // mute room
@@ -588,6 +585,10 @@ Init File: $time \n
         .where((key) => key.contains(pubkey))
         .toList()
         .forEach(_avatarWidgetCache.remove);
+  }
+
+  static void clearAvatarCache() {
+    _avatarWidgetCache.clear();
   }
 
   static Widget getAvatorByName(
@@ -831,21 +832,12 @@ Init File: $time \n
     String pubkey, {
     double size = 48,
     Contact? contact,
-    String? localPath,
   }) {
     final cacheKey = 'avatar_${pubkey}_$size';
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       return _avatarWidgetCache[cacheKey]!;
     }
-    // localPath
-    if (localPath != null) {
-      final file = File('${Utils.appFolder.path}$localPath');
-      if (file.existsSync()) {
-        final widget = getAvatarByImageFile(file, size: size);
-        _avatarWidgetCache[cacheKey] = widget;
-        return widget;
-      }
-    }
+
     contact ??= ContactService.instance.getContactByPubkeySync(pubkey);
 
     // from contact
@@ -858,7 +850,7 @@ Init File: $time \n
         if (file.existsSync()) {
           final widget = getAvatarByImageFile(file, size: size);
           logger.d(
-            'caching room avatar ${contact.pubkey}${localFilePath}_$size',
+            'getRandomAvatar caching avatar ${contact.pubkey}${localFilePath}_$size',
           );
           _avatarWidgetCache[cacheKey] = widget;
           return widget;
@@ -1457,7 +1449,6 @@ Init File: $time \n
     // Fallback to random avatar if no local file or file doesn't exist
     return Utils.getRandomAvatar(
       identity.secp256k1PKHex,
-      localPath: identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath,
       size: size,
     );
   }

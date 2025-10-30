@@ -21,7 +21,6 @@ import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:queue/queue.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 class WebsocketService extends GetxService {
@@ -324,8 +323,9 @@ class WebsocketService extends GetxService {
       }
     }
 
-    final map2 =
-        await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
+    final map2 = await Storage.getLocalStorageMap(
+      StorageKeyString.relayFileFeeConfig,
+    );
     for (final entry in map2.entries) {
       if (entry.value is Map && (entry.value as Map).isNotEmpty) {
         var host = entry.key as String;
@@ -434,7 +434,8 @@ class WebsocketService extends GetxService {
       required String eventId,
       required bool status,
       String? errorMessage,
-    })? callback,
+    })?
+    callback,
   }) {
     if (callback != null) {
       try {

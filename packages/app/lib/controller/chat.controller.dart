@@ -8,6 +8,7 @@ import 'package:app/models/keychat/profile_request_model.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomDraft.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
@@ -819,6 +820,7 @@ Add as a friend and start the signal protocol chat
           avatar: await identity.getRemoteAvatarUrl(),
           bio: identity.displayAbout,
           lightning: identity.lightning,
+          version: RoomUtil.getValidateTime(),
         );
 
         final sm =

@@ -102,12 +102,6 @@ class MessageService {
             Get.closeAllSnackbars();
           } catch (e) {}
         }
-        if (room.type != RoomType.group && room.contact == null) {
-          room.contact = await ContactService.instance.getContact(
-            room.identityId,
-            room.toMainPubkey,
-          );
-        }
         Get.snackbar(
           room.getRoomName(),
           content,
@@ -123,9 +117,9 @@ class MessageService {
           backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
           snackPosition: SnackPosition.TOP,
           isDismissible: true,
-          margin: const EdgeInsets.all(8),
+          margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 4),
           mainButton: isCurrentRoomPage || cc != null
               ? null
               : TextButton(
@@ -134,7 +128,7 @@ class MessageService {
                     pressSnackbar(room);
                   },
                 ),
-          icon: Utils.getRandomAvatar(room.toMainPubkey, contact: room.contact),
+          icon: Utils.getAvatarByRoom(room),
           onTap: (c) {
             if (isCurrentRoomPage || cc != null) return;
             pressSnackbar(room);
@@ -364,7 +358,7 @@ $content'''
 
   Future<List<Message>> listMessageFromDB({
     required int roomId,
-    limit = 100,
+    int limit = 100,
     int offset = 0,
   }) async {
     final database = DBProvider.database;
@@ -382,7 +376,7 @@ $content'''
     required int roomId,
     required int maxId,
     required bool isRead,
-    limit = 100,
+    int limit = 100,
   }) async {
     return DBProvider.database.messages
         .filter()
@@ -397,7 +391,7 @@ $content'''
   Future<List<Message>> listOldMessageByTime({
     required int roomId,
     required int messageId,
-    limit = 100,
+    int limit = 100,
   }) async {
     final database = DBProvider.database;
 
@@ -413,7 +407,7 @@ $content'''
   Future<List<Message>> listLatestMessageByTime({
     required int roomId,
     required int messageId,
-    limit = 100,
+    int limit = 100,
   }) async {
     final database = DBProvider.database;
 
@@ -429,7 +423,7 @@ $content'''
   List<Message> listMessageByTimeSync({
     required int roomId,
     required DateTime from,
-    limit = 100,
+    int limit = 100,
   }) {
     final database = DBProvider.database;
 
@@ -444,7 +438,7 @@ $content'''
 
   Message? listLastestMessage({
     required int roomId,
-    limit = 1,
+    int limit = 1,
   }) {
     final database = DBProvider.database;
 

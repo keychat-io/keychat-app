@@ -653,10 +653,6 @@ Future<void> showMyQrCode(
     return;
   }
 
-  final expiredTime =
-      DateTime.now().millisecondsSinceEpoch +
-      KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
-
   Get.bottomSheet(
     clipBehavior: Clip.antiAlias,
     shape: const RoundedRectangleBorder(
@@ -668,7 +664,7 @@ Future<void> showMyQrCode(
       oneTimeKey: oneTimeKeys.first.pubkey,
       signalId: signalId,
       showMore: showMore,
-      time: expiredTime,
+      time: RoomUtil.getValidateTime(),
       isOneTime: true,
       onTap: Get.back,
     ),

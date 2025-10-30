@@ -9,6 +9,7 @@ class ProfileRequestModel {
   ProfileRequestModel({
     required this.pubkey,
     required this.name,
+    required this.version,
     this.avatar,
     this.lightning,
     this.bio,
@@ -18,6 +19,7 @@ class ProfileRequestModel {
       _$ProfileRequestModelFromJson(json);
   String name;
   String pubkey;
+  int version;
   String? avatar;
   String? lightning;
   String? bio;

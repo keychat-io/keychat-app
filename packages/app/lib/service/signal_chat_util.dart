@@ -1,6 +1,7 @@
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -25,8 +26,11 @@ class SignalChatUtil {
       );
     }
 
-    return SignerService.instance
-        .signMessage(content: content, pubkey: identity.secp256k1PKHex, id: id);
+    return SignerService.instance.signMessage(
+      content: content,
+      pubkey: identity.secp256k1PKHex,
+      id: id,
+    );
   }
 
   static Future<void> verifySignedMessage({
@@ -52,7 +56,7 @@ class SignalChatUtil {
     required String message,
     required String signalPubkey,
   }) async {
-    final time = DateTime.now().millisecondsSinceEpoch;
+    final time = RoomUtil.getValidateTime();
     final identity = room.getIdentity();
 
     final content = SignalChatUtil.getToSignMessage(

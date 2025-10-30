@@ -112,13 +112,18 @@ class ContactPage extends StatelessWidget {
               FilledButton(
                 onPressed: () async {
                   if (room != null) {
-                    await ContactService.instance.saveContactFromQrCode(
-                      identityId: room.identityId,
-                      pubkey: room.toMainPubkey,
-                      name: model!.name,
-                      avatarRemoteUrl: model!.avatar,
-                      lightning: model!.lightning,
-                    );
+                    try {
+                      await ContactService.instance.saveContactFromQrCode(
+                        identityId: room.identityId,
+                        pubkey: room.toMainPubkey,
+                        name: model!.name,
+                        avatarRemoteUrl: model!.avatar,
+                        lightning: model!.lightning,
+                        version: model!.time,
+                      );
+                    } catch (e) {
+                      logger.e('saveContactFromQrCode $e');
+                    }
                     await SignalChatService.instance.resetSignalSession(room);
                     Get.find<HomeController>().loadIdentityRoomList(
                       room.identityId,
@@ -134,13 +139,18 @@ class ContactPage extends StatelessWidget {
                         EasyLoading.show(status: 'Processing...');
                         final identity = Get.find<HomeController>()
                             .allIdentities[identityId]!;
-                        await ContactService.instance.saveContactFromQrCode(
-                          identityId: identity.id,
-                          pubkey: contact.pubkey,
-                          name: contact.name,
-                          avatarRemoteUrl: contact.avatarRemoteUrl,
-                          lightning: contact.lightning,
-                        );
+                        try {
+                          await ContactService.instance.saveContactFromQrCode(
+                            identityId: identity.id,
+                            pubkey: contact.pubkey,
+                            name: contact.name,
+                            avatarRemoteUrl: contact.avatarRemoteUrl,
+                            lightning: contact.lightning,
+                            version: contact.version,
+                          );
+                        } catch (e) {
+                          logger.e('saveContactFromQrCode $e');
+                        }
                         room0 = await RoomService.instance.createPrivateRoom(
                           toMainPubkey: contact.pubkey,
                           identity: identity,

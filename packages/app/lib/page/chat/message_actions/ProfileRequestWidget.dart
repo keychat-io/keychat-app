@@ -60,6 +60,7 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
         avatarRemoteUrl: profile.avatar,
         lightning: profile.lightning,
         bio: profile.bio,
+        version: profile.version,
       );
       if (widget.room.type == RoomType.group) {
         await RoomService.getController(widget.room.id)?.resetMembers();
@@ -69,7 +70,6 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
           refreshContact: true,
         );
       }
-      Utils.removeAvatarCacheByPubkey(idPubkey);
       Get.find<HomeController>().loadIdentityRoomList(widget.room.identityId);
 
       // Update message status
@@ -77,15 +77,12 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
 
       // Show success message
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contact saved successfully')),
-        );
+        EasyLoading.showSuccess('Contact saved successfully');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save contact: $e')),
-        );
+        final msg = Utils.getErrorMessage(e);
+        EasyLoading.showError(msg);
       }
     } finally {
       if (mounted) {

@@ -103,8 +103,9 @@ const ContactSchema = CollectionSchema(
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
+    r'version': PropertySchema(id: 22, name: r'version', type: IsarType.long),
     r'versionFromRelay': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'versionFromRelay',
       type: IsarType.long,
     ),
@@ -261,7 +262,8 @@ void _contactSerialize(
   writer.writeString(offsets[19], object.pubkey);
   writer.writeBool(offsets[20], object.stringify);
   writer.writeDateTime(offsets[21], object.updatedAt);
-  writer.writeLong(offsets[22], object.versionFromRelay);
+  writer.writeLong(offsets[22], object.version);
+  writer.writeLong(offsets[23], object.versionFromRelay);
 }
 
 Contact _contactDeserialize(
@@ -293,7 +295,8 @@ Contact _contactDeserialize(
   object.nameFromRelay = reader.readStringOrNull(offsets[16]);
   object.petname = reader.readStringOrNull(offsets[18]);
   object.updatedAt = reader.readDateTimeOrNull(offsets[21]);
-  object.versionFromRelay = reader.readLong(offsets[22]);
+  object.version = reader.readLong(offsets[22]);
+  object.versionFromRelay = reader.readLong(offsets[23]);
   return object;
 }
 
@@ -349,6 +352,8 @@ P _contactDeserializeProp<P>(
     case 21:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 22:
+      return (reader.readLong(offset)) as P;
+    case 23:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3577,6 +3582,65 @@ extension ContactQueryFilter
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionEqualTo(
+    int value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'version', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'version',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'version',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'version',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterFilterCondition> versionFromRelayEqualTo(
     int value,
   ) {
@@ -3906,6 +3970,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'version', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'version', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByVersionFromRelay() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'versionFromRelay', Sort.asc);
@@ -4199,6 +4275,18 @@ extension ContactQuerySortThenBy
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'version', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'version', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByVersionFromRelay() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'versionFromRelay', Sort.asc);
@@ -4400,6 +4488,12 @@ extension ContactQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Contact, Contact, QDistinct> distinctByVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'version');
+    });
+  }
+
   QueryBuilder<Contact, Contact, QDistinct> distinctByVersionFromRelay() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'versionFromRelay');
@@ -4546,6 +4640,12 @@ extension ContactQueryProperty
   QueryBuilder<Contact, DateTime?, QQueryOperations> updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
+    });
+  }
+
+  QueryBuilder<Contact, int, QQueryOperations> versionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'version');
     });
   }
 

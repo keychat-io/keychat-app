@@ -153,7 +153,7 @@ class SignalChatService extends BaseChatService {
     Room room,
     NostrEventModel event,
     Relay relay, {
-    required Function(String error) failedCallback,
+    required void Function(String error) failedCallback,
     NostrEventModel? sourceEvent,
   }) async {
     String? decodeString;
@@ -280,7 +280,6 @@ class SignalChatService extends BaseChatService {
           msgKeyHash: msgKeyHash,
         );
       case KeyChatEventKinds.dmAddContactFromAlice:
-      case KeyChatEventKinds.dmAddContactFromBob:
         await _processHelloMessage(
           room,
           event,
@@ -338,26 +337,29 @@ class SignalChatService extends BaseChatService {
     }
 
     final model = QRUserModel.fromJson(jsonDecode(keychatMessage.name!));
-    // -1 for compatibility with old version
-    if (model.time != -1) {
-      if (room.version > model.time) {
-        logger.e("The message's version is too old, skip");
-        if (failedCallback != null) {
-          failedCallback("The message's version is too old, skip");
-        }
-        return;
-      } else {
-        room.version = model.time;
+    if (room.version > model.time) {
+      logger.e("The message's version is too old, skip");
+      if (failedCallback != null) {
+        failedCallback("The message's version is too old, skip");
       }
+      return;
+    }
+    room.version = model.time;
+    Contact? contact;
+    try {
+      contact = await ContactService.instance.saveContactFromQrCode(
+        identityId: room.identityId,
+        pubkey: room.toMainPubkey,
+        name: model.name,
+        avatarRemoteUrl: model.avatar,
+        lightning: model.lightning,
+        version: model.time,
+        download: false,
+      );
+    } catch (e) {
+      logger.e('saveContactFromQrCode $e');
     }
 
-    final contact = await ContactService.instance.saveContactFromQrCode(
-      identityId: room.identityId,
-      pubkey: room.toMainPubkey,
-      name: model.name,
-      avatarRemoteUrl: model.avatar,
-      lightning: model.lightning,
-    );
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     // auto send response
@@ -380,10 +382,8 @@ class SignalChatService extends BaseChatService {
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
     }
-    // use onetime key to response
-    if (keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
-      room.onetimekey = model.onetimekey;
-    }
+    room.onetimekey = model.onetimekey;
+
     // delete old session
     if (room.curve25519PkHex != null) {
       await Get.find<ChatxService>().deleteSignalSessionKPA(room);
@@ -418,8 +418,7 @@ class SignalChatService extends BaseChatService {
     );
 
     // auto response
-    if (room.status == RoomStatus.enabled &&
-        keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
+    if (room.status == RoomStatus.enabled) {
       final displayName = room.getIdentity().displayName;
 
       await SignalChatService.instance.sendMessage(
@@ -468,7 +467,6 @@ ${relays.join('\n')}
   Future<void> sendHelloMessage(
     Room room0,
     Identity identity, {
-    int type = KeyChatEventKinds.dmAddContactFromAlice,
     String? onetimekey,
     String? greeting,
     bool fromNpub = false,
@@ -478,8 +476,11 @@ ${relays.join('\n')}
     // after reset session, the room signal key need update
     room.signalIdPubkey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
-    final sm = await KeychatMessage(c: MessageType.signal, type: type)
-        .setHelloMessagge(
+    final sm =
+        await KeychatMessage(
+          c: MessageType.signal,
+          type: KeyChatEventKinds.dmAddContactFromAlice,
+        ).setHelloMessagge(
           signalId: signalId,
           identity,
           greeting: greeting,
@@ -576,13 +577,20 @@ ${relays.join('\n')}
       prekeyMessageModel.nostrId,
       identity.id,
     );
-    final contact = await ContactService.instance.saveContactFromQrCode(
-      identityId: identity.id,
-      pubkey: prekeyMessageModel.nostrId,
-      name: prekeyMessageModel.name,
-      avatarRemoteUrl: prekeyMessageModel.avatar,
-      lightning: prekeyMessageModel.lightning,
-    );
+    Contact? contact;
+    try {
+      contact = await ContactService.instance.saveContactFromQrCode(
+        identityId: identity.id,
+        pubkey: prekeyMessageModel.nostrId,
+        name: prekeyMessageModel.name,
+        avatarRemoteUrl: prekeyMessageModel.avatar,
+        lightning: prekeyMessageModel.lightning,
+        version: prekeyMessageModel.time,
+      );
+    } catch (e) {
+      logger.e('saveContactFromQrCode $e');
+    }
+
     room ??= await RoomService.instance.createPrivateRoom(
       toMainPubkey: prekeyMessageModel.nostrId,
       identity: identity,

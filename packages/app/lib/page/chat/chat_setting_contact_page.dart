@@ -191,8 +191,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                     autofocus: true,
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: (value) => handleUpdateName(
-                                      cc,
-                                      usernameController,
+                                      usernameController.text.trim(),
                                     ),
                                     decoration: const InputDecoration(
                                       labelText: 'Nickname',
@@ -211,8 +210,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                     isDefaultAction: true,
                                     onPressed: () async {
                                       await handleUpdateName(
-                                        cc,
-                                        usernameController,
+                                        usernameController.text.trim(),
                                       );
                                     },
                                     child: const Text('Confirm'),
@@ -389,13 +387,11 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
     );
   }
 
-  Future<void> handleUpdateName(
-    ChatController cc,
-    TextEditingController usernameController,
-  ) async {
-    if (usernameController.text.isEmpty) return;
-    final contact0 = cc.roomContact.value
-      ..petname = usernameController.text.trim();
+  Future<void> handleUpdateName(String username) async {
+    final contact0 = cc.roomContact.value..petname = username.trim();
+    if (contact0.petname == '') {
+      contact0.petname = null;
+    }
     await ContactService.instance.saveContact(contact0);
     await RoomService.instance.refreshRoom(
       cc.roomObs.value,

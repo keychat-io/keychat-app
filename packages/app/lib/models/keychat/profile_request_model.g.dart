@@ -10,6 +10,7 @@ ProfileRequestModel _$ProfileRequestModelFromJson(Map<String, dynamic> json) =>
     ProfileRequestModel(
       pubkey: json['pubkey'] as String,
       name: json['name'] as String,
+      version: (json['version'] as num).toInt(),
       avatar: json['avatar'] as String?,
       lightning: json['lightning'] as String?,
       bio: json['bio'] as String?,
@@ -21,6 +22,7 @@ Map<String, dynamic> _$ProfileRequestModelToJson(
 ) => <String, dynamic>{
   'name': instance.name,
   'pubkey': instance.pubkey,
+  'version': instance.version,
   'avatar': ?instance.avatar,
   'lightning': ?instance.lightning,
   'bio': ?instance.bio,

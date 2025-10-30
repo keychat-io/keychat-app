@@ -3,6 +3,7 @@ import 'dart:convert' show jsonEncode;
 import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
@@ -59,8 +60,9 @@ class KeychatMessage {
     String? greeting,
     bool fromNpub = false,
   }) async {
-    final oneTimeKeys =
-        await Get.find<ChatxService>().getOneTimePubkey(identity.id);
+    final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
+      identity.id,
+    );
     var onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
@@ -69,18 +71,17 @@ class KeychatMessage {
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
 
     final userInfo = await SignalIdService.instance.getQRCodeData(signalId);
-    final expiredTime = DateTime.now().millisecondsSinceEpoch +
-        KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
+    final time = RoomUtil.getValidateTime();
 
     final content = SignalChatUtil.getToSignMessage(
       nostrId: identity.secp256k1PKHex,
       signalId: signalId.pubkey,
-      time: expiredTime,
+      time: time,
     );
     final sig = await SignalChatUtil.signByIdentity(
       identity: identity,
       content: content,
-      id: expiredTime.toString(),
+      id: time.toString(),
     );
     if (sig == null) throw Exception('Sign failed or User denied');
     final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
@@ -90,7 +91,7 @@ class KeychatMessage {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
-      'time': expiredTime,
+      'time': time,
       'relay': '',
       'lightning': identity.lightning ?? '',
       'avatar': avatarRemoteUrl ?? '',
@@ -106,7 +107,8 @@ Request to start an encrypted chat.'''
 😄Hi, I'm ${identity.displayName}.
 Let's start an encrypted chat.''';
     if (greeting != null && greeting.isNotEmpty) {
-      msg = '''
+      msg =
+          '''
 $msg
 
 Greeting:

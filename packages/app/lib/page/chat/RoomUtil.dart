@@ -555,14 +555,19 @@ Let's start an encrypted chat.''';
     );
   }
 
+  // 600 seconds validate time,
+  // TODO: toremove later, for backward compatibility
+  static int getValidateTime() {
+    return DateTime.now().millisecondsSinceEpoch + 600 * 1000;
+  }
+
   static Future<void> processUserQRCode(
-    QRUserModel model, [
+    QRUserModel model, {
     bool fromAddPage = false,
     Identity? identity,
-  ]) async {
-    if (model.time <
-        DateTime.now().millisecondsSinceEpoch -
-            1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
+  }) async {
+    if (model.time + 1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime <
+        DateTime.now().millisecondsSinceEpoch) {
       EasyLoading.showToast('QR Code expired');
       return;
     }

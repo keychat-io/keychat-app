@@ -43,13 +43,14 @@ class IdentityService {
   Future<Mykey> createOneTimeKey(int identityId) async {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
-    final ontTimeKey = Mykey(
-      prikey: keychain.prikey,
-      identityId: identityId,
-      pubkey: keychain.pubkey,
-    )
-      ..isOneTime = true
-      ..oneTimeUsed = false;
+    final ontTimeKey =
+        Mykey(
+            prikey: keychain.prikey,
+            identityId: identityId,
+            pubkey: keychain.pubkey,
+          )
+          ..isOneTime = true
+          ..oneTimeUsed = false;
     await database.writeTxn(() async {
       await database.mykeys.put(ontTimeKey);
     });
@@ -67,29 +68,35 @@ class IdentityService {
     final homeController = Get.find<HomeController>();
     final exist = await getIdentityByNostrPubkey(account.pubkey);
     if (exist != null) throw Exception('Identity already exist');
-    final iden = Identity(
-      name: name,
-      secp256k1PKHex: account.pubkey,
-      npub: account.pubkeyBech32,
-    )
-      ..curve25519PkHex = account.curve25519PkHex
-      ..index = index;
+    final iden =
+        Identity(
+            name: name,
+            secp256k1PKHex: account.pubkey,
+            npub: account.pubkeyBech32,
+          )
+          ..curve25519PkHex = account.curve25519PkHex
+          ..index = index;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
 
       // store the prikey in secure storage
-      await SecureStorage.instance
-          .writePhraseWordsWhenNotExist(account.mnemonic!);
+      await SecureStorage.instance.writePhraseWordsWhenNotExist(
+        account.mnemonic!,
+      );
 
       await SecureStorage.instance.write(iden.secp256k1PKHex, account.prikey);
-      await SecureStorage.instance
-          .write(iden.curve25519PkHex!, account.curve25519SkHex!);
+      await SecureStorage.instance.write(
+        iden.curve25519PkHex!,
+        account.curve25519SkHex!,
+      );
     });
     await homeController.loadRoomList(init: true);
 
     Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>()
-          .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkey(
+        [account.pubkey],
+        kinds: [EventKinds.nip04],
+      );
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
       final identity = await getIdentityByNostrPubkey(iden.secp256k1PKHex);
       if (identity != null) {
@@ -106,11 +113,13 @@ class IdentityService {
         homeController.loadAppRemoteConfig();
 
         // init notifycation
-        NotifyService.init().then((c) {
-          NotifyService.addPubkeys([account.pubkey]);
-        }).catchError((e, s) {
-          logger.e('initNotifycation error', error: e, stackTrace: s);
-        });
+        NotifyService.init()
+            .then((c) {
+              NotifyService.addPubkeys([account.pubkey]);
+            })
+            .catchError((e, s) {
+              logger.e('initNotifycation error', error: e, stackTrace: s);
+            });
         RelayService.instance.initRelay();
       } catch (e, s) {
         logger.e(e.toString(), error: e, stackTrace: s);
@@ -142,8 +151,10 @@ class IdentityService {
 
     await Get.find<HomeController>().loadRoomList(init: true);
     Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>()
-          .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkey(
+        [hexPubkey],
+        kinds: [EventKinds.nip04],
+      );
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
       final identity = await getIdentityByNostrPubkey(hexPubkey);
       if (identity != null) {
@@ -177,8 +188,10 @@ class IdentityService {
     await Get.find<HomeController>().loadRoomList(init: true);
 
     Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>()
-          .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkey(
+        [hexPubkey],
+        kinds: [EventKinds.nip04],
+      );
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
       final identity = await getIdentityByNostrPubkey(hexPubkey);
       if (identity != null) {
@@ -207,8 +220,10 @@ class IdentityService {
           .identityIdEqualTo(id)
           .deleteAll();
 
-      final rooms =
-          await database.rooms.filter().identityIdEqualTo(id).findAll();
+      final rooms = await database.rooms
+          .filter()
+          .identityIdEqualTo(id)
+          .findAll();
 
       for (final element in rooms) {
         await database.messages.filter().roomIdEqualTo(element.id).deleteAll();
@@ -226,8 +241,9 @@ class IdentityService {
         final chatxService = Get.find<ChatxService>();
 
         if (signalIdPubkey != null) {
-          keyPair =
-              await chatxService.setupSignalStoreBySignalId(signalIdPubkey);
+          keyPair = await chatxService.setupSignalStoreBySignalId(
+            signalIdPubkey,
+          );
         } else {
           keyPair = await chatxService.getKeyPairByIdentity(identity);
         }
@@ -261,8 +277,10 @@ class IdentityService {
   Future<Identity?> getIdentityById(int id) async {
     final database = DBProvider.database;
 
-    final identity =
-        await database.identitys.filter().idEqualTo(id).findFirst();
+    final identity = await database.identitys
+        .filter()
+        .idEqualTo(id)
+        .findFirst();
     if (identity == null) throw Exception('identity is null');
     return identity;
   }
@@ -374,7 +392,7 @@ class IdentityService {
           .oneTimeUsedEqualTo(true)
           .updatedAtLessThan(
             DateTime.now().subtract(
-              const Duration(hours: KeychatGlobal.oneTimePubkeysLifetime),
+              const Duration(days: 3),
             ),
           )
           .deleteAll();
@@ -426,9 +444,7 @@ class IdentityService {
     if (prikeys[pubkey] != null)
       return Future.value(prikeys[pubkey] as String?);
 
-    final identities = Get.find<HomeController>()
-        .allIdentities
-        .values
+    final identities = Get.find<HomeController>().allIdentities.values
         .where((element) => element.secp256k1PKHex == pubkey)
         .toList();
     String? prikey;
@@ -449,8 +465,9 @@ class IdentityService {
   Future<List<String>> getSignalRoomPubkeys() async {
     final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
-    final signal = await ContactService.instance
-        .getAllReceiveKeys(skipIDs: skipedIdentityIds);
+    final signal = await ContactService.instance.getAllReceiveKeys(
+      skipIDs: skipedIdentityIds,
+    );
     return signal;
   }
 
@@ -471,8 +488,9 @@ class IdentityService {
   Future<List<String>> getRoomPubkeysSkipMute() async {
     final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
-    final signal = await ContactService.instance
-        .getAllReceiveKeysSkipMute(skipIDs: skipedIdentityIds);
+    final signal = await ContactService.instance.getAllReceiveKeysSkipMute(
+      skipIDs: skipedIdentityIds,
+    );
     final mlsPubkeys = <String>{};
     // mls room's receive key
     final mlsRooms = await RoomService.instance.getMlsRoomsSkipMute();
@@ -486,8 +504,9 @@ class IdentityService {
   }
 
   Future<Identity?> syncProfileFromRelay(Identity identity) async {
-    final list =
-        await NostrAPI.instance.fetchMetadata([identity.secp256k1PKHex]);
+    final list = await NostrAPI.instance.fetchMetadata([
+      identity.secp256k1PKHex,
+    ]);
     if (list.isEmpty) {
       logger.d(
         'No metadata event found from relay for ${identity.secp256k1PKHex}',
@@ -512,16 +531,18 @@ class IdentityService {
       if (avatarFromRelay.startsWith('http') ||
           avatarFromRelay.startsWith('https')) {
         identity.avatarFromRelay = avatarFromRelay;
-        final localPath = await FileService.instance
-            .downloadAndSaveAvatar(avatarFromRelay, identity.secp256k1PKHex);
+        final localPath = await FileService.instance.downloadAndSaveAvatar(
+          avatarFromRelay,
+          identity.secp256k1PKHex,
+        );
         if (localPath != null) {
           identity.avatarFromRelayLocalPath = localPath;
         }
       }
     }
-    final description = (metadata['description'] ??
-        metadata['about'] ??
-        metadata['bio']) as String?;
+    final description =
+        (metadata['description'] ?? metadata['about'] ?? metadata['bio'])
+            as String?;
 
     identity
       ..aboutFromRelay = description

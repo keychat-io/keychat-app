@@ -387,6 +387,8 @@ class ContactService {
   Future<Contact> saveContactFromQrCode({
     required int identityId,
     required String pubkey,
+    required int version,
+    bool download = true,
     String? name,
     String? avatarRemoteUrl,
     String? lightning,
@@ -396,53 +398,53 @@ class ContactService {
       identityId: identityId,
       pubkey: pubkey,
     );
-    var changed = false;
+
+    if (version < contact.version) {
+      throw Exception('Older profile version');
+    }
+    contact.version = version;
     if (name != null && contact.name != name) {
-      changed = true;
       contact.name = name;
     }
     if (contact.lightning != lightning) {
-      changed = true;
       contact.lightning = lightning;
     }
     if (contact.about != bio) {
-      changed = true;
       contact.about = bio != null && bio.length > 200
           ? bio.substring(0, 200)
           : bio;
     }
     if (avatarRemoteUrl != contact.avatarRemoteUrl) {
       try {
-        changed = true;
         contact.avatarRemoteUrl = avatarRemoteUrl;
-        if (avatarRemoteUrl != null) {
+        if (avatarRemoteUrl != null && download) {
           final decryptedFile = await FileService.instance
               .downloadAndDecryptToPath(
                 url: avatarRemoteUrl,
                 outputFolder: Utils.avatarsFolder,
               );
+          logger.i(
+            'Avatar ${contact.pubkey} downloaded to ${decryptedFile.path}',
+          );
           contact.avatarLocalPath = decryptedFile.path.replaceFirst(
             Utils.appFolder.path,
             '',
           );
-        } else {
-          contact.avatarLocalPath = null;
         }
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }
     }
-    if (changed) {
-      await ContactService.instance.saveContact(contact);
-      Utils.removeAvatarCacheByPubkey(pubkey);
-    }
+    await ContactService.instance.saveContact(contact);
+    Utils.removeAvatarCacheByPubkey(contact.pubkey);
     return contact;
   }
 
-  Future<void> addContactToFriend({
+  Future<Contact> addContactToFriend({
     required String pubkey,
     required int identityId,
     String? name,
+    bool fetchAvatar = false,
   }) async {
     final contact = await ContactService.instance.getOrCreateContact(
       identityId: identityId,
@@ -453,6 +455,29 @@ class ContactService {
       contact.autoCreateFromGroup = false;
       await ContactService.instance.saveContact(contact);
     }
+
+    if (fetchAvatar &&
+        contact.avatarRemoteUrl != null &&
+        (contact.avatarLocalPath == null || contact.avatarLocalPath!.isEmpty)) {
+      try {
+        final decryptedFile = await FileService.instance
+            .downloadAndDecryptToPath(
+              url: contact.avatarRemoteUrl!,
+              outputFolder: Utils.avatarsFolder,
+            );
+        logger.i(
+          'Avatar ${contact.pubkey} downloaded to ${decryptedFile.path}',
+        );
+        contact.avatarLocalPath = decryptedFile.path.replaceFirst(
+          Utils.appFolder.path,
+          '',
+        );
+        await ContactService.instance.saveContact(contact);
+      } catch (e) {
+        logger.e('Failed to download avatar: $e');
+      }
+    }
+    return contact;
   }
 
   Contact? getContactByPubkeySync(String pubkey) {

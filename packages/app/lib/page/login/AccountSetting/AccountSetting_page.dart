@@ -837,7 +837,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       controller.identity.value.avatarRemoteUrl = null;
       controller.identity.value.avatarUpdatedAt = null;
       await IdentityService.instance.updateIdentity(controller.identity.value);
-      Utils.removeAvatarCacheByPubkey(controller.identity.value.secp256k1PKHex);
+      Utils.clearAvatarCache();
       // Force refresh UI
       controller.identity.refresh();
       await EasyLoading.showSuccess('Avatar saved successfully');

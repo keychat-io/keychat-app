@@ -90,19 +90,9 @@ class RoomService extends BaseChatService {
       name = KeychatGlobal.selfName;
     }
 
-    room = await updateRoom(room);
+    room = await updateRoom(room)
+      ..contact = contact;
 
-    // 1v1 room's contact's name
-    if (room.type == RoomType.common) {
-      await ContactService.instance.saveContactFromQrCode(
-        identityId: room.identityId,
-        pubkey: room.toMainPubkey,
-        name: contact?.name ?? name,
-        avatarRemoteUrl: contact?.avatarRemoteUrl,
-        lightning: contact?.lightning,
-      );
-      room.contact = contact;
-    }
     Utils.getGetxController<HomeController>()?.loadIdentityRoomList(
       room.identityId,
     );

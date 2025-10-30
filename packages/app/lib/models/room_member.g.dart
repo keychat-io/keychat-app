@@ -17,48 +17,38 @@ const RoomMemberSchema = CollectionSchema(
   name: r'RoomMember',
   id: 8378385004166137828,
   properties: {
-    r'avatarUrl': PropertySchema(
-      id: 0,
-      name: r'avatarUrl',
-      type: IsarType.string,
-    ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
-    r'hashCode': PropertySchema(id: 3, name: r'hashCode', type: IsarType.long),
+    r'hashCode': PropertySchema(id: 2, name: r'hashCode', type: IsarType.long),
     r'idPubkey': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'idPubkey',
       type: IsarType.string,
     ),
-    r'isAdmin': PropertySchema(id: 5, name: r'isAdmin', type: IsarType.bool),
-    r'lightning': PropertySchema(
-      id: 6,
-      name: r'lightning',
-      type: IsarType.string,
-    ),
-    r'name': PropertySchema(id: 7, name: r'name', type: IsarType.string),
-    r'roomId': PropertySchema(id: 8, name: r'roomId', type: IsarType.long),
+    r'isAdmin': PropertySchema(id: 4, name: r'isAdmin', type: IsarType.bool),
+    r'name': PropertySchema(id: 5, name: r'name', type: IsarType.string),
+    r'roomId': PropertySchema(id: 6, name: r'roomId', type: IsarType.long),
     r'status': PropertySchema(
-      id: 9,
+      id: 7,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomMemberstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 10,
+      id: 8,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 9,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
@@ -105,24 +95,12 @@ int _roomMemberEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
-    final value = object.avatarUrl;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
     final value = object.curve25519PkHex;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
   bytesCount += 3 + object.idPubkey.length * 3;
-  {
-    final value = object.lightning;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
 }
@@ -133,18 +111,16 @@ void _roomMemberSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.avatarUrl);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.curve25519PkHex);
-  writer.writeLong(offsets[3], object.hashCode);
-  writer.writeString(offsets[4], object.idPubkey);
-  writer.writeBool(offsets[5], object.isAdmin);
-  writer.writeString(offsets[6], object.lightning);
-  writer.writeString(offsets[7], object.name);
-  writer.writeLong(offsets[8], object.roomId);
-  writer.writeInt(offsets[9], object.status.index);
-  writer.writeBool(offsets[10], object.stringify);
-  writer.writeDateTime(offsets[11], object.updatedAt);
+  writer.writeDateTime(offsets[0], object.createdAt);
+  writer.writeString(offsets[1], object.curve25519PkHex);
+  writer.writeLong(offsets[2], object.hashCode);
+  writer.writeString(offsets[3], object.idPubkey);
+  writer.writeBool(offsets[4], object.isAdmin);
+  writer.writeString(offsets[5], object.name);
+  writer.writeLong(offsets[6], object.roomId);
+  writer.writeInt(offsets[7], object.status.index);
+  writer.writeBool(offsets[8], object.stringify);
+  writer.writeDateTime(offsets[9], object.updatedAt);
 }
 
 RoomMember _roomMemberDeserialize(
@@ -154,20 +130,18 @@ RoomMember _roomMemberDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = RoomMember(
-    idPubkey: reader.readString(offsets[4]),
-    name: reader.readString(offsets[7]),
-    roomId: reader.readLong(offsets[8]),
+    idPubkey: reader.readString(offsets[3]),
+    name: reader.readString(offsets[5]),
+    roomId: reader.readLong(offsets[6]),
     status:
-        _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[9])] ??
+        _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[7])] ??
         UserStatusType.invited,
   );
-  object.avatarUrl = reader.readStringOrNull(offsets[0]);
-  object.createdAt = reader.readDateTimeOrNull(offsets[1]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
+  object.createdAt = reader.readDateTimeOrNull(offsets[0]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.isAdmin = reader.readBool(offsets[5]);
-  object.lightning = reader.readStringOrNull(offsets[6]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[11]);
+  object.isAdmin = reader.readBool(offsets[4]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[9]);
   return object;
 }
 
@@ -179,30 +153,26 @@ P _roomMemberDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
-    case 1:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
-    case 5:
       return (reader.readBool(offset)) as P;
-    case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
+    case 5:
       return (reader.readString(offset)) as P;
-    case 8:
+    case 6:
       return (reader.readLong(offset)) as P;
-    case 9:
+    case 7:
       return (_RoomMemberstatusValueEnumMap[reader.readIntOrNull(offset)] ??
               UserStatusType.invited)
           as P;
-    case 10:
+    case 8:
       return (reader.readBoolOrNull(offset)) as P;
-    case 11:
+    case 9:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -590,171 +560,6 @@ extension RoomMemberQueryWhere
 
 extension RoomMemberQueryFilter
     on QueryBuilder<RoomMember, RoomMember, QFilterCondition> {
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'avatarUrl'),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'avatarUrl'),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'avatarUrl',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'avatarUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> avatarUrlMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'avatarUrl',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'avatarUrl', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  avatarUrlIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'avatarUrl', value: ''),
-      );
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
   createdAtIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1262,171 +1067,6 @@ extension RoomMemberQueryFilter
     });
   }
 
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'lightning'),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'lightning'),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'lightning',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'lightning',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'lightning',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'lightning', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
-  lightningIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'lightning', value: ''),
-      );
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1803,18 +1443,6 @@ extension RoomMemberQueryLinks
 
 extension RoomMemberQuerySortBy
     on QueryBuilder<RoomMember, RoomMember, QSortBy> {
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByAvatarUrl() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'avatarUrl', Sort.asc);
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByAvatarUrlDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'avatarUrl', Sort.desc);
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1873,18 +1501,6 @@ extension RoomMemberQuerySortBy
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByIsAdminDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isAdmin', Sort.desc);
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByLightning() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightning', Sort.asc);
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByLightningDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightning', Sort.desc);
     });
   }
 
@@ -1951,18 +1567,6 @@ extension RoomMemberQuerySortBy
 
 extension RoomMemberQuerySortThenBy
     on QueryBuilder<RoomMember, RoomMember, QSortThenBy> {
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByAvatarUrl() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'avatarUrl', Sort.asc);
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByAvatarUrlDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'avatarUrl', Sort.desc);
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2036,18 +1640,6 @@ extension RoomMemberQuerySortThenBy
     });
   }
 
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByLightning() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightning', Sort.asc);
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByLightningDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightning', Sort.desc);
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2111,14 +1703,6 @@ extension RoomMemberQuerySortThenBy
 
 extension RoomMemberQueryWhereDistinct
     on QueryBuilder<RoomMember, RoomMember, QDistinct> {
-  QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByAvatarUrl({
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'avatarUrl', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -2153,14 +1737,6 @@ extension RoomMemberQueryWhereDistinct
   QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByIsAdmin() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isAdmin');
-    });
-  }
-
-  QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByLightning({
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'lightning', caseSensitive: caseSensitive);
     });
   }
 
@@ -2205,12 +1781,6 @@ extension RoomMemberQueryProperty
     });
   }
 
-  QueryBuilder<RoomMember, String?, QQueryOperations> avatarUrlProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'avatarUrl');
-    });
-  }
-
   QueryBuilder<RoomMember, DateTime?, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -2239,12 +1809,6 @@ extension RoomMemberQueryProperty
   QueryBuilder<RoomMember, bool, QQueryOperations> isAdminProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isAdmin');
-    });
-  }
-
-  QueryBuilder<RoomMember, String?, QQueryOperations> lightningProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'lightning');
     });
   }
 
@@ -2298,8 +1862,6 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) =>
       ..updatedAt = json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String)
-      ..avatarUrl = json['avatarUrl'] as String?
-      ..lightning = json['lightning'] as String?
       ..isAdmin = json['isAdmin'] as bool;
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
@@ -2309,8 +1871,6 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
       'name': instance.name,
       'createdAt': ?instance.createdAt?.toIso8601String(),
       'updatedAt': ?instance.updatedAt?.toIso8601String(),
-      'avatarUrl': ?instance.avatarUrl,
-      'lightning': ?instance.lightning,
       'isAdmin': instance.isAdmin,
       'status': _$UserStatusTypeEnumMap[instance.status]!,
     };

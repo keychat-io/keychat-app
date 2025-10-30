@@ -130,8 +130,9 @@ class HomeController extends GetxController
     }
     final mnemonic = await SecureStorage.instance.getPhraseWords();
     if (mnemonic == null) return;
-    final phraseIndexes =
-        existsIdentity.map((element) => element.index).toList();
+    final phraseIndexes = existsIdentity
+        .map((element) => element.index)
+        .toList();
     final unusedIndex = List.generate(10, (index) => index).firstWhere(
       (index) => !phraseIndexes.contains(index),
       orElse: () => -1,
@@ -180,20 +181,23 @@ class HomeController extends GetxController
         // websocket status
         final shouldConnect =
             Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
-                GetPlatform.isDesktop ||
-                wasAppBackgroundedTooLong;
+            GetPlatform.isDesktop ||
+            wasAppBackgroundedTooLong;
         if (shouldConnect) {
           unawaited(Get.find<WebsocketService>().checkOnlineAndConnect());
         }
 
         // app status
         EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 2), () {
-          NostrAPI.instance.okCallback.clear();
-          Utils.initLoggger(Utils.appFolder);
-          NotifyService.syncPubkeysToServer(checkUpload: true);
-          Get.find<MultiWebviewController>().checkCurrentControllerAlive();
-        });
+          'AppLifecycleState.resumed',
+          const Duration(seconds: 2),
+          () {
+            NostrAPI.instance.okCallback.clear();
+            Utils.initLoggger(Utils.appFolder);
+            NotifyService.syncPubkeysToServer(checkUpload: true);
+            Get.find<MultiWebviewController>().checkCurrentControllerAlive();
+          },
+        );
 
         // check biometrics
         if (_pausedBefore) {
@@ -224,8 +228,8 @@ class HomeController extends GetxController
     if (!(auth && GetPlatform.isMobile)) return;
     if (Get.currentRoute == '/BiometricAuthScreen') return;
 
-    final isBiometricsEnable =
-        await SecureStorage.instance.isBiometricsEnable();
+    final isBiometricsEnable = await SecureStorage.instance
+        .isBiometricsEnable();
     if (!isBiometricsEnable) return;
 
     final time = Get.find<SettingController>().biometricsAuthTime.value;
@@ -277,15 +281,15 @@ class HomeController extends GetxController
     final recommendUrls = config['browserRecommend'] as List;
     recommendWebstore.value = recommendUrls
         .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-      final categories = List<String>.from(item['categories']);
-      for (final type in categories) {
-        if (acc[type] == null) {
-          acc[type] = [];
-        }
-        acc[type]!.add(item);
-      }
-      return acc;
-    });
+          final categories = List<String>.from(item['categories']);
+          for (final type in categories) {
+            if (acc[type] == null) {
+              acc[type] = [];
+            }
+            acc[type]!.add(item);
+          }
+          return acc;
+        });
 
     // app version
     for (final key in config.keys) {
@@ -298,6 +302,15 @@ class HomeController extends GetxController
 
   Identity getSelectedIdentity() {
     return chatIdentities.values.toList()[tabController.index];
+  }
+
+  Identity? getIdentityByPubkey(String pubkey) {
+    for (final identity in allIdentities.values) {
+      if (identity.secp256k1PKHex == pubkey) {
+        return identity;
+      }
+    }
+    return null;
   }
 
   void initTabController([int initialIndex = 0]) {
@@ -340,56 +353,59 @@ class HomeController extends GetxController
 
   void loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
-        'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
-        () async {
-      final res = await RoomService.instance.getRoomList(identityId);
-      final rooms = res['friends'] ?? [];
-      final approving = res['approving'] ?? [];
-      final requesting = res['requesting'] ?? [];
+      'loadIdentityRoomList:$identityId',
+      const Duration(milliseconds: 200),
+      () async {
+        logger.d('loadIdentityRoomList identityId: $identityId');
+        final res = await RoomService.instance.getRoomList(identityId);
+        final rooms = res['friends'] ?? [];
+        final approving = res['approving'] ?? [];
+        final requesting = res['requesting'] ?? [];
 
-      var unReadCount = 0;
-      var anonymousUnReadCount = 0;
-      var requestingUnReadCount = 0;
-      for (final element in rooms) {
-        if (element.isMute) continue;
-        unReadCount += element.unReadCount;
-      }
-      for (final element in approving) {
-        if (element.isMute) continue;
-        anonymousUnReadCount += element.unReadCount;
-      }
-      for (final element in requesting) {
-        requestingUnReadCount += element.unReadCount;
-      }
+        var unReadCount = 0;
+        var anonymousUnReadCount = 0;
+        var requestingUnReadCount = 0;
+        for (final element in rooms) {
+          if (element.isMute) continue;
+          unReadCount += element.unReadCount;
+        }
+        for (final element in approving) {
+          if (element.isMute) continue;
+          anonymousUnReadCount += element.unReadCount;
+        }
+        for (final element in requesting) {
+          requestingUnReadCount += element.unReadCount;
+        }
 
-      final datas = <dynamic>[
-        KeychatGlobal.search,
-        KeychatGlobal.recommendRooms,
-        approving,
-        requesting,
-        ...rooms,
-      ];
-      if (tabBodyDatas[identityId] == null &&
-          chatIdentities[identityId] == null) {
-        return;
-      }
-      final tabBodyData =
-          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!)
-            ..unReadCount = unReadCount
-            ..anonymousUnReadCount = anonymousUnReadCount
-            ..requestingUnReadCount = requestingUnReadCount
-            ..rooms = datas;
-      tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
+        final datas = <dynamic>[
+          KeychatGlobal.search,
+          KeychatGlobal.recommendRooms,
+          approving,
+          requesting,
+          ...rooms,
+        ];
+        if (tabBodyDatas[identityId] == null &&
+            chatIdentities[identityId] == null) {
+          return;
+        }
+        final tabBodyData =
+            tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!)
+              ..unReadCount = unReadCount
+              ..anonymousUnReadCount = anonymousUnReadCount
+              ..requestingUnReadCount = requestingUnReadCount
+              ..rooms = datas;
+        tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
 
-      var unReadSum = 0;
-      final keys = tabBodyDatas.keys.toList();
-      for (var i = 0; i < keys.length; i++) {
-        final e = keys[i];
-        final item = tabBodyDatas[e]!;
-        unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
-      }
-      await setUnreadCount(unReadSum);
-    });
+        var unReadSum = 0;
+        final keys = tabBodyDatas.keys.toList();
+        for (var i = 0; i < keys.length; i++) {
+          final e = keys[i];
+          final item = tabBodyDatas[e]!;
+          unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
+        }
+        await setUnreadCount(unReadSum);
+      },
+    );
   }
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
@@ -424,7 +440,8 @@ class HomeController extends GetxController
         requestingUnReadCount += element.unReadCount;
       }
 
-      unReadSum = unReadSum +
+      unReadSum =
+          unReadSum +
           unReadCount +
           anonymousUnReadCount +
           requestingUnReadCount;
@@ -495,8 +512,9 @@ class HomeController extends GetxController
   Future<void> onInit() async {
     tabController = TabController(vsync: this, length: 0);
     await loadSelectedTab();
-    cupertinoTabController =
-        CupertinoTabController(initialIndex: selectedTabIndex);
+    cupertinoTabController = CupertinoTabController(
+      initialIndex: selectedTabIndex,
+    );
     cupertinoTabController.addListener(() {
       setSelectedTab(cupertinoTabController.index);
     });
@@ -523,13 +541,15 @@ class HomeController extends GetxController
     initTips(StorageKeyString.tipsAddFriends, addFriendTips);
 
     // listen network status https://pub.dev/packages/connectivity_plus
-    subscription =
-        Connectivity().onConnectivityChanged.listen(networkListenHandle);
+    subscription = Connectivity().onConnectivityChanged.listen(
+      networkListenHandle,
+    );
 
     // Start periodic connection check timer (every minute)
     if (GetPlatform.isDesktop) {
-      _connectionCheckTimer =
-          Timer.periodic(const Duration(minutes: 1), (timer) {
+      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 1), (
+        timer,
+      ) {
         if (isConnectedNetwork.value) {
           Get.find<WebsocketService>().checkOnlineAndConnect();
         }
@@ -623,10 +643,12 @@ class HomeController extends GetxController
   void resortRoomList(int identityId) {
     final item = tabBodyDatas[identityId];
     if (item == null) return;
-    final friendsRooms =
-        List.castFrom<dynamic, Room>(item.rooms.whereType<Room>().toList());
-    final nonRoomItems =
-        item.rooms.where((element) => element is! Room).toList();
+    final friendsRooms = List.castFrom<dynamic, Room>(
+      item.rooms.whereType<Room>().toList(),
+    );
+    final nonRoomItems = item.rooms
+        .where((element) => element is! Room)
+        .toList();
     item.rooms = [...nonRoomItems, ...RoomUtil.sortRoomList(friendsRooms)];
     tabBodyDatas[identityId] = item;
   }
@@ -673,8 +695,9 @@ class HomeController extends GetxController
     }
 
     final Map params = uri.queryParametersAll;
-    logger
-        .i('App received new link: $uri  path: ${uri.path} , params: $params');
+    logger.i(
+      'App received new link: $uri  path: ${uri.path} , params: $params',
+    );
     final scheme = uri.scheme;
     switch (scheme) {
       case 'http':
@@ -705,8 +728,10 @@ class HomeController extends GetxController
         final input = _getDeeplinkData(uri);
         Get.find<EcashController>().proccessCashuString(input);
       case 'bitcoin':
-        QrScanService.instance
-            .handleBitcoinUri(uri.toString(), Get.find<EcashController>());
+        QrScanService.instance.handleBitcoinUri(
+          uri.toString(),
+          Get.find<EcashController>(),
+        );
 
       default:
     }
@@ -794,8 +819,10 @@ class HomeController extends GetxController
       );
       return;
     }
-    await Get.find<EcashController>()
-        .proccessPayLightningBill(input, isPay: true);
+    await Get.find<EcashController>().proccessPayLightningBill(
+      input,
+      isPay: true,
+    );
   }
 
   late StreamSubscription _intentSub;
@@ -837,8 +864,10 @@ class HomeController extends GetxController
           transition: Transition.downToUp,
         );
         if (forwardRooms == null || forwardRooms.isEmpty) return;
-        final message = await FileService.instance
-            .handleFileUpload(forwardRooms.first, XFile(file.path));
+        final message = await FileService.instance.handleFileUpload(
+          forwardRooms.first,
+          XFile(file.path),
+        );
         if (forwardRooms.length > 1 && message != null) {
           forwardRooms = forwardRooms.skip(1).toList();
           await RoomUtil.forwardMediaMessageToRooms(forwardRooms, message);
@@ -847,7 +876,8 @@ class HomeController extends GetxController
       case SharedMediaType.url:
         var toSendText = file.path;
         if (file.message != null) {
-          toSendText = '''
+          toSendText =
+              '''
 ${file.path}
 ${file.message}
 ''';

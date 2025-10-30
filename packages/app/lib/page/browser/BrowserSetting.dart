@@ -43,11 +43,11 @@ class _BrowserSettingState extends State<BrowserSetting> {
           sections: [
             if (identities.isNotEmpty)
               SettingsSection(
-                title: const Text('Enable Browser ID'),
+                title: const Text('Enabled Browser ID'),
                 tiles: identities
                     .map(
                       (identity) => SettingsTile.navigation(
-                        leading: Utils.getAvatarByIdentity(identity),
+                        leading: Utils.getAvatarByIdentity(identity, size: 32),
                         title: Text(
                           identity.displayName.length > 8
                               ? '${identity.displayName.substring(0, 8)}...'
@@ -153,8 +153,9 @@ class _BrowserSettingState extends State<BrowserSetting> {
                         context: context,
                         builder: (BuildContext context) {
                           return RadioGroup<int>(
-                            groupValue: controller
-                                    .config['historyRetentionDays'] as int? ??
+                            groupValue:
+                                controller.config['historyRetentionDays']
+                                    as int? ??
                                 30,
                             onChanged: selectRetentionPeriod,
                             child: SimpleDialog(
@@ -212,7 +213,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           return RadioGroup<String>(
                             groupValue:
                                 controller.config['fabPosition'] as String? ??
-                                    'right',
+                                'right',
                             onChanged: (value) async {
                               if (value == null) return;
                               await controller.setConfig('fabPosition', value);

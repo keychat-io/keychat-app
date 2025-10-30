@@ -2,7 +2,7 @@ name: app
 description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.36.4+6455
+version: 1.36.4+6456
 
 environment:
   sdk: ">=3.9.0 <4.0.0"

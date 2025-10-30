@@ -76,15 +76,18 @@ class SignalChatService extends BaseChatService {
         seedKey: enResult.$2!,
       );
     }
-    final msgKeyHash =
-        await rust_nostr.generateMessageKeyHash(seedKey: enResult.$3);
+    final msgKeyHash = await rust_nostr.generateMessageKeyHash(
+      seedKey: enResult.$3,
+    );
 
     List<String>? toAddPubkeys;
 
     // listen and sub new receive address
     if (newReceving != null) {
-      toAddPubkeys =
-          await ContactService.instance.addReceiveKey(room, newReceving);
+      toAddPubkeys = await ContactService.instance.addReceiveKey(
+        room,
+        newReceving,
+      );
 
       Get.find<WebsocketService>().listenPubkey(
         toAddPubkeys,
@@ -187,8 +190,9 @@ class SignalChatService extends BaseChatService {
 
       // get encrypt msg key's hash
       if (msgKeyHash != null) {
-        msgKeyHash =
-            await rust_nostr.generateMessageKeyHash(seedKey: msgKeyHash);
+        msgKeyHash = await rust_nostr.generateMessageKeyHash(
+          seedKey: msgKeyHash,
+        );
         unawaited(
           ContactService.instance.deleteReceiveKey(
             room.identityId,
@@ -354,10 +358,12 @@ class SignalChatService extends BaseChatService {
       avatarRemoteUrl: model.avatar,
       lightning: model.lightning,
     );
+    Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     // auto send response
-    final oneTimeKey = await IdentityService.instance
-        .isFromOnetimeKey((sourceEvent ?? event).tags[0][1]);
+    final oneTimeKey = await IdentityService.instance.isFromOnetimeKey(
+      (sourceEvent ?? event).tags[0][1],
+    );
 
     // expire onetime-key
     if (oneTimeKey != null) {
@@ -416,8 +422,10 @@ class SignalChatService extends BaseChatService {
         keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
       final displayName = room.getIdentity().displayName;
 
-      await SignalChatService.instance
-          .sendMessage(room, RoomUtil.getHelloMessage(displayName));
+      await SignalChatService.instance.sendMessage(
+        room,
+        RoomUtil.getHelloMessage(displayName),
+      );
     }
   }
 
@@ -450,8 +458,11 @@ ${relays.join('\n')}
 ''',
     );
 
-    await RoomService.instance
-        .sendMessage(room, sm.toString(), realMessage: sm.msg);
+    await RoomService.instance.sendMessage(
+      room,
+      sm.toString(),
+      realMessage: sm.msg,
+    );
   }
 
   Future<void> sendHelloMessage(
@@ -469,11 +480,11 @@ ${relays.join('\n')}
     room = await RoomService.instance.updateRoom(room);
     final sm = await KeychatMessage(c: MessageType.signal, type: type)
         .setHelloMessagge(
-      signalId: signalId,
-      identity,
-      greeting: greeting,
-      fromNpub: fromNpub,
-    );
+          signalId: signalId,
+          identity,
+          greeting: greeting,
+          fromNpub: fromNpub,
+        );
     await NostrAPI.instance.sendNip17Message(
       room,
       sm.toString(),
@@ -517,8 +528,9 @@ ${relays.join('\n')}
       ciphertext: ciphertext,
     );
     final signalIdPubkey = prekey.$1;
-    final signalId =
-        await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
+    final signalId = await SignalIdService.instance.getSignalIdByKeyId(
+      prekey.$2,
+    );
     if (signalId == null) {
       var msg = 'SignalId not found, identityId: ${mykey.identityId}.';
       if (mykey.roomId != null) {
@@ -530,22 +542,27 @@ ${relays.join('\n')}
       failedCallback(msg);
       throw Exception(msg);
     }
-    final keyPair = await Get.find<ChatxService>()
-        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
+    final keyPair = await Get.find<ChatxService>().setupSignalStoreBySignalId(
+      signalId.pubkey,
+      signalId,
+    );
     final identity =
         Get.find<HomeController>().allIdentities[signalId.identityId]!;
 
     final (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
       keyPair: keyPair,
       ciphertext: ciphertext,
-      remoteAddress:
-          KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),
+      remoteAddress: KeychatProtocolAddress(
+        name: signalIdPubkey,
+        deviceId: identity.id,
+      ),
       roomId: 0,
       isPrekey: true,
     );
     final decryptedContent = utf8.decode(plaintext);
-    final prekeyMessageModel =
-        PrekeyMessageModel.fromJson(jsonDecode(decryptedContent));
+    final prekeyMessageModel = PrekeyMessageModel.fromJson(
+      jsonDecode(decryptedContent),
+    );
     logger.i(
       'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash',
     );
@@ -555,8 +572,17 @@ ${relays.join('\n')}
       signalIdPubkey: signalIdPubkey,
     );
 
-    var room = await RoomService.instance
-        .getRoomByIdentity(prekeyMessageModel.nostrId, identity.id);
+    var room = await RoomService.instance.getRoomByIdentity(
+      prekeyMessageModel.nostrId,
+      identity.id,
+    );
+    final contact = await ContactService.instance.saveContactFromQrCode(
+      identityId: identity.id,
+      pubkey: prekeyMessageModel.nostrId,
+      name: prekeyMessageModel.name,
+      avatarRemoteUrl: prekeyMessageModel.avatar,
+      lightning: prekeyMessageModel.lightning,
+    );
     room ??= await RoomService.instance.createPrivateRoom(
       toMainPubkey: prekeyMessageModel.nostrId,
       identity: identity,
@@ -565,21 +591,16 @@ ${relays.join('\n')}
       encryptMode: EncryptMode.signal,
       curve25519PkHex: signalIdPubkey,
       signalId: signalId,
+      contact: contact,
     );
 
     room
       ..status = RoomStatus.enabled
       ..encryptMode = EncryptMode.signal
-      ..curve25519PkHex = signalIdPubkey;
-    await ContactService.instance.saveContactFromQrCode(
-      identityId: room.identityId,
-      pubkey: room.toMainPubkey,
-      name: prekeyMessageModel.name,
-      avatarRemoteUrl: prekeyMessageModel.avatar,
-      lightning: prekeyMessageModel.lightning,
-    );
-    await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);
+      ..curve25519PkHex = signalIdPubkey
+      ..contact = contact;
 
+    await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     KeychatMessage? km;
@@ -598,8 +619,11 @@ ${relays.join('\n')}
       );
       return;
     }
-    await RoomService.instance
-        .receiveDM(room, event, decodedContent: prekeyMessageModel.message);
+    await RoomService.instance.receiveDM(
+      room,
+      event,
+      decodedContent: prekeyMessageModel.message,
+    );
   }
 
   Future<Room?> getSignalChatRoomByTo(String to) async {
@@ -611,23 +635,27 @@ ${relays.join('\n')}
   }
 
   Future<void> resetSignalSession(Room room) async {
-    EasyThrottle.throttle('ResetSessionStatus', const Duration(seconds: 3),
-        () async {
-      try {
-        await Get.find<ChatxService>()
-            .deleteSignalSessionKPA(room); // delete old session
-        await SignalChatService.instance.sendHelloMessage(
-          room,
-          room.getIdentity(),
-          greeting: 'Reset signal session status',
-        );
+    EasyThrottle.throttle(
+      'ResetSessionStatus',
+      const Duration(seconds: 3),
+      () async {
+        try {
+          await Get.find<ChatxService>().deleteSignalSessionKPA(
+            room,
+          ); // delete old session
+          await SignalChatService.instance.sendHelloMessage(
+            room,
+            room.getIdentity(),
+            greeting: 'Reset signal session status',
+          );
 
-        EasyLoading.showInfo('Request sent successfully.');
-      } catch (e) {
-        final msg = Utils.getErrorMessage(e);
-        logger.e(msg, error: e);
-        EasyLoading.showToast('Failed to send request');
-      }
-    });
+          EasyLoading.showInfo('Request sent successfully.');
+        } catch (e) {
+          final msg = Utils.getErrorMessage(e);
+          logger.e(msg, error: e);
+          EasyLoading.showToast('Failed to send request');
+        }
+      },
+    );
   }
 }

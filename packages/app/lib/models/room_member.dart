@@ -49,8 +49,6 @@ class RoomMember extends Equatable {
 
   DateTime? createdAt;
   DateTime? updatedAt;
-  String? avatarUrl;
-  String? lightning;
 
   bool isAdmin = false;
 
@@ -73,6 +71,14 @@ class RoomMember extends Equatable {
   Map<String, dynamic> toJson() => _$RoomMemberToJson(this);
 
   @override
-  List<Object?> get props =>
-      [id, roomId, idPubkey, name, isAdmin, status, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    roomId,
+    idPubkey,
+    name,
+    isAdmin,
+    status,
+    createdAt,
+    updatedAt,
+  ];
 }

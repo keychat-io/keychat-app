@@ -6,6 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
@@ -88,46 +89,59 @@ class MessageService {
       }
       return;
     }
-    EasyThrottle.throttle('newMessageSnackbar', const Duration(seconds: 2), () {
-      final cc = RoomService.getController(model.roomId);
-      final isCurrentRoomPage = Get.currentRoute
-          .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
-      if (Get.isSnackbarOpen) {
-        try {
-          Get.closeAllSnackbars();
-          // ignore: empty_catches
-        } catch (e) {}
-      }
-      Get.snackbar(
-        room.getRoomName(),
-        content,
-        titleText: Text(
+    EasyThrottle.throttle(
+      'newMessageSnackbar',
+      const Duration(seconds: 2),
+      () async {
+        final cc = RoomService.getController(model.roomId);
+        final isCurrentRoomPage = Get.currentRoute.startsWith(
+          Routes.room.replaceFirst(':id', room.id.toString()),
+        );
+        if (Get.isSnackbarOpen) {
+          try {
+            Get.closeAllSnackbars();
+          } catch (e) {}
+        }
+        if (room.type != RoomType.group && room.contact == null) {
+          room.contact = await ContactService.instance.getContact(
+            room.identityId,
+            room.toMainPubkey,
+          );
+        }
+        Get.snackbar(
           room.getRoomName(),
-          style: Theme.of(Get.context!).textTheme.titleMedium,
-        ),
-        messageText:
-            Text(content, maxLines: 4, overflow: TextOverflow.ellipsis),
-        backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
-        snackPosition: SnackPosition.TOP,
-        isDismissible: true,
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        duration: const Duration(seconds: 5),
-        mainButton: isCurrentRoomPage || cc != null
-            ? null
-            : TextButton(
-                child: const Text('View'),
-                onPressed: () {
-                  pressSnackbar(room);
-                },
-              ),
-        icon: Utils.getRandomAvatar(room.toMainPubkey),
-        onTap: (c) {
-          if (isCurrentRoomPage || cc != null) return;
-          pressSnackbar(room);
-        },
-      );
-    });
+          content,
+          titleText: Text(
+            room.getRoomName(),
+            style: Theme.of(Get.context!).textTheme.titleMedium,
+          ),
+          messageText: Text(
+            content,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
+          snackPosition: SnackPosition.TOP,
+          isDismissible: true,
+          margin: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          duration: const Duration(seconds: 5),
+          mainButton: isCurrentRoomPage || cc != null
+              ? null
+              : TextButton(
+                  child: const Text('View'),
+                  onPressed: () {
+                    pressSnackbar(room);
+                  },
+                ),
+          icon: Utils.getRandomAvatar(room.toMainPubkey, contact: room.contact),
+          onTap: (c) {
+            if (isCurrentRoomPage || cc != null) return;
+            pressSnackbar(room);
+          },
+        );
+      },
+    );
   }
 
   void pressSnackbar(Room room) {
@@ -215,35 +229,36 @@ $content'''
     String? msgKeyHash,
     int? connectedRelays,
   }) async {
-    final model = Message(
-      msgid: events[0].id,
-      eventIds: events.map((e) => e.id).toList(),
-      identityId: room.identityId,
-      idPubkey: senderPubkey,
-      roomId: room.id,
-      from: from,
-      to: to,
-      sent: sent,
-      isMeSend: isMeSend,
-      content: content,
-      realMessage: realMessage,
-      reply: reply,
-      encryptType: encryptType,
-      msgKeyHash: msgKeyHash,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        (createdAt ?? events[0].createdAt) * 1000,
-      ),
-      rawEvents: events.map((e) {
-        final m = e.toJson();
-        m['toIdPubkey'] = e.toIdPubkey;
-        return jsonEncode(m);
-      }).toList(),
-    )
-      ..subEvent = subEvent
-      ..requestConfrim = requestConfrim
-      ..requestId = requestId
-      ..senderName = senderName
-      ..connectedRelays = connectedRelays ?? -1;
+    final model =
+        Message(
+            msgid: events[0].id,
+            eventIds: events.map((e) => e.id).toList(),
+            identityId: room.identityId,
+            idPubkey: senderPubkey,
+            roomId: room.id,
+            from: from,
+            to: to,
+            sent: sent,
+            isMeSend: isMeSend,
+            content: content,
+            realMessage: realMessage,
+            reply: reply,
+            encryptType: encryptType,
+            msgKeyHash: msgKeyHash,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              (createdAt ?? events[0].createdAt) * 1000,
+            ),
+            rawEvents: events.map((e) {
+              final m = e.toJson();
+              m['toIdPubkey'] = e.toIdPubkey;
+              return jsonEncode(m);
+            }).toList(),
+          )
+          ..subEvent = subEvent
+          ..requestConfrim = requestConfrim
+          ..requestId = requestId
+          ..senderName = senderName
+          ..connectedRelays = connectedRelays ?? -1;
 
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
@@ -337,8 +352,9 @@ $content'''
     final lastMessageAt = Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
-      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
-          .subtract(const Duration(minutes: 3));
+      return DateTime.fromMillisecondsSinceEpoch(
+        lastMessageAt * 1000,
+      ).subtract(const Duration(minutes: 3));
     }
     final time = await MessageService.instance.getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
@@ -487,8 +503,10 @@ $content'''
 
   Future<void> clearUnreadMessage() async {
     final database = DBProvider.database;
-    final messages =
-        await database.messages.filter().isReadEqualTo(false).findAll();
+    final messages = await database.messages
+        .filter()
+        .isReadEqualTo(false)
+        .findAll();
 
     await database.writeTxn(() async {
       for (final item in messages) {

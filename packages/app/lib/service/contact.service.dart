@@ -234,6 +234,7 @@ class ContactService {
     required String pubkey,
     String? name,
     String? curve25519PkHex,
+    bool autoCreateFromGroup = false,
   }) async {
     final hex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final c = await getContact(identityId, hex);
@@ -247,6 +248,7 @@ class ContactService {
       pubkey: pubkey,
       name: name,
       curve25519PkHex: curve25519PkHex,
+      autoCreateFromGroup: autoCreateFromGroup,
     );
   }
 
@@ -261,9 +263,10 @@ class ContactService {
         .pubkeyEqualTo(toMainPubkey)
         .findFirstSync();
     if (crk != null) return crk;
-    final model =
-        ContactReceiveKey(identityId: identityId, pubkey: toMainPubkey)
-          ..roomId = roomId ?? -1;
+    final model = ContactReceiveKey(
+      identityId: identityId,
+      pubkey: toMainPubkey,
+    )..roomId = roomId ?? -1;
     await DBProvider.database.writeTxn(() async {
       final id = await DBProvider.database.contactReceiveKeys.put(model);
       model.id = id;
@@ -364,8 +367,10 @@ class ContactService {
   }
 
   Future<void> updateReceiveKeyIsMute(Room room, bool value) async {
-    final crk =
-        await getOrCreateContactReceiveKey(room.identityId, room.toMainPubkey);
+    final crk = await getOrCreateContactReceiveKey(
+      room.identityId,
+      room.toMainPubkey,
+    );
     return DBProvider.database.writeTxn(() async {
       crk.isMute = value;
       await DBProvider.database.contactReceiveKeys.put(crk);
@@ -387,8 +392,10 @@ class ContactService {
     String? lightning,
     String? bio,
   }) async {
-    final contact = await ContactService.instance
-        .getOrCreateContact(identityId: identityId, pubkey: pubkey);
+    final contact = await ContactService.instance.getOrCreateContact(
+      identityId: identityId,
+      pubkey: pubkey,
+    );
     var changed = false;
     if (name != null && contact.name != name) {
       changed = true;
@@ -400,32 +407,34 @@ class ContactService {
     }
     if (contact.about != bio) {
       changed = true;
-      contact.about =
-          bio != null && bio.length > 200 ? bio.substring(0, 200) : bio;
+      contact.about = bio != null && bio.length > 200
+          ? bio.substring(0, 200)
+          : bio;
     }
     if (avatarRemoteUrl != contact.avatarRemoteUrl) {
       try {
         changed = true;
         contact.avatarRemoteUrl = avatarRemoteUrl;
         if (avatarRemoteUrl != null) {
-          final decryptedFile =
-              await FileService.instance.downloadAndDecryptToPath(
-            url: avatarRemoteUrl,
-            outputFolder: Utils.avatarsFolder,
+          final decryptedFile = await FileService.instance
+              .downloadAndDecryptToPath(
+                url: avatarRemoteUrl,
+                outputFolder: Utils.avatarsFolder,
+              );
+          contact.avatarLocalPath = decryptedFile.path.replaceFirst(
+            Utils.appFolder.path,
+            '',
           );
-          contact.avatarLocalPath =
-              decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
         } else {
           contact.avatarLocalPath = null;
         }
-        Utils.clearAvatarCache();
-        Get.find<HomeController>().loadIdentityRoomList(identityId);
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }
     }
     if (changed) {
       await ContactService.instance.saveContact(contact);
+      Utils.removeAvatarCacheByPubkey(pubkey);
     }
     return contact;
   }
@@ -444,5 +453,12 @@ class ContactService {
       contact.autoCreateFromGroup = false;
       await ContactService.instance.saveContact(contact);
     }
+  }
+
+  Contact? getContactByPubkeySync(String pubkey) {
+    return DBProvider.database.contacts
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .findFirstSync();
   }
 }

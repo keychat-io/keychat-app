@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/utils.dart';
@@ -55,8 +54,8 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                   Text(
                     'Websites you log in to will appear here',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -78,15 +77,21 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                 itemCount: urls.length,
                 separatorBuilder: (BuildContext context2, int index) =>
                     const Divider(
-                  indent: 16,
-                  endIndent: 16,
-                ),
+                      indent: 16,
+                      endIndent: 16,
+                    ),
                 itemBuilder: (context, index) {
                   final site = urls[index];
+
                   return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 1, horizontal: 16),
-                    leading: Utils.getRandomAvatar(site.pubkey, size: 36),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 1,
+                      horizontal: 16,
+                    ),
+                    leading: Utils.getAvatarByIdentity(
+                      widget.identity,
+                      size: 36,
+                    ),
                     title: Row(
                       children: [
                         const Text('+'),
@@ -94,7 +99,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                           padding: const EdgeInsets.only(left: 16, right: 8),
                           child:
                               Utils.getNetworkImage(site.favicon, size: 24) ??
-                                  Container(),
+                              Container(),
                         ),
                         Text(
                           site.host,

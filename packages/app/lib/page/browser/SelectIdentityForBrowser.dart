@@ -34,39 +34,56 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: SettingsList(platform: DevicePlatform.iOS, sections: [
-      if (identities.isNotEmpty)
-        SettingsSection(
-            title: Text('Request login to: ${widget.host}',
-                style: Theme.of(context).textTheme.titleMedium),
-            tiles: identities
-                .map((iden) => SettingsTile(
-                    leading: Utils.getAvatarByIdentity(iden),
-                    value: Text(getPublicKeyDisplay(iden.npub)),
-                    title: Text(iden.displayName),
-                    onPressed: (context) async {
-                      Get.back(result: iden);
-                    }))
-                .toList()),
-      SettingsSection(tiles: [
-        SettingsTile(
-            title: const Text('Create ID'),
-            trailing: Icon(CupertinoIcons.add,
-                color: Theme.of(Get.context!)
-                    .iconTheme
-                    .color
-                    ?.withValues(alpha: 0.5),
-                size: 22),
-            onPressed: (context) async {
-              await Get.bottomSheet(
-                  clipBehavior: Clip.antiAlias,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4))),
-                  const SelectModeToCreateId());
-              init();
-            })
-      ])
-    ]));
+      child: SettingsList(
+        platform: DevicePlatform.iOS,
+        sections: [
+          if (identities.isNotEmpty)
+            SettingsSection(
+              title: Text(
+                'Request login to: ${widget.host}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              tiles: identities
+                  .map(
+                    (iden) => SettingsTile(
+                      leading: Utils.getAvatarByIdentity(iden, size: 32),
+                      value: Text(getPublicKeyDisplay(iden.npub)),
+                      title: Text(iden.displayName),
+                      onPressed: (context) async {
+                        Get.back(result: iden);
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          SettingsSection(
+            tiles: [
+              SettingsTile(
+                title: const Text('Create ID'),
+                trailing: Icon(
+                  CupertinoIcons.add,
+                  color: Theme.of(
+                    Get.context!,
+                  ).iconTheme.color?.withValues(alpha: 0.5),
+                  size: 22,
+                ),
+                onPressed: (context) async {
+                  await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
+                    ),
+                    const SelectModeToCreateId(),
+                  );
+                  init();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

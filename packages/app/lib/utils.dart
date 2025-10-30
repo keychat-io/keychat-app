@@ -11,6 +11,7 @@ import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -438,7 +439,7 @@ Init File: $time \n
 
   static Widget getAssetImage(
     String imageUrl, {
-    double size = 42,
+    double size = 48,
     double radius = 100,
   }) {
     return Container(
@@ -461,7 +462,7 @@ Init File: $time \n
 
   static Widget getAvatarByImageFile(
     File image, {
-    double size = 42,
+    double size = 48,
     double radius = 100,
   }) {
     // Handle SVG files
@@ -500,21 +501,22 @@ Init File: $time \n
     );
   }
 
-  static Map<String, String> avatarCache = {};
   // Add avatar widget cache
   static final Map<String, Widget> _avatarWidgetCache = {};
 
-  static Widget getAvatarByRoom(Room room, {double size = 50}) {
+  static Widget getAvatarByRoom(Room room, {double size = 48}) {
     final newMessageCount = room.unReadCount;
     final chatType = room.type;
-    final cacheKey = 'avatar_dot_${room.id}_$size';
+    final cacheKey = 'avatar_${room.toMainPubkey}_$size';
 
     // Return cached widget if available
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       final cachedWidget = _avatarWidgetCache[cacheKey]!;
 
       // For badges that need to be updated dynamically
-      if (room.unReadCount == 0) return cachedWidget;
+      if (room.unReadCount == 0) {
+        return cachedWidget;
+      }
 
       // Only rebuild badge part if needed
       if (room.isMute) {
@@ -580,14 +582,17 @@ Init File: $time \n
     );
   }
 
-  // Add method to clear avatar cache when needed
-  static void clearAvatarCache() {
-    _avatarWidgetCache.clear();
+  // clear avatar cache by pubkey
+  static void removeAvatarCacheByPubkey(String pubkey) {
+    _avatarWidgetCache.keys
+        .where((key) => key.contains(pubkey))
+        .toList()
+        .forEach(_avatarWidgetCache.remove);
   }
 
   static Widget getAvatorByName(
     String account, {
-    double width = 45,
+    double width = 48,
     double fontSize = 16,
     Room? room,
     double borderRadius = 100,
@@ -823,23 +828,15 @@ Init File: $time \n
   }
 
   static Widget getRandomAvatar(
-    String id, {
-    double size = 40,
+    String pubkey, {
+    double size = 48,
     Contact? contact,
     String? localPath,
   }) {
-    // Include file paths in cache key to handle path changes
-    final filePath =
-        localPath ??
-        contact?.avatarLocalPath ??
-        contact?.avatarFromRelayLocalPath;
-    final cacheKey = 'avatar_${id}_${contact?.id}_$size${filePath ?? ""}';
-
-    // Check if we have this avatar widget cached
+    final cacheKey = 'avatar_${pubkey}_$size';
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       return _avatarWidgetCache[cacheKey]!;
     }
-
     // localPath
     if (localPath != null) {
       final file = File('${Utils.appFolder.path}$localPath');
@@ -849,16 +846,20 @@ Init File: $time \n
         return widget;
       }
     }
+    contact ??= ContactService.instance.getContactByPubkeySync(pubkey);
+
     // from contact
     if (contact != null) {
       final localFilePath =
           contact.avatarLocalPath ?? contact.avatarFromRelayLocalPath;
 
-      // from local downloaded relay avatar
       if (localFilePath != null) {
         final file = File('${Utils.appFolder.path}$localFilePath');
         if (file.existsSync()) {
           final widget = getAvatarByImageFile(file, size: size);
+          logger.d(
+            'caching room avatar ${contact.pubkey}${localFilePath}_$size',
+          );
           _avatarWidgetCache[cacheKey] = widget;
           return widget;
         }
@@ -866,12 +867,12 @@ Init File: $time \n
     }
 
     // use random avatar
-    final widget = _generateRandomAvatar(id, size: size);
+    final widget = _generateRandomAvatar(pubkey, size: size);
     _avatarWidgetCache[cacheKey] = widget;
     return widget;
   }
 
-  static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
+  static SvgPicture _generateRandomAvatar(String id, {double size = 48}) {
     final filePath = '${Utils.avatarsFolder}/$id.svg';
     final file = File(filePath);
 
@@ -1435,15 +1436,21 @@ Init File: $time \n
     );
   }
 
-  static Widget getAvatarByIdentity(Identity identity, {double size = 42}) {
+  static Widget getAvatarByIdentity(Identity identity, {double size = 48}) {
+    final cacheKey = 'avatar_dot_${identity.secp256k1PKHex}_$size';
+    if (_avatarWidgetCache.containsKey(cacheKey)) {
+      return _avatarWidgetCache[cacheKey]!;
+    }
+    late Widget avatarWidget;
     final avatarPath = identity.avatarLocalPath;
-
     // Check if local avatar file exists
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final avatarFile = File(Utils.appFolder.path + avatarPath);
       // logger.d('Loading local avatar from: ${avatarFile.path}');
       if (avatarFile.existsSync()) {
-        return Utils.getAvatarByImageFile(avatarFile, size: size);
+        avatarWidget = Utils.getAvatarByImageFile(avatarFile, size: size);
+        _avatarWidgetCache[cacheKey] = avatarWidget;
+        return avatarWidget;
       }
     }
 

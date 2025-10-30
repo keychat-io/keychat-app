@@ -6,6 +6,7 @@ import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/keychat/profile_request_model.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
@@ -60,7 +61,15 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
         lightning: profile.lightning,
         bio: profile.bio,
       );
-      await RoomService.instance.refreshRoom(widget.room, refreshContact: true);
+      if (widget.room.type == RoomType.group) {
+        await RoomService.getController(widget.room.id)?.resetMembers();
+      } else {
+        await RoomService.instance.refreshRoom(
+          widget.room,
+          refreshContact: true,
+        );
+      }
+      Utils.removeAvatarCacheByPubkey(idPubkey);
       Get.find<HomeController>().loadIdentityRoomList(widget.room.identityId);
 
       // Update message status

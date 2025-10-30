@@ -678,27 +678,26 @@ Add as a friend and start the signal protocol chat
         members[admin]!.isAdmin = true;
         enableMembers[admin]!.isAdmin = true;
       }
-      // update member's avatar
-      await updateRoomMembersAvatar();
+      await _fetchRoomMembersContact(members.values.toList());
       return;
     }
     // signal group
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
-      // update member's avatar
-      await updateRoomMembersAvatar();
+      await _fetchRoomMembersContact(members.values.toList());
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
 
-  Future<void> updateRoomMembersAvatar() async {
-    for (final member in members.values) {
-      final contact = await ContactService.instance.saveContactFromQrCode(
+  Future<void> _fetchRoomMembersContact(List<RoomMember> roomMembers) async {
+    for (final member in roomMembers) {
+      final contact = await ContactService.instance.getOrCreateContact(
         identityId: roomObs.value.identityId,
         pubkey: member.idPubkey,
-        avatarRemoteUrl: member.avatarUrl,
+        autoCreateFromGroup: true,
+        name: member.name,
       );
 
       enableMembers[member.idPubkey]?.contact = contact;

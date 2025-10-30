@@ -120,6 +120,9 @@ class ContactPage extends StatelessWidget {
                       lightning: model!.lightning,
                     );
                     await SignalChatService.instance.resetSignalSession(room);
+                    Get.find<HomeController>().loadIdentityRoomList(
+                      room.identityId,
+                    );
                     return;
                   }
                   EasyThrottle.throttle(
@@ -131,6 +134,13 @@ class ContactPage extends StatelessWidget {
                         EasyLoading.show(status: 'Processing...');
                         final identity = Get.find<HomeController>()
                             .allIdentities[identityId]!;
+                        await ContactService.instance.saveContactFromQrCode(
+                          identityId: identity.id,
+                          pubkey: contact.pubkey,
+                          name: contact.name,
+                          avatarRemoteUrl: contact.avatarRemoteUrl,
+                          lightning: contact.lightning,
+                        );
                         room0 = await RoomService.instance.createPrivateRoom(
                           toMainPubkey: contact.pubkey,
                           identity: identity,

@@ -1,7 +1,6 @@
 import 'dart:convert' show jsonEncode;
 
 import 'package:app/constants.dart';
-import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
@@ -70,8 +69,11 @@ class KeychatMessage {
 
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
 
-    final userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     final time = RoomUtil.getValidateTime();
+    final userInfo = await SignalIdService.instance.getQRCodeData(
+      signalId,
+      time,
+    );
 
     final content = SignalChatUtil.getToSignMessage(
       nostrId: identity.secp256k1PKHex,
@@ -83,6 +85,7 @@ class KeychatMessage {
       content: content,
       id: time.toString(),
     );
+
     if (sig == null) throw Exception('Sign failed or User denied');
     final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 

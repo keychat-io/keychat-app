@@ -112,8 +112,9 @@ class _MyQRCodeState extends State<MyQRCode> {
                       side: const BorderSide(color: Colors.grey),
                     ),
                     onPressed: () async {
-                      await SharePlus.instance
-                          .share(ShareParams(uri: Uri.tryParse(url)));
+                      await SharePlus.instance.share(
+                        ShareParams(uri: Uri.tryParse(url)),
+                      );
                     },
                     icon: const Icon(Icons.share, color: Colors.white),
                     label: const Text(
@@ -137,7 +138,7 @@ class _MyQRCodeState extends State<MyQRCode> {
     int time = -1,
   ]) async {
     final userInfo = signalId.keys == null
-        ? await SignalIdService.instance.getQRCodeData(signalId)
+        ? await SignalIdService.instance.getQRCodeData(signalId, time)
         : jsonDecode(signalId.keys!) as Map<String, dynamic>;
 
     final content = SignalChatUtil.getToSignMessage(

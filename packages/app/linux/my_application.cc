@@ -20,7 +20,18 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  gtk_window_set_icon_from_file(GTK_WINDOW(window),"assets/images/logo.png",NULL);
+  // Try to set icon from installed location
+  gchar *icon_path = NULL;
+  const gchar *appdir = g_getenv("APPDIR");
+  if (appdir) {
+    icon_path = g_strdup_printf("%s/share/icons/keychat.png", appdir);
+  } else {
+    // fallback to current directory or build directory
+    icon_path = g_strdup("share/icons/keychat.png");
+  }
+  gtk_window_set_icon_from_file(GTK_WINDOW(window), icon_path, NULL);
+  g_free(icon_path);
+
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
   // desktop).

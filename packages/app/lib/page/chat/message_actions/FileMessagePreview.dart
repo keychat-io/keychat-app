@@ -1,22 +1,23 @@
 import 'dart:io' show File;
 
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/message.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class FileMessagePreview extends StatefulWidget {
+  const FileMessagePreview(this.message, this.mfi, {super.key});
   final Message message;
   final MsgFileInfo mfi;
-  const FileMessagePreview(this.message, this.mfi, {super.key});
 
   @override
   _FileMessagePreviewState createState() => _FileMessagePreviewState();
@@ -39,7 +40,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
 
   void _init(MsgFileInfo mfi) {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
-      bool isTimeout = DateTime.now()
+      final isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))
           .isAfter(mfi.updateAt!);
       if (isTimeout) {
@@ -56,11 +57,10 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
     }
     // decryptSuccess
     if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
-      String filePath =
-          '${Get.find<SettingController>().appFolder.path}${mfi.localPath!}';
-      bool fileExists = File(filePath).existsSync();
+      final filePath = '${Utils.appFolder.path}${mfi.localPath!}';
+      final fileExists = File(filePath).existsSync();
 
-      if (fileExists == false) {
+      if (!fileExists) {
         setState(() {
           fileStatus = FileStatus.init;
           msgFileInfo = mfi;
@@ -78,135 +78,158 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('File'),
-          actions: [
-            if (fileStatus == FileStatus.decryptSuccess &&
-                msgFileInfo.localPath != null)
-              IconButton(
-                  onPressed: () async {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    bool fileExists = File(filePath).existsSync();
+      appBar: AppBar(
+        title: const Text('File'),
+        actions: [
+          if (fileStatus == FileStatus.decryptSuccess &&
+              msgFileInfo.localPath != null)
+            IconButton(
+              onPressed: () async {
+                final filePath =
+                    '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                final fileExists = File(filePath).existsSync();
 
-                    if (fileExists) {
-                      await File(filePath).delete();
-                    }
-                    EasyLoading.showToast('File deleted');
-                    _init(msgFileInfo);
-                  },
-                  icon: const Icon(CupertinoIcons.delete))
-          ],
-        ),
-        body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-                child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(msgFileInfo.fileName,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 16),
-                Text(
-                    'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo.size)}'),
-                textSmallGray(
-                    context, 'Encrypted by AES-256-CTR with one-time key'),
-                if (downloadProgress > 0 && downloadProgress < 100)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LinearProgressIndicator(
-                      value: downloadProgress / 100,
-                    ),
+                if (fileExists) {
+                  await File(filePath).delete();
+                }
+                EasyLoading.showToast('File deleted');
+                _init(msgFileInfo);
+              },
+              icon: const Icon(CupertinoIcons.delete),
+            ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                msgFileInfo.fileName,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo.size)}',
+              ),
+              textSmallGray(
+                context,
+                'Encrypted by AES-256-CTR with one-time key',
+              ),
+              if (downloadProgress > 0 && downloadProgress < 100)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LinearProgressIndicator(
+                    value: downloadProgress / 100,
                   ),
-                const SizedBox(height: 16),
-                getStatusButton(),
-                if (fileStatus == FileStatus.decryptSuccess &&
-                    msgFileInfo.localPath != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: OutlinedButton.icon(
-                          onPressed: () async {
-                            String filePath =
-                                '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                ),
+              const SizedBox(height: 16),
+              getStatusButton(),
+              if (fileStatus == FileStatus.decryptSuccess &&
+                  msgFileInfo.localPath != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final filePath =
+                          '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                      final box = context.findRenderObject() as RenderBox?;
 
-                            await Share.shareXFiles([XFile(filePath)],
-                                subject: FileService.instance
-                                    .getDisplayFileName(
-                                        msgFileInfo.localPath!));
-                          },
-                          icon: const Icon(CupertinoIcons.share),
-                          label: const Text('More'))),
-              ],
-            ))));
+                      SharePlus.instance.share(
+                        ShareParams(
+                          previewThumbnail: XFile(filePath),
+                          files: [XFile(filePath)],
+                          subject: FileService.instance.getDisplayFileName(
+                            msgFileInfo.localPath!,
+                          ),
+                          sharePositionOrigin:
+                              box!.localToGlobal(Offset.zero) & box.size,
+                        ),
+                      );
+                    },
+                    icon: const Icon(CupertinoIcons.share),
+                    label: const Text('More'),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget getStatusButton() {
     switch (fileStatus) {
       case FileStatus.decryptSuccess:
         return Wrap(
-            direction: Axis.vertical,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            children: [
-              FilledButton(
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  onPressed: () {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    if (GetPlatform.isDesktop) {
-                      String dir =
-                          filePath.substring(0, filePath.lastIndexOf('/'));
-                      OpenFilex.open(dir);
-                    } else {
-                      OpenFilex.open(filePath);
-                    }
-                  },
-                  child: Text(
-                      GetPlatform.isDesktop
-                          ? 'View in Finder'
-                          : 'Open in Other App',
-                      style: TextStyle(color: Colors.white))),
-              OutlinedButton(
-                  onPressed: () async {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    String fileName = msgFileInfo.localPath!.split('/').last;
-                    String? outputFile = await FilePicker.platform.saveFile(
-                      dialogTitle: 'Please select an output path:',
-                      fileName: fileName,
-                      bytes: await File(filePath).readAsBytes(),
-                    );
+          direction: Axis.vertical,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          children: [
+            FilledButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () {
+                final filePath =
+                    '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                if (GetPlatform.isDesktop) {
+                  final dir = filePath.substring(0, filePath.lastIndexOf('/'));
+                  OpenFilex.open(dir);
+                } else {
+                  OpenFilex.open(filePath);
+                }
+              },
+              child: Text(
+                GetPlatform.isDesktop ? 'View in Finder' : 'Open in Other App',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () async {
+                final filePath =
+                    '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                final fileName = path.basename(msgFileInfo.localPath!);
+                final outputFile = await FilePicker.platform.saveFile(
+                  dialogTitle: 'Please select an output path:',
+                  fileName: fileName,
+                  bytes: await File(filePath).readAsBytes(),
+                );
 
-                    if (outputFile == null) {
-                      EasyLoading.showSuccess('Save to Disk successfully');
-                    }
-                  },
-                  child: const Text('Save to Disk'))
-            ]);
+                if (outputFile == null) {
+                  EasyLoading.showSuccess('Save to Disk successfully');
+                }
+              },
+              child: const Text('Save to Disk'),
+            ),
+          ],
+        );
       case FileStatus.downloading:
         return FilledButton(
-            onPressed: () {
-              EasyLoading.showToast('Downloading');
-            },
-            child: const Text('Downloading'));
+          onPressed: () {
+            EasyLoading.showToast('Downloading');
+          },
+          child: const Text('Downloading'),
+        );
       default:
         return FilledButton(
-            onPressed: () {
-              EasyLoading.showToast('Start downloading');
-              FileService.instance.downloadForMessage(
-                  widget.message, msgFileInfo, callback: _init,
-                  onReceiveProgress: (int count, int total) {
+          onPressed: () {
+            EasyLoading.showToast('Start downloading');
+            FileService.instance.downloadForMessage(
+              widget.message,
+              msgFileInfo,
+              callback: _init,
+              onReceiveProgress: (int count, int total) {
                 if (count == total) {
                   EasyLoading.showToast('Download successfully');
                 }
                 setState(() {
                   downloadProgress = (count / total) * 100;
                 });
-              });
-            },
-            child: const Text('Download File'));
+              },
+            );
+          },
+          child: const Text('Download File'),
+        );
     }
   }
 }

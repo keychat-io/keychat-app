@@ -6,9 +6,9 @@ import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPlayPreviewWidget extends StatefulWidget {
+  const VideoPlayPreviewWidget(this.thumbnailFile, this.filePath, {super.key});
   final String filePath;
   final File thumbnailFile;
-  const VideoPlayPreviewWidget(this.thumbnailFile, this.filePath, {super.key});
 
   @override
   _VideoPlayWidgetState createState() => _VideoPlayWidgetState();
@@ -48,7 +48,7 @@ class _VideoPlayWidgetState extends State<VideoPlayPreviewWidget> {
         child: GestureDetector(
             onTap: () {
               if (_controller == null) return;
-              bool isPlaying = _controller!.value.isPlaying;
+              final isPlaying = _controller!.value.isPlaying;
               if (isPlaying) {
                 _controller!.pause();
                 setState(() {
@@ -57,15 +57,15 @@ class _VideoPlayWidgetState extends State<VideoPlayPreviewWidget> {
               }
             },
             onVerticalDragUpdate: (DragUpdateDetails details) {
-              double dy = details.delta.dy;
+              final dy = details.delta.dy;
               if (dy > 10) {
                 _controller?.pause();
-                Get.back();
+                Get.back<void>();
               }
             },
             onDoubleTap: () {
               _controller?.pause();
-              Get.back();
+              Get.back<void>();
             },
             child:
                 _controller == null || _controller!.value.isInitialized == false

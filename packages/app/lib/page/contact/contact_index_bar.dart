@@ -1,35 +1,30 @@
-// ignore_for_file: prefer_final_fields, unused_local_variable
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class IndexBar extends StatefulWidget {
-  final void Function(String str)? indexBarCallBack;
   const IndexBar({super.key, this.indexBarCallBack});
+  final void Function(String str)? indexBarCallBack;
 
   @override
-  // ignore: library_private_types_in_public_api
   _IndexBarState createState() => _IndexBarState();
 }
 
 class _IndexBarState extends State<IndexBar> {
-  // ignore: unused_field
-  Color _backColor = const Color.fromRGBO(1, 1, 1, 0.0);
-  // ignore: unused_field,
+  Color _backColor = const Color.fromRGBO(1, 1, 1, 0);
   Color _textColor = Colors.black;
-  double _indicatorY = 0.0;
+  double _indicatorY = 0;
   bool _indicatorHidden = true;
   String _indicatorText = 'A';
 
   @override
-  initState() {
+  void initState() {
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> words = [];
-    for (int i = 0; i < INDEX_WORDS.length; i++) {
+    final words = <Widget>[];
+    for (var i = 0; i < INDEX_WORDS.length; i++) {
       words.add(
         Expanded(
           child: Text(
@@ -40,7 +35,7 @@ class _IndexBarState extends State<IndexBar> {
       );
     }
     return Positioned(
-      right: 0.0,
+      right: 0,
       top: Get.width / 8,
       height: Get.height / 2,
       width: 120,
@@ -61,15 +56,17 @@ class _IndexBarState extends State<IndexBar> {
                       ),
                       Text(
                         _indicatorText,
-                        style:
-                            const TextStyle(fontSize: 18, color: Colors.white),
-                      )
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
           ),
           GestureDetector(
             onVerticalDragDown: (DragDownDetails details) {
-              int index = getIndexItem(context, details.globalPosition);
+              final index = getIndexItem(context, details.globalPosition);
               widget.indexBarCallBack!(INDEX_WORDS[index]);
               setState(() {
                 _backColor = const Color.fromRGBO(1, 1, 1, 0.5);
@@ -81,13 +78,13 @@ class _IndexBarState extends State<IndexBar> {
             },
             onVerticalDragEnd: (DragEndDetails details) {
               setState(() {
-                _backColor = const Color.fromRGBO(1, 1, 1, 0.0);
+                _backColor = const Color.fromRGBO(1, 1, 1, 0);
                 _textColor = Colors.black;
                 _indicatorHidden = true;
               });
             },
             onVerticalDragUpdate: (DragUpdateDetails details) {
-              int index = getIndexItem(context, details.globalPosition);
+              final index = getIndexItem(context, details.globalPosition);
               widget.indexBarCallBack!(INDEX_WORDS[index]);
               setState(() {
                 _indicatorY = 2.28 / INDEX_WORDS.length * index - 1.14;
@@ -102,7 +99,7 @@ class _IndexBarState extends State<IndexBar> {
                 children: words,
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -110,12 +107,12 @@ class _IndexBarState extends State<IndexBar> {
 }
 
 int getIndexItem(BuildContext context, Offset globalPosition) {
-  RenderBox box = context.findRenderObject() as RenderBox;
+  final box = context.findRenderObject()! as RenderBox;
 
-  var y = box.globalToLocal(globalPosition).dy;
+  final y = box.globalToLocal(globalPosition).dy;
 
-  var itemHeight = Get.height / 2 / INDEX_WORDS.length;
-  int index = y ~/ itemHeight.clamp(0, INDEX_WORDS.length - 1);
+  final itemHeight = Get.height / 2 / INDEX_WORDS.length;
+  final index = y ~/ itemHeight.clamp(0, INDEX_WORDS.length - 1);
   return index;
 }
 
@@ -148,5 +145,5 @@ const INDEX_WORDS = [
   'W',
   'X',
   'Y',
-  'Z'
+  'Z',
 ];

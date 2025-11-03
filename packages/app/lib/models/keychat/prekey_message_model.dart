@@ -12,6 +12,8 @@ class PrekeyMessageModel {
   late String sig;
   late String name;
   late String message;
+  String? lightning;
+  String? avatar;
   @override
   String toString() => jsonEncode(toJson());
 
@@ -21,7 +23,9 @@ class PrekeyMessageModel {
       required this.time,
       required this.name,
       required this.sig,
-      required this.message});
+      required this.message,
+      this.lightning,
+      this.avatar});
   factory PrekeyMessageModel.fromJson(Map<String, dynamic> json) =>
       _$PrekeyMessageModelFromJson(json);
 

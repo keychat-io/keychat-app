@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 
 class ReceiveEcash extends StatefulWidget {
   const ReceiveEcash({super.key});
@@ -20,20 +22,22 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   late TextEditingController receiveTextController;
   rust_cashu.TokenInfo? decodedModel;
   bool supported = true;
+  final RxBool isLoading = false.obs;
+
   @override
   void initState() {
     receiveTextController = TextEditingController();
     receiveTextController.addListener(() async {
-      String? text = receiveTextController.text.trim();
+      final text = receiveTextController.text.trim();
       if (text.isNotEmpty) {
         try {
-          var res = await rust_cashu.decodeToken(encodedToken: text);
+          final res = await rust_cashu.decodeToken(encodedToken: text);
 
           setState(() {
             decodedModel = res;
           });
         } catch (e) {
-          String msg = Utils.getErrorMessage(e);
+          final msg = Utils.getErrorMessage(e);
           EasyLoading.showError(msg);
         }
       }
@@ -50,102 +54,125 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-              centerTitle: true,
-              leading: Container(),
-              title: const Text('Receive Ecash'),
-            ),
-            body: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, bottom: 16, top: 4),
-                child: Column(children: [
-                  Form(
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Expanded(
-                        child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: TextField(
-                            controller: receiveTextController,
-                            textInputAction: TextInputAction.done,
-                            autofocus: true,
-                            maxLines: 2,
-                            minLines: 1,
-                            decoration: InputDecoration(
-                                labelText: 'Paste Cashu Token',
-                                hintText: 'Paste Cashu Token',
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.paste),
-                                  onPressed: () async {
-                                    final clipboardData =
-                                        await Clipboard.getData('text/plain');
-                                    if (clipboardData != null) {
-                                      final pastedText = clipboardData.text;
-                                      if (pastedText != null &&
-                                          pastedText != '') {
-                                        receiveTextController.text = pastedText;
-                                      }
-                                    }
-                                  },
-                                )),
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          centerTitle: true,
+          leading: Container(),
+          title: const Text('Receive Ecash'),
+          actions: [
+            if (GetPlatform.isMobile || GetPlatform.isMacOS)
+              IconButton(
+                onPressed: () async {
+                  QrScanService.instance.handleQRScan();
+                },
+                icon: const Icon(CupertinoIcons.qrcode_viewfinder),
+              ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+          child: Column(
+            children: [
+              Expanded(
+                child: Form(
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: TextField(
+                          controller: receiveTextController,
+                          textInputAction: TextInputAction.done,
+                          autofocus: true,
+                          maxLines: 2,
+                          minLines: 1,
+                          decoration: InputDecoration(
+                            labelText: 'Paste Cashu Token',
+                            hintText: 'Paste Cashu Token',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.paste),
+                              onPressed: () async {
+                                final clipboardData = await Clipboard.getData(
+                                  'text/plain',
+                                );
+                                if (clipboardData != null) {
+                                  final pastedText = clipboardData.text;
+                                  if (pastedText != null && pastedText != '') {
+                                    receiveTextController.text = pastedText;
+                                  }
+                                }
+                              },
+                            ),
                           ),
                         ),
-                        if (decodedModel != null)
-                          ListTile(
-                            title: Text(
-                                '+${decodedModel?.amount} ${decodedModel!.unit?.toUpperCase() ?? EcashTokenSymbol.sat.name}'),
-                            subtitle: Text(decodedModel!.mint),
+                      ),
+                      if (decodedModel != null)
+                        ListTile(
+                          title: Text(
+                            '+${decodedModel?.amount} ${decodedModel!.unit}',
                           ),
-                        const SizedBox(height: 8),
-                        if (GetPlatform.isMobile || GetPlatform.isMacOS)
-                          OutlinedButton.icon(
-                              onPressed: () async {
-                                QrScanService.instance.handleQRScan();
-                              },
-                              icon: const Icon(Icons.qr_code_scanner),
-                              label: const Text('Scan'))
-                      ],
-                    )),
+                          subtitle: Text(decodedModel!.mint),
+                        ),
+                    ],
                   ),
-                  FilledButton(
-                    style: ButtonStyle(
-                        minimumSize: WidgetStateProperty.all(
-                            const Size(double.infinity, 44))),
-                    child: const Text('Receive'),
-                    onPressed: () async {
-                      EasyThrottle.throttle(
-                          'receive_ecash', const Duration(milliseconds: 2000),
-                          () async {
-                        if (GetPlatform.isMobile) {
-                          HapticFeedback.lightImpact();
-                        }
-                        String encodedToken = receiveTextController.text.trim();
-                        if (encodedToken.isEmpty) {
-                          EasyLoading.showToast('Please input token');
-                          return;
-                        }
-                        try {
-                          await CashuUtil.handleReceiveToken(
-                              token: encodedToken, retry: true);
-                          receiveTextController.clear();
-                          controller.requestPageRefresh();
-                          setState(() {
-                            decodedModel = null;
-                          });
-                          // Get.back();
-                        } catch (e, s) {
-                          String msg = Utils.getErrorMessage(e);
-                          EasyLoading.showToast(msg);
-                          logger.e('Receive token failed',
-                              error: e, stackTrace: s);
-                        }
-                      });
-                    },
-                  )
-                ]))));
+                ),
+              ),
+              SizedBox(
+                width: GetPlatform.isDesktop ? 200 : double.infinity,
+                height: 44,
+                child: Obx(
+                  () => FilledButton(
+                    onPressed: isLoading.value
+                        ? null
+                        : () async {
+                            if (isLoading.value) return;
+
+                            try {
+                              isLoading.value = true;
+                              if (GetPlatform.isMobile) {
+                                HapticFeedback.lightImpact();
+                              }
+                              final encodedToken =
+                                  receiveTextController.text.trim();
+                              if (encodedToken.isEmpty) {
+                                EasyLoading.showToast('Please input token');
+                                return;
+                              }
+                              await EcashUtils.handleReceiveToken(
+                                token: encodedToken,
+                                retry: true,
+                              );
+                              receiveTextController.clear();
+                              unawaited(controller.requestPageRefresh());
+                              setState(() {
+                                decodedModel = null;
+                              });
+                            } catch (e, s) {
+                              await EcashUtils.ecashErrorHandle(e, s);
+                            } finally {
+                              isLoading.value = false;
+                            }
+                          },
+                    child: isLoading.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Receive'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

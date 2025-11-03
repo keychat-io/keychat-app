@@ -16,12 +16,12 @@ enum MessageEncryptType {
   nip4WrapNip4,
   nip17,
   nip4WrapMls,
-  mls
+  mls,
 }
 
 enum MessageMediaType {
   text,
-  cashuA,
+  cashu,
   image,
   video,
   contact,
@@ -39,6 +39,7 @@ enum MessageMediaType {
   groupInvitationInfo,
   groupInvitationRequesting,
   lightningInvoice,
+  profileRequest, // sync my profile to others
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }
@@ -46,6 +47,27 @@ enum RequestConfrimEnum { none, request, approved, rejected, expired }
 @Collection(ignore: {'props', 'relayStatusMap', 'fromContact', 'isMediaType'})
 // ignore: must_be_immutable
 class Message extends Equatable {
+  // show for message
+
+  Message({
+    required this.msgid,
+    required this.idPubkey,
+    required this.identityId,
+    required this.roomId,
+    required this.from,
+    required this.to,
+    required this.content,
+    required this.createdAt,
+    required this.sent,
+    required this.eventIds,
+    required this.encryptType,
+    required this.rawEvents,
+    this.realMessage,
+    this.reply,
+    this.isSystem = false,
+    this.isMeSend = false,
+    this.msgKeyHash,
+  });
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
@@ -91,42 +113,26 @@ class Message extends Equatable {
   String? subEvent;
   DateTime? receiveAt;
   List<String> rawEvents = [];
-  FromContact? fromContact; // show for message
+  FromContact? fromContact;
 
-  Message(
-      {required this.msgid,
-      required this.idPubkey,
-      required this.identityId,
-      required this.roomId,
-      required this.from,
-      required this.to,
-      required this.content,
-      required this.createdAt,
-      required this.sent,
-      required this.eventIds,
-      required this.encryptType,
-      required this.rawEvents,
-      this.realMessage,
-      this.reply,
-      this.isSystem = false,
-      this.isMeSend = false,
-      this.msgKeyHash});
+  int connectedRelays = -1; // target relays to send
+  int successRelays = 0; // successful relays
 
   @override
   List<Object?> get props => [
-        id,
-        content,
-        realMessage,
-        msgid,
-        roomId,
-        from,
-        to,
-        isSystem,
-        isMeSend,
-        isRead,
-        mediaType,
-        createdAt,
-      ];
+    id,
+    content,
+    realMessage,
+    msgid,
+    roomId,
+    from,
+    to,
+    isSystem,
+    isMeSend,
+    isRead,
+    mediaType,
+    createdAt,
+  ];
 
   bool get isMediaType =>
       mediaType == MessageMediaType.image ||
@@ -135,20 +141,20 @@ class Message extends Equatable {
 
   MsgFileInfo? convertToMsgFileInfo() {
     if (content.startsWith('https://') || content.startsWith('http://')) {
-      Uri uri = Uri.parse(content);
+      final uri = Uri.parse(content);
       if (!uri.hasQuery) return null;
-      Map query = uri.queryParameters;
+      final Map query = uri.queryParameters;
       if (query['kctype'] == null) return null;
 
       return MsgFileInfo()
-        ..type = query['kctype']
+        ..type = query['kctype'] as String
         ..url = uri.origin + uri.path
-        ..iv = query['iv']
-        ..suffix = query['suffix']
-        ..key = query['key']
-        ..size = int.parse(query['size'] ?? 0)
-        ..hash = query['hash']
-        ..sourceName = query['sourceName']
+        ..iv = query['iv'] as String
+        ..suffix = query['suffix'] as String?
+        ..key = query['key'] as String
+        ..size = int.parse(query['size'] as String? ?? '0')
+        ..hash = query['hash'] as String
+        ..sourceName = query['sourceName'] as String
         ..status = FileStatus.init;
     }
     return null;
@@ -156,7 +162,7 @@ class Message extends Equatable {
 }
 
 class FromContact {
+  FromContact(this.pubkey, this.name);
   late String pubkey;
   late String name;
-  FromContact(this.pubkey, this.name);
 }

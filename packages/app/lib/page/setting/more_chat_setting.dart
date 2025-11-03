@@ -20,15 +20,15 @@ import 'package:get/get.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'NostrEvents/NostrEvents_bindings.dart';
-import 'NostrEvents/NostrEvents_page.dart';
+import 'package:app/page/setting/NostrEvents/NostrEvents_bindings.dart';
+import 'package:app/page/setting/NostrEvents/NostrEvents_page.dart';
 
 class MoreChatSetting extends StatelessWidget {
   const MoreChatSetting({super.key});
 
   @override
   Widget build(BuildContext context) {
-    WebsocketService ws = Get.find<WebsocketService>();
+    final ws = Get.find<WebsocketService>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -41,7 +41,7 @@ class MoreChatSetting extends StatelessWidget {
               SettingsTile.navigation(
                   leading: const Icon(CupertinoIcons.globe),
                   value: Obx(() => ws.relayConnectedCount.value == 0
-                      ? Text('Connecting')
+                      ? const Text('Connecting')
                       : Text(ws.relayConnectedCount.value.toString())),
                   onPressed: (c) {
                     Get.to(() => const RelaySetting(),
@@ -50,7 +50,7 @@ class MoreChatSetting extends StatelessWidget {
                   title: const Text('Message Relay')),
               SettingsTile.navigation(
                 leading: const Icon(Icons.storage_outlined),
-                title: const Text("Media Relay"),
+                title: const Text('Media Relay'),
                 onPressed: (context) {
                   Get.to(() => const MediaRelaySettings(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -74,14 +74,14 @@ class MoreChatSetting extends StatelessWidget {
             SettingsSection(title: const Text('MLS Group Settings'), tiles: [
               SettingsTile(
                   leading: const Icon(CupertinoIcons.cloud_upload),
-                  title: const Text("Upload KeyPackage"),
+                  title: const Text('Upload KeyPackage'),
                   onPressed: (context) async {
                     try {
                       await MlsGroupService.instance
                           .uploadKeyPackages(forceUpload: true);
                       EasyLoading.showSuccess('Upload Success');
                     } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
+                      final msg = Utils.getErrorMessage(e);
                       logger.e('Failed to upload KeyPackages: $msg',
                           stackTrace: s);
                       EasyLoading.showError(
@@ -92,7 +92,7 @@ class MoreChatSetting extends StatelessWidget {
             SettingsSection(title: const Text('Debug Zone'), tiles: [
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
-                title: const Text("Failed Events"),
+                title: const Text('Failed Events'),
                 onPressed: (context) async {
                   Get.to(() => const NostrEventsPage(),
                       binding: NostrEventsBindings(),
@@ -101,7 +101,7 @@ class MoreChatSetting extends StatelessWidget {
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
-                title: const Text("Query Received Event"),
+                title: const Text('Query Received Event'),
                 onPressed: (context) async {
                   Get.to(() => const QueryReceivedEvent(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -109,7 +109,7 @@ class MoreChatSetting extends StatelessWidget {
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.copy),
-                title: const Text("Unread Messages"),
+                title: const Text('Unread Messages'),
                 onPressed: (context) async {
                   Get.to(() => const UnreadMessages(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -120,15 +120,15 @@ class MoreChatSetting extends StatelessWidget {
         ));
   }
 
-  void closeAllRelays() async {
-    HomeController hc = Get.find<HomeController>();
+  Future<void> closeAllRelays() async {
+    final hc = Get.find<HomeController>();
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
   }
 
   Future<void> handleNotificationSettting() async {
-    HomeController homeController = Get.find<HomeController>();
-    bool permission = await NotifyService.hasNotifyPermission();
+    final homeController = Get.find<HomeController>();
+    final permission = await NotifyService.hasNotifyPermission();
     logger.d('Notification permission: $permission');
     Get.bottomSheet(Obx(
       () => SettingsList(platform: DevicePlatform.iOS, sections: [
@@ -139,16 +139,16 @@ class MoreChatSetting extends StatelessWidget {
               description: NoticeTextWidget.warning(
                   'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
               onToggle: (res) async {
-                bool? result =
+                final result =
                     await (res ? enableNotification() : disableNotification());
-                if (result != null && result) {
+                if (result) {
                   // close bottomsheet
-                  Get.back();
+                  Get.back<void>();
                 }
               },
               title: const Text('Notification status')),
           SettingsTile.navigation(
-            title: const Text("FCMToken"),
+            title: const Text('FCMToken'),
             onPressed: (context) {
               if (NotifyService.fcmToken == null) {
                 EasyLoading.showError(
@@ -182,9 +182,9 @@ class MoreChatSetting extends StatelessWidget {
     ));
   }
 
-  Future disableNotification() {
-    return Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
+  Future<bool> disableNotification() async {
+    final res = await Get.dialog<bool>(CupertinoAlertDialog(
+      title: const Text('Alert'),
       content: Container(
           color: Colors.transparent,
           padding: const EdgeInsets.only(top: 15),
@@ -192,13 +192,13 @@ class MoreChatSetting extends StatelessWidget {
               'Once deactivated, your receiving addresses will be automatically deleted from the notification server.')),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back(result: true);
           },
         ),
         CupertinoDialogAction(
-          child: const Text("Confirm"),
+          child: const Text('Confirm'),
           onPressed: () async {
             EasyLoading.show(status: 'Processing');
             try {
@@ -213,11 +213,12 @@ class MoreChatSetting extends StatelessWidget {
         ),
       ],
     ));
+    return res ?? false;
   }
 
   Future<bool> enableNotification() async {
-    return await Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
+    final res = await Get.dialog<bool>(CupertinoAlertDialog(
+      title: const Text('Alert'),
       content: Container(
           color: Colors.transparent,
           padding: const EdgeInsets.only(top: 15),
@@ -225,21 +226,21 @@ class MoreChatSetting extends StatelessWidget {
               'Once activated, your receiving addresses will be automatically uploaded to the notification server.')),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back(result: true);
           },
         ),
         CupertinoDialogAction(
-          child: const Text("Confirm"),
+          child: const Text('Confirm'),
           onPressed: () async {
             EasyLoading.show(status: 'Processing');
-            var setting =
+            final setting =
                 await FirebaseMessaging.instance.getNotificationSettings();
 
             if (setting.authorizationStatus == AuthorizationStatus.denied) {
               EasyLoading.showSuccess(
-                  "Please enable this config in system setting");
+                  'Please enable this config in system setting');
 
               openAppSettings();
               return;
@@ -262,5 +263,6 @@ class MoreChatSetting extends StatelessWidget {
         ),
       ],
     ));
+    return res ?? false;
   }
 }

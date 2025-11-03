@@ -1,76 +1,103 @@
 import 'package:app/page/theme.dart';
-// import 'package:keychat_ecash/components/SelectMint.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import './CreateInvoice_controller.dart';
+import 'package:get/get.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
+import 'package:keychat_ecash/components/SelectMint.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 
 class CreateInvoicePage extends StatelessWidget {
+  CreateInvoicePage({this.amount, this.showSelectMint = true, super.key});
   final int? amount;
-  const CreateInvoicePage({this.amount, super.key});
+  final bool showSelectMint;
+  final RxBool isLoading = false.obs;
 
   @override
   Widget build(BuildContext context) {
-    EcashController cashuController = Get.find<EcashController>();
-
-    CreateInvoiceController controller =
-        Get.put(CreateInvoiceController(defaultAmount: amount));
+    final cashuController = Get.find<EcashController>();
+    final controller = Get.put(CreateInvoiceController(defaultAmount: amount));
 
     return SafeArea(
-        child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-              leading: Container(),
-              centerTitle: true,
-              title: Text(
-                'Receive From Lightning Wallet',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-            body: Container(
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                decoration:
-                    BoxDecoration(color: Theme.of(context).colorScheme.surface),
-                child: Column(children: [
-                  // SelectMint(controller.selectedMint.value, (mint) {
-                  //   controller.selectedMint.value = mint;
-                  // }),
-                  const SizedBox(height: 10),
-                  Form(
-                    child: Expanded(
-                        child: Column(children: [
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          leading: Container(),
+          centerTitle: true,
+          title: Text(
+            'Receive From Lightning Wallet',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        body: Container(
+          padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+          decoration:
+              BoxDecoration(color: Theme.of(context).colorScheme.surface),
+          child: Column(
+            children: [
+              if (showSelectMint)
+                SelectMint(controller.selectedMint.value, (String mint) {
+                  controller.selectedMint.value = mint;
+                }),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Form(
+                  child: Column(
+                    children: [
                       TextField(
-                          style: const TextStyle(fontSize: 20),
-                          controller: controller.textController,
-                          keyboardType: TextInputType.number,
-                          // textInputAction: TextInputAction.done,
-                          autofocus: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Input Amount',
-                            hintText: 'Amount',
-                            border: OutlineInputBorder(),
-                          )),
-                    ])),
+                        style: const TextStyle(fontSize: 18),
+                        controller: controller.textController,
+                        keyboardType: TextInputType.number,
+                        // textInputAction: TextInputAction.done,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Input Amount',
+                          hintText: 'Amount',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-                  Obx(() => cashuController
-                          .supportMint(controller.selectedMint.value)
-                      ? FilledButton(
-                          style: ButtonStyle(
-                              minimumSize: WidgetStateProperty.all(
-                                  const Size(double.infinity, 44))),
-                          onPressed: () {
-                            EasyThrottle.throttle('createInvoice',
-                                const Duration(milliseconds: 2000), () async {
-                              controller.handleCreateInvoice();
-                            });
-                          },
-                          child: const Text('Create Invoice'))
-                      : FilledButton(
+                ),
+              ),
+              Obx(
+                () => cashuController.supportMint(controller.selectedMint.value)
+                    ? SizedBox(
+                        width: GetPlatform.isDesktop ? 200 : double.infinity,
+                        height: 44,
+                        child: Obx(
+                          () => FilledButton(
+                            onPressed: isLoading.value
+                                ? null
+                                : () async {
+                                    if (isLoading.value) return;
+
+                                    try {
+                                      isLoading.value = true;
+                                      await controller.handleCreateInvoice();
+                                    } finally {
+                                      isLoading.value = false;
+                                    }
+                                  },
+                            child: isLoading.value
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text('Create Invoice'),
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        width: GetPlatform.isDesktop ? 200 : double.infinity,
+                        height: 44,
+                        child: FilledButton(
                           onPressed: null,
                           style: ButtonStyle(
-                            minimumSize: WidgetStateProperty.all(
-                                const Size(double.infinity, 44)),
                             backgroundColor:
                                 WidgetStateProperty.resolveWith<Color>(
                               (Set<WidgetState> states) {
@@ -81,7 +108,14 @@ class CreateInvoicePage extends StatelessWidget {
                               },
                             ),
                           ),
-                          child: const Text('Disable By Mint Server')))
-                ]))));
+                          child: const Text('Disable By Mint Server'),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

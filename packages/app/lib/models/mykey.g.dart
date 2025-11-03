@@ -22,11 +22,7 @@ const MykeySchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'hashCode': PropertySchema(
-      id: 1,
-      name: r'hashCode',
-      type: IsarType.long,
-    ),
+    r'hashCode': PropertySchema(id: 1, name: r'hashCode', type: IsarType.long),
     r'identityId': PropertySchema(
       id: 2,
       name: r'identityId',
@@ -47,21 +43,9 @@ const MykeySchema = CollectionSchema(
       name: r'oneTimeUsed',
       type: IsarType.bool,
     ),
-    r'prikey': PropertySchema(
-      id: 6,
-      name: r'prikey',
-      type: IsarType.string,
-    ),
-    r'pubkey': PropertySchema(
-      id: 7,
-      name: r'pubkey',
-      type: IsarType.string,
-    ),
-    r'roomId': PropertySchema(
-      id: 8,
-      name: r'roomId',
-      type: IsarType.long,
-    ),
+    r'prikey': PropertySchema(id: 6, name: r'prikey', type: IsarType.string),
+    r'pubkey': PropertySchema(id: 7, name: r'pubkey', type: IsarType.string),
+    r'roomId': PropertySchema(id: 8, name: r'roomId', type: IsarType.long),
     r'stringify': PropertySchema(
       id: 9,
       name: r'stringify',
@@ -71,8 +55,9 @@ const MykeySchema = CollectionSchema(
       id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
-    )
+    ),
   },
+
   estimateSize: _mykeyEstimateSize,
   serialize: _mykeySerialize,
   deserialize: _mykeyDeserialize,
@@ -94,16 +79,17 @@ const MykeySchema = CollectionSchema(
           name: r'identityId',
           type: IndexType.value,
           caseSensitive: false,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _mykeyGetId,
   getLinks: _mykeyGetLinks,
   attach: _mykeyAttach,
-  version: '3.3.0-dev.1',
+  version: '3.3.0-dev.3',
 );
 
 int _mykeyEstimateSize(
@@ -221,10 +207,14 @@ extension MykeyByIndex on IsarCollection<Mykey> {
   }
 
   Future<List<Mykey?>> getAllByPubkeyIdentityId(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -234,10 +224,14 @@ extension MykeyByIndex on IsarCollection<Mykey> {
   }
 
   List<Mykey?> getAllByPubkeyIdentityIdSync(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -247,10 +241,14 @@ extension MykeyByIndex on IsarCollection<Mykey> {
   }
 
   Future<int> deleteAllByPubkeyIdentityId(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -260,10 +258,14 @@ extension MykeyByIndex on IsarCollection<Mykey> {
   }
 
   int deleteAllByPubkeyIdentityIdSync(
-      List<String> pubkeyValues, List<int> identityIdValues) {
+    List<String> pubkeyValues,
+    List<int> identityIdValues,
+  ) {
     final len = pubkeyValues.length;
-    assert(identityIdValues.length == len,
-        'All index values must have the same length');
+    assert(
+      identityIdValues.length == len,
+      'All index values must have the same length',
+    );
     final values = <List<dynamic>>[];
     for (var i = 0; i < len; i++) {
       values.add([pubkeyValues[i], identityIdValues[i]]);
@@ -284,10 +286,15 @@ extension MykeyByIndex on IsarCollection<Mykey> {
     return putAllByIndex(r'pubkey_identityId', objects);
   }
 
-  List<Id> putAllByPubkeyIdentityIdSync(List<Mykey> objects,
-      {bool saveLinks = true}) {
-    return putAllByIndexSync(r'pubkey_identityId', objects,
-        saveLinks: saveLinks);
+  List<Id> putAllByPubkeyIdentityIdSync(
+    List<Mykey> objects, {
+    bool saveLinks = true,
+  }) {
+    return putAllByIndexSync(
+      r'pubkey_identityId',
+      objects,
+      saveLinks: saveLinks,
+    );
   }
 }
 
@@ -302,10 +309,7 @@ extension MykeyQueryWhereSort on QueryBuilder<Mykey, Mykey, QWhere> {
 extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
   QueryBuilder<Mykey, Mykey, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
@@ -331,8 +335,10 @@ extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QAfterWhereClause> idGreaterThan(Id id,
-      {bool include = false}) {
+  QueryBuilder<Mykey, Mykey, QAfterWhereClause> idGreaterThan(
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -340,8 +346,10 @@ extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QAfterWhereClause> idLessThan(Id id,
-      {bool include = false}) {
+  QueryBuilder<Mykey, Mykey, QAfterWhereClause> idLessThan(
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -356,118 +364,146 @@ extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterWhereClause> pubkeyEqualToAnyIdentityId(
-      String pubkey) {
+    String pubkey,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'pubkey_identityId',
-        value: [pubkey],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'pubkey_identityId',
+          value: [pubkey],
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterWhereClause> pubkeyNotEqualToAnyIdentityId(
-      String pubkey) {
+    String pubkey,
+  ) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [],
-              upper: [pubkey],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [],
+                upper: [pubkey],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [],
-              upper: [pubkey],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [],
+                upper: [pubkey],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterWhereClause> pubkeyIdentityIdEqualTo(
-      String pubkey, int identityId) {
+    String pubkey,
+    int identityId,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'pubkey_identityId',
-        value: [pubkey, identityId],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'pubkey_identityId',
+          value: [pubkey, identityId],
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdNotEqualTo(String pubkey, int identityId) {
+  pubkeyEqualToIdentityIdNotEqualTo(String pubkey, int identityId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              upper: [pubkey, identityId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey, identityId],
-              includeLower: false,
-              upper: [pubkey],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                upper: [pubkey, identityId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey, identityId],
+                includeLower: false,
+                upper: [pubkey],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey, identityId],
-              includeLower: false,
-              upper: [pubkey],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pubkey_identityId',
-              lower: [pubkey],
-              upper: [pubkey, identityId],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey, identityId],
+                includeLower: false,
+                upper: [pubkey],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'pubkey_identityId',
+                lower: [pubkey],
+                upper: [pubkey, identityId],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterWhereClause>
-      pubkeyEqualToIdentityIdGreaterThan(
+  pubkeyEqualToIdentityIdGreaterThan(
     String pubkey,
     int identityId, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey, identityId],
-        includeLower: include,
-        upper: [pubkey],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey, identityId],
+          includeLower: include,
+          upper: [pubkey],
+        ),
+      );
     });
   }
 
@@ -477,12 +513,14 @@ extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey],
-        upper: [pubkey, identityId],
-        includeUpper: include,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey],
+          upper: [pubkey, identityId],
+          includeUpper: include,
+        ),
+      );
     });
   }
 
@@ -494,25 +532,27 @@ extension MykeyQueryWhere on QueryBuilder<Mykey, Mykey, QWhereClause> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'pubkey_identityId',
-        lower: [pubkey, lowerIdentityId],
-        includeLower: includeLower,
-        upper: [pubkey, upperIdentityId],
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'pubkey_identityId',
+          lower: [pubkey, lowerIdentityId],
+          includeLower: includeLower,
+          upper: [pubkey, upperIdentityId],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
 
 extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> createdAtEqualTo(
-      DateTime value) {
+    DateTime value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'createdAt', value: value),
+      );
     });
   }
 
@@ -521,11 +561,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -534,11 +576,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -549,22 +593,23 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'createdAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'createdAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> hashCodeEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hashCode', value: value),
+      );
     });
   }
 
@@ -573,11 +618,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hashCode',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -586,11 +633,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hashCode',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hashCode',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -601,22 +650,23 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hashCode',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hashCode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
@@ -625,11 +675,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -638,11 +690,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -653,23 +707,25 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> identityIdEqualTo(
-      int value) {
+    int value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'identityId', value: value),
+      );
     });
   }
 
@@ -678,11 +734,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'identityId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -691,11 +749,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'identityId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'identityId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -706,43 +766,45 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'identityId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'identityId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> isOneTimeEqualTo(
-      bool value) {
+    bool value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isOneTime',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isOneTime', value: value),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> needDeleteEqualTo(
-      bool value) {
+    bool value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'needDelete',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'needDelete', value: value),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> oneTimeUsedEqualTo(
-      bool value) {
+    bool value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'oneTimeUsed',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'oneTimeUsed', value: value),
+      );
     });
   }
 
@@ -751,11 +813,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -765,12 +829,14 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -780,12 +846,14 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -797,14 +865,16 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'prikey',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'prikey',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -813,11 +883,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -826,52 +898,59 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QAfterFilterCondition> prikeyContains(String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<Mykey, Mykey, QAfterFilterCondition> prikeyContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'prikey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'prikey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> prikeyMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'prikey',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'prikey',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> prikeyIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'prikey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'prikey', value: ''),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> prikeyIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'prikey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'prikey', value: ''),
+      );
     });
   }
 
@@ -880,11 +959,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -894,12 +975,14 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -909,12 +992,14 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -926,14 +1011,16 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'pubkey',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pubkey',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -942,11 +1029,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
@@ -955,77 +1044,83 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QAfterFilterCondition> pubkeyContains(String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<Mykey, Mykey, QAfterFilterCondition> pubkeyContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'pubkey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pubkey',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> pubkeyMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'pubkey',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pubkey',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> pubkeyIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pubkey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pubkey', value: ''),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> pubkeyIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'pubkey',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pubkey', value: ''),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> roomIdIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'roomId',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'roomId'),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> roomIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'roomId',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'roomId'),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> roomIdEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'roomId', value: value),
+      );
     });
   }
 
@@ -1034,11 +1129,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'roomId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -1047,11 +1144,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'roomId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'roomId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -1062,49 +1161,51 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'roomId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'roomId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> stringifyIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'stringify',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'stringify'),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> stringifyIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'stringify',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'stringify'),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> stringifyEqualTo(
-      bool? value) {
+    bool? value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'stringify',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'stringify', value: value),
+      );
     });
   }
 
   QueryBuilder<Mykey, Mykey, QAfterFilterCondition> updatedAtEqualTo(
-      DateTime value) {
+    DateTime value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'updatedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'updatedAt', value: value),
+      );
     });
   }
 
@@ -1113,11 +1214,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'updatedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'updatedAt',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -1126,11 +1229,13 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'updatedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'updatedAt',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -1141,13 +1246,15 @@ extension MykeyQueryFilter on QueryBuilder<Mykey, Mykey, QFilterCondition> {
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'updatedAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'updatedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -1473,15 +1580,17 @@ extension MykeyQueryWhereDistinct on QueryBuilder<Mykey, Mykey, QDistinct> {
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QDistinct> distinctByPrikey(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Mykey, Mykey, QDistinct> distinctByPrikey({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'prikey', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<Mykey, Mykey, QDistinct> distinctByPubkey(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Mykey, Mykey, QDistinct> distinctByPubkey({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pubkey', caseSensitive: caseSensitive);
     });

@@ -2,6 +2,7 @@ import 'dart:convert' show utf8;
 import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 
 class LogViewer extends StatefulWidget {
   final String path;
@@ -18,7 +19,7 @@ class _LogViewerState extends State<LogViewer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.path.split('/').last),
+        title: Text(path.basename(widget.path)),
       ),
       body: FutureBuilder<String>(
         future: readLogFile(widget.path),

@@ -18,6 +18,17 @@ enum EventSendEnum {
 @Collection(ignore: {'props', 'rawEvent'})
 // ignore: must_be_immutable
 class NostrEventStatus extends Equatable {
+  // ['event',id, json string]
+
+  NostrEventStatus({
+    required this.eventId,
+    required this.relay,
+    required this.sendStatus,
+    required this.roomId,
+  }) {
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   late String eventId;
@@ -38,22 +49,20 @@ class NostrEventStatus extends Equatable {
   int roomId;
   bool isReceive = false;
   String? receiveSnapshot; // json string
-  String? rawEvent; // ['event',id, json string]
-
-  NostrEventStatus(
-      {required this.eventId,
-      required this.relay,
-      required this.sendStatus,
-      required this.roomId}) {
-    createdAt = DateTime.now();
-    updatedAt = DateTime.now();
-  }
+  String? rawEvent;
 
   @override
-  List<Object> get props => [eventId, resCode];
+  List<Object> get props => [
+    eventId,
+    isReceive,
+    resCode,
+    relay,
+    sendStatus,
+    createdAt,
+  ];
 
   static Future<NostrEventStatus?> getReceiveEvent(String eventId) async {
-    return await DBProvider.database.nostrEventStatus
+    return DBProvider.database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
         .isReceiveEqualTo(true)
@@ -70,23 +79,35 @@ class NostrEventStatus extends Equatable {
   }
 
   static Future<NostrEventStatus> createReceiveEvent(
-      String relay, String eventId, String receiveSnapshot) async {
-    var ess = NostrEventStatus(
-        eventId: eventId,
-        relay: relay,
-        sendStatus: EventSendEnum.success,
-        roomId: -1)
-      ..receiveSnapshot = receiveSnapshot
-      ..isReceive = true;
+    String relay,
+    String eventId,
+    String receiveSnapshot,
+  ) async {
+    final ess =
+        NostrEventStatus(
+            eventId: eventId,
+            relay: relay,
+            sendStatus: EventSendEnum.success,
+            roomId: -1,
+          )
+          ..receiveSnapshot = receiveSnapshot
+          ..isReceive = true;
     await DBProvider.database.writeTxn(() async {
-      var id = await DBProvider.database.nostrEventStatus.put(ess);
+      final id = await DBProvider.database.nostrEventStatus.put(ess);
       ess.id = id;
     });
-
+    // EasyDebounce.debounce(
+    //     'createReceiveEvent$eventId', const Duration(seconds: 1), () {
+    //   final count = DBProvider.database.nostrEventStatus
+    //       .filter()
+    //       .eventIdEqualTo(eventId)
+    //       .isReceiveEqualTo(true)
+    //       .count();
+    // });
     return ess;
   }
 
-  Future setError(String msg) async {
+  Future<void> setError(String msg) async {
     error = msg;
     sendStatus = EventSendEnum.proccessError;
     await DBProvider.database.writeTxn(() async {
@@ -105,9 +126,11 @@ class NostrEventStatus extends Equatable {
         .findAll();
   }
 
-  static Future<List<NostrEventStatus>> getPaidEvents(
-      {int minId = 99999999, int limit = 20}) async {
-    return await DBProvider.database.nostrEventStatus
+  static Future<List<NostrEventStatus>> getPaidEvents({
+    int minId = 99999999,
+    int limit = 20,
+  }) async {
+    return DBProvider.database.nostrEventStatus
         .filter()
         .idLessThan(minId)
         .ecashAmountGreaterThan(0)

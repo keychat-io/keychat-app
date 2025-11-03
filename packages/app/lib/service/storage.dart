@@ -15,21 +15,21 @@ class StorageKeyString {
 
   static String homeSelectedTabIndex = 'homeSelectedTabIndex';
   static String dbVersion = 'dbVersion';
-  static String navigationLocation = "navigationLocation";
-  static String getViewKeychatFutures = "getViewKeychatFutures";
-  static String autoDeleteMessageDays = "autoDeleteMessageDays";
-  static String lastMessageAt = "lastMessageAt";
-  static String defaultWebRTCServers = "defaultWebRTCServers";
-  static String relayMessageFeeConfig = "relayMessageFeeConfig";
-  static String relayFileFeeConfig = "relayFileFeeConfig";
+  static String navigationLocation = 'navigationLocation';
+  static String getViewKeychatFutures = 'getViewKeychatFutures';
+  static String autoDeleteMessageDays = 'autoDeleteMessageDays';
+  static String lastMessageAt = 'lastMessageAt';
+  static String defaultWebRTCServers = 'defaultWebRTCServers';
+  static String relayMessageFeeConfig = 'relayMessageFeeConfig';
+  static String relayFileFeeConfig = 'relayFileFeeConfig';
 
-  static String tipsAddFriends = "tipsAddFriends";
-  static String taskCreateIdentity = "taskCreateAIIdentity";
-  static String taskCreateRoom = "taskCreateRoom";
+  static String tipsAddFriends = 'tipsAddFriends';
+  static String taskCreateIdentity = 'taskCreateAIIdentity';
+  static String taskCreateRoom = 'taskCreateRoom';
 
-  static String dbBackupPwd = "dbBackupPwd";
-  static String selectedMediaServer = "selectedMediaServer";
-  static String mediaServers = "mediaServers";
+  static String dbBackupPwd = 'dbBackupPwd';
+  static String selectedMediaServer = 'selectedMediaServer';
+  static String mediaServers = 'mediaServers';
 
   static const String desktopBrowserSidebarWidth =
       'desktop_browser_sidebar_width';
@@ -37,7 +37,7 @@ class StorageKeyString {
   static const String desktopBrowserTabs = 'desktopBrowserTabs';
 
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
-    return "aliceKey:$myPubkey-$bobPubkey";
+    return 'aliceKey:$myPubkey-$bobPubkey';
   }
 
   static String defaultSelectedTabIndex = 'defaultSelectedTabIndex';
@@ -52,6 +52,8 @@ class StorageKeyString {
 
   static const String mobileKeepAlive = 'mobileKeepAlive';
   static const String biometricsAuthTime = 'biometricsAuthTime';
+
+  static const String ecashDBVersion = 'ecashDBVersion';
 }
 
 class Storage {
@@ -65,22 +67,24 @@ class Storage {
     return _sp!;
   }
 
-  static Future init() async {
+  static Future<void> init() async {
     try {
       _sp = await SharedPreferences.getInstance();
     } catch (error) {
-      Directory appSupportDirectory = await getApplicationSupportDirectory();
-      String appDataPath =
+      final appSupportDirectory = await getApplicationSupportDirectory();
+      final appDataPath =
           path.join(appSupportDirectory.path, 'shared_preferences.json');
       logger.e(
-          'Failed to load the preferences file at $appDataPath. Attempting to repair it.');
+        'Failed to load the preferences file at $appDataPath. Attempting to repair it.',
+      );
       await _repairPreferences(appDataPath);
 
       try {
         _sp = await SharedPreferences.getInstance();
       } catch (error) {
         logger.e(
-            'Failed to repair the preferences file. Deleting the file and proceeding with a fresh configuration.');
+          'Failed to repair the preferences file. Deleting the file and proceeding with a fresh configuration.',
+        );
         await File(appDataPath).delete();
         _sp = await SharedPreferences.getInstance();
       }
@@ -88,8 +92,8 @@ class Storage {
   }
 
   static Future<void> _repairPreferences(String appDataPath) async {
-    List<int> contents = await File(appDataPath).readAsBytes();
-    var contentsGrowable = List<int>.from(contents); // Make the list growable
+    final List<int> contents = await File(appDataPath).readAsBytes();
+    final contentsGrowable = List<int>.from(contents); // Make the list growable
 
     // Remove any NUL characters
     contentsGrowable.removeWhere((item) => item == 0);
@@ -113,29 +117,29 @@ class Storage {
     await sp.setInt(key, value);
   }
 
-  static Future<int?> getInt(String key) async {
+  static int? getInt(String key) {
     return sp.getInt(key);
   }
 
-  static Future<int> getIntOrZero(String key) async {
-    var res = sp.getInt(key);
+  static int getIntOrZero(String key) {
+    final res = sp.getInt(key);
     if (res == null) return 0;
     return res;
   }
 
-  static Future<String?> getString(String key) async {
+  static String? getString(String key) {
     return sp.getString(key);
   }
 
-  static Future<bool?> getBool(String key) async {
+  static bool? getBool(String key) {
     return sp.getBool(key);
   }
 
-  static Future<List<String>> getStringList(String key) async {
+  static List<String> getStringList(String key) {
     return sp.getStringList(key) ?? [];
   }
 
-  static Future<void> removeString(String key) async {
+  static Future<void> remove(String key) async {
     await sp.remove(key);
   }
 
@@ -144,28 +148,36 @@ class Storage {
   }
 
   static Future<void> setLocalStorageMap(String key, Map sourceMap) async {
-    String? res = await Storage.getString(key);
+    final res = Storage.getString(key);
     Map map = {};
     if (res != null) {
-      map = jsonDecode(res);
+      map = jsonDecode(res) as Map<String, dynamic>;
     }
-    for (var entry in sourceMap.entries) {
+    for (final entry in sourceMap.entries) {
       map[entry.key] = entry.value.toJson();
     }
     await Storage.setString(key, jsonEncode(map));
   }
 
   static Future<Map> getLocalStorageMap(String key) async {
-    String? res = await Storage.getString(key);
+    final res = Storage.getString(key);
     Map map = {};
     if (res != null) {
       try {
-        map = jsonDecode(res);
+        map = jsonDecode(res) as Map<String, dynamic>;
         return map;
       } catch (e) {
         return {};
       }
     }
     return {};
+  }
+
+  static double? getDouble(String s) {
+    return sp.getDouble(s);
+  }
+
+  static Future<void> setDouble(String s, double dx) async {
+    await sp.setDouble(s, dx);
   }
 }

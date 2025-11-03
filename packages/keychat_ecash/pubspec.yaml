@@ -17,10 +17,10 @@ dependencies:
   flutter_easyloading: ^3.0.5
   easy_debounce: ^2.0.3
   get: ^4.7.2
-  pull_to_refresh_flutter3: ^2.0.2
   settings_ui: ^2.0.2
   carousel_slider: ^5.1.1
   intl: ^0.20.2
   dio: ^5.8.0+1
   url_launcher: ^6.3.1
   flutter_svg: ^2.2.0
+  custom_refresh_indicator: ^4.0.1

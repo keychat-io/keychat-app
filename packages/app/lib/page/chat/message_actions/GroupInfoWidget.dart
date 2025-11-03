@@ -7,11 +7,11 @@ import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class GroupInfoWidget extends StatelessWidget {
+  const GroupInfoWidget(this.subEvent, this.idPubkey, this.groupId,
+      {super.key});
   final NostrEventModel subEvent;
   final String idPubkey;
   final String groupId;
-  const GroupInfoWidget(this.subEvent, this.idPubkey, this.groupId,
-      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class GroupInfoWidget extends StatelessWidget {
       appBar: AppBar(
           leading:
               IconButton(icon: const Icon(Icons.close), onPressed: Get.back),
-          title: Text('New Group Invitation')),
+          title: const Text('New Group Invitation')),
       body: Column(
         children: [
           Expanded(
@@ -29,11 +29,12 @@ class GroupInfoWidget extends StatelessWidget {
             sections: [
               SettingsSection(tiles: [
                 SettingsTile(
-                  title: const Text("ID"),
+                  title: const Text('ID'),
                   value: textP(getPublicKeyDisplay(groupId)),
                 ),
                 SettingsTile(
-                    title: const Text('Mode'), value: Text('MLS Large Group')),
+                    title: const Text('Mode'),
+                    value: const Text('MLS Large Group')),
               ])
             ],
           )),
@@ -80,15 +81,15 @@ class GroupInfoWidget extends StatelessWidget {
             height: list.length < 5 ? 100 : (list.length <= 10 ? 200 : 300),
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5, childAspectRatio: 1.0),
+                  crossAxisCount: 5),
               itemCount: list.length,
               itemBuilder: (context, index) {
-                RoomMember rm = list[index];
+                final rm = list[index];
 
                 return InkWell(
                     key: Key(rm.idPubkey),
                     child: Column(children: [
-                      Utils.getRandomAvatar(rm.idPubkey, height: 40, width: 40),
+                      Utils.getRandomAvatar(rm.idPubkey),
                       Text(rm.name, overflow: TextOverflow.ellipsis),
                       if (rm.status == UserStatusType.inviting)
                         Text('Inviting',

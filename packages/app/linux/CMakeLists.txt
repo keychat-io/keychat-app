@@ -4,7 +4,8 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "Keychat")
+set(BINARY_NAME "app")
+
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
 set(APPLICATION_ID "com.keychat.io")
@@ -66,6 +67,9 @@ add_executable(${BINARY_NAME}
   "my_application.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
+set_target_properties(${BINARY_NAME} PROPERTIES
+    OUTPUT_NAME "Keychat"
+)
 
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
@@ -122,6 +126,13 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endforeach(bundled_library)
+
+# Install app icon for Linux packaging
+install(FILES "${CMAKE_SOURCE_DIR}/assets/logo.png"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/icons"
+  RENAME "keychat.png"
+  COMPONENT Runtime
+)
 
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.

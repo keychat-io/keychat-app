@@ -1,54 +1,49 @@
-import 'dart:async' show StreamSubscription, Timer;
+import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app/utils/remote_config.dart' as remote_config;
 import 'package:app_links/app_links.dart';
-import 'package:flutter/cupertino.dart' show CupertinoTabController;
-import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTabController;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart'
-    show SharedMediaFile, ReceiveSharingIntent, SharedMediaType;
-import '../utils/remote_config.dart' as remote_config;
+    show ReceiveSharingIntent, SharedMediaFile, SharedMediaType;
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
   IdentityService identityService = IdentityService.instance;
   RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
   RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
-  Map<int, RefreshController> refreshControllers = {};
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
@@ -76,18 +71,21 @@ class HomeController extends GetxController
 
   DateTime? pausedTime;
 
+  // Privacy protection blur effect
+  RxBool isBlurred = false.obs;
+
   RxInt defaultSelectedTab =
       (-1).obs; // 0: chat, 1: browser, -1: last opened tab
   int selectedTabIndex = 0; // main bottom tab index
   Map defaultTabConfig = {'Chat': 0, 'Browser': 1, 'Last opened tab': -1};
   late CupertinoTabController cupertinoTabController;
 
-  Future setDefaultSelectedTab(int index) async {
+  Future<void> setDefaultSelectedTab(int index) async {
     defaultSelectedTab.value = index;
     await Storage.setInt(StorageKeyString.defaultSelectedTabIndex, index);
   }
 
-  Future setSelectedTab(int index) async {
+  Future<void> setSelectedTab(int index) async {
     if (index < 0) {
       index = 0;
     }
@@ -96,8 +94,8 @@ class HomeController extends GetxController
   }
 
   // run when app start
-  Future loadSelectedTab() async {
-    int? res = await Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
+  Future<void> loadSelectedTab() async {
+    var res = Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
     res ??= -1;
     defaultSelectedTab.value = res;
     if (res > -1) {
@@ -105,131 +103,166 @@ class HomeController extends GetxController
       return;
     }
     // use the last opened tab
-    res = await Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
-    selectedTabIndex = res;
+    final res2 = Storage.getInt(StorageKeyString.selectedTabIndex);
+    if (res2 != null) {
+      selectedTabIndex = res2;
+      return;
+    }
+    if (GetPlatform.isMobile) {
+      selectedTabIndex = KeychatGlobal.defaultOpenTabIndex;
+    } else {
+      // ecash tab only show on the desktop version
+      selectedTabIndex = KeychatGlobal.defaultOpenTabIndex + 1;
+    }
   }
 
   // add identity AI and add AI contacts
-  Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
-    String key = '${StorageKeyString.taskCreateIdentity}:$idName';
+  Future<void> createAIIdentity(
+    List<Identity> existsIdentity,
+    String idName,
+  ) async {
+    final key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
-    int res = await Storage.getIntOrZero(key);
+    final res = Storage.getIntOrZero(key);
     if (res == 1) return;
-    for (var identity in existsIdentity) {
+    for (final identity in existsIdentity) {
       if (identity.name == idName) return;
     }
-    String? mnemonic = await SecureStorage.instance.getPhraseWords();
+    final mnemonic = await SecureStorage.instance.getPhraseWords();
     if (mnemonic == null) return;
-    List<int> phraseIndexes =
-        existsIdentity.map((element) => element.index).toList();
-    int unusedIndex = List.generate(10, (index) => index).firstWhere(
+    final phraseIndexes = existsIdentity
+        .map((element) => element.index)
+        .toList();
+    final unusedIndex = List.generate(10, (index) => index).firstWhere(
       (index) => !phraseIndexes.contains(index),
       orElse: () => -1,
     );
     if (unusedIndex == -1) return;
-    List<Secp256k1Account> secp256k1Accounts = await rust_nostr
-        .importFromPhraseWith(phrase: mnemonic, offset: unusedIndex, count: 1);
+    final secp256k1Accounts = await rust_nostr.importFromPhraseWith(
+      phrase: mnemonic,
+      offset: unusedIndex,
+      count: 1,
+    );
 
     await IdentityService.instance.createIdentity(
-        name: idName,
-        account: secp256k1Accounts[0],
-        index: unusedIndex,
-        isFirstAccount: false);
+      name: idName,
+      account: secp256k1Accounts[0],
+      index: unusedIndex,
+    );
     await Storage.setInt(key, 1);
     logger.i('CreateAIIdentity Success');
   }
 
   bool _pausedBefore = false;
+  List<AppLifecycleState> statesForBlur = [];
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
-    loggerNoLine.i('didChangeAppLifecycleState: ${state.toString()}');
+    loggerNoLine.i('didChangeAppLifecycleState: $state');
     // ios: 2 options
     // apprun-> inactive -> resumed
-    // apprun->inactive -> hidden-> paused ->hidden->inactive->resumed
+    // apprun-> inactive -> hidden-> paused ->hidden->inactive->resumed
     // macos:  apprun->inactive -> resumed
+    statesForBlur.add(state);
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
+        isBlurred.value = false;
 
         // if app running background > 10s
-        bool wasAppBackgroundedTooLong = false;
+        var wasAppBackgroundedTooLong = false;
         if (pausedTime != null) {
           wasAppBackgroundedTooLong =
               DateTime.now().difference(pausedTime!).inSeconds > 10;
         }
 
-        removeBadge();
+        unawaited(removeBadge());
 
         // websocket status
-        bool shouldConnect =
+        final shouldConnect =
             Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
-                GetPlatform.isDesktop ||
-                wasAppBackgroundedTooLong;
+            GetPlatform.isDesktop ||
+            wasAppBackgroundedTooLong;
         if (shouldConnect) {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
+          unawaited(Get.find<WebsocketService>().checkOnlineAndConnect());
         }
 
         // app status
         EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 2), () {
-          NostrAPI.instance.okCallback.clear();
-          Utils.initLoggger(Get.find<SettingController>().appFolder);
-          NotifyService.syncPubkeysToServer(checkUpload: true);
-        });
+          'AppLifecycleState.resumed',
+          const Duration(seconds: 2),
+          () {
+            NostrAPI.instance.okCallback.clear();
+            Utils.initLoggger(Utils.appFolder);
+            NotifyService.syncPubkeysToServer(checkUpload: true);
+            Get.find<MultiWebviewController>().checkCurrentControllerAlive();
+          },
+        );
 
         // check biometrics
-        await biometricsAuth(_pausedBefore);
+        if (_pausedBefore) {
+          await biometricsAuth(auth: true);
+        }
         _pausedBefore = false;
+      case AppLifecycleState.inactive:
+        if (GetPlatform.isMobile && statesForBlur.length >= 2) {
+          if (statesForBlur[statesForBlur.length - 2] ==
+              AppLifecycleState.resumed) {
+            isBlurred.value = true;
+          }
+        }
+        statesForBlur.clear();
+      case AppLifecycleState.hidden:
         break;
       case AppLifecycleState.paused:
         resumed = false;
         _pausedBefore = true;
         pausedTime = DateTime.now();
-        break;
       case AppLifecycleState.detached:
         // app been killed
-        break;
-      default:
         break;
     }
   }
 
-  Future<void> biometricsAuth(bool auth) async {
+  Future<void> biometricsAuth({required bool auth}) async {
     if (!(auth && GetPlatform.isMobile)) return;
     if (Get.currentRoute == '/BiometricAuthScreen') return;
 
-    bool isBiometricsEnable = await SecureStorage.instance.isBiometricsEnable();
+    final isBiometricsEnable = await SecureStorage.instance
+        .isBiometricsEnable();
     if (!isBiometricsEnable) return;
 
-    int time = Get.find<SettingController>().biometricsAuthTime.value;
+    final time = Get.find<SettingController>().biometricsAuthTime.value;
     if (time != 0 && pausedTime != null) {
-      bool isTimeToValid =
+      final isTimeToValid =
           DateTime.now().difference(pausedTime!).inSeconds > time * 60;
 
       if (!isTimeToValid) {
         loggerNoLine.d(
-            'Paused: ${DateTime.now().difference(pausedTime!).inSeconds} seconds, skip now.');
+          'Paused: ${DateTime.now().difference(pausedTime!).inSeconds} seconds, skip now.',
+        );
         return;
       }
     }
 
-    await Get.to(() => const BiometricAuthScreen(),
-        fullscreenDialog: true,
-        popGesture: false,
-        transition: Transition.fadeIn);
+    await Get.to(
+      () => const BiometricAuthScreen(autoAuth: true),
+      fullscreenDialog: true,
+      popGesture: false,
+      transition: Transition.fadeIn,
+    );
   }
 
-  Future loadAppRemoteConfig() async {
-    String url =
+  Future<void> loadAppRemoteConfig() async {
+    const url =
         'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/config/app.json';
     // load app version
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    final packageInfo = await PackageInfo.fromPlatform();
     remoteAppConfig['appVersion'] =
-        "${packageInfo.version}+${packageInfo.buildNumber}";
+        '${packageInfo.version}+${packageInfo.buildNumber}';
     Map<String, dynamic> config = remote_config.data; // default config
     try {
-      var response = await Dio().get(
+      final response = await Dio().get(
         url,
         options: Options(
           sendTimeout: const Duration(seconds: 5),
@@ -237,29 +270,29 @@ class HomeController extends GetxController
         ),
       );
       if (response.statusCode == 200) {
-        config = jsonDecode(response.data);
+        config = jsonDecode(response.data) as Map<String, dynamic>;
       } else {}
     } catch (e) {
       logger.e('Failed to get config: $url - ${(e as DioException).message}');
     }
 
-    recommendBots.value = config['bots'];
+    recommendBots.value = config['bots'] as List<dynamic>;
 
-    var recommendUrls = config['browserRecommend'] as List;
+    final recommendUrls = config['browserRecommend'] as List;
     recommendWebstore.value = recommendUrls
         .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-      List<String> categories = List<String>.from(item['categories']);
-      for (var type in categories) {
-        if (acc[type] == null) {
-          acc[type] = [];
-        }
-        acc[type]!.add(item);
-      }
-      return acc;
-    });
+          final categories = List<String>.from(item['categories']);
+          for (final type in categories) {
+            if (acc[type] == null) {
+              acc[type] = [];
+            }
+            acc[type]!.add(item);
+          }
+          return acc;
+        });
 
     // app version
-    for (var key in config.keys) {
+    for (final key in config.keys) {
       if (key != 'bots' && key != 'browserRecommend') {
         remoteAppConfig[key] = config[key];
       }
@@ -271,37 +304,48 @@ class HomeController extends GetxController
     return chatIdentities.values.toList()[tabController.index];
   }
 
+  Identity? getIdentityByPubkey(String pubkey) {
+    for (final identity in allIdentities.values) {
+      if (identity.secp256k1PKHex == pubkey) {
+        return identity;
+      }
+    }
+    return null;
+  }
+
   void initTabController([int initialIndex = 0]) {
     tabController.dispose();
     if (initialIndex >= chatIdentities.length) {
       initialIndex = 0;
     }
     tabController = TabController(
-        vsync: this, initialIndex: initialIndex, length: tabBodyDatas.length);
+      vsync: this,
+      initialIndex: initialIndex,
+      length: tabBodyDatas.length,
+    );
 
     tabController.addListener(() {
       Storage.setInt(
-          StorageKeyString.homeSelectedTabIndex, tabController.index);
+        StorageKeyString.homeSelectedTabIndex,
+        tabController.index,
+      );
     });
   }
 
-  Future initTips(String name, RxBool toSetValue) async {
-    var res = await Storage.getIntOrZero(name);
+  Future<void> initTips(String name, RxBool toSetValue) async {
+    final res = Storage.getIntOrZero(name);
     toSetValue.value = res == 0 ? true : false;
   }
 
   Future<List<Identity>> loadIdentity() async {
-    var list = await IdentityService.instance.getIdentityList();
+    final list = await IdentityService.instance.getIdentityList();
     chatIdentities.clear();
     allIdentities.clear();
     for (var i = 0; i < list.length; i++) {
-      int id = list[i].id;
+      final id = list[i].id;
       allIdentities[id] = list[i];
       if (list[i].enableChat) {
         chatIdentities[id] = list[i];
-        if (refreshControllers[id] == null) {
-          refreshControllers[id] = RefreshController();
-        }
       }
     }
     return chatIdentities.values.toList();
@@ -309,98 +353,94 @@ class HomeController extends GetxController
 
   void loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
-        'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
-        () async {
-      Map<String, List<Room>> res =
-          await RoomService.instance.getRoomList(identityId);
-      List<dynamic> rooms = res['friends'] ?? [];
-      List<Room> approving = res['approving'] ?? [];
-      List<Room> requesting = res['requesting'] ?? [];
+      'loadIdentityRoomList:$identityId',
+      const Duration(milliseconds: 200),
+      () async {
+        logger.d('loadIdentityRoomList identityId: $identityId');
+        final res = await RoomService.instance.getRoomList(identityId);
+        final rooms = res['friends'] ?? [];
+        final approving = res['approving'] ?? [];
+        final requesting = res['requesting'] ?? [];
 
-      int unReadCount = 0;
-      int anonymousUnReadCount = 0;
-      int requestingUnReadCount = 0;
-      for (var element in rooms) {
-        if (element is Room) {
+        var unReadCount = 0;
+        var anonymousUnReadCount = 0;
+        var requestingUnReadCount = 0;
+        for (final element in rooms) {
           if (element.isMute) continue;
           unReadCount += element.unReadCount;
         }
-      }
-      for (Room element in approving) {
-        if (element.isMute) continue;
-        anonymousUnReadCount += element.unReadCount;
-      }
-      for (Room element in requesting) {
-        requestingUnReadCount += element.unReadCount;
-      }
+        for (final element in approving) {
+          if (element.isMute) continue;
+          anonymousUnReadCount += element.unReadCount;
+        }
+        for (final element in requesting) {
+          requestingUnReadCount += element.unReadCount;
+        }
 
-      rooms = [
-        KeychatGlobal.search,
-        KeychatGlobal.recommendRooms,
-        approving,
-        requesting,
-        ...rooms,
-      ];
-      if (tabBodyDatas[identityId] == null &&
-          chatIdentities[identityId] == null) {
-        return;
-      }
-      TabData tabBodyData =
-          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
-      tabBodyData.unReadCount = unReadCount;
-      tabBodyData.anonymousUnReadCount = anonymousUnReadCount;
-      tabBodyData.requestingUnReadCount = requestingUnReadCount;
-      tabBodyData.rooms = rooms;
-      tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
+        final datas = <dynamic>[
+          KeychatGlobal.search,
+          KeychatGlobal.recommendRooms,
+          approving,
+          requesting,
+          ...rooms,
+        ];
+        if (tabBodyDatas[identityId] == null &&
+            chatIdentities[identityId] == null) {
+          return;
+        }
+        final tabBodyData =
+            tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!)
+              ..unReadCount = unReadCount
+              ..anonymousUnReadCount = anonymousUnReadCount
+              ..requestingUnReadCount = requestingUnReadCount
+              ..rooms = datas;
+        tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
 
-      int unReadSum = 0;
-      List keys = tabBodyDatas.keys.toList();
-      for (var i = 0; i < keys.length; i++) {
-        var e = keys[i];
-        TabData item = tabBodyDatas[e]!;
-        unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
-      }
-      setUnreadCount(unReadSum.toInt());
-
-      if (refreshControllers[identityId] == null) {
-        refreshControllers[identityId] = RefreshController();
-      }
-    });
+        var unReadSum = 0;
+        final keys = tabBodyDatas.keys.toList();
+        for (var i = 0; i < keys.length; i++) {
+          final e = keys[i];
+          final item = tabBodyDatas[e]!;
+          unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
+        }
+        await setUnreadCount(unReadSum);
+      },
+    );
   }
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
-    List<Identity> mys = await loadIdentity();
-
-    int firstUnreadIndex = -1;
-    int unReadSum = 0;
-    Map<int, TabData> thisTabBodyDatas = {};
+    final mys = await loadIdentity();
+    var firstUnreadIndex = -1;
+    var unReadSum = 0;
+    final thisTabBodyDatas = <int, TabData>{};
     for (var i = 0; i < mys.length; i++) {
-      int id = mys[i].id;
+      final id = mys[i].id;
 
-      Map<String, List<Room>> res = await RoomService.instance.getRoomList(id);
+      final res = await RoomService.instance.getRoomList(id);
 
-      List<dynamic> rooms = res['friends'] ?? [];
-      List<Room> approving = res['approving'] ?? [];
-      List<Room> requesting = res['requesting'] ?? [];
+      final rooms = res['friends'] ?? [];
+      final approving = res['approving'] ?? [];
+      final requesting = res['requesting'] ?? [];
 
-      int unReadCount = 0;
-      int anonymousUnReadCount = 0;
-      int requestingUnReadCount = 0;
-      for (dynamic element in rooms) {
+      var unReadCount = 0;
+      var anonymousUnReadCount = 0;
+      var requestingUnReadCount = 0;
+      for (final dynamic element in rooms) {
         if (element is Room) {
           if (element.isMute) continue;
           unReadCount += element.unReadCount;
         }
       }
-      for (Room element in approving) {
+      for (final element in approving) {
         if (element.isMute) continue;
         anonymousUnReadCount += element.unReadCount;
       }
-      for (Room element in requesting) {
+      for (final element in requesting) {
         requestingUnReadCount += element.unReadCount;
       }
 
-      unReadSum = unReadSum +
+      unReadSum =
+          unReadSum +
           unReadCount +
           anonymousUnReadCount +
           requestingUnReadCount;
@@ -408,7 +448,7 @@ class HomeController extends GetxController
         firstUnreadIndex = unReadCount > 0 ? i : -1;
       }
 
-      rooms = [
+      final datas = [
         KeychatGlobal.search,
         KeychatGlobal.recommendRooms,
         approving,
@@ -419,19 +459,15 @@ class HomeController extends GetxController
       thisTabBodyDatas[id] = TabData(mys[i])
         ..unReadCount = unReadCount
         ..anonymousUnReadCount = anonymousUnReadCount
-        ..rooms = rooms;
-      if (refreshControllers[id] == null) {
-        refreshControllers[id] = RefreshController();
-      }
+        ..rooms = datas;
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
     setUnreadCount(unReadSum);
 
-    int initialIndex = 0;
+    var initialIndex = 0;
     if (firstUnreadIndex == -1) {
-      var saved =
-          await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
+      final saved = Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
       if (saved < mys.length) {
         initialIndex = saved;
       }
@@ -458,16 +494,12 @@ class HomeController extends GetxController
   }
 
   @override
-  onClose() async {
+  Future<void> onClose() async {
     tabController.dispose();
     _intentSub.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    rust_cashu.closeDb();
     subscription.cancel();
     _connectionCheckTimer.cancel();
-    refreshControllers.forEach((key, value) {
-      value.dispose();
-    });
     Get.find<WebsocketService>().stopListening();
     if (Get.context != null) {
       Utils.hideKeyboard(Get.context!);
@@ -476,17 +508,18 @@ class HomeController extends GetxController
   }
 
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     tabController = TabController(vsync: this, length: 0);
     await loadSelectedTab();
-    cupertinoTabController =
-        CupertinoTabController(initialIndex: selectedTabIndex);
+    cupertinoTabController = CupertinoTabController(
+      initialIndex: selectedTabIndex,
+    );
     cupertinoTabController.addListener(() {
       setSelectedTab(cupertinoTabController.index);
     });
     super.onInit();
 
-    List<Identity> mys = await loadRoomList(init: true);
+    final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
     // Ecash Init
@@ -494,13 +527,11 @@ class HomeController extends GetxController
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists
-      Future.delayed(Duration(seconds: 3)).then((_) {
+      Future.delayed(const Duration(seconds: 3)).then((_) {
         NotifyService.init().catchError((e, s) {
           logger.e('initNotifycation error', error: e, stackTrace: s);
         });
       });
-    } else {
-      Get.find<EcashController>().initWithoutIdentity();
     }
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
@@ -509,12 +540,15 @@ class HomeController extends GetxController
     initTips(StorageKeyString.tipsAddFriends, addFriendTips);
 
     // listen network status https://pub.dev/packages/connectivity_plus
-    subscription =
-        Connectivity().onConnectivityChanged.listen(networkListenHandle);
+    subscription = Connectivity().onConnectivityChanged.listen(
+      networkListenHandle,
+    );
 
     // Start periodic connection check timer (every minute)
     if (GetPlatform.isDesktop) {
-      _connectionCheckTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 1), (
+        timer,
+      ) {
         if (isConnectedNetwork.value) {
           Get.find<WebsocketService>().checkOnlineAndConnect();
         }
@@ -529,17 +563,17 @@ class HomeController extends GetxController
       _initShareIntent();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
-      List<Room> rooms = await RoomService.instance.getMlsRooms();
-      MlsGroupService.instance.fixMlsOnetimeKey(rooms);
+      // List<Room> rooms = await RoomService.instance.getMlsRooms();
+      // MlsGroupService.instance.fixMlsOnetimeKey(rooms);
     });
   }
 
   List<Room> getRoomsByIdentity(int identityId) {
-    List<dynamic> list =
+    final list =
         Get.find<HomeController>().tabBodyDatas[identityId]?.rooms ?? [];
     if (list.isEmpty) return [];
 
-    List<Room> rooms = [];
+    final rooms = <Room>[];
     for (var i = 0; i < list.length; i++) {
       if (list[i] is String) continue;
       if (list[i] is List<Room>) {
@@ -557,7 +591,7 @@ class HomeController extends GetxController
     await FlutterNewBadger.removeBadge();
   }
 
-  Future setTipsViewed(String name, RxBool toSetValue) async {
+  Future<void> setTipsViewed(String name, RxBool toSetValue) async {
     toSetValue.value = false;
     await Storage.setInt(name, 1);
   }
@@ -566,7 +600,7 @@ class HomeController extends GetxController
     if (count == allUnReadCount.value) return;
     allUnReadCount.value = count;
     if (!isAppBadgeSupported) return;
-    if (count == 0) return await FlutterNewBadger.removeBadge();
+    if (count == 0) return FlutterNewBadger.removeBadge();
     FlutterNewBadger.setBadge(count);
   }
 
@@ -592,10 +626,10 @@ class HomeController extends GetxController
     }
   }
 
-  Future updateIdentityName(Identity identity, String name) async {
+  Future<void> updateIdentityName(Identity identity, String name) async {
     identity.name = name;
     await IdentityService.instance.updateIdentity(identity);
-    TabData? item = tabBodyDatas[identity.id];
+    final item = tabBodyDatas[identity.id];
     if (item == null) return;
     item.identity = identity;
     tabBodyDatas[identity.id] = item;
@@ -606,18 +640,20 @@ class HomeController extends GetxController
   }
 
   void resortRoomList(int identityId) {
-    TabData? item = tabBodyDatas[identityId];
+    final item = tabBodyDatas[identityId];
     if (item == null) return;
-    List<Room> friendsRooms =
-        List.castFrom(item.rooms.whereType<Room>().toList());
-    List<dynamic> nonRoomItems =
-        item.rooms.where((element) => element is! Room).toList();
+    final friendsRooms = List.castFrom<dynamic, Room>(
+      item.rooms.whereType<Room>().toList(),
+    );
+    final nonRoomItems = item.rooms
+        .where((element) => element is! Room)
+        .toList();
     item.rooms = [...nonRoomItems, ...RoomUtil.sortRoomList(friendsRooms)];
     tabBodyDatas[identityId] = item;
   }
 
   Room? getRoomByIdentity(int identityId, int roomId) {
-    List<Room> list = getRoomsByIdentity(identityId);
+    final list = getRoomsByIdentity(identityId);
     for (var i = 0; i < list.length; i++) {
       if (list[i].id == roomId) {
         return list[i];
@@ -629,7 +665,7 @@ class HomeController extends GetxController
   Future<void> initAppLinks() async {
     final appLinks = AppLinks();
     // await for app inited
-    Future.delayed(Duration(seconds: 2)).then((value) async {
+    Future.delayed(const Duration(seconds: 2)).then((value) async {
       try {
         final uri = await appLinks.getInitialLink();
         if (uri != null) {
@@ -640,72 +676,76 @@ class HomeController extends GetxController
       }
     });
 
-    appLinks.uriLinkStream.listen(handleAppLink, onError: (err) {
-      logger.e('listen failed: $err');
-    });
+    appLinks.uriLinkStream.listen(
+      handleAppLink,
+      onError: (err) {
+        logger.e('listen failed: $err');
+      },
+    );
   }
 
   Future<void> handleAppLink(Uri? uri) async {
     if (uri == null) return;
     if (uri.pathSegments.isEmpty) return;
-    List identities = await IdentityService.instance.getIdentityList();
+    final List identities = await IdentityService.instance.getIdentityList();
     if (identities.isEmpty) {
       EasyLoading.showError('No identity found, please login first');
       return;
     }
 
-    Map params = uri.queryParametersAll;
-    logger
-        .i('App received new link: $uri  path: ${uri.path} , params: $params');
-    String scheme = uri.scheme;
+    final Map params = uri.queryParametersAll;
+    logger.i(
+      'App received new link: $uri  path: ${uri.path} , params: $params',
+    );
+    final scheme = uri.scheme;
     switch (scheme) {
       case 'http':
       case 'https':
         // https://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
         if (uri.queryParameters.containsKey('k')) {
-          String input = Uri.decodeComponent(uri.queryParameters['k']!);
+          final input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
-        break;
       case 'keychat':
         // keychat://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
         if (uri.queryParameters.containsKey('k')) {
-          String input = Uri.decodeComponent(uri.queryParameters['k']!);
+          final input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
         // keychat://npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        String input = _getDeeplinkData(uri);
+        final input = _getDeeplinkData(uri);
         _handleAppLinkRoom(input, params);
-        break;
       case 'nostr':
         // nostr:npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        String input = _getDeeplinkData(uri);
+        final input = _getDeeplinkData(uri);
         _handleAppLinkRoom(input, params);
-        break;
       case 'lightning':
       case 'lnurlp':
-        String input = _getDeeplinkData(uri);
+        final input = _getDeeplinkData(uri);
         _handleAppLinkLightning(input);
-        break;
       case 'cashu':
-        String input = _getDeeplinkData(uri);
-        Get.find<EcashController>().proccessCashuAString(input);
-        break;
+        final input = _getDeeplinkData(uri);
+        Get.find<EcashController>().proccessCashuString(input);
+      case 'bitcoin':
+        QrScanService.instance.handleBitcoinUri(
+          uri.toString(),
+          Get.find<EcashController>(),
+        );
 
       default:
     }
   }
 
   String _getDeeplinkData(Uri uri) {
-    String scheme = uri.scheme;
-    String input = uri.toString().replaceFirst('$scheme:', '');
+    final scheme = uri.scheme;
+    final input = uri.toString().replaceFirst('$scheme:', '');
     return input.replaceFirst('$scheme://', '');
   }
 
   Future<void> _handleAppLinkRoom(String input, Map params) async {
     loggerNoLine.i('handleAppLinkRoom: $input, params: $params');
 
-    List identities = await IdentityService.instance.getIdentityList();
+    final List identities = await IdentityService.instance.getIdentityList();
     if (identities.isEmpty) {
       EasyLoading.showError('No identity found, please login first');
       return;
@@ -713,27 +753,32 @@ class HomeController extends GetxController
 
     // qr chatkey
     if (!(input.length == 64 || input.length == 63)) {
-      await Get.bottomSheet(AddtoContactsPage(input),
-          isScrollControlled: true,
-          ignoreSafeArea: false,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      await Get.bottomSheet(
+        AddtoContactsPage(input),
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+      );
       return;
     }
     try {
       // bech32 or hex pubkey
-      String hexPubkey = input;
+      var hexPubkey = input;
       if (input.startsWith('npub') && input.length == 63) {
         hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
       }
-      List<Room> rooms =
-          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+      final rooms = await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
       if (rooms.isEmpty) {
-        await Get.bottomSheet(AddtoContactsPage(input),
-            isScrollControlled: true,
-            ignoreSafeArea: false,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        await Get.bottomSheet(
+          AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+        );
         return;
       }
       // Handle the found rooms
@@ -741,41 +786,42 @@ class HomeController extends GetxController
         return Utils.toNamedRoom(rooms[0]);
       }
       // dialog to select room
-      await Get.dialog(SimpleDialog(
+      await Get.dialog(
+        SimpleDialog(
           title: const Text('Multi Rooms Found'),
           children: rooms.map((room) {
             return ListTile(
               title: Text(room.getRoomName()),
               subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
               onTap: () {
-                Get.back();
+                Get.back<void>();
                 Utils.toNamedRoom(room);
               },
             );
-          }).toList()));
+          }).toList(),
+        ),
+      );
     } catch (e, s) {
       EasyLoading.showError('Failed to handle app link: $e');
       logger.e('handleAppLinkRoom error: $e', stackTrace: s);
     }
   }
 
-  Future _handleAppLinkLightning(String input) async {
+  Future<void> _handleAppLinkLightning(String input) async {
     if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
       await Get.bottomSheet(
-          clipBehavior: Clip.antiAlias,
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-          PayInvoicePage(invoce: input, isPay: false, showScanButton: false));
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+        ),
+        PayInvoicePage(invoce: input, showScanButton: false),
+      );
       return;
     }
-    var tx = await Get.find<EcashController>()
-        .proccessPayLightningBill(input, isPay: true);
-    if (tx != null) {
-      var lnTx = tx.field0 as LNTransaction;
-      logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-          'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-          'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-    }
+    await Get.find<EcashController>().proccessPayLightningBill(
+      input,
+      isPay: true,
+    );
   }
 
   late StreamSubscription _intentSub;
@@ -783,11 +829,12 @@ class HomeController extends GetxController
   void _initShareIntent() {
     if (!GetPlatform.isMobile) return;
     // Listen to media sharing coming from outside the app while the app is in the memory.
-    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
-      _handleSharedContent(value);
-    }, onError: (err) {
-      logger.e("getIntentDataStream error: $err");
-    });
+    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
+      _handleSharedContent,
+      onError: (err) {
+        logger.e('getIntentDataStream error: $err');
+      },
+    );
 
     // Get the media sharing coming from outside the app while the app is closed.
     ReceiveSharingIntent.instance.getInitialMedia().then((value) {
@@ -800,48 +847,50 @@ class HomeController extends GetxController
   Future<void> _handleSharedContent(List<SharedMediaFile> list) async {
     if (list.isEmpty) return;
     logger.i('Shared content received: ${list.map((f) => f.toMap())}');
-    SharedMediaFile file = list.first;
+    final file = list.first;
     if (file.path.startsWith('keychat://www.keychat.io/u/')) {
       logger.i('Shared content is a room link, handle by deeplink');
       return;
     }
-    Identity identity = getSelectedIdentity();
+    final identity = getSelectedIdentity();
     switch (file.type) {
       case SharedMediaType.image:
       case SharedMediaType.file:
       case SharedMediaType.video:
-        List<Room>? forwardRooms = await Get.to(
-            () => ForwardSelectRoom('', identity, showContent: false),
-            fullscreenDialog: true,
-            transition: Transition.downToUp);
+        var forwardRooms = await Get.to<List<Room>>(
+          () => ForwardSelectRoom('', identity, showContent: false),
+          fullscreenDialog: true,
+          transition: Transition.downToUp,
+        );
         if (forwardRooms == null || forwardRooms.isEmpty) return;
-        Message? message = await FileService.instance
-            .handleFileUpload(forwardRooms.first, XFile(file.path));
+        final message = await FileService.instance.handleFileUpload(
+          forwardRooms.first,
+          XFile(file.path),
+        );
         if (forwardRooms.length > 1 && message != null) {
           forwardRooms = forwardRooms.skip(1).toList();
           await RoomUtil.forwardMediaMessageToRooms(forwardRooms, message);
         }
-        break;
       case SharedMediaType.text:
       case SharedMediaType.url:
-        String toSendText = file.path;
+        var toSendText = file.path;
         if (file.message != null) {
-          toSendText = '''
+          toSendText =
+              '''
 ${file.path}
 ${file.message}
 ''';
         }
         await RoomUtil.forwardTextMessage(identity, toSendText);
-        break;
     }
   }
 }
 
 class TabData {
+  TabData(this.identity);
   int unReadCount = 0;
   int anonymousUnReadCount = 0;
   int requestingUnReadCount = 0;
   List<dynamic> rooms = [];
   late Identity identity;
-  TabData(this.identity);
 }

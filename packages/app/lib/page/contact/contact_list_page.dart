@@ -1,19 +1,19 @@
-// ignore_for_file: must_be_immutable
+import 'dart:async';
 
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/page/contact/ContactDetail/ContactDetail_page.dart';
+import 'package:app/page/components.dart';
+import 'package:app/page/contact/contact_detail_page.dart';
+import 'package:app/page/contact/contact_index_bar.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../components.dart';
-import 'contact_index_bar.dart';
 
 class ContactsPage extends StatefulWidget {
-  final Identity identity;
   const ContactsPage(this.identity, {super.key});
+  final Identity identity;
   @override
   _ContactsPageState createState() => _ContactsPageState();
 }
@@ -23,29 +23,31 @@ class _ContactsPageState extends State<ContactsPage> {
   List<Contact> _listDatas = [];
   final ScrollController _scrollController = ScrollController();
 
-  final double _cellHeight = 54.0;
-  final double _groupHeight = 30.0;
-  final Map _groupOffsetMap = {
+  final double _cellHeight = 54;
+  final double _groupHeight = 30;
+  final Map<String, double> _groupOffsetMap = {
     INDEX_WORDS[0]: 0.0,
     INDEX_WORDS[0]: 0.0,
   };
 
   Future<void> _getData() async {
-    List<Contact> contactList =
-        await ContactService.instance.getContactList(widget.identity.id);
+    final contactList = await ContactService.instance.getFriendContacts(
+      widget.identity.id,
+    );
 
-    List<Contact> contactStartNum = [];
-    List<Contact> restContacts = [];
-    for (var element in contactList) {
-      if (element.displayName.toString().startsWith(RegExp(r'[0-9]'))) {
+    final contactStartNum = <Contact>[];
+    final restContacts = <Contact>[];
+    for (final element in contactList) {
+      if (element.pubkey == widget.identity.secp256k1PKHex) continue;
+      if (element.displayName.startsWith(RegExp('[0-9]'))) {
         contactStartNum.add(element);
       } else {
         restContacts.add(element);
       }
     }
     // contactList.sort(((a, b) => a.displayName.compareTo(b.displayName)));
-    restContacts.sort(((a, b) => a.displayName.compareTo(b.displayName)));
-    contactStartNum.sort(((a, b) => a.displayName.compareTo(b.displayName)));
+    restContacts.sort((a, b) => a.displayName.compareTo(b.displayName));
+    contactStartNum.sort((a, b) => a.displayName.compareTo(b.displayName));
     restContacts.addAll(contactStartNum);
 
     setState(() {
@@ -57,11 +59,11 @@ class _ContactsPageState extends State<ContactsPage> {
   void initState() {
     super.initState();
 
-    _getData();
+    unawaited(_getData());
 
     Future.delayed(Duration.zero, () {
       var groupOffset = _cellHeight * _headerData.length;
-      for (int i = 0; i < _listDatas.length; i++) {
+      for (var i = 0; i < _listDatas.length; i++) {
         if (i < 1) {
           _groupOffsetMap.addAll({_listDatas[i].indexLetter: groupOffset});
           groupOffset += _cellHeight + _groupHeight;
@@ -84,80 +86,122 @@ class _ContactsPageState extends State<ContactsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          actions: [
-            IconButton(
-                onPressed: () {
-                  Get.bottomSheet(
-                      clipBehavior: Clip.antiAlias,
-                      shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(4))),
-                      const AddtoContactsPage(""),
-                      isScrollControlled: true,
-                      ignoreSafeArea: false);
-                },
-                icon: const Icon(CupertinoIcons.person_add)),
-            IconButton(
-                onPressed: () {
-                  showSearchContactsPage(context, _listDatas);
-                },
-                icon: const Icon(CupertinoIcons.search)),
-            IconButton(
-                onPressed: () {
-                  copyAllContacts(_listDatas);
-                },
-                icon: const Icon(CupertinoIcons.down_arrow)),
-          ],
-          centerTitle: true,
-          title: const Text(
-            'Contacts',
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () {
+              Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                ),
+                const AddtoContactsPage(''),
+                isScrollControlled: true,
+                ignoreSafeArea: false,
+              );
+            },
+            icon: const Icon(CupertinoIcons.person_add),
           ),
-        ),
-        body: ListView.builder(
-          shrinkWrap: true,
-          physics: const ClampingScrollPhysics(),
-          itemCount: _headerData.length + _listDatas.length,
-          controller: _scrollController,
-          itemBuilder: (BuildContext context, int index) {
-            if (index < _headerData.length) {
-              return _FriendCell(
-                  contact: _headerData[index],
-                  imageAssets: _headerData[index].imageAssets,
-                  updateList: _getData);
-            } else {
-              String? groupTitle = _listDatas[index].indexLetter;
+          IconButton(
+            onPressed: () {
+              showSearchContactsPage(context, _listDatas);
+            },
+            icon: const Icon(CupertinoIcons.search),
+          ),
+        ],
+        centerTitle: true,
+        title: const Text('Contacts'),
+      ),
+      body: _listDatas.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.people_outline,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No contacts yet',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add contacts to start chatting',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Get.bottomSheet(
+                        clipBehavior: Clip.antiAlias,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(4),
+                          ),
+                        ),
+                        const AddtoContactsPage(''),
+                        isScrollControlled: true,
+                        ignoreSafeArea: false,
+                      );
+                    },
+                    icon: const Icon(CupertinoIcons.person_add),
+                    label: const Text('Add Contact'),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              shrinkWrap: true,
+              physics: const ClampingScrollPhysics(),
+              itemCount: _headerData.length + _listDatas.length,
+              controller: _scrollController,
+              itemBuilder: (BuildContext context, int index) {
+                if (index < _headerData.length) {
+                  return _FriendCell(
+                    contact: _headerData[index],
+                    imageAssets: _headerData[index].imageAssets,
+                    updateList: _getData,
+                  );
+                } else {
+                  String? groupTitle = _listDatas[index].indexLetter;
 
-              if (index - _headerData.length > 0) {
-                bool isShowT =
-                    _listDatas[index - _headerData.length].indexLetter ==
+                  if (index - _headerData.length > 0) {
+                    final isShowT =
+                        _listDatas[index - _headerData.length].indexLetter ==
                         _listDatas[index - _headerData.length - 1].indexLetter;
 
-                if (isShowT) {
-                  groupTitle = null;
+                    if (isShowT) {
+                      groupTitle = null;
+                    }
+                  }
+                  return _FriendCell(
+                    contact: _listDatas[index - _headerData.length],
+                    groupTitle: groupTitle,
+                    updateList: _getData,
+                  );
                 }
-              }
-              return _FriendCell(
-                  contact: _listDatas[index - _headerData.length],
-                  groupTitle: groupTitle,
-                  updateList: _getData);
-            }
-          },
-        ));
+              },
+            ),
+    );
   }
 }
 
 class _FriendCell extends StatelessWidget {
+  const _FriendCell({
+    required this.contact,
+    required this.updateList,
+    this.groupTitle,
+    this.imageAssets,
+  });
   final Contact contact;
   final String? groupTitle;
   final String? imageAssets;
   final VoidCallback updateList;
-
-  const _FriendCell(
-      {required this.contact,
-      required this.updateList,
-      this.groupTitle,
-      this.imageAssets});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -177,30 +221,42 @@ class _FriendCell extends StatelessWidget {
         ),
         InkWell(
           onTap: () async {
-            await Get.bottomSheet(
-                clipBehavior: Clip.antiAlias,
-                shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(4))),
-                ContactDetailPage(contact),
-                isScrollControlled: true,
-                ignoreSafeArea: false);
-            updateList();
+            // Open detail as a bottom sheet and capture the result.
+            final res = await Get.bottomSheet<bool?>(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+              ),
+              ContactDetailPage(contact),
+              isScrollControlled: true,
+              ignoreSafeArea: false,
+            );
+            if (res ?? false) {
+              updateList();
+            }
           },
           child: ListTile(
-              leading: Utils.getRandomAvatar(contact.pubkey,
-                  httpAvatar: contact.avatarFromRelay, height: 36, width: 36),
-              title: Text(contact.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 18)),
-              subtitle: textSmallGray(
-                  context, getPublicKeyDisplay(contact.npubkey, 14))),
+            leading: Utils.getRandomAvatar(
+              contact.pubkey,
+              contact: contact,
+              size: 36,
+            ),
+            title: Text(
+              contact.displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 18),
+            ),
+            subtitle: textSmallGray(
+              context,
+              getPublicKeyDisplay(contact.npubkey, 14),
+            ),
+          ),
         ),
         Container(
-            height: 0.4,
-            color:
-                Get.isDarkMode ? Colors.grey.shade900 : Colors.grey.shade300),
+          height: 0.4,
+          color: Get.isDarkMode ? Colors.grey.shade900 : Colors.grey.shade300,
+        ),
       ],
     );
   }

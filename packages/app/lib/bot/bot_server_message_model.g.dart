@@ -6,29 +6,29 @@ part of 'bot_server_message_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_BotServerMessageModel _$BotServerMessageModelFromJson(
-        Map<String, dynamic> json) =>
-    _BotServerMessageModel(
-      type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
-      message: json['message'] as String,
-      priceModels: (json['priceModels'] as List<dynamic>)
-          .map((e) => BotMessageData.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      id: json['id'] as String?,
-    );
+BotServerMessageModel _$BotServerMessageModelFromJson(
+  Map<String, dynamic> json,
+) => BotServerMessageModel(
+  type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
+  message: json['message'] as String,
+  priceModels: (json['priceModels'] as List<dynamic>)
+      .map((e) => BotMessageData.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  id: json['id'] as String?,
+);
 
 Map<String, dynamic> _$BotServerMessageModelToJson(
-        _BotServerMessageModel instance) =>
-    <String, dynamic>{
-      'type': _$MessageMediaTypeEnumMap[instance.type]!,
-      'message': instance.message,
-      'priceModels': instance.priceModels,
-      'id': instance.id,
-    };
+  BotServerMessageModel instance,
+) => <String, dynamic>{
+  'type': _$MessageMediaTypeEnumMap[instance.type]!,
+  'message': instance.message,
+  'priceModels': instance.priceModels,
+  'id': instance.id,
+};
 
 const _$MessageMediaTypeEnumMap = {
   MessageMediaType.text: 'text',
-  MessageMediaType.cashuA: 'cashuA',
+  MessageMediaType.cashu: 'cashu',
   MessageMediaType.image: 'image',
   MessageMediaType.video: 'video',
   MessageMediaType.contact: 'contact',
@@ -44,20 +44,21 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.groupInvitationInfo: 'groupInvitationInfo',
   MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
   MessageMediaType.lightningInvoice: 'lightningInvoice',
+  MessageMediaType.profileRequest: 'profileRequest',
 };
 
-_BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
-    _BotMessageData(
+BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
+    BotMessageData(
       name: json['name'] as String,
       description: json['description'] as String,
       price: (json['price'] as num).toInt(),
       unit: json['unit'] as String,
-      mints:
-          (json['mints'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+      mints: (json['mints'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
-Map<String, dynamic> _$BotMessageDataToJson(_BotMessageData instance) =>
+Map<String, dynamic> _$BotMessageDataToJson(BotMessageData instance) =>
     <String, dynamic>{
       'name': instance.name,
       'description': instance.description,

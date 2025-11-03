@@ -9,10 +9,13 @@ import 'package:get/get.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 
 class CashuReceiveWidget extends StatefulWidget {
+  const CashuReceiveWidget({
+    required this.cashuinfo,
+    super.key,
+    this.messageId,
+  });
   final CashuInfoModel cashuinfo;
   final int? messageId;
-  const CashuReceiveWidget(
-      {super.key, required this.cashuinfo, this.messageId});
 
   @override
   _CashuReceiveWidgetState createState() => _CashuReceiveWidgetState();
@@ -26,28 +29,31 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
   Widget build(BuildContext context) {
     return CupertinoAlertDialog(
       title: const Text('Cashu Token'),
-      content: Column(children: [
-        textSmallGray(context, 'Status: ${widget.cashuinfo.status.name}'),
-        RichText(
+      content: Column(
+        children: [
+          textSmallGray(context, 'Status: ${widget.cashuinfo.status.name}'),
+          RichText(
             text: TextSpan(
-          text: widget.cashuinfo.amount.toString(),
-          children: <TextSpan>[
-            TextSpan(
-              text: ' ${EcashTokenSymbol.sat.name}',
-              style: const TextStyle(fontSize: 16),
+              text: widget.cashuinfo.amount.toString(),
+              children: <TextSpan>[
+                TextSpan(
+                  text: ' ${EcashTokenSymbol.sat.name}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(height: 1.5, fontSize: 34, color: Colors.green),
             ),
-          ],
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(height: 1.5, fontSize: 34, color: Colors.green),
-        )),
-        Text(widget.cashuinfo.mint),
-        Text(
-          widget.cashuinfo.token,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ]),
+          ),
+          Text(widget.cashuinfo.mint),
+          Text(
+            widget.cashuinfo.token,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
       actions: [
         CupertinoDialogAction(
           isDefaultAction: true,
@@ -56,7 +62,7 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
               : const Text('Ok'),
           onPressed: () async {
             if (btnStatus == 'OK') {
-              Get.back();
+              Get.back<void>();
               return;
             }
             if (btnStatus == 'Receiving...') {
@@ -68,18 +74,19 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
             EasyThrottle.throttle(
                 'handleReceiveToken', const Duration(seconds: 2), () async {
               if (widget.cashuinfo.status != TransactionStatus.pending) {
-                Get.back();
+                Get.back<void>();
                 return;
               }
-              CashuInfoModel? model = await CashuUtil.handleReceiveToken(
-                  token: widget.cashuinfo.token,
-                  messageId: widget.messageId,
-                  retry: true);
+              final model = await EcashUtils.handleReceiveToken(
+                token: widget.cashuinfo.token,
+                messageId: widget.messageId,
+                retry: true,
+              );
 
               Get.back(result: model);
             });
           },
-        )
+        ),
       ],
     );
   }

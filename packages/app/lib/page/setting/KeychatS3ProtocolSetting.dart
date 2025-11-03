@@ -30,7 +30,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   }
 
   Future<void> _init() async {
-    RelayFileFee? fuc =
+    final fuc =
         await RelayService.instance.initRelayFileFeeModel(defaultFileServer);
     if (fuc != null) {
       ws.setRelayFileFeeModel(defaultFileServer, fuc);
@@ -44,12 +44,14 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text(KeychatGlobal.defaultFileServer)),
-        body: isInit
-            ? SettingsList(platform: DevicePlatform.iOS, sections: [
+      appBar: AppBar(title: const Text(KeychatGlobal.defaultFileServer)),
+      body: isInit
+          ? SettingsList(
+              platform: DevicePlatform.iOS,
+              sections: [
                 SettingsSection(
                   tiles: [
-                    if (isInit == true && (relayFileFee?.mints ?? []).isEmpty)
+                    if (isInit && (relayFileFee?.mints ?? []).isEmpty)
                       SettingsTile(
                         leading: const Icon(Icons.error, color: Colors.red),
                         title: const Text(
@@ -59,20 +61,20 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                         description:
                             const Text('Please try another file server'),
                       ),
-                    if (isInit == true &&
-                        (relayFileFee?.mints ?? []).isNotEmpty)
+                    if (isInit && (relayFileFee?.mints ?? []).isNotEmpty)
                       SettingsTile(
-                          title: const Text('Allowed Mint'),
-                          value: Text((relayFileFee?.mints ?? []).join(','))),
-                    if (isInit == true &&
-                        (relayFileFee?.mints ?? []).isNotEmpty)
+                        title: const Text('Allowed Mint'),
+                        value: Text((relayFileFee?.mints ?? []).join(',')),
+                      ),
+                    if (isInit && (relayFileFee?.mints ?? []).isNotEmpty)
                       SettingsTile(
                         title: const Text('MaxSize'),
-                        value: Text(FileService.instance
-                            .getFileSizeDisplay(relayFileFee?.maxSize ?? 0)),
+                        value: Text(
+                          FileService.instance
+                              .getFileSizeDisplay(relayFileFee?.maxSize ?? 0),
+                        ),
                       ),
-                    if (isInit == true &&
-                        (relayFileFee?.mints ?? []).isNotEmpty)
+                    if (isInit && (relayFileFee?.mints ?? []).isNotEmpty)
                       SettingsTile(
                         title: const Text('Expired'),
                         value: Text(relayFileFee?.expired ?? '-'),
@@ -81,21 +83,28 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                 ),
                 if ((relayFileFee?.prices ?? []).isNotEmpty)
                   SettingsSection(
-                      title: const Text('Price'),
-                      tiles: (relayFileFee?.prices ?? [])
-                          .map((price) => SettingsTile(
-                                title: Text(
-                                    '${FileService.instance.getFileSizeDisplay(price['min'])} < size < ${FileService.instance.getFileSizeDisplay(price['max'])}'),
-                                value: Text(
-                                    '${price['price']} ${relayFileFee?.unit ?? 'sat'}'),
-                              ))
-                          .toList())
-              ])
-            : pageLoadingSpinKit());
+                    title: const Text('Price'),
+                    tiles: (relayFileFee?.prices ?? [])
+                        .map(
+                          (price) => SettingsTile(
+                            title: Text(
+                              '${FileService.instance.getFileSizeDisplay(price['min'])} < size < ${FileService.instance.getFileSizeDisplay(price['max'])}',
+                            ),
+                            value: Text(
+                              '${price['price']} ${relayFileFee?.unit ?? 'sat'}',
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            )
+          : pageLoadingSpinKit(),
+    );
   }
 
   String getFeeString(String relay) {
-    RelayFileFee? fuc = ws.getRelayFileFeeModel(relay);
+    final fuc = ws.getRelayFileFeeModel(relay);
     if (fuc == null) return '-';
     if (fuc.prices.isEmpty) return '-';
     return 'Fee: ${fuc.prices[0]['price']} ${fuc.unit}';

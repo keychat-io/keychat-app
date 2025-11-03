@@ -1,6 +1,6 @@
 import 'package:app/utils.dart';
 
-import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
+import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/status_enum.dart';
 import 'package:app/page/components.dart';
 import 'package:flutter/material.dart';
@@ -12,21 +12,20 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class LightningTransactionPage extends StatefulWidget {
-  final LNTransaction transaction;
-  const LightningTransactionPage({super.key, required this.transaction});
+  const LightningTransactionPage({required this.transaction, super.key});
+  final Transaction transaction;
 
   @override
   State<LightningTransactionPage> createState() => _CashuTransactionPageState();
 }
 
 class _CashuTransactionPageState extends State<LightningTransactionPage> {
-  late LNTransaction tx;
+  late Transaction tx;
   int expiryTs = 0;
-  LightningBillController? lightningBillController;
   @override
   void initState() {
     tx = widget.transaction;
-    rust_cashu.decodeInvoice(encodedInvoice: tx.pr).then((value) {
+    rust_cashu.decodeInvoice(encodedInvoice: tx.token).then((value) {
       setState(() {
         expiryTs = value.expiryTs.toInt();
       });
@@ -35,11 +34,9 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
     super.initState();
 
     if (tx.status != TransactionStatus.pending) return;
-    lightningBillController =
-        Utils.getOrPutGetxController(create: LightningBillController.new);
 
-    lightningBillController?.pendingTaskMap[tx.hash] = true;
-    lightningBillController?.startCheckPending(tx, expiryTs, (ln) {
+    LightningUtils.instance.pendingTaskMap[tx.id] = true;
+    LightningUtils.instance.startCheckPending(tx, expiryTs, (ln) {
       setState(() {
         tx = ln;
       });
@@ -48,109 +45,125 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
 
   @override
   void dispose() {
-    lightningBillController?.stopCheckPending(tx);
+    LightningUtils.instance.stopCheckPending(tx);
     super.dispose();
   }
 
   @override
-  Widget build(context) {
-    double maxWidth = MediaQuery.of(context).size.width *
+  Widget build(BuildContext context) {
+    final maxWidth = MediaQuery.of(context).size.width *
             (MediaQuery.of(context).size.width > 500 ? 0.4 : 1) -
         32;
 
     return Scaffold(
-        appBar: AppBar(
-            centerTitle: true,
-            title: Text(
-              tx.io == TransactionDirection.in_
-                  ? 'Receive from Lightning Wallet'
-                  : 'Send to Lightning Wallet',
-              style: Theme.of(context).textTheme.bodyMedium,
-            )),
-        body: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ListView(children: [
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          tx.io == TransactionDirection.incoming
+              ? 'Receive from Lightning Wallet'
+              : 'Send to Lightning Wallet',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+      body: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: ListView(
+          children: [
             Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 10,
-                children: [
-                  CashuStatus.getStatusIcon(tx.status, 40),
-                  RichText(
-                      text: TextSpan(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 10,
+              children: [
+                CashuStatus.getStatusIcon(tx.status, 40),
+                RichText(
+                  text: TextSpan(
                     text: tx.amount.toString(),
                     children: <TextSpan>[
                       TextSpan(
-                          text: ' ${EcashTokenSymbol.sat.name}',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                        text: ' ${EcashTokenSymbol.sat.name}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                     style: Theme.of(context)
                         .textTheme
                         .titleLarge
-                        ?.copyWith(height: 1.0, fontSize: 34),
-                  ))
-                ]),
+                        ?.copyWith(height: 1, fontSize: 34),
+                  ),
+                ),
+              ],
+            ),
             Padding(
-                padding: EdgeInsetsDirectional.symmetric(vertical: 16),
-                child: Center(
-                    child: Utils.genQRImage('lightning:${tx.pr}',
-                        size: maxWidth, padding: 16))),
-            if (tx.fee != null)
-              Center(child: Text('Fee: ${tx.fee!.toInt()} ${tx.unit}')),
+              padding: const EdgeInsetsDirectional.symmetric(vertical: 16),
+              child: Center(
+                child: Utils.genQRImage(
+                  'lightning:${tx.token}',
+                  size: maxWidth,
+                  padding: 16,
+                ),
+              ),
+            ),
+            Center(child: Text('Fee: ${tx.fee.toInt()} ${tx.unit}')),
             if (tx.status == TransactionStatus.pending && expiryTs > 0)
               Text(
-                'Expire At: ${formatTime(expiryTs, 'yyyy-MM-dd HH:mm:ss')}',
+                'Expire At: ${formatTime(expiryTs)}',
                 textAlign: TextAlign.center,
               ),
             textSmallGray(
               context,
-              'Mint: ${tx.mint}',
+              'Mint: ${tx.mintUrl}',
               textAlign: TextAlign.center,
             ),
             textSmallGray(
               context,
-              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.time.toInt()).toIso8601String()}',
+              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.timestamp.toInt() * 1000).toIso8601String()}',
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Wrap(
               runAlignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
               direction: Axis.vertical,
               spacing: 16,
               children: [
-                if (tx.io == TransactionDirection.in_ &&
+                if (tx.io == TransactionDirection.incoming &&
                     tx.status == TransactionStatus.pending)
                   OutlinedButton(
-                      style: ButtonStyle(
-                          minimumSize:
-                              WidgetStateProperty.all(Size(maxWidth, 48))),
-                      onPressed: () async {
-                        String url = 'lightning:${tx.pr}';
-                        final Uri uri = Uri.parse(url);
-                        bool res = await canLaunchUrl(uri);
-                        if (!res) {
-                          EasyLoading.showToast('No Lightning wallet found');
-                          return;
-                        }
-                        await launchUrl(uri);
-                      },
-                      child: const Text('Pay with Lightning wallet')),
-                FilledButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(
-                          ClipboardData(text: 'lightning:${tx.pr}'));
-                      EasyLoading.showToast('Copied');
-                    },
                     style: ButtonStyle(
-                        minimumSize:
-                            WidgetStateProperty.all(Size(maxWidth, 48))),
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy Invoice')),
-                const SizedBox(height: 8)
+                      minimumSize: WidgetStateProperty.all(Size(maxWidth, 48)),
+                    ),
+                    onPressed: () async {
+                      final url = 'lightning:${tx.token}';
+                      final uri = Uri.parse(url);
+                      final res = await canLaunchUrl(uri);
+                      if (!res) {
+                        EasyLoading.showToast('No Lightning wallet found');
+                        return;
+                      }
+                      await launchUrl(uri);
+                    },
+                    child: const Text('Pay with Lightning wallet'),
+                  ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: 'lightning:${tx.token}'),
+                    );
+                    EasyLoading.showToast('Copied');
+                  },
+                  style: ButtonStyle(
+                    minimumSize: WidgetStateProperty.all(Size(maxWidth, 48)),
+                  ),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy Invoice'),
+                ),
+                const SizedBox(height: 8),
               ],
-            )
-          ]),
-        ));
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

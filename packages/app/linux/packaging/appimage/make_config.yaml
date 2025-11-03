@@ -31,5 +31,4 @@ categories:
 
 startup_notify: true
 
-include:
-  - libisar.so
+include: []

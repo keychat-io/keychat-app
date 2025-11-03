@@ -208,6 +208,7 @@ Please restore your ecash wallet from mint server to resolve this issue.
   }
 
   static Future<String> ecashErrorHandle(Object e, StackTrace s) async {
+    await EasyLoading.dismiss();
     final msg = Utils.getErrorMessage(e);
     logger.e(msg, error: e, stackTrace: s);
     if (msg.toLowerCase().contains(
@@ -293,15 +294,6 @@ Please restore your ecash wallet from mint server to resolve this issue.
           CupertinoIcons.time,
           color: Colors.yellow,
         );
-      // return TextButton(
-      //     onPressed: () async {
-      //       CashuInfoModel? cm = await Get.dialog(CashuReceiveWidget(
-      //           cashuinfo: CashuInfoModel.fromRustModel(cashuTransaction)));
-      //       if (cm != null) {
-      //         await controller.getTransactions();
-      //       }
-      //     },
-      //     child: const Text('Pending'));
     }
   }
 

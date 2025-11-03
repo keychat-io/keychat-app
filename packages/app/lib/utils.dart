@@ -849,9 +849,6 @@ Init File: $time \n
         final file = File('${Utils.appFolder.path}$localFilePath');
         if (file.existsSync()) {
           final widget = getAvatarByImageFile(file, size: size);
-          logger.d(
-            'getRandomAvatar caching avatar ${contact.pubkey}${localFilePath}_$size',
-          );
           _avatarWidgetCache[cacheKey] = widget;
           return widget;
         }

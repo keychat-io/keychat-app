@@ -23,6 +23,10 @@ class MintBalanceClass {
 }
 
 class CashuUtil {
+  static String errorSpent = 'Token already spent';
+  static String errorInvalid = 'Invalid token';
+  static String errorBlindedMessage = 'Blinded Message is already signed';
+
   static Future<CashuInfoModel?> handleReceiveToken({
     required String token,
     bool retry = false,
@@ -129,11 +133,14 @@ class CashuUtil {
       EasyLoading.dismiss();
       final message = Utils.getErrorMessage(e);
       logger.e('receive error: $message', error: e, stackTrace: s);
-      if (message.contains('Spent')) {
-        EasyLoading.showError('Exception: Token already spent.');
+
+      if (message.toLowerCase().contains(CashuUtil.errorSpent.toLowerCase())) {
+        EasyLoading.showError(CashuUtil.errorSpent);
         if (messageId != null) {
           await MessageService.instance.updateMessageCashuStatus(messageId);
         }
+      } else if (message.contains(CashuUtil.errorBlindedMessage)) {
+        await CashuUtil.blindedMessageErrorDialog(message);
       } else {
         EasyLoading.showError(
           'Error! $message',
@@ -142,6 +149,30 @@ class CashuUtil {
       }
     }
     return null;
+  }
+
+  static Future<void> blindedMessageErrorDialog(String msg) {
+    return Get.dialog<void>(
+      CupertinoAlertDialog(
+        title: const Text('Info'),
+        content: Text(
+          '''
+$msg
+
+Fix this: 
+1. Go to Bitcoin Ecash -> Settings -> Restore from Mint Server
+2. After restore, try to receive the token again.
+''',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: Get.back<void>,
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   static Future<CashuInfoModel> getCashuA({

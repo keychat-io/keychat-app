@@ -151,33 +151,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                               });
                             } catch (e, s) {
                               final msg = Utils.getErrorMessage(e);
-                              if (msg.contains(
-                                'Blinded Message is already signed',
-                              )) {
-                                await Get.dialog<void>(
-                                  CupertinoAlertDialog(
-                                    title: const Text('Info'),
-                                    content: Text(
-                                      '''
-$msg
-
-Fix this: 
-1. Go to Bitcoin Ecash -> Settings -> Restore from Mint Server
-2. After restore, try to receive the token again.
-''',
-                                    ),
-                                    actions: [
-                                      CupertinoDialogAction(
-                                        isDefaultAction: true,
-                                        onPressed: Get.back<void>,
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              } else {
-                                await EasyLoading.showToast(msg);
-                              }
+                              await CashuUtil.blindedMessageErrorDialog(msg);
                               logger.e(
                                 msg,
                                 error: e,

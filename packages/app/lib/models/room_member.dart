@@ -68,6 +68,8 @@ class RoomMember extends Equatable {
   Contact? contact;
   String get displayName => contact?.displayName ?? name;
 
+  String? msg; // last system message
+
   Map<String, dynamic> toJson() => _$RoomMemberToJson(this);
 
   @override

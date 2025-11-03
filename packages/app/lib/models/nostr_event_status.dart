@@ -52,7 +52,14 @@ class NostrEventStatus extends Equatable {
   String? rawEvent;
 
   @override
-  List<Object> get props => [eventId, resCode, relay, sendStatus];
+  List<Object> get props => [
+    eventId,
+    isReceive,
+    resCode,
+    relay,
+    sendStatus,
+    createdAt,
+  ];
 
   static Future<NostrEventStatus?> getReceiveEvent(String eventId) async {
     return DBProvider.database.nostrEventStatus
@@ -76,14 +83,15 @@ class NostrEventStatus extends Equatable {
     String eventId,
     String receiveSnapshot,
   ) async {
-    final ess = NostrEventStatus(
-      eventId: eventId,
-      relay: relay,
-      sendStatus: EventSendEnum.success,
-      roomId: -1,
-    )
-      ..receiveSnapshot = receiveSnapshot
-      ..isReceive = true;
+    final ess =
+        NostrEventStatus(
+            eventId: eventId,
+            relay: relay,
+            sendStatus: EventSendEnum.success,
+            roomId: -1,
+          )
+          ..receiveSnapshot = receiveSnapshot
+          ..isReceive = true;
     await DBProvider.database.writeTxn(() async {
       final id = await DBProvider.database.nostrEventStatus.put(ess);
       ess.id = id;

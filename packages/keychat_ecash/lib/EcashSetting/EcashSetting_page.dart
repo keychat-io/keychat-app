@@ -125,21 +125,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                 leading: const Icon(Icons.restore),
                 title: const Text('Restore From Mint Server'),
                 onPressed: (context) async {
-                  try {
-                    EasyLoading.show(status: 'Processing');
-                    final ec = Get.find<EcashController>();
-
-                    if (ec.currentIdentity == null) {
-                      EasyLoading.showError('No mnemonic');
-                      return;
-                    }
-                    await ec.restore();
-                    await EasyLoading.showToast('Successfully');
-                  } catch (e, s) {
-                    final msg = Utils.getErrorMessage(e);
-                    logger.e(e.toString(), error: e, stackTrace: s);
-                    EasyLoading.showError(msg);
-                  }
+                  await EcashUtils.restoreFromMintServer();
                 },
               ),
               SettingsTile(

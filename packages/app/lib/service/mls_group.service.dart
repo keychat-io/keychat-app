@@ -208,7 +208,7 @@ class MlsGroupService extends BaseChatService {
   Future<void> decryptMessage(
     Room room,
     NostrEventModel event,
-    Function(String) failedCallback,
+    void Function(String) failedCallback,
   ) async {
     loggerNoLine.i(
       '[MLS] decryptMessage START - eventId: ${event.id}, roomId: ${room.id}',
@@ -253,7 +253,12 @@ class MlsGroupService extends BaseChatService {
           loggerNoLine.i(
             '[MLS] Application message processed successfully: ${event.id}',
           );
-        default:
+        case MessageInType.proposal:
+        case MessageInType.welcome:
+        case MessageInType.groupInfo:
+        case MessageInType.keyPackage:
+        case MessageInType.publicMessage:
+        case MessageInType.custom:
           logger.e(
             '[MLS] Unsupported message type: ${messageType.name} for event: ${event.id}',
           );
@@ -401,11 +406,13 @@ class MlsGroupService extends BaseChatService {
     for (final element in extensions.entries) {
       var name = element.key;
       var status = UserStatusType.invited;
+      String? msg;
       if (element.value.isNotEmpty) {
         try {
           final res = utf8.decode(element.value[0]);
           final extension = jsonDecode(res) as Map<String, dynamic>;
           name = extension['name'] as String? ?? element.key;
+          msg = extension['msg'] as String?;
           if (extension['status'] != null) {
             status = UserStatusType.values.firstWhere(
               (e) => e.name == extension['status'],
@@ -425,12 +432,15 @@ class MlsGroupService extends BaseChatService {
           }
         }
       }
-      roomMembers[element.key] = RoomMember(
-        idPubkey: element.key,
-        name: name,
-        roomId: room.id,
-        status: status,
-      )..mlsPKExpired = mlsPKExpired;
+      roomMembers[element.key] =
+          RoomMember(
+              idPubkey: element.key,
+              name: name,
+              roomId: room.id,
+              status: status,
+            )
+            ..mlsPKExpired = mlsPKExpired
+            ..msg = msg;
     }
     return roomMembers;
   }
@@ -661,19 +671,20 @@ class MlsGroupService extends BaseChatService {
   Future<void> sendGreetingMessage(Room room) async {
     room.sentHelloToMLS = true;
     final identity = room.getIdentity();
-    // final avatarUrl = await identity.getRemoteAvatarUrl();
+    final msg = '[System] Hello everyone! I am ${identity.displayName}';
     await selfUpdateKey(
       room,
       extension: {
         'name': identity.displayName,
-        // 'avatar': avatarUrl ?? '',
-        // 'lightning': identity.lightning ?? '',
+        'msg': msg,
       },
+      msg: msg,
     );
   }
 
   Future<Room> selfUpdateKey(
     Room room, {
+    required String msg,
     Map<String, dynamic>? extension,
   }) async {
     // waiting for the old pubkey to be Eosed. means that all events proccessed
@@ -684,8 +695,7 @@ class MlsGroupService extends BaseChatService {
     await RoomService.instance.checkWebsocketConnect();
     final queuedMsg = await _selfUpdateKeyLocal(room, extension);
     final identity = room.getIdentity();
-    final realMessage = '[System] ${identity.displayName} updated my group key';
-    await sendEncryptedMessage(room, queuedMsg, realMessage: realMessage);
+    await sendEncryptedMessage(room, queuedMsg, realMessage: msg);
     await rust_mls.selfCommit(
       nostrId: identity.secp256k1PKHex,
       groupId: room.toMainPubkey,
@@ -1172,7 +1182,8 @@ class MlsGroupService extends BaseChatService {
           name: senderName,
           roomId: room.id,
         );
-        realMessage = "Hi everyone, I'm ${newMember.name}!";
+        realMessage =
+            newMember.msg ?? "[System] Hi everyone, I'm ${newMember.name}!";
 
         // room member self leave group
         if (newMember.status == UserStatusType.removed) {
@@ -1186,7 +1197,7 @@ class MlsGroupService extends BaseChatService {
             loggerNoLine.i(
               '[MLS] Admin removing member: $senderName for event: ${event.id}',
             );
-            removeMembers(room, [newMember]);
+            await removeMembers(room, [newMember]);
             loggerNoLine.i(
               '[MLS] Member removed: $senderName for event: ${event.id}',
             );

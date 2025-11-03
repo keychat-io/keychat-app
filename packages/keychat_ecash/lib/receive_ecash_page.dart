@@ -140,7 +140,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                                 EasyLoading.showToast('Please input token');
                                 return;
                               }
-                              await CashuUtil.handleReceiveToken(
+                              await EcashUtils.handleReceiveToken(
                                 token: encodedToken,
                                 retry: true,
                               );
@@ -150,13 +150,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                                 decodedModel = null;
                               });
                             } catch (e, s) {
-                              final msg = Utils.getErrorMessage(e);
-                              await CashuUtil.blindedMessageErrorDialog(msg);
-                              logger.e(
-                                msg,
-                                error: e,
-                                stackTrace: s,
-                              );
+                              await EcashUtils.ecashErrorHandle(e, s);
                             } finally {
                               isLoading.value = false;
                             }

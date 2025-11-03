@@ -105,16 +105,13 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                           });
 
                           try {
-                            final model = await CashuUtil.handleReceiveToken(
+                            final model = await EcashUtils.handleReceiveToken(
                               token: _cashuInfoModel.token,
                               messageId: widget.message.id,
                               retry: true,
                             );
 
                             if (model != null) {
-                              logger.d(
-                                'handleReceiveToken status: ${model.status.name}',
-                              );
                               await updateMessageEcashStatus(model.status);
                             }
                           } finally {

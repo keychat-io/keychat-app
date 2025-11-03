@@ -16,7 +16,7 @@ enum MessageEncryptType {
   nip4WrapNip4,
   nip17,
   nip4WrapMls,
-  mls
+  mls,
 }
 
 enum MessageMediaType {
@@ -120,19 +120,19 @@ class Message extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        content,
-        realMessage,
-        msgid,
-        roomId,
-        from,
-        to,
-        isSystem,
-        isMeSend,
-        isRead,
-        mediaType,
-        createdAt,
-      ];
+    id,
+    content,
+    realMessage,
+    msgid,
+    roomId,
+    from,
+    to,
+    isSystem,
+    isMeSend,
+    isRead,
+    mediaType,
+    createdAt,
+  ];
 
   bool get isMediaType =>
       mediaType == MessageMediaType.image ||

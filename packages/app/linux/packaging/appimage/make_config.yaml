@@ -32,4 +32,4 @@ categories:
 startup_notify: true
 
 include:
-  - linux/libisar.so
+  - libisar.so

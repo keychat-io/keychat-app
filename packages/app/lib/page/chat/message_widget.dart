@@ -432,7 +432,7 @@ class MessageWidget extends StatelessWidget {
                                 cc.roomObs.value.groupType == GroupType.mls) &&
                             message.connectedRelays >= 0)
                           Text(
-                            '${message.successRelays}/${message.connectedRelays}',
+                            '${message.successRelays}/${message.connectedRelays > message.successRelays ? message.connectedRelays : message.successRelays}',
                             style: TextStyle(
                               color: message.successRelays <= 0
                                   ? Colors.red
@@ -540,6 +540,7 @@ class MessageWidget extends StatelessWidget {
         event,
         botClientMessageModel: bcmm,
         payToken: token,
+        payTokenString: bcmm?.payToken,
       );
       return;
     }
@@ -867,6 +868,7 @@ class MessageWidget extends StatelessWidget {
     NostrEventModel? event, {
     BotClientMessageModel? botClientMessageModel,
     rust_cashu.TokenInfo? payToken,
+    String? payTokenString,
   }) {
     final buildContext = Get.context!;
     return Get.bottomSheet(
@@ -888,7 +890,40 @@ class MessageWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 relayStatusList(buildContext, ess),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Bot Payment Section
+                if (botClientMessageModel != null &&
+                    botClientMessageModel.priceModel != null)
+                  Column(
+                    children: [
+                      _buildSectionCard(
+                        buildContext,
+                        title: 'Pay To Chat',
+                        icon: Icons.payment,
+                        children: [
+                          _buildInfoRow(
+                            'Model',
+                            botClientMessageModel.priceModel ?? '',
+                            buildContext,
+                            copyable: false,
+                          ),
+                          _buildInfoRow(
+                            'Amount',
+                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
+                            buildContext,
+                            copyable: false,
+                          ),
+                          _buildInfoRow(
+                            'Token',
+                            payTokenString ?? '',
+                            buildContext,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
 
                 // Encryption Info Section
                 _buildSectionCard(
@@ -954,39 +989,6 @@ class MessageWidget extends StatelessWidget {
                   Column(
                     children: [
                       getFileTable(buildContext, message),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
-
-                // Bot Payment Section
-                if (botClientMessageModel != null &&
-                    botClientMessageModel.priceModel != null)
-                  Column(
-                    children: [
-                      _buildSectionCard(
-                        buildContext,
-                        title: 'Pay To Chat',
-                        icon: Icons.payment,
-                        children: [
-                          _buildInfoRow(
-                            'Model',
-                            botClientMessageModel.priceModel ?? '',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Amount',
-                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Mint',
-                            payToken?.mint ?? '',
-                            buildContext,
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 12),
                     ],
                   ),

@@ -580,11 +580,11 @@ class _RecentTransactionsWidget extends GetView<EcashController> {
             return ListTile(
               key: Key(transaction.id + transaction.timestamp.toString()),
               dense: true,
-              leading: CashuUtil.getTransactionIcon(transaction.io),
+              leading: EcashUtils.getTransactionIcon(transaction.io),
               title: Text(
                 isLightning
-                    ? CashuUtil.getLNAmount(transaction)
-                    : CashuUtil.getCashuAmount(transaction),
+                    ? EcashUtils.getLNAmount(transaction)
+                    : EcashUtils.getCashuAmount(transaction),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               subtitle: Row(
@@ -618,8 +618,8 @@ class _RecentTransactionsWidget extends GetView<EcashController> {
                 ],
               ),
               trailing: isLightning
-                  ? CashuUtil.getLNIcon(transaction.status)
-                  : CashuUtil.getStatusIcon(transaction.status),
+                  ? EcashUtils.getLNIcon(transaction.status)
+                  : EcashUtils.getStatusIcon(transaction.status),
               onTap: () async {
                 if (transaction.status == TransactionStatus.expired) {
                   EasyLoading.showToast('It is expired');

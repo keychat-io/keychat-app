@@ -34,10 +34,10 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   int gridCount = 5;
   late ChatController cc;
   late TextEditingController textEditingController;
-  late TextEditingController userNameController;
   late String myAlias = '';
   late Identity identity;
   bool isAdmin = false;
+  bool _isUpdatingNickname = false;
   @override
   void initState() {
     final roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
@@ -53,13 +53,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     myAlias = myRoomMember?.name ?? cc.roomObs.value.getIdentity().displayName;
     isAdmin = myRoomMember?.isAdmin ?? false;
     textEditingController = TextEditingController(text: cc.roomObs.value.name);
-    userNameController = TextEditingController(text: myAlias);
   }
 
   @override
   void dispose() {
     textEditingController.dispose();
-    userNameController.dispose();
     super.dispose();
   }
 
@@ -234,163 +232,13 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         title: const Text('My Alias'),
                         leading: const Icon(CupertinoIcons.person),
                         value: textP(myAlias, maxLength: 15),
-                        onPressed: (context) async {
-                          if (cc.roomObs.value.isKDFGroup ||
-                              cc.roomObs.value.isShareKeyGroup) {
-                            return;
-                          }
-
-                          await Get.dialog(
-                            CupertinoAlertDialog(
-                              title: const Text('My Name'),
-                              content: Container(
-                                color: Colors.transparent,
-                                padding: const EdgeInsets.only(top: 15),
-                                child: TextField(
-                                  controller: userNameController,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Name',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              actions: <Widget>[
-                                CupertinoDialogAction(
-                                  child: const Text('Cancel'),
-                                  onPressed: () {
-                                    Get.back<void>();
-                                  },
-                                ),
-                                CupertinoDialogAction(
-                                  isDefaultAction: true,
-                                  onPressed: () async {
-                                    try {
-                                      final name = userNameController.text
-                                          .trim();
-                                      if (name.isEmpty) return;
-                                      if (cc.roomObs.value.isSendAllGroup) {
-                                        await GroupService.instance
-                                            .changeMyNickname(
-                                              cc.roomObs.value,
-                                              name,
-                                            );
-                                      } else if (cc.roomObs.value.isMLSGroup) {
-                                        await MlsGroupService.instance
-                                            .selfUpdateKey(
-                                              cc.roomObs.value,
-                                              extension: {'name': name},
-                                            );
-                                      }
-                                      setState(() {
-                                        myAlias = name;
-                                      });
-                                      userNameController.clear();
-                                      cc.resetMembers();
-                                      EasyLoading.showSuccess('Success');
-                                      Get.back<void>();
-                                    } catch (e, s) {
-                                      logger.e(
-                                        'Failed to update nickname',
-                                        error: e,
-                                        stackTrace: s,
-                                      );
-                                      EasyLoading.showError(
-                                        'Failed to update nickname: $e',
-                                      );
-                                    }
-                                  },
-                                  child: const Text('Confirm'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                        onPressed: _handleUpdateMyNickname,
                       ),
                       if (cc.roomObs.value.isMLSGroup)
                         SettingsTile.navigation(
                           title: const Text('Update My Group Key'),
                           leading: const Icon(Icons.refresh),
-                          onPressed: (context) async {
-                            // Get the room ID to use as part of the storage key
-                            final storageKey =
-                                'UpdateMyGroupKey:${cc.roomObs.value.id}';
-                            final lastUpdateTime = Storage.getInt(storageKey);
-                            final now = DateTime.now().millisecondsSinceEpoch;
-
-                            // Check if it's been less than a day since the last update
-                            if (kReleaseMode &&
-                                lastUpdateTime != null &&
-                                now - lastUpdateTime < 24 * 60 * 60 * 1000) {
-                              EasyLoading.showInfo(
-                                'You can only update once per day.',
-                                duration: const Duration(seconds: 3),
-                              );
-                              return;
-                            }
-
-                            await Get.dialog(
-                              CupertinoAlertDialog(
-                                title: const Text('Update My Group Key'),
-                                content: const Text(
-                                  'Regularly updating my group key makes chats more secure.',
-                                ),
-                                actions: <Widget>[
-                                  CupertinoDialogAction(
-                                    child: const Text('Cancel'),
-                                    onPressed: () {
-                                      Get.back<void>();
-                                    },
-                                  ),
-                                  CupertinoDialogAction(
-                                    isDefaultAction: true,
-                                    child: const Text('Confirm'),
-                                    onPressed: () async {
-                                      Get.back<void>();
-                                      EasyThrottle.throttle(
-                                        'UpdateMyGroupKey',
-                                        const Duration(seconds: 3),
-                                        () async {
-                                          try {
-                                            await EasyLoading.show(
-                                              status: 'Processing...',
-                                            );
-                                            final room = await RoomService
-                                                .instance
-                                                .getRoomByIdOrFail(
-                                                  cc.roomObs.value.id,
-                                                );
-                                            await MlsGroupService.instance
-                                                .selfUpdateKey(room);
-
-                                            // Save the current timestamp when update is successful
-                                            await Storage.setInt(
-                                              storageKey,
-                                              now,
-                                            );
-
-                                            await EasyLoading.showSuccess(
-                                              'Success',
-                                            );
-                                          } catch (e, s) {
-                                            final msg = Utils.getErrorMessage(
-                                              e,
-                                            );
-                                            await EasyLoading.showError(msg);
-                                            logger.e(
-                                              msg,
-                                              error: e,
-                                              stackTrace: s,
-                                            );
-                                          }
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                          onPressed: _handleUpdateMyGroupKey,
                         ),
                     ],
                   ),
@@ -879,6 +727,183 @@ B. Notify the admin to remove and re-add them to the group. '''),
                 cc.roomObs.value.identityId,
               );
               Utils.offAllNamedRoom(Routes.root);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleUpdateMyNickname(BuildContext context) async {
+    if (cc.roomObs.value.isKDFGroup || cc.roomObs.value.isShareKeyGroup) {
+      return;
+    }
+    final userNameController = TextEditingController(
+      text: myAlias,
+    );
+
+    await Get.dialog<void>(
+      StatefulBuilder(
+        builder: (context, setDialogState) {
+          return CupertinoAlertDialog(
+            title: const Text('My Name'),
+            content: Container(
+              color: Colors.transparent,
+              padding: const EdgeInsets.only(top: 15),
+              child: TextField(
+                controller: userNameController,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Get.back<void>();
+                },
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: _isUpdatingNickname
+                    ? null
+                    : () async {
+                        try {
+                          final name = userNameController.text.trim();
+                          if (name.isEmpty) return;
+                          EasyLoading.show(
+                            status: 'Processing...',
+                          );
+                          setDialogState(() {
+                            _isUpdatingNickname = true;
+                          });
+                          final room = await RoomService.instance
+                              .getRoomByIdOrFail(cc.roomObs.value.id);
+                          if (room.isSendAllGroup) {
+                            await GroupService.instance.changeMyNickname(
+                              room,
+                              name,
+                            );
+                          } else if (room.isMLSGroup) {
+                            final msg = '[System] Update my name to $name';
+                            await MlsGroupService.instance.selfUpdateKey(
+                              room,
+                              extension: {
+                                'name': name,
+                                'msg': msg,
+                              },
+                              msg: msg,
+                            );
+                          }
+                          setState(() {
+                            myAlias = name;
+                          });
+                          userNameController.clear();
+                          cc.resetMembers();
+                          EasyLoading.showSuccess(
+                            'Success',
+                          );
+                          Get.back<void>();
+                        } catch (e, s) {
+                          logger.e(
+                            'Failed to update name',
+                            error: e,
+                            stackTrace: s,
+                          );
+                          EasyLoading.showError(
+                            'Failed to update name: $e',
+                          );
+                        } finally {
+                          setDialogState(() {
+                            _isUpdatingNickname = false;
+                          });
+                        }
+                      },
+                child: const Text('Confirm'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleUpdateMyGroupKey(BuildContext context) async {
+    // Get the room ID to use as part of the storage key
+    final storageKey = 'UpdateMyGroupKey:${cc.roomObs.value.id}';
+    final lastUpdateTime = Storage.getInt(storageKey);
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Check if it's been less than a day since the last update
+    if (kReleaseMode &&
+        lastUpdateTime != null &&
+        now - lastUpdateTime < 24 * 60 * 60 * 1000) {
+      EasyLoading.showInfo(
+        'You can only update once per day.',
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    await Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('Update My Group Key'),
+        content: const Text(
+          'Regularly updating my group key makes chats more secure.',
+        ),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('Confirm'),
+            onPressed: () async {
+              Get.back<void>();
+              EasyThrottle.throttle(
+                'UpdateMyGroupKey',
+                const Duration(seconds: 3),
+                () async {
+                  try {
+                    await EasyLoading.show(
+                      status: 'Processing...',
+                    );
+                    final room = await RoomService.instance.getRoomByIdOrFail(
+                      cc.roomObs.value.id,
+                    );
+                    await MlsGroupService.instance.selfUpdateKey(
+                      room,
+                      msg: '[System] Update my group key',
+                    );
+
+                    // Save the current timestamp when update is successful
+                    await Storage.setInt(
+                      storageKey,
+                      now,
+                    );
+
+                    await EasyLoading.showSuccess(
+                      'Success',
+                    );
+                  } catch (e, s) {
+                    final msg = Utils.getErrorMessage(
+                      e,
+                    );
+                    await EasyLoading.showError(msg);
+                    logger.e(
+                      msg,
+                      error: e,
+                      stackTrace: s,
+                    );
+                  }
+                },
+              );
             },
           ),
         ],

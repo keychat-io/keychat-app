@@ -6,7 +6,6 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
-import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
@@ -48,7 +47,7 @@ class MessageService {
       } catch (e) {
         logger.e('persist message error: $e, ${model.content}');
         throw Exception(
-          'duplicate_db: msgId:${model.msgid} roomId[${model.roomId}] ${model.content}',
+          'Duplicate: msgId[${model.msgid}] roomId[${model.roomId}] ${model.content}',
         );
       }
     } else {

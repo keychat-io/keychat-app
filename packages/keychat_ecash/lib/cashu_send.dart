@@ -1,15 +1,11 @@
 import 'package:app/global.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/Bills/cashu_transaction.dart';
-import 'package:app/utils.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-
-import 'package:get/get.dart';
 
 class CashuSendPage extends StatefulWidget {
   const CashuSendPage(this.isRoom, {super.key});
@@ -123,19 +119,17 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 return;
                               }
                               EasyLoading.show(status: 'Generating...');
-                              final cashuInfoModel = await CashuUtil.getCashuA(
+                              final cashuInfoModel = await EcashUtils.getCashuA(
                                 amount: amount,
                                 mints: [selectedMint],
                               );
 
-                              EasyLoading.showToast(
+                              await EasyLoading.showToast(
                                 'Success',
-                                duration: const Duration(seconds: 2),
                               );
                               await ecashController.getBalance();
                               await ecashController.getRecentTransactions();
 
-                              EasyLoading.dismiss();
                               if (widget.isRoom) {
                                 Get.back(result: cashuInfoModel);
                                 return;
@@ -153,19 +147,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                     : null,
                               );
                             } catch (e, s) {
-                              final msg = Utils.getErrorMessage(e);
-                              if (msg.toLowerCase().contains(
-                                    CashuUtil.errorSpent.toLowerCase(),
-                                  )) {
-                                EasyLoading.showError(CashuUtil.errorSpent);
-                                await rust_cashu.checkProofs();
-                                return;
-                              }
-                              EasyLoading.showError(
-                                msg,
-                                duration: const Duration(seconds: 3),
-                              );
-                              logger.e(msg, error: e, stackTrace: s);
+                              await EcashUtils.ecashErrorHandle(e, s);
                             } finally {
                               isLoading.value = false;
                             }

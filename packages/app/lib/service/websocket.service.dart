@@ -64,7 +64,7 @@ class WebsocketService extends GetxService {
     }
     CashuInfoModel? cashuA;
     try {
-      cashuA = await CashuUtil.getStamp(
+      cashuA = await EcashUtils.getStamp(
         amount: payInfoModel.amount,
         token: payInfoModel.unit.name,
         mints: payInfoModel.mints,

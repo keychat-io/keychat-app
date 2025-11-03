@@ -95,44 +95,47 @@ class _BotOneTimePaymentRequestWidgetState
                 CupertinoDialogAction(
                   onPressed: () async {
                     EasyThrottle.throttle(
-                        'click_perMessagePriceOptionWidget_${widget.message.id}',
-                        const Duration(seconds: 3), () async {
-                      String? cashuTokenString;
-                      if (data.unit == 'sat' && data.price > 0) {
-                        try {
-                          final cashuToken = await CashuUtil.getStamp(
-                            amount: data.price,
-                            token: data.unit,
-                            mints: data.mints ?? [],
-                          );
-                          cashuTokenString = cashuToken.token;
-                        } catch (e, s) {
-                          final msg = Utils.getErrorMessage(e);
-                          logger.e(msg, error: e, stackTrace: s);
-                          EasyLoading.showError(msg);
-                          return;
+                      'click_perMessagePriceOptionWidget_${widget.message.id}',
+                      const Duration(seconds: 3),
+                      () async {
+                        String? cashuTokenString;
+                        if (data.unit == 'sat' && data.price > 0) {
+                          try {
+                            final cashuToken = await EcashUtils.getStamp(
+                              amount: data.price,
+                              token: data.unit,
+                              mints: data.mints ?? [],
+                            );
+                            cashuTokenString = cashuToken.token;
+                          } catch (e, s) {
+                            final msg = Utils.getErrorMessage(e);
+                            logger.e(msg, error: e, stackTrace: s);
+                            EasyLoading.showError(msg);
+                            return;
+                          }
                         }
-                      }
-                      final confirmResult = jsonEncode(data.toJson());
-                      final bcm = BotClientMessageModel(
-                        type: MessageMediaType.botOneTimePaymentRequest,
-                        message: confirmResult,
-                        payToken: cashuTokenString,
-                      );
+                        final confirmResult = jsonEncode(data.toJson());
+                        final bcm = BotClientMessageModel(
+                          type: MessageMediaType.botOneTimePaymentRequest,
+                          message: confirmResult,
+                          payToken: cashuTokenString,
+                        );
 
-                      await RoomService.instance.sendMessage(
-                        widget.cc.roomObs.value,
-                        jsonEncode(bcm.toJson()),
-                        realMessage:
-                            'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}',
-                      );
+                        await RoomService.instance.sendMessage(
+                          widget.cc.roomObs.value,
+                          jsonEncode(bcm.toJson()),
+                          realMessage:
+                              'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}',
+                        );
 
-                      widget.message.confirmResult = confirmResult;
-                      await MessageService.instance
-                          .updateMessageAndRefresh(widget.message);
-                      EasyLoading.showSuccess('Success');
-                      Get.back<void>();
-                    });
+                        widget.message.confirmResult = confirmResult;
+                        await MessageService.instance.updateMessageAndRefresh(
+                          widget.message,
+                        );
+                        EasyLoading.showSuccess('Success');
+                        Get.back<void>();
+                      },
+                    );
                   },
                   isDefaultAction: true,
                   child: Text('Pay ${data.price} ${data.unit}'),
@@ -146,10 +149,9 @@ class _BotOneTimePaymentRequestWidgetState
           children: [
             Text(
               '${data.price} ${data.unit}',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: const Color(0xFFFE4F00)),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: const Color(0xFFFE4F00)),
             ),
             if (data.description.isNotEmpty) Text(data.description),
           ],

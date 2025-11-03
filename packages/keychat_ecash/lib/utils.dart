@@ -22,10 +22,46 @@ class MintBalanceClass {
   late int balance;
 }
 
-class CashuUtil {
+class EcashUtils {
   static String errorSpent = 'Token already spent';
   static String errorInvalid = 'Invalid token';
   static String errorBlindedMessage = 'Blinded Message is already signed';
+
+  static final Map<String, bool> _activeChecks = {};
+
+  static Future<void> startCheckPending(
+    Transaction tx,
+    void Function(Transaction ct) callback,
+  ) async {
+    if (tx.status != TransactionStatus.pending) {
+      callback(tx);
+      return;
+    }
+
+    _activeChecks[tx.id] = true;
+
+    while (_activeChecks[tx.id] != null && (_activeChecks[tx.id] ?? false)) {
+      final ln = await rust_cashu.checkTransaction(id: tx.id);
+      if (ln.status == TransactionStatus.success ||
+          ln.status == TransactionStatus.failed) {
+        callback(ln);
+        unawaited(Get.find<EcashController>().requestPageRefresh());
+        _activeChecks.remove(tx.id);
+        return;
+      }
+      logger.d('Checking status: ${tx.id}');
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
+
+    logger.d('Check stopped for transaction: ${tx.id}');
+  }
+
+  static void stopCheckPending(Transaction tx) {
+    if (_activeChecks.containsKey(tx.id)) {
+      _activeChecks.remove(tx.id);
+      logger.d('Stopping check for transaction: ${tx.id}');
+    }
+  }
 
   static Future<CashuInfoModel?> handleReceiveToken({
     required String token,
@@ -121,58 +157,74 @@ class CashuUtil {
   }) async {
     try {
       final model = await RustAPI.receiveToken(encodedToken: token);
-      Get.find<EcashController>().getBalance();
+      await Get.find<EcashController>().getBalance();
       if (messageId != null) {
-        MessageService.instance.updateMessageCashuStatus(messageId);
+        await MessageService.instance.updateMessageCashuStatus(messageId);
       }
-      EasyLoading.showToast(
+      await EasyLoading.showToast(
         'Received ${model.amount} ${EcashTokenSymbol.sat.name}',
       );
       return model;
     } catch (e, s) {
-      EasyLoading.dismiss();
-      final message = Utils.getErrorMessage(e);
-      logger.e('receive error: $message', error: e, stackTrace: s);
-
-      if (message.toLowerCase().contains(CashuUtil.errorSpent.toLowerCase())) {
-        EasyLoading.showError(CashuUtil.errorSpent);
+      final msg = await ecashErrorHandle(e, s);
+      if (msg.toLowerCase().contains(EcashUtils.errorSpent.toLowerCase())) {
         if (messageId != null) {
           await MessageService.instance.updateMessageCashuStatus(messageId);
         }
-      } else if (message.contains(CashuUtil.errorBlindedMessage)) {
-        await CashuUtil.blindedMessageErrorDialog(message);
-      } else {
-        EasyLoading.showError(
-          'Error! $message',
-          duration: const Duration(seconds: 3),
-        );
       }
     }
     return null;
   }
 
-  static Future<void> blindedMessageErrorDialog(String msg) {
+  static Future<void> blindedMessageErrorDialog() {
     return Get.dialog<void>(
       CupertinoAlertDialog(
-        title: const Text('Info'),
+        title: const Text('Error'),
         content: Text(
           '''
-$msg
-
-Fix this: 
-1. Go to Bitcoin Ecash -> Settings -> Restore from Mint Server
-2. After restore, try to receive the token again.
+${EcashUtils.errorBlindedMessage}
+Please restore your ecash wallet from mint server to resolve this issue.
 ''',
         ),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: Get.back<void>,
-            child: const Text('OK'),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (Get.isDialogOpen ?? false) {
+                Get.back<void>();
+              }
+              await EcashUtils.restoreFromMintServer();
+            },
+            child: const Text('Restore'),
           ),
         ],
       ),
     );
+  }
+
+  static Future<String> ecashErrorHandle(Object e, StackTrace s) async {
+    final msg = Utils.getErrorMessage(e);
+    logger.e(msg, error: e, stackTrace: s);
+    if (msg.toLowerCase().contains(
+          EcashUtils.errorSpent.toLowerCase(),
+        )) {
+      await EasyLoading.showError(EcashUtils.errorSpent);
+      await rust_cashu.checkProofs();
+      return msg;
+    }
+    if (msg.toLowerCase().contains(
+          EcashUtils.errorBlindedMessage.toLowerCase(),
+        )) {
+      await blindedMessageErrorDialog();
+      return msg;
+    }
+    await EasyLoading.showError('Error: $msg');
+    return msg;
   }
 
   static Future<CashuInfoModel> getCashuA({
@@ -313,6 +365,27 @@ Fix this:
         return '+${transaction.amount}';
       case TransactionDirection.split:
         return transaction.amount.toString();
+    }
+  }
+
+  static Future<void> restoreFromMintServer() async {
+    try {
+      EasyLoading.show(
+        status: '''
+Please don't close or exit the app.
+Restoring...''',
+      );
+      final ec = Get.find<EcashController>();
+      if (ec.currentIdentity == null) {
+        EasyLoading.showError('No mnemonic');
+        return;
+      }
+      await ec.restore();
+      await EasyLoading.showToast('Successfully');
+    } catch (e, s) {
+      final msg = Utils.getErrorMessage(e);
+      logger.e(e.toString(), error: e, stackTrace: s);
+      await EasyLoading.showError(msg);
     }
   }
 }

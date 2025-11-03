@@ -60,20 +60,17 @@ class PayInvoiceController extends GetxController {
     final cc = Get.find<EcashController>();
 
     if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
-      EasyLoading.showToast('Not Enough Funds');
+      await EasyLoading.showToast('Not Enough Funds');
       return null;
     }
     try {
       EasyLoading.show(status: 'Processing...');
-      logger.i(
-        'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice',
-      );
       final tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
       logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
       EasyLoading.showSuccess('Success');
 
       textController.clear();
-      cc.requestPageRefresh();
+      unawaited(cc.requestPageRefresh());
       if (!isPay) {
         if (GetPlatform.isDesktop) {
           await Get.bottomSheet(LightningTransactionPage(transaction: tx));
@@ -83,12 +80,10 @@ class PayInvoiceController extends GetxController {
       }
       return tx;
     } catch (e, s) {
-      final msg = Utils.getErrorMessage(e);
-      EasyLoading.showError('Error: $msg');
+      final msg = await EcashUtils.ecashErrorHandle(e, s);
       if (msg.contains('11000') && paidCallback != null) {
-        paidCallback();
+        (paidCallback as Function)();
       }
-      logger.e('error: $msg', error: e, stackTrace: s);
     }
     return null;
   }

@@ -1,17 +1,15 @@
-import 'package:app/utils.dart';
-import 'package:keychat_ecash/Bills/ecash_util.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:keychat_ecash/status_enum.dart';
 import 'package:app/page/components.dart';
 import 'package:app/rust_api.dart';
+import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/status_enum.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 
 class CashuTransactionPage extends StatefulWidget {
   const CashuTransactionPage({required this.transaction, super.key});
@@ -29,7 +27,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
     super.initState();
     if (tx.status != TransactionStatus.pending) return;
 
-    EcashUtil.instance.startCheckPending(tx, (ln) {
+    EcashUtils.startCheckPending(tx, (ln) {
       setState(() {
         tx = ln;
       });
@@ -38,7 +36,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
 
   @override
   void dispose() {
-    EcashUtil.instance.stopCheckPending(tx);
+    EcashUtils.stopCheckPending(tx);
     super.dispose();
   }
 

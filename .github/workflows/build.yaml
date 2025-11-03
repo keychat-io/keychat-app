@@ -127,7 +127,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: windows-2022
     needs: get-version
     steps:
@@ -166,7 +166,7 @@ jobs:
           overwrite: true
 
   build-android:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:

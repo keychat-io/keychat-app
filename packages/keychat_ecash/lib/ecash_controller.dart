@@ -84,7 +84,7 @@ class EcashController extends GetxController {
     }
     if (unitPrice == 0) return null;
 
-    final cim = await CashuUtil.getCashuA(amount: unitPrice, mints: [mint]);
+    final cim = await EcashUtils.getCashuA(amount: unitPrice, mints: [mint]);
 
     return cim.token;
   }

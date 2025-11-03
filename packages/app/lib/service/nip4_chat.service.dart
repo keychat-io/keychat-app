@@ -51,8 +51,11 @@ class Nip4ChatService extends BaseChatService {
     Room? room,
   }) async {
     final to = (sourceEvent ?? event).tags[0][1];
-    room ??=
-        await roomService.getOrCreateRoom(event.pubkey, to, RoomStatus.init);
+    room ??= await roomService.getOrCreateRoom(
+      event.pubkey,
+      to,
+      RoomStatus.init,
+    );
 
     return MessageService.instance.saveMessageToDB(
       room: room,
@@ -86,8 +89,9 @@ class Nip4ChatService extends BaseChatService {
       from: from ?? event.pubkey,
       idPubkey: idPubkey,
       to: to ?? event.tags[0][1],
-      encryptType:
-          event.isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4,
+      encryptType: event.isSignal
+          ? MessageEncryptType.signal
+          : MessageEncryptType.nip4,
       isMeSend: isMeSend,
       sent: sent,
       isSystem: isSystem,

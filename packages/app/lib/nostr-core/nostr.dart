@@ -150,22 +150,25 @@ class NostrAPI {
     toProccessEventsPool.add((event, eventList, raw, relay));
 
     // waiting 200ms to proccess all events
-    EasyDebounce.debounce('_proccessEvent01', const Duration(milliseconds: 200),
-        () async {
-      final events = toProccessEventsPool;
-      if (events.isEmpty) return;
-      toProccessEventsPool = [];
-      events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
-      for (final (event, eventList, raw, relay) in events) {
-        nostrEventQueue.addJob((_) async {
-          try {
-            await _proccessEvent02(event, eventList, relay, raw);
-          } catch (e, s) {
-            logger.e('processEvent error', error: e, stackTrace: s);
-          }
-        });
-      }
-    });
+    EasyDebounce.debounce(
+      '_proccessEvent01',
+      const Duration(milliseconds: 200),
+      () async {
+        final events = toProccessEventsPool;
+        if (events.isEmpty) return;
+        toProccessEventsPool = [];
+        events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
+        for (final (event, eventList, raw, relay) in events) {
+          nostrEventQueue.addJob((_) async {
+            try {
+              await _proccessEvent02(event, eventList, relay, raw);
+            } catch (e, s) {
+              logger.e('processEvent error', error: e, stackTrace: s);
+            }
+          });
+        }
+      },
+    );
   }
 
   Future<void> _proccessEvent02(
@@ -179,6 +182,7 @@ class NostrAPI {
       case EventKinds.contactList:
         await _proccessNip2(event);
       case EventKinds.nip04:
+        await _proccessEventMessage(event, eventList, relay, raw);
       case EventKinds.nip17:
         await _proccessEventMessage(event, eventList, relay, raw);
       case EventKinds.mlsNipKeypackages:
@@ -276,8 +280,10 @@ class NostrAPI {
         content: toEncryptText,
       );
     }
-    final event =
-        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
+    final event = NostrEventModel.fromJson(
+      jsonDecode(encryptedEvent),
+      verify: false,
+    );
 
     final relays = await Get.find<WebsocketService>().writeNostrEvent(
       event: event,
@@ -374,8 +380,10 @@ class NostrAPI {
     bool? isSystem,
     String? realMessage,
   }) async {
-    final event =
-        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
+    final event = NostrEventModel.fromJson(
+      jsonDecode(encryptedEvent),
+      verify: false,
+    );
     final relays = await Get.find<WebsocketService>().writeNostrEvent(
       event: event,
       eventString: encryptedEvent,
@@ -412,8 +420,9 @@ class NostrAPI {
   Future<String?> decryptNip4Content(NostrEventModel event) async {
     final decodePubkey = event.tags[0][1];
     try {
-      final prikey =
-          await IdentityService.instance.getPrikeyByPubkey(decodePubkey);
+      final prikey = await IdentityService.instance.getPrikeyByPubkey(
+        decodePubkey,
+      );
       if (prikey == null) return null;
       return await rust_nostr.decrypt(
         senderKeys: prikey,
@@ -443,17 +452,20 @@ class NostrAPI {
     _lastMessageAtMap[url]!.add(createdAt);
 
     EasyDebounce.debounce(
-        '_updateRelayLastMessageAt$url', const Duration(seconds: 1), () async {
-      NostrAPI._lastMessageAtMap[url]!.sort((a, b) => b.compareTo(a));
-      final lastAt = NostrAPI._lastMessageAtMap[url]!.last;
-      NostrAPI._lastMessageAtMap[url] = [];
+      '_updateRelayLastMessageAt$url',
+      const Duration(seconds: 1),
+      () async {
+        NostrAPI._lastMessageAtMap[url]!.sort((a, b) => b.compareTo(a));
+        final lastAt = NostrAPI._lastMessageAtMap[url]!.last;
+        NostrAPI._lastMessageAtMap[url] = [];
 
-      final key = '${StorageKeyString.lastMessageAt}:$url';
-      final lastMessageAt = Storage.getIntOrZero(key);
-      if (lastAt > lastMessageAt) {
-        await Storage.setInt(key, lastAt);
-      }
-    });
+        final key = '${StorageKeyString.lastMessageAt}:$url';
+        final lastMessageAt = Storage.getIntOrZero(key);
+        if (lastAt > lastMessageAt) {
+          await Storage.setInt(key, lastAt);
+        }
+      },
+    );
   }
 
   Future<void> _proccessEventMessage(
@@ -465,13 +477,13 @@ class NostrAPI {
     if (handledEventIds.contains(event.id)) {
       loggerNoLine.i('duplicate_local: ${event.id}');
       return;
-    } else {
-      handledEventIds.add(event.id);
     }
+    handledEventIds.add(event.id);
 
     var ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
       loggerNoLine.i('Duplicate event: ${event.id}');
+      logger.d(ess);
       return;
     }
     loggerNoLine.i('Start proccess event: ${event.id}');
@@ -496,8 +508,9 @@ class NostrAPI {
       case EventKinds.nip04:
         try {
           // signal chat room
-          final room =
-              await SignalChatService.instance.getSignalChatRoomByTo(to);
+          final room = await SignalChatService.instance.getSignalChatRoomByTo(
+            to,
+          );
           if (room != null) {
             await SignalChatService.instance.decryptMessage(
               room,
@@ -529,8 +542,8 @@ class NostrAPI {
           }
 
           // identity pubkey is receive address
-          final identity =
-              await IdentityService.instance.getIdentityByNostrPubkey(to);
+          final identity = await IdentityService.instance
+              .getIdentityByNostrPubkey(to);
           if (identity != null) {
             await dmNip4Proccess(event, relay, failedCallback);
             return;
@@ -575,8 +588,12 @@ class NostrAPI {
 
     final km = getKeyChatMessageFromJson(decodedContent);
     if (km != null) {
-      await RoomService.instance
-          .processKeychatMessage(km, sourceEvent, relay, room: room);
+      await RoomService.instance.processKeychatMessage(
+        km,
+        sourceEvent,
+        relay,
+        room: room,
+      );
       return;
     }
 
@@ -607,8 +624,11 @@ class NostrAPI {
       return;
     }
 
-    await Nip4ChatService.instance
-        .receiveNip4Message(sourceEvent, content, room: room);
+    await Nip4ChatService.instance.receiveNip4Message(
+      sourceEvent,
+      content,
+      room: room,
+    );
   }
 
   Future<void> _processSubEvent(
@@ -622,8 +642,11 @@ class NostrAPI {
     if (subEvent.isNip4) {
       final subContent = await decryptNip4Content(subEvent);
       if (subContent == null) {
-        await Nip4ChatService.instance
-            .receiveNip4Message(event, subEvent.serialize(), room: room);
+        await Nip4ChatService.instance.receiveNip4Message(
+          event,
+          subEvent.serialize(),
+          room: room,
+        );
         return;
       }
 
@@ -632,23 +655,33 @@ class NostrAPI {
         subDecodedContent = jsonDecode(subContent) as Map<String, dynamic>;
       } catch (e) {
         logger.d('try decode error');
-        await Nip4ChatService.instance
-            .receiveNip4Message(subEvent, subContent, sourceEvent: event);
+        await Nip4ChatService.instance.receiveNip4Message(
+          subEvent,
+          subContent,
+          sourceEvent: event,
+        );
         return;
       }
 
       final km = getKeyChatMessageFromJson(subDecodedContent);
       if (km != null) {
-        return RoomService.instance
-            .processKeychatMessage(km, subEvent, relay, sourceEvent: event);
+        return RoomService.instance.processKeychatMessage(
+          km,
+          subEvent,
+          relay,
+          sourceEvent: event,
+        );
       }
       await Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
       return;
     }
 
     // nip4(signal)
-    room ??= await RoomService.instance
-        .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
+    room ??= await RoomService.instance.getOrCreateRoom(
+      subEvent.pubkey,
+      subEvent.tags[0][1],
+      RoomStatus.init,
+    );
     await SignalChatService.instance.decryptMessage(
       room,
       subEvent,
@@ -682,8 +715,10 @@ class NostrAPI {
       Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 1),
     ]);
 
-    final res = await Get.find<WebsocketService>()
-        .fetchInfoFromRelay(id, requestWithFilter.serialize());
+    final res = await Get.find<WebsocketService>().fetchInfoFromRelay(
+      id,
+      requestWithFilter.serialize(),
+    );
     Get.find<WebsocketService>().sendReqToRelays(Close(id).serialize());
     return res;
   }
@@ -697,8 +732,9 @@ class NostrAPI {
     final to = event.getTagByKey(EventKindTags.pubkey)!;
     final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
-      await MlsGroupService.instance.decryptMessage(mlsRoom, event,
-          (String msg) async {
+      await MlsGroupService.instance.decryptMessage(mlsRoom, event, (
+        String msg,
+      ) async {
         failedCallback(msg);
         await RoomUtil.appendMessageOrCreate(
           msg,
@@ -732,20 +768,30 @@ class NostrAPI {
     try {
       decodedContent = jsonDecode(subEvent.content) as Map<String, dynamic>;
     } catch (e) {
-      await Nip4ChatService.instance
-          .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
+      await Nip4ChatService.instance.receiveNip4Message(
+        subEvent,
+        subEvent.content,
+        sourceEvent: event,
+      );
       return;
     }
     final km = getKeyChatMessageFromJson(decodedContent);
 
     if (km != null) {
-      await RoomService.instance
-          .processKeychatMessage(km, subEvent, relay, sourceEvent: event);
+      await RoomService.instance.processKeychatMessage(
+        km,
+        subEvent,
+        relay,
+        sourceEvent: event,
+      );
       return;
     }
 
-    await Nip4ChatService.instance
-        .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
+    await Nip4ChatService.instance.receiveNip4Message(
+      subEvent,
+      subEvent.content,
+      sourceEvent: event,
+    );
   }
 
   // decrypt nip17 event
@@ -755,14 +801,16 @@ class NostrAPI {
   ) async {
     final to = event.tags[0][1];
     String? myPrivateKey;
-    final identity =
-        await IdentityService.instance.getIdentityByNostrPubkey(to);
+    final identity = await IdentityService.instance.getIdentityByNostrPubkey(
+      to,
+    );
     if (identity != null) {
       if (identity.isFromSigner) {
         return SignerService.instance.nip44DecryptEvent(event);
       }
-      myPrivateKey = await SecureStorage.instance
-          .readPrikeyOrFail(identity.secp256k1PKHex);
+      myPrivateKey = await SecureStorage.instance.readPrikeyOrFail(
+        identity.secp256k1PKHex,
+      );
     } else {
       final mykey = await IdentityService.instance.getMykeyByPubkey(to);
       if (mykey != null) {
@@ -799,16 +847,20 @@ class NostrAPI {
       required String eventId,
       required bool status,
       String? errorMessage,
-    }) callback,
+    })
+    callback,
   ) {
     NostrAPI.instance.okCallback[eventID] = callback;
   }
 
   void removeOKCallback(String eventID) {
     EasyDebounce.debounce(
-        '_removeOKCallback$eventID', const Duration(seconds: 2), () {
-      NostrAPI.instance.okCallback.remove(eventID);
-    });
+      '_removeOKCallback$eventID',
+      const Duration(seconds: 2),
+      () {
+        NostrAPI.instance.okCallback.remove(eventID);
+      },
+    );
   }
 
   Future<String> signEventByIdentity({

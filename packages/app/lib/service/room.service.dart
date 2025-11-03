@@ -684,7 +684,7 @@ class RoomService extends BaseChatService {
       if (bmd != null && !message.startsWith('/')) {
         String? cashuTokenString;
         if (bmd.price > 0) {
-          final cashuToken = await CashuUtil.getStamp(
+          final cashuToken = await EcashUtils.getStamp(
             amount: bmd.price,
             token: bmd.unit,
             mints: bmd.mints ?? [],
@@ -709,7 +709,7 @@ class RoomService extends BaseChatService {
     }
 
     final toSendMessage = jsonEncode(cmm.toJson());
-    logger.i('toSendMessage: $toSendMessage');
+    logger.i('sendMessageToBot: $toSendMessage');
     if (room.encryptMode == EncryptMode.signal) {
       try {
         return await SignalChatService.instance.sendMessage(

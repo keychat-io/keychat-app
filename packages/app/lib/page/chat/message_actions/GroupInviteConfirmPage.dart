@@ -7,20 +7,19 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInviteConfirmPage extends StatelessWidget {
-  final Message message;
-  final Room groupRoom;
-  final int membersCount;
-  final List<RoomMember> members;
-  final Map<String, String> toJoinUserMap;
-
   const GroupInviteConfirmPage({
-    super.key,
     required this.message,
     required this.groupRoom,
     required this.membersCount,
     required this.members,
     required this.toJoinUserMap,
+    super.key,
   });
+  final Message message;
+  final Room groupRoom;
+  final int membersCount;
+  final List<RoomMember> members;
+  final Map<String, String> toJoinUserMap;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +40,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                         message.requestConfrim = RequestConfrimEnum.approved;
                         MessageService.instance
                             .updateMessageAndRefresh(message);
-                        Get.back();
+                        Get.back<void>();
                       } catch (e) {
                         EasyLoading.showError(e.toString());
                         logger.e(e.toString(), error: e);
@@ -53,7 +52,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                     onPressed: () {
                       message.requestConfrim = RequestConfrimEnum.rejected;
                       MessageService.instance.updateMessageAndRefresh(message);
-                      Get.back();
+                      Get.back<void>();
                     },
                     style: ButtonStyle(
                         backgroundColor: WidgetStateProperty.all(Colors.red)),
@@ -67,7 +66,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(children: [
                   ListTile(
-                    leading: Utils.getAvatarDot(groupRoom),
+                    leading: Utils.getAvatarByRoom(groupRoom),
                     title: Text(
                         'Group: ${groupRoom.name ?? getPublicKeyDisplay(groupRoom.toMainPubkey)}'),
                     subtitle: Text(groupRoom.toMainPubkey),
@@ -81,24 +80,22 @@ class GroupInviteConfirmPage extends StatelessWidget {
                     ],
                   ),
                   Flexible(
-                      flex: 1,
                       child: Card(
                           child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: members.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Wrap(
-                                  direction: Axis.vertical,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    Utils.getRandomAvatar(
-                                        members[index].idPubkey),
-                                    Text(members[index].name)
-                                  ]));
-                        },
-                      ))),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: members.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Wrap(
+                              direction: Axis.vertical,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Utils.getRandomAvatar(members[index].idPubkey),
+                                Text(members[index].name)
+                              ]));
+                    },
+                  ))),
                   Row(
                     children: [
                       Text(
@@ -108,24 +105,23 @@ class GroupInviteConfirmPage extends StatelessWidget {
                     ],
                   ),
                   Flexible(
-                      flex: 1,
                       child: ListView.builder(
-                        itemCount: toJoinUserMap.keys.length,
-                        itemBuilder: (context, index) {
-                          String pubkey = toJoinUserMap.keys.elementAt(index);
-                          bool existName =
-                              (toJoinUserMap[pubkey]?.length ?? 0) > 0;
-                          return ListTile(
-                            leading: Utils.getRandomAvatar(pubkey),
-                            title: existName
-                                ? Text(toJoinUserMap[pubkey]!)
-                                : Text(getPublicKeyDisplay(pubkey)),
-                            subtitle: existName
-                                ? Text(getPublicKeyDisplay(pubkey))
-                                : null,
-                          );
-                        },
-                      )),
+                    itemCount: toJoinUserMap.keys.length,
+                    itemBuilder: (context, index) {
+                      final pubkey = toJoinUserMap.keys.elementAt(index);
+                      final existName =
+                          (toJoinUserMap[pubkey]?.length ?? 0) > 0;
+                      return ListTile(
+                        leading: Utils.getRandomAvatar(pubkey),
+                        title: existName
+                            ? Text(toJoinUserMap[pubkey]!)
+                            : Text(getPublicKeyDisplay(pubkey)),
+                        subtitle: existName
+                            ? Text(getPublicKeyDisplay(pubkey))
+                            : null,
+                      );
+                    },
+                  )),
                 ]))));
   }
 }

@@ -3,10 +3,10 @@ import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class WebStorePage extends StatefulWidget {
   const WebStorePage({super.key});
@@ -18,12 +18,10 @@ class WebStorePage extends StatefulWidget {
 class _WebStorePageState extends State<WebStorePage> {
   late HomeController homeController;
   Set<String> exists = {};
-  late RefreshController refreshController;
   late MultiWebviewController controller;
   @override
   void initState() {
     controller = Get.find<MultiWebviewController>();
-    refreshController = RefreshController();
     homeController = Get.find<HomeController>();
     init();
     super.initState();
@@ -33,8 +31,8 @@ class _WebStorePageState extends State<WebStorePage> {
     if (homeController.recommendWebstore.isEmpty) {
       await homeController.loadAppRemoteConfig();
     }
-    List<BrowserFavorite> list = controller.favorites;
-    Set<String> urls = list.map((e) => e.url).toSet();
+    final List<BrowserFavorite> list = controller.favorites;
+    final urls = list.map((e) => e.url).toSet();
     setState(() {
       exists = urls;
     });
@@ -42,7 +40,6 @@ class _WebStorePageState extends State<WebStorePage> {
 
   @override
   void dispose() {
-    refreshController.dispose();
     super.dispose();
   }
 
@@ -55,13 +52,13 @@ class _WebStorePageState extends State<WebStorePage> {
         ),
         body: Obx(() => homeController.recommendWebstore.entries.isEmpty
             ? pageLoadingSpinKit()
-            : SmartRefresher(
-                enablePullDown: true,
+            : CustomMaterialIndicator(
                 onRefresh: () async {
                   await Get.find<HomeController>().loadAppRemoteConfig();
-                  refreshController.refreshCompleted();
                 },
-                controller: refreshController,
+                displacement: 20,
+                backgroundColor: Colors.white,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.builder(
                     itemCount: homeController.recommendWebstore.entries.length,
                     itemBuilder: (context, index) {
@@ -85,25 +82,25 @@ class _WebStorePageState extends State<WebStorePage> {
                                   itemCount: entry.value.length,
                                   itemBuilder: (context, index) {
                                     final site = entry.value[index];
-                                    String url = site['url1'] ?? site['url2'];
+                                    final url = (site['url1'] ?? site['url2'])
+                                        as String;
                                     return ListTile(
                                       dense: true,
-                                      contentPadding: const EdgeInsets.all(0),
+                                      contentPadding: EdgeInsets.zero,
                                       leading: Utils.getNeworkImageOrDefault(
                                           site['img']),
                                       title: Text(site['title'],
                                           overflow: TextOverflow.fade,
                                           maxLines: 1),
                                       subtitle: textSmallGray(
-                                          context, site['description'],
-                                          maxLines: 1),
+                                          context, site['description']),
                                       onTap: () {
                                         Get.find<MultiWebviewController>()
                                             .launchWebview(
                                                 initUrl: url,
                                                 defaultTitle: site['title']);
                                         if (Get.isBottomSheetOpen ?? false) {
-                                          Get.back();
+                                          Get.back<void>();
                                         }
                                       },
                                       trailing: exists.contains(url)

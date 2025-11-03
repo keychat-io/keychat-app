@@ -32,24 +32,27 @@ class CashuInfoModel {
 
   Map<String, dynamic> toJson() => _$CashuInfoModelToJson(this);
 
-  static CashuInfoModel fromRustModel(CashuTransaction ct) {
+  static CashuInfoModel fromRustModel(Transaction ct) {
     return CashuInfoModel()
       ..id = ct.id
       ..status = ct.status
       ..amount = ct.amount.toInt()
       ..token = ct.token
-      ..mint = ct.mint;
+      ..mint = ct.mintUrl;
   }
 
-  CashuTransaction toCashuTransaction() {
-    CashuTransaction ct = CashuTransaction(
+  Transaction toCashuTransaction() {
+    Transaction ct = Transaction(
         id: id ?? '',
         status: status,
         amount: BigInt.from(amount),
         token: token,
-        mint: mint,
-        io: TransactionDirection.out,
-        time: BigInt.from(DateTime.now().millisecondsSinceEpoch));
+        mintUrl: mint,
+        io: TransactionDirection.outgoing,
+        timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch),
+        kind: TransactionKind.cashu,
+        fee: BigInt.from(0),
+        metadata: {});
     return ct;
   }
 }

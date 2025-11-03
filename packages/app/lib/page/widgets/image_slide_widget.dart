@@ -13,12 +13,15 @@ import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SlidesImageViewWidget extends StatefulWidget {
+  const SlidesImageViewWidget({
+    required this.files,
+    required this.selected,
+    super.key,
+    this.file,
+  });
   final File selected;
   final File? file;
   final List<File> files;
-
-  const SlidesImageViewWidget(
-      {super.key, required this.files, required this.selected, this.file});
   @override
   _NewPageState createState() => _NewPageState();
 }
@@ -31,7 +34,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
   void initState() {
     _files = widget.files.isEmpty ? [widget.selected] : widget.files;
 
-    int index =
+    final index =
         _files.indexWhere((element) => element.path == widget.selected.path);
     if (index == -1) {
       _files = [widget.selected];
@@ -55,64 +58,73 @@ class _NewPageState extends State<SlidesImageViewWidget> {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
       floatingActionButton: GestureDetector(
-          onTap: Get.back,
-          child: Text('${_currentIndex + 1} / ${_files.length}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ))),
+        onTap: Get.back,
+        child: Text(
+          '${_currentIndex + 1} / ${_files.length}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white70,
+              ),
+        ),
+      ),
       body: CarouselSlider(
         options: CarouselOptions(
-            initialPage: initialPage,
-            onPageChanged: (index, reason) => {
-                  setState(() {
-                    _currentIndex = index;
-                  })
-                },
-            height: Get.height,
-            viewportFraction: 1.0,
-            enlargeCenterPage: true,
-            enableInfiniteScroll: false),
+          initialPage: initialPage,
+          onPageChanged: (index, reason) => {
+            setState(() {
+              _currentIndex = index;
+            }),
+          },
+          height: Get.height,
+          viewportFraction: 1,
+          enlargeCenterPage: true,
+          enableInfiniteScroll: false,
+        ),
         items: _files.map((file) {
-          return Builder(builder: (BuildContext context) {
-            return _getStackWidget(file);
-          });
+          return Builder(
+            builder: (BuildContext context) {
+              return _getStackWidget(file);
+            },
+          );
         }).toList(),
       ),
     );
   }
 
   Widget _getStackWidget(File file) {
-    bool isImageFile = FileService.instance.isImageFile(file.path);
-    return Stack(key: Key(file.path), children: <Widget>[
-      if (isImageFile)
-        GestureDetector(
+    final isImageFile = FileService.instance.isImageFile(file.path);
+    return Stack(
+      key: Key(file.path),
+      children: <Widget>[
+        if (isImageFile)
+          GestureDetector(
             onVerticalDragUpdate: (DragUpdateDetails details) {
-              double dy = details.delta.dy;
+              final dy = details.delta.dy;
               if (dy > 20) {
-                Get.back();
+                Get.back<void>();
               }
             },
             child: PhotoView.customChild(
               child: Center(child: Image.file(file, fit: BoxFit.contain)),
-            )),
-      if (FileService.instance.isVideoFile(file.path))
-        FutureBuilder(
+            ),
+          ),
+        if (FileService.instance.isVideoFile(file.path))
+          FutureBuilder(
             key: Key(file.path),
             future: FileService.instance.getOrCreateThumbForVideo(file.path),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
-                bool selected = widget.selected.path == file.path;
-                return VideoPlayWidget(
-                    snapshot.data as File, file.path, selected);
+                final selected = widget.selected.path == file.path;
+                return VideoPlayWidget(snapshot.data!, file.path, selected);
               } else {
                 return const Center(child: CircularProgressIndicator());
               }
-            }),
-      if (GetPlatform.isMobile)
-        Positioned(
-          right: 5,
-          bottom: 20,
-          child: CircleAvatar(
+            },
+          ),
+        if (GetPlatform.isMobile)
+          Positioned(
+            right: 5,
+            bottom: 20,
+            child: CircleAvatar(
               radius: 24,
               backgroundColor: Colors.black54,
               child: IconButton(
@@ -120,12 +132,23 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   CupertinoIcons.share,
                   color: Colors.white,
                 ),
-                onPressed: () {
-                  Share.shareXFiles([XFile(_files[_currentIndex].path)]);
+                onPressed: () async {
+                  final box = context.findRenderObject() as RenderBox?;
+
+                  SharePlus.instance.share(
+                    ShareParams(
+                      files: [XFile(_files[_currentIndex].path)],
+                      subject: FileService.instance
+                          .getDisplayFileName(_files[_currentIndex].path),
+                      sharePositionOrigin:
+                          box!.localToGlobal(Offset.zero) & box.size,
+                    ),
+                  );
                 },
-              )),
-        ),
-      Positioned(
+              ),
+            ),
+          ),
+        Positioned(
           left: 5,
           bottom: 20,
           child: CircleAvatar(
@@ -137,10 +160,12 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                 color: Colors.white,
               ),
               onPressed: () {
-                Get.back();
+                Get.back<void>();
               },
             ),
-          )),
-    ]);
+          ),
+        ),
+      ],
+    );
   }
 }

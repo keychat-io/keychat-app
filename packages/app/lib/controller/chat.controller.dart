@@ -1,12 +1,14 @@
-import 'dart:async' show Future, Timer;
+import 'dart:async' show Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show Directory, File, FileSystemEntity;
+import 'dart:io' show Directory, File;
 
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/keychat/profile_request_model.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
-import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
@@ -14,8 +16,10 @@ import 'package:app/service/file.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -25,36 +29,34 @@ import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show LNTransaction, TransactionStatus;
-import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
+    show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
+  ChatController(Room room, {this.searchMessageId = -1}) {
+    roomObs.value = room;
+  }
   RxList<Message> messages = <Message>[].obs;
-  List<Message> messagesMore = <Message>[];
   RxList<Message> inputReplys = <Message>[].obs;
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
 
-  final roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
+  Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
-  RxInt unreadIndex = (-1).obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
-  int searchMsgIndex = -1;
-  DateTime searchDt = DateTime.now();
+  int searchMessageId = -1; // click message from search page
   int messageLimitPerPage = 30;
 
   // hide add button
@@ -71,8 +73,11 @@ class ChatController extends GetxController {
   // show Message's from and to address
   RxBool showFromAndTo = false.obs;
 
+  // Prevent duplicate upload flag
+  bool _isUploading = false;
+
   // private chat
-  Rx<Contact> roomContact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
+  Rx<Contact> roomContact = Contact(pubkey: '', identityId: 0).obs;
 
   // group chat
   RxMap<String, RoomMember> members = <String, RoomMember>{}.obs;
@@ -87,8 +92,10 @@ class ChatController extends GetxController {
 
   late FocusNode chatContentFocus;
   late FocusNode keyboardFocus;
-  late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
+  late final ScrollController scrollController;
+  late IndicatorController indicatorController;
+
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -96,8 +103,9 @@ class ChatController extends GetxController {
     'assets/images/camera.png',
     'assets/images/video.png',
     'assets/images/file.png',
-    'assets/images/BTC.png',
+    'assets/images/bitcoin.png',
     'assets/images/lightning.png',
+    'assets/images/profile.png',
   ];
 
   //image video camera-image  camera-video file satos
@@ -107,20 +115,56 @@ class ChatController extends GetxController {
     'Video',
     'File',
     'Sat',
-    'Invoice'
+    'Invoice',
+    'Profile',
   ];
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(Room room) {
-    roomObs.value = room;
+  @override
+  Future<void> onInit() async {
+    scrollController = ScrollController();
+    chatContentFocus = FocusNode();
+    keyboardFocus = FocusNode();
+    if (GetPlatform.isDesktop) {
+      chatContentFocus.requestFocus();
+      messageLimitPerPage = 100;
+    }
+
+    textFieldScrollController = ScrollController();
+    textEditingController = TextEditingController();
+    indicatorController = IndicatorController();
+
+    // load draft
+    final textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
+    if (textEditingController.text.isEmpty && textFiledDraft != null) {
+      textEditingController.text = textFiledDraft;
+    }
+
+    textEditingController.addListener(() {
+      final newText = textEditingController.text;
+      if (newText.contains(newlineChar)) {
+        textEditingController.text = newText.replaceAll(newlineChar, '\n');
+        return;
+      }
+
+      inputTextIsAdd.value = newText.length >= inputText.value.length;
+      inputText.value = newText;
+      RoomDraft.instance.setDraft(roomObs.value.id, newText);
+    });
+    await _initRoom();
+    await loadAllChat(searchMsgIndex: searchMessageId);
+    unawaited(isLatestMessageNip04());
+    unawaited(isLatestMessageNip17());
+    initChatPageFeatures();
+    super.onInit();
   }
 
   void addMessage(Message message) {
     if (messages.isNotEmpty && messages.first.id == message.id) {
       return;
     }
-    int index = 0;
+    var index = 0;
     if (messages.isNotEmpty) {
       if (messages[0].createdAt.isAfter(message.createdAt)) {
         index = 1;
@@ -128,33 +172,22 @@ class ChatController extends GetxController {
     }
     lastMessageAddedAt = DateTime.now();
 
-    if (!autoScrollController.hasClients) {
-      messages.insert(index, message);
+    messages.insert(index, message);
+    if (scrollController.hasClients &&
+        scrollController.position.pixels <= 400) {
       jumpToBottom(100);
-      return;
     }
-    try {
-      if (autoScrollController.position.pixels <= 300) {
-        messages.insert(index, message);
-        jumpToBottom(100);
-        return;
-      }
-      // ignore: empty_catches
-    } catch (e, s) {
-      logger.e('addMessage ${e.toString()}', stackTrace: s);
-    }
-    messagesMore.add(message);
   }
 
   void addMetionName(String name) {
-    String text = textEditingController.text.trim();
+    var text = textEditingController.text.trim();
     if (text.isEmpty) {
       text = '@$name ';
       textEditingController.text = text;
       return;
     }
 
-    String lastChar = text.substring(text.length - 1);
+    final lastChar = text.substring(text.length - 1);
     if (lastChar != '@') {
       textEditingController.text = '${text.trim()} @$name ';
       return;
@@ -179,35 +212,32 @@ class ChatController extends GetxController {
     messages.remove(message);
   }
 
-  void emoticonClick(String name) {
-    textEditingController.text = name;
-  }
-
   RoomMember? getMemberByIdPubkey(String idPubkey) {
     return members[idPubkey];
   }
 
   Future<List<File>> getImageList(Directory directory) async {
-    List<FileSystemEntity> files = directory.listSync(recursive: true);
-    List<File> imageFiles = [];
-    for (var file in files) {
+    final files = directory.listSync(recursive: true);
+    final imageFiles = <File>[];
+    for (final file in files) {
       if (file is File && FileService.instance.isImageFile(file.path)) {
         imageFiles.add(file);
       }
     }
-    imageFiles
-        .sort((a, b) => b.statSync().changed.compareTo(a.statSync().changed));
+    imageFiles.sort(
+      (a, b) => b.statSync().changed.compareTo(a.statSync().changed),
+    );
     if (imageFiles.length > 30) return imageFiles.sublist(0, 30);
     return imageFiles;
   }
 
   Future<List<Room>> getKpaIsNullRooms() async {
-    List<Room> rooms = [];
+    final rooms = <Room>[];
     if (!roomObs.value.isSendAllGroup) return rooms;
-    ChatxService cs = Get.find<ChatxService>();
+    final cs = Get.find<ChatxService>();
 
-    for (var element in memberRooms.values) {
-      var kpa = await cs.getRoomKPA(element);
+    for (final element in memberRooms.values) {
+      final kpa = await cs.getRoomKPA(element);
       if (kpa == null) {
         rooms.add(element);
       }
@@ -228,14 +258,14 @@ class ChatController extends GetxController {
         .count();
   }
 
-  Future handleSubmitted() async {
+  Future<void> handleSubmitted() async {
     if (HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isShiftPressed ||
         HardwareKeyboard.instance.isAltPressed) {
       return;
     }
 
-    String text = textEditingController.text.trim();
+    final text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;
     }
@@ -253,7 +283,7 @@ class ChatController extends GetxController {
         }
       }
       if (GetPlatform.isMobile) {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
       }
       await RoomService.instance.sendMessage(roomObs.value, text, reply: reply);
       inputReplys.clear();
@@ -261,10 +291,10 @@ class ChatController extends GetxController {
       // hideSend.value = true;
       inputText.value = '';
       inputTextIsAdd.value = true;
-      RoomService.instance.markAllReadSimple(roomObs.value);
+      await RoomService.instance.markAllReadSimple(roomObs.value);
     } catch (e, s) {
       textEditingController.text = text;
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e('Failed: $msg', error: e, stackTrace: s);
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
     }
@@ -277,7 +307,8 @@ class ChatController extends GetxController {
       () => pickAndUploadVideo(ImageSource.gallery),
       () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
-      _handleSendLightning
+      _handleSendLightning,
+      _handleSendProfile,
     ];
     // disable webrtc
     // bool isCommonRoom = roomObs.value.type == RoomType.common;
@@ -292,10 +323,10 @@ class ChatController extends GetxController {
   }
 
   void jumpToBottom(int milliseconds) {
-    Timer(const Duration(milliseconds: 300), () {
-      if (autoScrollController.hasClients) {
-        autoScrollController.animateTo(
-          0.0,
+    Timer(const Duration(milliseconds: 300), () async {
+      if (scrollController.hasClients) {
+        await scrollController.animateTo(
+          0,
           duration: Duration(milliseconds: milliseconds),
           curve: Curves.easeIn,
         );
@@ -303,42 +334,73 @@ class ChatController extends GetxController {
     });
   }
 
-  Future loadAllChat() async {
-    List<Message> list = await MessageService.instance.getMessagesByView(
-        roomId: roomObs.value.id,
-        maxId: maxMessageId,
-        isRead: true,
-        limit: messageLimitPerPage);
-    List<Message> unreads = await MessageService.instance.getMessagesByView(
-        roomId: roomObs.value.id,
-        maxId: maxMessageId,
-        isRead: false,
-        limit: 200);
-    if (unreads.isNotEmpty) {
-      if (unreads.length > 12) {
-        unreadIndex.value = unreads.length - 1;
+  Future<void> loadAllChat({int searchMsgIndex = -1}) async {
+    // fetch some old messages
+    var msgIndex = searchMsgIndex;
+    if (msgIndex >= 0) {
+      if (msgIndex > 3) {
+        msgIndex = msgIndex - 3;
       }
-      RoomService.instance.markAllRead(
-          identityId: roomObs.value.identityId, roomId: roomObs.value.id);
+      await _loadLatestMessages(msgIndex);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(scrollController.position.maxScrollExtent);
+        }
+      });
+      return;
+    }
+    final list = await MessageService.instance.getMessagesByView(
+      roomId: roomObs.value.id,
+      maxId: maxMessageId,
+      isRead: true,
+      limit: messageLimitPerPage,
+    );
+    final unreads = await MessageService.instance.getMessagesByView(
+      roomId: roomObs.value.id,
+      maxId: maxMessageId,
+      isRead: false,
+      limit: 999,
+    );
+    if (unreads.isNotEmpty) {
+      unawaited(
+        RoomService.instance.markAllRead(
+          roomObs.value,
+        ),
+      );
     }
     unreads.addAll(list);
-    messages.value = sortMessageById(unreads.toList());
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
-    checkPendingEcash();
+    final mlist = sortMessageById(unreads.toList())
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    messages.value = mlist;
+    unawaited(checkPendingEcash());
+  }
+
+  Future<int> _loadLatestMessages(int searchMsgIndex) async {
+    final sortedNewMessages = await MessageService.instance
+        .listLatestMessageByTime(
+          roomId: roomObs.value.id,
+          messageId: searchMsgIndex,
+          limit: messageLimitPerPage,
+        );
+
+    if (sortedNewMessages.isEmpty) {
+      EasyLoading.showToast('No more messages');
+      return 0;
+    }
+
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    messages
+      ..insertAll(0, sortedNewMessages)
+      ..value = List.from(messages);
+    return sortedNewMessages.length;
   }
 
   Future<void> checkPendingEcash() async {
-    for (var message in messages) {
-      if (message.mediaType == MessageMediaType.cashuA) {
+    for (final message in messages) {
+      if (message.mediaType == MessageMediaType.cashu ||
+          message.mediaType == MessageMediaType.lightningInvoice) {
         if (message.cashuInfo?.status == TransactionStatus.pending) {
           await checkEcashStatus(message, message.cashuInfo?.id);
-        }
-      }
-
-      if (message.mediaType == MessageMediaType.lightningInvoice) {
-        if (message.cashuInfo?.status == TransactionStatus.pending) {
-          await checkEcashStatus(message, message.cashuInfo?.hash);
         }
       }
     }
@@ -351,78 +413,56 @@ class ChatController extends GetxController {
 
     try {
       logger.d('checkLNStatus id: $id');
-      Transaction item = await rust_cashu.checkTransaction(id: id);
-      LNTransaction ln = item.field0 as LNTransaction;
+      final ln = await rust_cashu.checkTransaction(id: id);
       if (message.cashuInfo!.status == ln.status) {
         return;
       }
       message.cashuInfo!.status = ln.status;
       await MessageService.instance.updateMessageAndRefresh(message);
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e('checkStatus error: $msg', stackTrace: s);
     }
-  }
-
-  void loadAllChatFromSearchScroll() {
-    messages.clear();
-    DateTime from = searchDt;
-    var list = MessageService.instance.listMessageBySearchSroll(
-        roomId: roomObs.value.id, from: from, limit: 7);
-    messages.addAll(sortMessageById(list));
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
-  }
-
-  Future<void> loadLatestMessage() async {
-    late DateTime from;
-    if (messages.isEmpty) {
-      from = DateTime.now();
-    } else {
-      from = messages.first.createdAt;
-    }
-    List<Message> list = await MessageService.instance
-        .listLatestMessage(roomId: roomObs.value.id, from: from);
-    Map<int, Message> msgs = {};
-    for (var element in messages) {
-      msgs[element.id] = element;
-    }
-    List<Message> list2 = msgs.values.toList();
-    list2.addAll(list);
-    list2.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = list2;
   }
 
   List<Message> loadMoreChatFromSearchSroll() {
     if (messages.isEmpty) return [];
 
-    DateTime from = messages.first.createdAt;
-    Message? message =
-        MessageService.instance.listLastestMessage(roomId: roomObs.value.id);
+    final from = messages.first.createdAt;
+    final message = MessageService.instance.listLastestMessage(
+      roomId: roomObs.value.id,
+    );
     if (message != null && message.createdAt == from) {
       return [];
     }
-    var list = MessageService.instance.listMessageByTimeSync(
-        roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
+    final list = MessageService.instance.listMessageByTimeSync(
+      roomId: roomObs.value.id,
+      from: from,
+      limit: messageLimitPerPage,
+    );
     return list;
   }
 
-  Future loadMoreChatHistory() async {
-    if (messages.isEmpty) {
+  Future<void> pullToLoadMessages() async {
+    if (messages.isEmpty) return;
+    if (indicatorController.edge == IndicatorEdge.leading) {
+      _loadLatestMessages(messages.first.id);
+      return;
+    }
+    // trailing
+    final sortedNewMessages = await MessageService.instance
+        .listOldMessageByTime(
+          roomId: roomObs.value.id,
+          messageId: messages.last.id,
+          limit: messageLimitPerPage,
+        );
+
+    if (sortedNewMessages.isEmpty) {
+      EasyLoading.showToast('No more messages');
       return;
     }
 
-    // Load more messages
-    DateTime from = messages.last.createdAt;
-    var sortedNewMessages = await MessageService.instance.listMessageByTime(
-        roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
-
-    if (sortedNewMessages.isEmpty) {
-      EasyLoading.showToast('No more messages to load');
-      return; // No new messages to load
-    }
-
-    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.addAll(sortedNewMessages);
     messages.value = List.from(messages);
   }
@@ -434,130 +474,99 @@ class ChatController extends GetxController {
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
-    autoScrollController.dispose();
+    indicatorController.dispose();
     super.onClose();
   }
 
-  @override
-  void onInit() async {
-    chatContentFocus = FocusNode();
-    keyboardFocus = FocusNode();
-    if (GetPlatform.isDesktop) {
-      chatContentFocus.requestFocus();
-      messageLimitPerPage = 100;
-    }
-
-    textFieldScrollController = ScrollController();
-    textEditingController = TextEditingController();
-    autoScrollController = AutoScrollController(axis: Axis.vertical);
-
-    autoScrollController.addListener(() {
-      EasyDebounce.debounce(
-          'autoScrollController.addListener', Duration(milliseconds: 200), () {
-        bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
-        if (!isCurrent) {
-          messagesMore.clear();
-          searchMsgIndex = -1;
-        }
-        if (messagesMore.isNotEmpty &&
-            autoScrollController.position.pixels <= 100) {
-          messages.addAll(sortMessageById(messagesMore));
-          messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-          messages.value = List.from(messages);
-
-          messagesMore.clear();
-        }
-      });
-    });
-
-    // load draft
-    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
-    if (textEditingController.text.isEmpty && textFiledDraft != null) {
-      textEditingController.text = textFiledDraft;
-    }
-
-    textEditingController.addListener(() {
-      String newText = textEditingController.text;
-      if (newText.contains(newlineChar)) {
-        textEditingController.text = newText.replaceAll(newlineChar, '\n');
-        return;
-      }
-
-      inputTextIsAdd.value = newText.length >= inputText.value.length;
-      inputText.value = newText;
-      RoomDraft.instance.setDraft(roomObs.value.id, newText);
-    });
-    await _initRoom();
-    await loadAllChat();
-    isLatestMessageNip04();
-    if (searchMsgIndex > 0) {
-      loadAllChatFromSearchScroll();
-    }
-    initChatPageFeatures();
-    super.onInit();
-  }
-
   // check if the latest message is nip04
-  void isLatestMessageNip04() {
+  Future<void> isLatestMessageNip04() async {
     if (messages.isEmpty) return;
 
     if (roomObs.value.type == RoomType.common &&
-        (roomObs.value.encryptMode == EncryptMode.nip04)) {
-      Message? lastMessage =
-          messages.firstWhereOrNull((msg) => msg.isMeSend == false);
+        roomObs.value.encryptMode == EncryptMode.nip04) {
+      final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        Get.dialog(CupertinoAlertDialog(
-          title: const Text('Deprecated Encryption'),
-          content: const Text(
-              '''Your friends uses a deprecated encryption method-NIP04.
+        await Get.dialog<void>(
+          CupertinoAlertDialog(
+            title: const Text('Deprecated Encryption'),
+            content: const Text('''
+Your friends uses a deprecated encryption method-NIP04.
 Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
 '''),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () {
-                Get.back();
-              },
-            ),
-            CupertinoDialogAction(
-              child: const Text('Share One-Time Link'),
-              onPressed: () async {
-                Get.back();
-                await showMyQrCode(
-                    Get.context!, roomObs.value.getIdentity(), true);
-              },
-            ),
-          ],
-        ));
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('OK'),
+              ),
+              CupertinoDialogAction(
+                child: const Text('Share One-Time Link'),
+                onPressed: () async {
+                  Get.back<void>();
+                  await showMyQrCode(
+                    Get.context!,
+                    roomObs.value.getIdentity(),
+                    true,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
       }
     }
   }
 
-  @override
-  onReady() {
-    // jump to bottom after 200ms
-    Future.delayed(const Duration(milliseconds: 200), () {
-      Timer(const Duration(milliseconds: 300), () {
-        if (autoScrollController.positions.isNotEmpty &&
-            autoScrollController.hasClients) {
-          autoScrollController.jumpTo(0.0);
-        }
-      });
-    });
-  }
+  // check if the latest message is nip04
+  Future<void> isLatestMessageNip17() async {
+    if (messages.isEmpty) return;
 
-  Future<void> openPageAction() async {
-    await loadLatestMessage();
-    RoomService.instance.markAllRead(
-        identityId: roomObs.value.identityId, roomId: roomObs.value.id);
+    if (roomObs.value.type == RoomType.common &&
+        roomObs.value.encryptMode != EncryptMode.signal) {
+      final myLastMessage = messages.firstWhereOrNull((msg) => msg.isMeSend);
+      final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
+      if (myLastMessage == null || hisLastMessage == null) return;
+      if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
+          myLastMessage.encryptType == MessageEncryptType.nip17) {
+        await Get.dialog<void>(
+          CupertinoAlertDialog(
+            title: const Text('Start a Private Chat'),
+            content: const Text('''
+The current message encryption mode uses the NIP17 protocol. 
+Add as a friend and start the signal protocol chat
+'''),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                child: const Text('Start Private Chat'),
+                onPressed: () async {
+                  Get.back<void>();
+                  await SignalChatService.instance.resetSignalSession(
+                    roomObs.value,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       xfile = await picker.pickImage(
         source: imageSource,
         imageQuality: 70,
@@ -570,36 +579,55 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     if (xfile == null) return;
-    Get.dialog(CupertinoAlertDialog(
-      content: SizedBox(
-        width: 300,
-        child: FileService.instance.getImageView(File(xfile.path)),
+    Get.dialog(
+      CupertinoAlertDialog(
+        content: SizedBox(
+          width: 300,
+          child: FileService.instance.getImageView(File(xfile.path)),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: Get.back,
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (_isUploading) {
+                EasyLoading.showToast('File uploading, please wait...');
+                return;
+              }
+              _isUploading = true;
+              try {
+                await FileService.instance.handleSendMediaFile(
+                  roomObs.value,
+                  xfile!,
+                  MessageMediaType.image,
+                  true,
+                );
+                Get.back<void>();
+              } finally {
+                _isUploading = false;
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
       ),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          onPressed: () async {
-            await FileService.instance.handleSendMediaFile(
-                roomObs.value, xfile!, MessageMediaType.image, true);
-            Get.back();
-          },
-          child: const Text('Send'),
-        ),
-      ],
-    ));
+    );
   }
 
   Future<void> pickAndUploadVideo(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       xfile = await picker.pickVideo(source: imageSource);
     } catch (e, s) {
       logger.e('pickVideo', error: e, stackTrace: s);
@@ -608,24 +636,31 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     if (xfile == null) return;
+
+    _isUploading = true;
     try {
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
 
       await FileService.instance.handleSendMediaFile(
-          roomObs.value, xfile, MessageMediaType.video, true);
+        roomObs.value,
+        xfile,
+        MessageMediaType.video,
+        true,
+      );
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
     } catch (e, s) {
       EasyLoading.dismiss();
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
       logger.e('encrypt And SendFile', error: e, stackTrace: s);
     } finally {
+      _isUploading = false;
       hideAdd.trigger(true);
     }
   }
 
-  void processClickBlank() {
+  void processClickBlankArea() {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
@@ -633,55 +668,57 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> resetMembers() async {
+    // mls group
     if (roomObs.value.isMLSGroup) {
-      Map<String, RoomMember> list =
-          await MlsGroupService.instance.getMembers(roomObs.value);
+      final list = await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
       members.value = list;
-      // update member's avatar
-      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
 
-      String? admin = await roomObs.value.getAdmin();
+      final admin = await roomObs.value.getAdmin();
       if (admin != null) {
         members[admin]!.isAdmin = true;
         enableMembers[admin]!.isAdmin = true;
       }
+      await _fetchRoomMembersContact(members.values.toList());
       return;
     }
+    // signal group
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
-      // update member's avatar
-      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
+      await _fetchRoomMembersContact(members.values.toList());
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
 
-  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
-    for (var pubkey in pubkeys) {
-      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
-      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
+  Future<void> _fetchRoomMembersContact(List<RoomMember> roomMembers) async {
+    for (final member in roomMembers) {
+      final contact = await ContactService.instance.getOrCreateContact(
+        identityId: roomObs.value.identityId,
+        pubkey: member.idPubkey,
+        autoCreateFromGroup: true,
+        name: member.name,
+      );
 
-      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      members[pubkey]?.nameFromRelay = item.nameFromRelay;
+      enableMembers[member.idPubkey]?.contact = contact;
+      members[member.idPubkey]?.contact = contact;
     }
   }
 
-  ChatController setRoom(Room newRoom) {
-    roomObs.value = newRoom;
+  void setRoom(Room newRoom) {
     if (newRoom.contact != null) {
-      roomContact.value = newRoom.contact!;
+      roomContact(newRoom.contact);
+      roomContact.refresh();
     }
+    roomObs(newRoom);
     roomObs.refresh();
-    return this;
   }
 
   List<Message> sortMessageById(List<Message> list) {
-    for (int i = 0; i < list.length - 1; i++) {
-      Message a = list[i];
-      Message b = list[i + 1];
+    for (var i = 0; i < list.length - 1; i++) {
+      final a = list[i];
+      final b = list[i + 1];
       if (a.createdAt == b.createdAt && b.id > a.id) {
         list[i] = b;
         list[i + 1] = a;
@@ -691,51 +728,121 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _handleSendSats() async {
-    CashuInfoModel? cashuInfo = await Get.bottomSheet(
-        clipBehavior: Clip.hardEdge,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        const CashuSendPage(true));
+    final cashuInfo = await Get.bottomSheet<CashuInfoModel>(
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      const CashuSendPage(true),
+    );
     if (cashuInfo == null) return;
     try {
       logger.d(cashuInfo.toString());
-      await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
-          realMessage: cashuInfo.toString(),
-          mediaType: MessageMediaType.cashuA);
+      await RoomService.instance.sendMessage(
+        roomObs.value,
+        cashuInfo.token,
+        realMessage: cashuInfo.toString(),
+        mediaType: MessageMediaType.cashu,
+      );
       hideAdd.value = true; // close features section
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
       EasyLoading.showError(msg);
     }
   }
 
   Future<void> _handleSendLightning() async {
-    Transaction? transaction = await Get.bottomSheet(
-        clipBehavior: Clip.hardEdge,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        const CreateInvoicePage());
-    if (transaction == null) return;
-    LNTransaction invoice = transaction.field0 as LNTransaction;
+    final invoice = await Get.bottomSheet<Transaction>(
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(),
+    );
+    if (invoice == null) return;
 
     try {
-      CashuInfoModel cim = CashuInfoModel()
+      final cim = CashuInfoModel()
         ..amount = invoice.amount.toInt()
-        ..token = invoice.pr
-        ..mint = invoice.mint
+        ..token = invoice.token
+        ..mint = invoice.mintUrl
         ..status = invoice.status
-        ..hash = invoice.hash
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
-      await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
-          realMessage: cim.toString(),
-          mediaType: MessageMediaType.lightningInvoice);
+        ..hash = invoice.id
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
+          invoice.timestamp.toInt() * 1000,
+        );
+      await RoomService.instance.sendMessage(
+        roomObs.value,
+        invoice.token,
+        realMessage: cim.toString(),
+        mediaType: MessageMediaType.lightningInvoice,
+      );
       hideAdd.value = true; // close features section
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
       EasyLoading.showError(msg);
     }
+  }
+
+  Future<void> _handleSendProfile() async {
+    EasyThrottle.throttle('send_profile', const Duration(seconds: 3), () async {
+      final approved = await Get.dialog<bool>(
+        CupertinoAlertDialog(
+          title: const Text('Send Profile'),
+          content: const Text(
+            'Are you sure to send your name, bio, avatar and lightning address?',
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Get.back(result: false);
+              },
+              child: const Text('Cancel'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Get.back(result: true);
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        ),
+      );
+      if (approved != true) return;
+
+      try {
+        final identity = roomObs.value.getIdentity();
+        final prm = ProfileRequestModel(
+          pubkey: identity.secp256k1PKHex,
+          name: identity.name,
+          avatar: await identity.getRemoteAvatarUrl(),
+          bio: identity.displayAbout,
+          lightning: identity.lightning,
+          version: RoomUtil.getValidateTime(),
+        );
+
+        final sm =
+            KeychatMessage(
+                c: MessageType.signal,
+                type: KeyChatEventKinds.signalSendProfile,
+              )
+              ..name = prm.toString()
+              ..msg = "[${identity.name}'s Profile]";
+        await RoomService.instance.sendMessage(
+          roomObs.value,
+          sm.toString(),
+          realMessage: sm.msg,
+          mediaType: MessageMediaType.profileRequest,
+        );
+        hideAdd.value = true; // close features section
+      } catch (e, s) {
+        final msg = Utils.getErrorMessage(e);
+        logger.e(msg, error: e, stackTrace: s);
+        EasyLoading.showError(msg);
+      }
+    });
   }
 
   Future<void> _handleSendWithCamera() async {
@@ -743,7 +850,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showToast('Camera not supported on MacOS');
       return;
     }
-    bool isGranted = true;
+
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
+    var isGranted = true;
     if (GetPlatform.isMobile || GetPlatform.isWindows) {
       isGranted = await Permission.camera.request().isGranted;
     }
@@ -758,15 +872,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _initBotInfo() async {
-    List list =
-        await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
+    final list = await NostrAPI.instance.fetchMetadata([
+      roomObs.value.toMainPubkey,
+    ]);
     if (list.isEmpty) return;
-    NostrEventModel res = list.last;
-    Map<String, dynamic> metadata =
-        Map<String, dynamic>.from(jsonDecode(res.content));
+    final res = list.last;
+    final metadata = Map<String, dynamic>.from(
+      jsonDecode(res.content) as Map<String, dynamic>,
+    );
     if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
-      botCommands.value =
-          List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
+      botCommands.value = List<Map<String, dynamic>>.from(
+        (metadata['commands'] ?? []) as Iterable,
+      );
       return;
     }
     // not a bot account
@@ -778,23 +895,31 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     roomObs.value.status = RoomStatus.enabled;
 
     roomObs.value.botInfoUpdatedAt = res.createdAt;
-    botCommands.value =
-        List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
+    botCommands.value = List<Map<String, dynamic>>.from(
+      (metadata['commands'] ?? []) as Iterable,
+    );
 
-    var metadataString = jsonEncode(metadata);
+    final metadataString = jsonEncode(metadata);
     roomObs.value.botInfo = metadataString;
-    roomObs.value.name = metadata['name'] ?? roomObs.value.name;
-    roomObs.value.description = metadata['description'];
+    roomObs.value.name = metadata['name'] as String? ?? roomObs.value.name;
+    roomObs.value.description = metadata['description'] as String?;
 
     // save config for botPricePerMessageRequest
     if (metadata['botPricePerMessageRequest'] != null) {
       try {
-        var config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService.instance.saveSystemMessage(roomObs.value, config,
-            suffix: '', isMeSend: false);
+        final config = jsonEncode(metadata['botPricePerMessageRequest']);
+        await MessageService.instance.saveSystemMessage(
+          roomObs.value,
+          config,
+          suffix: '',
+          isMeSend: false,
+        );
       } catch (e) {
-        logger.e('botPricePerMessageRequest: ${e.toString()}',
-            error: e, stackTrace: StackTrace.current);
+        logger.e(
+          'botPricePerMessageRequest: $e',
+          error: e,
+          stackTrace: StackTrace.current,
+        );
       }
     }
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
@@ -804,89 +929,134 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
-        Future.delayed(Duration(seconds: 2)).then((value) => {
-              MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value])
-            });
+        Future.delayed(const Duration(seconds: 2)).then(
+          (value) => {
+            MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]),
+          },
+        );
       }
-      return await resetMembers();
+      return resetMembers();
     }
     // private chat
     if (roomObs.value.type == RoomType.common) {
       if (roomObs.value.contact == null) {
-        Contact contact = await ContactService.instance.getOrCreateContact(
-            roomObs.value.identityId, roomObs.value.toMainPubkey);
+        final contact = await ContactService.instance.getOrCreateContact(
+          identityId: roomObs.value.identityId,
+          pubkey: roomObs.value.toMainPubkey,
+        );
         roomObs.value.contact = contact;
         roomContact.value = contact;
       } else {
         roomContact.value = roomObs.value.contact!;
       }
-      fetchAndUpdateMetadata(
-              roomContact.value.pubkey, roomContact.value.identityId)
-          .then((Contact? item) {
-        if (item == null) return;
-        roomContact.value = item;
-        roomObs.value.contact = item;
-        roomObs.refresh();
-        Get.find<HomeController>()
-            .loadIdentityRoomList(roomContact.value.identityId);
-      });
+      // use the local file first. if not exist, fetch from relay
+      if (roomContact.value.about == null &&
+          roomContact.value.avatarLocalPath == null) {
+        fetchAndUpdateMetadata(
+          roomContact.value.pubkey,
+          roomContact.value.identityId,
+        ).then((Contact? item) {
+          if (item == null) return;
+          roomContact.value = item;
+          roomObs.value.contact = item;
+          roomObs.refresh();
+          Get.find<HomeController>().loadIdentityRoomList(
+            roomContact.value.identityId,
+          );
+        });
+      }
       return;
     }
     if (roomObs.value.type == RoomType.bot) {
-      _initBotInfo();
+      unawaited(_initBotInfo());
     }
   }
 
-  Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
-    Map<String, dynamic> metadata = {};
+  Contact getContactByPubkey(String pubkey) {
+    if (roomObs.value.type != RoomType.group) return roomContact.value;
+    return members[pubkey]?.contact ??
+        Contact(identityId: roomObs.value.identityId, pubkey: pubkey);
+  }
 
-    List<Contact> contacts = await ContactService.instance.getContacts(pubkey);
+  Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
+    var metadata = <String, dynamic>{};
+
+    var contacts = await ContactService.instance.getContacts(pubkey);
     if (contacts.isEmpty) {
-      var result = await ContactService.instance.createContact(
-          pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
+      final result = await ContactService.instance.createContact(
+        pubkey: pubkey,
+        identityId: identityId,
+        autoCreateFromGroup: roomObs.value.type == RoomType.group,
+      );
       contacts = [result];
     }
     // ignore fetch in a hour in kReleaseMode
     if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(Duration(days: 1))
+          .add(const Duration(days: 1))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }
     }
     try {
-      var list = await NostrAPI.instance.fetchMetadata([pubkey]);
+      final list = await NostrAPI.instance.fetchMetadata([pubkey]);
       if (list.isEmpty) return contacts.first;
-      NostrEventModel res = list.last;
+      final res = list.last;
 
       loggerNoLine.i('metadata: ${res.content}');
-      metadata = Map<String, dynamic>.from(jsonDecode(res.content));
-      String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
-      String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
-      String? description =
-          metadata['description'] ?? metadata['about'] ?? metadata['bio'];
-      for (Contact contact in contacts) {
+      metadata = Map<String, dynamic>.from(
+        jsonDecode(res.content) as Map<String, dynamic>,
+      );
+      final nameFromRelay =
+          (metadata['displayName'] ?? metadata['name']) as String?;
+      final avatarFromRelay =
+          (metadata['picture'] ?? metadata['avatar']) as String?;
+      final description =
+          (metadata['description'] ?? metadata['about'] ?? metadata['bio'])
+              as String?;
+      for (final contact in contacts) {
         if (contact.versionFromRelay >= res.createdAt) {
           continue;
         }
+
+        // Handle avatar download if URL changed
         if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
           if (avatarFromRelay.startsWith('http') ||
               avatarFromRelay.startsWith('https')) {
             contact.avatarFromRelay = avatarFromRelay;
+
+            // Download avatar if URL changed
+            if (contact.avatarFromRelay != contact.avatarFromRelayLocalPath) {
+              try {
+                final localPath = await FileService.instance
+                    .downloadAndSaveAvatar(avatarFromRelay, pubkey);
+                if (localPath != null) {
+                  contact.avatarFromRelayLocalPath = localPath;
+                }
+              } catch (e, s) {
+                logger.e(
+                  'Failed to download avatar: $e',
+                  error: e,
+                  stackTrace: s,
+                );
+              }
+            }
           }
         }
 
-        contact.nameFromRelay = nameFromRelay;
-        contact.aboutFromRelay = description;
-        contact.metadataFromRelay = res.content;
-        contact.fetchFromRelayAt = DateTime.now();
-        contact.versionFromRelay = res.createdAt;
+        contact
+          ..nameFromRelay = nameFromRelay
+          ..aboutFromRelay = description
+          ..metadataFromRelay = res.content
+          ..fetchFromRelayAt = DateTime.now()
+          ..versionFromRelay = res.createdAt;
         loggerNoLine.i(
-            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}');
+          'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
+        );
         await ContactService.instance.saveContact(contact);
       }
     } catch (e) {
-      logger.e('fetchUserMetadata: ${e.toString()}', error: e);
+      logger.e('fetchUserMetadata: $e', error: e);
     }
     return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
         contacts.first;
@@ -951,25 +1121,29 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       (Formats.webUnknown, MessageMediaType.file),
     ];
     if (reader.canProvide(Formats.fileUri)) {
-      for (int i = 0; i < fileFormats.length; i++) {
+      for (var i = 0; i < fileFormats.length; i++) {
         final format = fileFormats[i].$1;
         final mediaType = fileFormats[i].$2;
-        bool canProcess = reader.canProvide(format);
+        final canProcess = reader.canProvide(format);
         if (canProcess) {
           logger.d('Clipboard can provide: $format');
           await _readFromStream(
-              reader, format, mediaType, mediaType == MessageMediaType.video);
+            reader,
+            format,
+            mediaType,
+            mediaType == MessageMediaType.video,
+          );
           return true;
         }
       }
     }
 
     // _pasteFallinImage
-    for (var format in fileFormats) {
+    for (final format in fileFormats) {
       // skip plain text
       if (format.$1 == Formats.plainTextFile) continue;
       if (format.$1 == Formats.htmlFile) continue;
-      bool canProcess = reader.canProvide(format.$1);
+      final canProcess = reader.canProvide(format.$1);
       if (canProcess) {
         logger.d('_pasteFallinImage Clipboard can provide: $format');
         await _readFromStream(reader, format.$1, format.$2, false);
@@ -979,7 +1153,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     return false;
   }
 
-  Future handlePasteboard() async {
+  Future<void> handlePasteboard() async {
     // Clipboard API is not supported on this platform.
     if (SystemClipboard.instance == null) return;
 
@@ -988,44 +1162,48 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       return;
     }
 
-    bool isFile = reader.canProvide(Formats.fileUri);
+    final isFile = reader.canProvide(Formats.fileUri);
     loggerNoLine.i('Clipboard can provide file: $isFile');
     if (isFile) {
-      return await handlePasteboardFile();
+      await handlePasteboardFile();
+      return;
     }
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-    String? text = clipboardData?.text;
+    final text = clipboardData?.text;
     if (text == null || text.isEmpty) {
-      return await handlePasteboardFile();
+      await handlePasteboardFile();
+      return;
     }
     // plain text
     await _handlePastePlainText(text);
   }
 
-  Future _handlePastePlainText(String text) async {
+  Future<void> _handlePastePlainText(String text) async {
     loggerNoLine.i('Clipboard plain text: $text');
-    String currentText = textEditingController.text;
-    TextSelection selection = textEditingController.selection;
+    final currentText = textEditingController.text;
+    final selection = textEditingController.selection;
 
     String newText;
     int newCursorPosition;
 
     // If there's selected text, replace it
     if (selection.isValid && !selection.isCollapsed) {
-      newText = currentText.substring(0, selection.start) +
+      newText =
+          currentText.substring(0, selection.start) +
           text +
           currentText.substring(selection.end);
       newCursorPosition = selection.start + text.length;
     } else {
       // If no selection, insert at cursor position
-      int cursorPosition = selection.baseOffset;
+      var cursorPosition = selection.baseOffset;
 
       // If no cursor position is set, append to the end
       if (cursorPosition < 0) {
         cursorPosition = currentText.length;
       }
 
-      newText = currentText.substring(0, cursorPosition) +
+      newText =
+          currentText.substring(0, cursorPosition) +
           text +
           currentText.substring(cursorPosition);
       newCursorPosition = cursorPosition + text.length;
@@ -1034,21 +1212,25 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     textEditingController.text = newText;
 
     // Set cursor position after inserted text
-    textEditingController.selection =
-        TextSelection.fromPosition(TextPosition(offset: newCursorPosition));
+    textEditingController.selection = TextSelection.fromPosition(
+      TextPosition(offset: newCursorPosition),
+    );
   }
 
-  Future _readFromStream(
-      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-      [bool compress = true]) async {
+  Future<void> _readFromStream(
+    ClipboardReader reader,
+    SimpleFileFormat format,
+    MessageMediaType type, [
+    bool compress = true,
+  ]) async {
     /// Binary formats need to be read as streams
     reader.getFile(format, (DataReaderFile file) async {
-      String? suggestedName = await reader.getSuggestedName();
-      String? mimeType = format.mimeTypes?.first;
+      var suggestedName = await reader.getSuggestedName();
+      final mimeType = format.mimeTypes?.first;
 
       try {
-        Uint8List imageBytes = await file.readAll();
-        String sourceFileName = textEditingController.text.trim();
+        final imageBytes = await file.readAll();
+        final sourceFileName = textEditingController.text.trim();
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         if (suggestedName == null) {
@@ -1057,8 +1239,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             suffix = extensionFromMime(mimeType);
           }
           if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
-            String inputName = sourceFileName.split('.').first;
-            String inputSuffix = sourceFileName.split('.').last;
+            final inputName = sourceFileName.split('.').first;
+            final inputSuffix = sourceFileName.split('.').last;
             suggestedName = '$inputName.${suffix ?? inputSuffix}';
             textEditingController.clear();
           }
@@ -1071,44 +1253,80 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         final teampFile = File(path);
         await teampFile.writeAsBytes(imageBytes);
 
-        XFile xfile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: suggestedName);
-        bool isImage = FileService.instance.isImageFile(xfile.path);
+        final xfile = XFile(
+          path,
+          bytes: imageBytes,
+          mimeType: mimeType,
+          name: suggestedName,
+        );
+        final isImage = FileService.instance.isImageFile(xfile.path);
         if (!isImage) {
-          await FileService.instance
-              .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          if (_isUploading) {
+            EasyLoading.showToast('File uploading, please wait...');
+            return;
+          }
+          _isUploading = true;
+          try {
+            await FileService.instance.handleSendMediaFile(
+              roomObs.value,
+              xfile,
+              type,
+              compress,
+            );
+          } finally {
+            _isUploading = false;
+          }
           return;
         }
-        await Get.dialog(CupertinoAlertDialog(
-          content: SizedBox(
-            width: 300,
-            child: FileService.instance.getImageView(File(xfile.path)),
+        await Get.dialog(
+          CupertinoAlertDialog(
+            content: SizedBox(
+              width: 300,
+              child: FileService.instance.getImageView(File(xfile.path)),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  if (_isUploading) {
+                    EasyLoading.showToast('File uploading, please wait...');
+                    return;
+                  }
+                  _isUploading = true;
+                  try {
+                    await FileService.instance.handleSendMediaFile(
+                      roomObs.value,
+                      xfile,
+                      MessageMediaType.image,
+                      true,
+                    );
+                    Get.back<void>();
+                  } finally {
+                    _isUploading = false;
+                  }
+                },
+                child: const Text('Send'),
+              ),
+            ],
           ),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Get.back();
-              },
-            ),
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () async {
-                await FileService.instance.handleSendMediaFile(
-                    roomObs.value, xfile, MessageMediaType.image, true);
-                Get.back();
-              },
-              child: const Text('Send'),
-            ),
-          ],
-        ));
+        );
       } catch (e, s) {
-        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
+        logger.e('_readFromStream: $e', stackTrace: s);
       } finally {
-        Future.delayed(Duration(seconds: 3)).then((_) {
+        Future.delayed(const Duration(seconds: 3)).then((_) {
           EasyLoading.dismiss();
         });
       }
     });
+  }
+
+  // from search page
+  Future<void> loadFromMessageId(int messageId) async {
+    messages.clear();
+    await loadAllChat(searchMsgIndex: messageId);
   }
 }

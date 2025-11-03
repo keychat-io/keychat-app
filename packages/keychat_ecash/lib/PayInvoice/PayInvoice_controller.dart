@@ -1,27 +1,29 @@
 import 'dart:async';
 
 import 'package:app/app.dart';
+import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class PayInvoiceController extends GetxController {
+  PayInvoiceController({this.invoice, this.invoiceInfo});
   final String? invoice;
   final rust_cashu.InvoiceInfo? invoiceInfo;
-  PayInvoiceController({this.invoice, this.invoiceInfo});
   late TextEditingController textController;
   RxString selectedMint = ''.obs;
   RxString selectedInvoice = ''.obs;
+  final RxBool isLoading = false.obs;
+
   @override
   void onInit() {
     selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
@@ -49,51 +51,49 @@ class PayInvoiceController extends GetxController {
   }
 
   FutureOr<Transaction?> _confirmPayment(
-      String mint, String invoice, rust_cashu.InvoiceInfo ii, bool isPay,
-      {Function? paidCallback}) async {
-    EcashController cc = Get.find<EcashController>();
+    String mint,
+    String invoice,
+    rust_cashu.InvoiceInfo ii,
+    bool isPay, {
+    Function? paidCallback,
+  }) async {
+    final cc = Get.find<EcashController>();
 
     if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
-      EasyLoading.showToast('Not Enough Funds');
+      await EasyLoading.showToast('Not Enough Funds');
       return null;
     }
     try {
       EasyLoading.show(status: 'Processing...');
-      logger.i(
-          'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice');
-      Transaction tx =
-          await rust_cashu.melt(invoice: invoice, activeMint: mint);
-      logger.i('PayInvoiceController: confirmToPayInvoice: tx: ${tx.field0}');
+      final tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
+      logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
       EasyLoading.showSuccess('Success');
 
       textController.clear();
-      cc.requestPageRefresh();
+      unawaited(cc.requestPageRefresh());
       if (!isPay) {
         if (GetPlatform.isDesktop) {
-          await Get.bottomSheet(LightningTransactionPage(
-              transaction: tx.field0 as LNTransaction));
+          await Get.bottomSheet(LightningTransactionPage(transaction: tx));
         } else {
-          await Get.to(() => LightningTransactionPage(
-              transaction: tx.field0 as LNTransaction));
+          await Get.to(() => LightningTransactionPage(transaction: tx));
         }
       }
       return tx;
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
-      EasyLoading.showError('Error: $msg');
+      final msg = await EcashUtils.ecashErrorHandle(e, s);
       if (msg.contains('11000') && paidCallback != null) {
-        paidCallback();
+        (paidCallback as Function)();
       }
-      logger.e('error: $msg', error: e, stackTrace: s);
     }
     return null;
   }
 
-  FutureOr<Transaction?> confirmToPayInvoice(
-      {required String invoice,
-      required String mint,
-      bool isPay = false,
-      Function? paidCallback}) async {
+  FutureOr<Transaction?> confirmToPayInvoice({
+    required String invoice,
+    required String mint,
+    bool isPay = false,
+    Function? paidCallback,
+  }) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
       return null;
@@ -103,35 +103,43 @@ class PayInvoiceController extends GetxController {
       invoice = invoice.replaceFirst('lightning:', '');
     }
     try {
-      rust_cashu.InvoiceInfo ii =
-          await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+      final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
-      if (isPay == true) {
-        return await _confirmPayment(mint, invoice, ii, isPay,
-            paidCallback: paidCallback);
+      if (isPay) {
+        return await _confirmPayment(
+          mint,
+          invoice,
+          ii,
+          isPay,
+          paidCallback: paidCallback,
+        );
       }
-      return await Get.dialog(CupertinoAlertDialog(
-        title: Text('Pay Invoice'),
-        content: Text('${ii.amount} ${EcashTokenSymbol.sat.name}',
-            style: Theme.of(Get.context!).textTheme.titleLarge),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('Cancel'),
-            onPressed: () {
-              Get.back();
-            },
+      return await Get.dialog(
+        CupertinoAlertDialog(
+          title: const Text('Pay Invoice'),
+          content: Text(
+            '${ii.amount} ${EcashTokenSymbol.sat.name}',
+            style: Theme.of(Get.context!).textTheme.titleLarge,
           ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              Get.back(result: await _confirmPayment(mint, invoice, ii, isPay));
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ));
+          actions: [
+            CupertinoDialogAction(
+              onPressed: Get.back,
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () async {
+                Get.back(
+                  result: await _confirmPayment(mint, invoice, ii, isPay),
+                );
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       EasyLoading.showError('Error: $msg');
       logger.e('error: $msg', error: e, stackTrace: s);
     }
@@ -151,33 +159,35 @@ class PayInvoiceController extends GetxController {
       if (parts.length == 2) {
         host = 'https://${parts[1]}/.well-known/lnurlp/${parts[0]}';
         try {
-          var res = await Dio().get(host);
-          data = res.data;
+          final res = await Dio().get(host);
+          data = res.data as Map<String, dynamic>?;
           data?['domain'] = parts[1];
         } catch (e, s) {
-          String errorMessage =
+          final errorMessage =
               '${(e as DioException).response?.data ?? e.message}';
           logger.e('error: $errorMessage', error: e, stackTrace: s);
           EasyLoading.showError(
-              'Could not get lightning address details from the server: $errorMessage',
-              duration: Duration(seconds: 4));
+            'Could not get lightning address details from the server: $errorMessage',
+            duration: const Duration(seconds: 4),
+          );
           return null;
         }
       }
     } else if (input.toLowerCase().startsWith('lnurl1')) {
       //demo: LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS
-      String url = rust_nostr.decodeBech32(content: input);
+      final url = rust_nostr.decodeBech32(content: input);
       try {
-        var res = await Dio().get(url);
-        data = res.data;
+        final res = await Dio().get(url);
+        data = res.data as Map<String, dynamic>?;
         data?['domain'] = Uri.parse(url).host;
       } catch (e, s) {
-        String errorMessage =
+        final errorMessage =
             '${(e as DioException).response?.data ?? e.message}';
         logger.e('error: $errorMessage', error: e, stackTrace: s);
         EasyLoading.showError(
-            'Could not get lightning address details from the server: $errorMessage',
-            duration: Duration(seconds: 4));
+          'Could not get lightning address details from the server: $errorMessage',
+          duration: const Duration(seconds: 4),
+        );
         return null;
       }
     }
@@ -190,10 +200,12 @@ class PayInvoiceController extends GetxController {
       if (data['maxSendable'] == null) return null;
       logger.d('LNURL pay request received from: $host , $data');
       if (Get.isBottomSheetOpen ?? false) {
-        return null;
+        Get.back<void>();
       }
       return await Get.bottomSheet<Transaction>(
-          ignoreSafeArea: false, PayToLnurl(data));
+        ignoreSafeArea: false,
+        PayToLnurl(data),
+      );
     }
     return null;
   }

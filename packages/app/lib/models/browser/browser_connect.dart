@@ -9,6 +9,9 @@ part 'browser_connect.g.dart';
 })
 // ignore: must_be_immutable
 class BrowserConnect extends Equatable {
+  BrowserConnect({required this.host, required this.pubkey, this.favicon}) {
+    createdAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -18,16 +21,12 @@ class BrowserConnect extends Equatable {
   String? favicon;
   late DateTime createdAt;
 
-  BrowserConnect({required this.host, required this.pubkey, this.favicon}) {
-    createdAt = DateTime.now();
-  }
-
   @override
   List get props => [id, host, pubkey, favicon];
 
   static Future<List<BrowserConnect>> getAll(
       {int limit = 20, int offset = 0}) async {
-    var list = await DBProvider.database.browserConnects
+    final list = await DBProvider.database.browserConnects
         .where(sort: Sort.desc)
         .sortByCreatedAtDesc()
         .offset(offset)
@@ -38,7 +37,7 @@ class BrowserConnect extends Equatable {
 
   static Future<List<BrowserConnect>> getAllByPubkey(
       {required String pubkey, int limit = 20, int offset = 0}) async {
-    var list = await DBProvider.database.browserConnects
+    final list = await DBProvider.database.browserConnects
         .filter()
         .pubkeyEqualTo(pubkey)
         .sortByCreatedAtDesc()
@@ -55,7 +54,7 @@ class BrowserConnect extends Equatable {
   }
 
   static Future<BrowserConnect?> getByHost(String host) async {
-    return await DBProvider.database.browserConnects
+    return DBProvider.database.browserConnects
         .filter()
         .hostEqualTo(host)
         .findFirst();
@@ -69,7 +68,7 @@ class BrowserConnect extends Equatable {
     return id;
   }
 
-  static Future deleteByPubkey(String pubkey) async {
+  static Future<void> deleteByPubkey(String pubkey) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserConnects
           .filter()

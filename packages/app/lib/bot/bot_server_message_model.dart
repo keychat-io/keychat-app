@@ -1,34 +1,45 @@
 import 'package:app/models/message.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'bot_server_message_model.freezed.dart';
 part 'bot_server_message_model.g.dart';
 
-@freezed
-abstract class BotServerMessageModel with _$BotServerMessageModel {
-  const factory BotServerMessageModel(
-      {
-      // botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
-      required MessageMediaType type,
-      required String message,
-      required List<BotMessageData> priceModels,
-      String? id}) = _BotServerMessageModel;
-
-  const BotServerMessageModel._();
+@JsonSerializable()
+class BotServerMessageModel {
+  const BotServerMessageModel({
+    required this.type,
+    required this.message,
+    required this.priceModels,
+    this.id,
+  });
 
   factory BotServerMessageModel.fromJson(Map<String, dynamic> json) =>
       _$BotServerMessageModelFromJson(json);
+  // botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
+  final MessageMediaType type;
+  final String message;
+  final List<BotMessageData> priceModels;
+  final String? id;
+
+  Map<String, dynamic> toJson() => _$BotServerMessageModelToJson(this);
 }
 
-@freezed
-abstract class BotMessageData with _$BotMessageData {
-  const factory BotMessageData(
-      {required String name,
-      required String description,
-      required int price,
-      required String unit,
-      @Default([]) List<String> mints}) = _BotMessageData;
+@JsonSerializable()
+class BotMessageData {
+  BotMessageData({
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.unit,
+    this.mints,
+  });
 
   factory BotMessageData.fromJson(Map<String, dynamic> json) =>
       _$BotMessageDataFromJson(json);
+  final String name;
+  final String description;
+  final int price;
+  final String unit;
+  List<String>? mints;
+
+  Map<String, dynamic> toJson() => _$BotMessageDataToJson(this);
 }

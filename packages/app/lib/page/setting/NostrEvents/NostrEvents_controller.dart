@@ -7,14 +7,14 @@ class NostrEventsController extends GetxController {
   RxList<NostrEventStatus> events = <NostrEventStatus>[].obs;
 
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     events.value = await NostrEventStatus.getLatestErrorEvents(50);
     super.onInit();
   }
 
-  Future deleteAll() async {
+  Future<void> deleteAll() async {
     await DBProvider.database.writeTxn(() async {
-      for (var e in events) {
+      for (final e in events) {
         await DBProvider.database.nostrEventStatus.delete(e.id);
       }
     });

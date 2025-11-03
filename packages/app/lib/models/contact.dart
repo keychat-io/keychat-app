@@ -1,23 +1,31 @@
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
 import 'package:app/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 part 'contact.g.dart';
 
-@Collection(ignore: {
-  'props',
-  'displayName',
-  'indexLetter',
-  'isCheck',
-  'admin',
-  'imageAssets',
-  'mlsPK',
-  'displayAbout'
-})
+@Collection(
+  ignore: {
+    'props',
+    'displayName',
+    'indexLetter',
+    'isCheck',
+    'admin',
+    'imageAssets',
+    'mlsPK',
+    'displayAbout',
+  },
+)
 // ignore: must_be_immutable
 class Contact extends Equatable {
+  Contact({required this.identityId, required this.pubkey, this.npubkey = ''}) {
+    if (npubkey.isEmpty && pubkey.length == 64) {
+      npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
+    }
+    createdAt ??= DateTime.now();
+    updatedAt ??= DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
@@ -30,23 +38,28 @@ class Contact extends Equatable {
   String? name; // fetch from friend
   String? nameFromRelay; // fetch from relay
   String? avatarFromRelay; // fetch from relay
+  String? avatarFromRelayLocalPath;
   DateTime? fetchFromRelayAt; // fetch time
   String? aboutFromRelay;
   String? metadataFromRelay; // fetch from relay
   int versionFromRelay = 0; // fetch from relay
+  String? avatarLocalPath;
+  String? avatarRemoteUrl;
+  String? lightning;
+  int version = 0;
 
-  bool autoCreateFromGroup = false;
+  bool autoCreateFromGroup =
+      false; // auto create contact when create group, if equal true,is my friends
 
   String? about;
-  String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
   String? get displayAbout =>
       about != null && about!.isNotEmpty ? about : aboutFromRelay;
   String get displayName {
-    String? nickname = petname ?? name ?? nameFromRelay;
+    final nickname = petname ?? name ?? nameFromRelay;
     if (nickname == null || nickname.trim().isEmpty) {
-      int max = npubkey.length;
+      var max = npubkey.length;
       if (max > 8) {
         max = 8;
       }
@@ -62,19 +75,7 @@ class Contact extends Equatable {
   String? imageAssets;
   String? mlsPK;
 
-  Contact({
-    required this.identityId,
-    required this.npubkey,
-    required this.pubkey,
-  }) {
-    if (npubkey.isEmpty && pubkey.length == 64) {
-      npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
-    }
-    createdAt ??= DateTime.now();
-    updatedAt ??= DateTime.now();
-  }
-
-  Future saveNameIfNull(String newName) async {
+  Future<void> saveNameIfNull(String newName) async {
     if (petname == null || name == null) {
       name = newName;
       await ContactService.instance.saveContact(this);
@@ -83,14 +84,11 @@ class Contact extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        pubkey,
-        npubkey,
-        name,
-        petname,
-        about,
-        createdAt,
-        picture,
-        updatedAt
-      ];
+    id,
+    pubkey,
+    name,
+    petname,
+    about,
+    avatarLocalPath,
+  ];
 }

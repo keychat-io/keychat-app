@@ -1,63 +1,67 @@
 import 'dart:io' show File;
 import 'dart:typed_data';
 
-// import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
 import 'package:app/app.dart' show Utils, logger;
+import 'package:app/service/file.service.dart';
+import 'package:dio/dio.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'file.service.dart';
 
 /// Convenience class for uploading files to AWS S3
 class AwsS3 {
-  static AwsS3? _instance;
-  static AwsS3 get instance => _instance ??= AwsS3._();
   // Avoid self instance
   AwsS3._();
+  static AwsS3? _instance;
+  static AwsS3 get instance => _instance ??= AwsS3._();
 
-  Future<FileEncryptInfo> encryptAndUploadByRelay(File input,
-      {void Function(int, int)? onSendProgress}) async {
-    FileEncryptInfo res =
-        await FileService.instance.encryptFile(input, base64Hash: true);
-    int length = res.output.length;
-    String? ecashToken = await Utils.getGetxController<EcashController>()
+  Future<FileEncryptInfo> encryptAndUploadByRelay(
+    File input, {
+    void Function(int, int)? onSendProgress,
+  }) async {
+    final res = await FileService.instance.encryptFile(input, base64Hash: true);
+    final length = res.output.length;
+    final ecashToken = await Utils.getGetxController<EcashController>()
         ?.getFileUploadEcashToken(length);
 
-    Map<dynamic, dynamic> uploadParams =
-        await FileService.instance.getUploadParams(
+    final uploadParams = await FileService.instance.getUploadParams(
       cashu: ecashToken ?? '',
       length: length,
       sha256: res.hash,
     );
 
-    String result = await uploadToAWS(
-        uploadParams: uploadParams,
-        fileBytes: res.output,
-        filename: res.hash,
-        onSendProgress: onSendProgress);
-    res.url = result;
-    res.ecashToken = ecashToken;
-    res.size = res.output.length;
+    final result = await uploadToAWS(
+      uploadParams: uploadParams,
+      fileBytes: res.output,
+      filename: res.hash,
+      onSendProgress: onSendProgress,
+    );
+    res
+      ..url = result
+      ..ecashToken = ecashToken
+      ..size = res.output.length;
     return res;
   }
 
-  Future<String> uploadToAWS(
-      {required Uint8List fileBytes,
-      void Function(int p1, int p2)? onSendProgress,
-      required String filename,
-      required Map<dynamic, dynamic> uploadParams}) async {
+  Future<String> uploadToAWS({
+    required Uint8List fileBytes,
+    required String filename,
+    required Map<dynamic, dynamic> uploadParams,
+    void Function(int p1, int p2)? onSendProgress,
+  }) async {
     final dio = Dio();
     logger.i('upload params: $uploadParams');
-    String endpoint = uploadParams['url']!;
-    Map<String, dynamic> headers = uploadParams['headers']!;
-    headers["Content-Type"] = "multipart/form-data";
+    final endpoint = uploadParams['url']! as String;
+    final headers = uploadParams['headers']! as Map<String, dynamic>;
+    headers['Content-Type'] = 'multipart/form-data';
     try {
-      final response = await dio.put(endpoint,
-          data: Stream.fromIterable(fileBytes.map((e) => [e])),
-          options: Options(headers: headers),
-          onSendProgress: onSendProgress);
+      final response = await dio.put(
+        endpoint,
+        data: Stream.fromIterable(fileBytes.map((e) => [e])),
+        options: Options(headers: headers),
+        onSendProgress: onSendProgress,
+      );
 
       if (response.statusCode == 200) {
-        return uploadParams['access_url']!;
+        return uploadParams['access_url']! as String;
       }
     } on DioException catch (e, s) {
       // The request was made and the server responded with a status code

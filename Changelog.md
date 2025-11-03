@@ -2,6 +2,13 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.36.4+6457
+- Replaced the Cashu SDK with the official implementation.
+- Local profile solution, supporting sending Profiles within chats.
+- Built-in browser optimization.
+- Support for Device Authentication.
+- Updated message sending status and redesigned the raw data page.
+
 ## 1.35.4+6423
 1. Scan QR code from gallery.
 2. Pay and create a lightning invoice in the chat page.

@@ -1,3 +1,4 @@
+import 'package:app/models/contact.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -7,18 +8,32 @@ part 'room_member.g.dart';
 enum UserStatusType { inviting, invited, blocked, removed }
 
 @JsonSerializable(includeIfNull: false)
-@Collection(ignore: {
-  'props',
-  'isCheck',
-  'messageCount',
-  'mlsPKExpired',
-  'nameFromRelay',
-  'avatarFromRelay',
-  'fetchFromRelayAt',
-  'displayName'
-})
+@Collection(
+  ignore: {
+    'props',
+    'isCheck',
+    'messageCount',
+    'mlsPKExpired',
+    'contact',
+    'displayName',
+  },
+)
 // ignore: must_be_immutable
 class RoomMember extends Equatable {
+  // fetch time
+
+  RoomMember({
+    required this.idPubkey,
+    required this.roomId,
+    required this.name,
+    this.status = UserStatusType.invited,
+  }) {
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
+
+  factory RoomMember.fromJson(Map<String, dynamic> json) =>
+      _$RoomMemberFromJson(json);
   @JsonKey(includeToJson: false, includeFromJson: false)
   Id id = Isar.autoIncrement;
 
@@ -49,32 +64,23 @@ class RoomMember extends Equatable {
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool mlsPKExpired = false;
 
-  // local cache
   @JsonKey(includeToJson: false, includeFromJson: false)
-  String? nameFromRelay; // fetch from relay
+  Contact? contact;
+  String get displayName => contact?.displayName ?? name;
 
-  @JsonKey(includeToJson: false, includeFromJson: false)
-  String? avatarFromRelay; // fetch from relay
-
-  @JsonKey(includeToJson: false, includeFromJson: false)
-  DateTime? fetchFromRelayAt; // fetch time
-
-  RoomMember(
-      {required this.idPubkey,
-      required this.roomId,
-      required this.name,
-      this.status = UserStatusType.invited}) {
-    createdAt = DateTime.now();
-    updatedAt = DateTime.now();
-  }
-  String get displayName => nameFromRelay ?? name;
-
-  factory RoomMember.fromJson(Map<String, dynamic> json) =>
-      _$RoomMemberFromJson(json);
+  String? msg; // last system message
 
   Map<String, dynamic> toJson() => _$RoomMemberToJson(this);
 
   @override
-  List<Object?> get props =>
-      [id, roomId, idPubkey, name, isAdmin, status, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    roomId,
+    idPubkey,
+    name,
+    isAdmin,
+    status,
+    createdAt,
+    updatedAt,
+  ];
 }

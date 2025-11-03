@@ -1,9 +1,9 @@
+import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:app/service/storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/service/storage.dart';
 
 class KeepAliveHosts extends StatefulWidget {
   const KeepAliveHosts({super.key});
@@ -23,7 +23,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
   }
 
   Future<void> _loadHosts() async {
-    hosts = await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+    hosts = Storage.getStringList(StorageKeyString.mobileKeepAlive);
     setState(() {});
   }
 
@@ -37,14 +37,14 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
               Text('Are you sure you want to remove "$host" from KeepAlive?'),
           actions: [
             CupertinoActionSheetAction(
-              onPressed: () => Get.back(),
+              onPressed: Get.back,
               child: const Text('Cancel'),
             ),
             CupertinoActionSheetAction(
               onPressed: () async {
                 await controller.disableKeepAlive(host);
                 await _loadHosts();
-                Get.back();
+                Get.back<void>();
               },
               child: const Text('Remove'),
             ),
@@ -63,7 +63,8 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
         return CupertinoAlertDialog(
           title: const Text('Clear All'),
           content: const Text(
-              'Are you sure you want to remove all KeepAlive hosts? This action cannot be undone.'),
+            'Are you sure you want to remove all KeepAlive hosts? This action cannot be undone.',
+          ),
           actions: [
             CupertinoActionSheetAction(
               onPressed: () => Navigator.of(context).pop(),
@@ -73,12 +74,12 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 // Clear all hosts
-                for (String host in hosts) {
-                  controller.removeKeepAlive(host);
-                }
+                hosts.forEach(controller.removeKeepAlive);
                 controller.mobileKeepAlive.clear();
                 await Storage.setStringList(
-                    StorageKeyString.mobileKeepAlive, []);
+                  StorageKeyString.mobileKeepAlive,
+                  [],
+                );
                 await _loadHosts();
 
                 if (mounted) {
@@ -132,7 +133,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       const Icon(Icons.info_outline, color: Colors.blue),
@@ -156,13 +157,17 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                       final host = hosts[index];
                       return Card(
                         margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: ListTile(
                           leading: const Icon(Icons.web, color: Colors.green),
                           title: Text(host),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.red),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
                             onPressed: () => _removeHost(host),
                             tooltip: 'Remove host',
                           ),
@@ -173,7 +178,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                 ),
                 if (hosts.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16),
                     child: Text(
                       '${hosts.length} host${hosts.length == 1 ? '' : 's'} configured',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(

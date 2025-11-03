@@ -7,16 +7,14 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
-const String _pingReq =
-    '["REQ", "keychat-relay-status-check", {"kinds": [1], "limit": 1,"authors": ["bbf923aa9246065f88c40c7d9bf61cccc0ff3fcff065a8cb2ff4cfbb62088f1e"]}]';
 
 class RelayWebsocket {
+  RelayWebsocket(this.relay, this.ws);
   RelayService rs = RelayService.instance;
   late Relay relay;
   WebSocket? channel;
@@ -25,52 +23,59 @@ class RelayWebsocket {
   bool pong = false;
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
-  RelayWebsocket(this.relay, this.ws);
 
   Future<void> _startListen() async {
     // id keys
-    List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
+    final pubkeys = await IdentityService.instance.getListenPubkeys();
 
-    listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
-        [EventKinds.nip17]);
+    listenPubkeys(
+      pubkeys,
+      DateTime.now().subtract(const Duration(days: 2)),
+      [EventKinds.nip17],
+    );
 
     // mls group room
-    DateTime since =
+    final since =
         await MessageService.instance.getNostrListenStartAt(relay.url);
-    List<String> mlsRoomKeys =
-        await IdentityService.instance.getMlsRoomPubkeys();
+    final mlsRoomKeys = await IdentityService.instance.getMlsRoomPubkeys();
     listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);
 
     // signal room keys
-    List<String> signalRoomKeys =
+    final signalRoomKeys =
         await IdentityService.instance.getSignalRoomPubkeys();
 
     listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
 
-  Future listenPubkeys(
-      List<String> pubkeys, DateTime since, List<int> kinds) async {
-    List<List<String>> groups = listToGroupList(pubkeys, 120);
+  void listenPubkeys(
+    List<String> pubkeys,
+    DateTime since,
+    List<int> kinds,
+  ) {
+    final groups = listToGroupList(pubkeys, 120);
 
-    for (List<String> group in groups) {
-      String subId = generate64RandomHexChars(16);
+    for (final group in groups) {
+      final subId = generate64RandomHexChars(16);
 
-      NostrReqModel req = NostrReqModel(
-          reqId: subId, kinds: kinds, pubkeys: group, since: since);
+      final req = NostrReqModel(
+        reqId: subId,
+        kinds: kinds,
+        pubkeys: group,
+        since: since,
+      );
       sendRawREQ(req.toString());
     }
   }
 
   dynamic sendREQ(NostrReqModel nq) {
-    _statusCheck();
     if (subscriptions.keys.length < maxReqCount) {
       if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
         subscriptions[nq.reqId] = Set.from(nq.pubkeys!);
       }
       return sendRawREQ(nq.toString());
     }
-    int index = sentReqCount % maxReqCount;
-    String key = subscriptions.keys.elementAt(index);
+    final index = sentReqCount % maxReqCount;
+    final key = subscriptions.keys.elementAt(index);
     if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
       subscriptions[key]!.addAll(nq.pubkeys!);
     }
@@ -109,30 +114,10 @@ class RelayWebsocket {
     }
   }
 
-  Future _proccessFailedEvents() async {
-    Set<String> failedEvents = ws.getFailedEvents(relay.url);
-    if (failedEvents.isEmpty) return;
-    logger.i('proccessFailedEvents: ${failedEvents.length}');
-    List<String> tasksString = failedEvents.toList();
-    failedEvents.clear();
-    AsyncQueue queue = AsyncQueue.autoStart();
-    for (String element in tasksString) {
-      queue.addJob((_) => sendRawREQ(element, retry: true));
-    }
-  }
-
-  void sendRawREQ(String message, {bool retry = false}) {
-    try {
-      _statusCheck();
-      channel?.send(message);
-      loggerNoLine.d('TO [${relay.url}]: $message');
-    } catch (e, s) {
-      logger.e('TO [${relay.url}]: $message', error: e, stackTrace: s);
-      if (retry) {
-        ws.addFailedEvents(relay.url, message);
-      }
-      rethrow;
-    }
+  void sendRawREQ(String message) {
+    _statusCheck();
+    channel!.send(message);
+    loggerNoLine.d('TO [${relay.url}]: $message');
   }
 
   // send ping to relay. if relay not response, socket is closed.
@@ -142,7 +127,7 @@ class RelayWebsocket {
     }
     pong = false;
     try {
-      channel!.send(_pingReq);
+      channel!.send('ping');
       // loggerNoLine.d('TO [${relay.url}]: ping');
     } catch (e) {
       return false;
@@ -157,22 +142,19 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess() async {
+  Future<void> connectSuccess() async {
     subscriptions.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
 
-    _startListen();
-    Future.delayed(const Duration(seconds: 1)).then((value) {
-      // init mls keypackages
-      EasyDebounce.debounce(
-          'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
-        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
-      });
-      _proccessFailedEvents();
-      // nwc reconnect
-      Utils.getGetxController<NostrWalletConnectController>()
-          ?.startListening(relay.url);
+    await _startListen();
+
+    EasyDebounce.debounce(
+        'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
+      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
     });
+    // nwc reconnect
+    Utils.getGetxController<NostrWalletConnectController>()
+        ?.startListening(relay.url);
   }
 }

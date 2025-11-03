@@ -8,8 +8,9 @@ part of 'relay_message_fee.dart';
 
 RelayMessageFee _$RelayMessageFeeFromJson(Map<String, dynamic> json) =>
     RelayMessageFee()
-      ..mints =
-          (json['mints'] as List<dynamic>).map((e) => e as String).toList()
+      ..mints = (json['mints'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList()
       ..amount = (json['amount'] as num).toInt()
       ..unit = $enumDecode(_$EcashTokenSymbolEnumMap, json['unit'])
       ..updatedAt = DateTime.parse(json['updatedAt'] as String);

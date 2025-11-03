@@ -1,31 +1,36 @@
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:mutex/mutex.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:mutex/mutex.dart';
 
 class ContactService {
-  static ContactService? _instance;
-  static ContactService get instance => _instance ??= ContactService._();
   // Avoid self instance
   ContactService._();
+  static ContactService? _instance;
+  static ContactService get instance => _instance ??= ContactService._();
   static Map<String, int> receiveKeyRooms = {};
   final Mutex myReceiveKeyMutex = Mutex();
 
   Future<List<String>> addReceiveKey(Room room, String address) async {
     await myReceiveKeyMutex.acquire(); // lock
     try {
-      ContactReceiveKey crk = await getOrCreateContactReceiveKey(
-          room.identityId, room.toMainPubkey, room.id);
-      List<String> keys = crk.receiveKeys;
+      final crk = await getOrCreateContactReceiveKey(
+        room.identityId,
+        room.toMainPubkey,
+        room.id,
+      );
+      final keys = crk.receiveKeys;
       receiveKeyRooms[address] = room.id;
       if (keys.isNotEmpty && keys.lastOrNull == address) return [];
-      List<String> newReceiveKeys = [...keys, address];
-      crk.receiveKeys = newReceiveKeys;
-      crk.roomId = room.id;
+      final newReceiveKeys = <String>[...keys, address];
+      crk
+        ..receiveKeys = newReceiveKeys
+        ..roomId = room.id;
       await _saveReceiveKey(crk);
     } finally {
       myReceiveKeyMutex.release();
@@ -33,48 +38,48 @@ class ContactService {
     return [address];
   }
 
-  Future<Contact> createContact(
-      {required String pubkey,
-      required int identityId,
-      String? petname,
-      String? name,
-      String? curve25519PkHex,
-      bool autoCreateFromGroup = false}) async {
-    String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
-    Contact contact =
-        Contact(pubkey: pubKeyHex, npubkey: '', identityId: identityId)
-          ..curve25519PkHex = curve25519PkHex
-          ..autoCreateFromGroup = autoCreateFromGroup;
+  Future<Contact> createContact({
+    required String pubkey,
+    required int identityId,
+    String? petname,
+    String? name,
+    String? curve25519PkHex,
+    bool autoCreateFromGroup = false,
+  }) async {
+    final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    final contact = Contact(pubkey: pubKeyHex, identityId: identityId)
+      ..curve25519PkHex = curve25519PkHex
+      ..autoCreateFromGroup = autoCreateFromGroup;
     if (name != null) {
       contact.name = name.trim();
     }
     if (petname != null) {
       contact.petname = petname.trim();
     }
-    int id = await saveContact(contact, sync: true);
+    final id = await saveContact(contact);
     contact.id = id;
     return contact;
   }
 
-  Future deleteContact(Contact contact) async {
-    Isar database = DBProvider.database;
+  Future<void> deleteContact(Contact contact) async {
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.contacts.filter().idEqualTo(contact.id).deleteFirst();
     });
   }
 
-  Future deleteContactByPubkey(String pubkey, int identity) async {
-    Isar database = DBProvider.database;
-    Contact? contact = await getContact(identity, pubkey);
+  Future<void> deleteContactByPubkey(String pubkey, int identity) async {
+    final database = DBProvider.database;
+    final contact = await getContact(identity, pubkey);
     if (contact == null) return;
     await database.writeTxn(() async {
       await database.contacts.filter().idEqualTo(contact.id).deleteFirst();
     });
   }
 
-  Future deleteContactReceiveKeys(Contact contact) async {
-    Isar database = DBProvider.database;
-    ContactReceiveKey? model = await database.contactReceiveKeys
+  Future<void> deleteContactReceiveKeys(Contact contact) async {
+    final database = DBProvider.database;
+    final model = await database.contactReceiveKeys
         .filter()
         .pubkeyEqualTo(contact.pubkey)
         .identityIdEqualTo(contact.identityId)
@@ -88,38 +93,34 @@ class ContactService {
           .identityIdEqualTo(contact.identityId)
           .deleteAll();
     });
-    List<String> pubkeys = [...model.receiveKeys, ...model.removeReceiveKeys];
+    final pubkeys = <String>[...model.receiveKeys, ...model.removeReceiveKeys];
     if (model.receiveKeys.isNotEmpty || model.removeReceiveKeys.isNotEmpty) {
       Get.find<WebsocketService>().removePubkeysFromSubscription(pubkeys);
       NotifyService.removePubkeys(pubkeys);
     }
   }
 
-  Future deleteReceiveKey(
-      int identityId, String toMainPubkey, String pubkey) async {
+  Future<void> deleteReceiveKey(
+    int identityId,
+    String toMainPubkey,
+    String pubkey,
+  ) async {
     await myReceiveKeyMutex.acquire();
     try {
-      ContactReceiveKey crk =
-          await getOrCreateContactReceiveKey(identityId, toMainPubkey);
+      final crk = await getOrCreateContactReceiveKey(identityId, toMainPubkey);
 
       if (crk.receiveKeys.isEmpty ||
           crk.receiveKeys.length <= KeychatGlobal.remainReceiveKeyPerRoom) {
         return;
       }
-      int index = crk.receiveKeys.indexOf(pubkey);
+      final index = crk.receiveKeys.indexOf(pubkey);
       if (index + 1 < KeychatGlobal.remainReceiveKeyPerRoom) return;
 
-      List<String> removeReceiveKeys = crk.receiveKeys.sublist(0, index - 1);
-      List<String> remain = crk.receiveKeys.sublist(index - 1);
+      final removeReceiveKeys = crk.receiveKeys.sublist(0, index - 1);
+      final remain = crk.receiveKeys.sublist(index - 1);
       crk.receiveKeys = remain;
       Get.find<WebsocketService>().removePubkeyFromSubscription(pubkey);
-
-      if (Get.find<HomeController>().debugModel.value == false) {
-        crk.removeReceiveKeys = [
-          ...crk.removeReceiveKeys,
-          ...removeReceiveKeys
-        ];
-      }
+      crk.removeReceiveKeys = [...crk.removeReceiveKeys, ...removeReceiveKeys];
 
       await _saveReceiveKey(crk);
     } finally {
@@ -128,14 +129,14 @@ class ContactService {
   }
 
   Future<List<String>> getAllReceiveKeys({List<int> skipIDs = const []}) async {
-    Set<String> set = {};
-    var list = await DBProvider.database.contactReceiveKeys
+    final set = <String>{};
+    final list = await DBProvider.database.contactReceiveKeys
         .filter()
         .receiveKeysIsNotEmpty()
         .findAll();
-    for (ContactReceiveKey crk in list) {
+    for (final crk in list) {
       if (skipIDs.contains(crk.identityId)) continue;
-      for (String address in crk.receiveKeys) {
+      for (final address in crk.receiveKeys) {
         if (crk.roomId > -1) {
           receiveKeyRooms[address] = crk.roomId;
         }
@@ -145,15 +146,16 @@ class ContactService {
     return set.toList();
   }
 
-  Future<List<String>> getAllReceiveKeysSkipMute(
-      {required List<int> skipIDs}) async {
-    Set<String> set = {};
-    var list = await DBProvider.database.contactReceiveKeys
+  Future<List<String>> getAllReceiveKeysSkipMute({
+    required List<int> skipIDs,
+  }) async {
+    final set = <String>{};
+    final list = await DBProvider.database.contactReceiveKeys
         .filter()
         .receiveKeysIsNotEmpty()
         .isMuteEqualTo(false)
         .findAll();
-    for (ContactReceiveKey crk in list) {
+    for (final crk in list) {
       if (skipIDs.contains(crk.identityId)) continue;
       set.addAll(crk.receiveKeys);
     }
@@ -161,19 +163,19 @@ class ContactService {
   }
 
   Future<List<String>> getAllToRemoveKeys() async {
-    Set<String> set = {};
-    var list = await DBProvider.database.contactReceiveKeys
+    final set = <String>{};
+    final list = await DBProvider.database.contactReceiveKeys
         .filter()
         .removeReceiveKeysElementIsNotEmpty()
         .findAll();
-    for (ContactReceiveKey crk in list) {
+    for (final crk in list) {
       set.addAll(crk.removeReceiveKeys);
     }
     return set.toList();
   }
 
   Future<Contact?> getContact(int identityId, String pubkey) async {
-    return await DBProvider.database.contacts
+    return DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(pubkey)
         .identityIdEqualTo(identityId)
@@ -181,34 +183,26 @@ class ContactService {
   }
 
   Future<Contact?> getContactById(int id) async {
-    return await DBProvider.database.contacts
-        .filter()
-        .idEqualTo(id)
-        .findFirst();
+    return DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
   }
 
-  Future<List<Contact>> getContactList(int identityId) async {
-    Isar database = DBProvider.database;
-
-    return await database.contacts
+  Future<List<Contact>> getFriendContacts(int identityId) async {
+    return DBProvider.database.contacts
         .filter()
         .identityIdEqualTo(identityId)
+        .autoCreateFromGroupEqualTo(false)
         .findAll();
   }
 
-  Future<List<Contact>> getListExcludeSelf(int identityId) async {
-    Isar database = DBProvider.database;
-
-    return await database.contacts
+  Future<List<Contact>> getContactList(int identityId) async {
+    return DBProvider.database.contacts
         .filter()
         .identityIdEqualTo(identityId)
-        .not()
-        .nameEqualTo(KeychatGlobal.selfName)
         .findAll();
   }
 
   List<Contact> getContactListSearch(String query, int identityId) {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     return database.contacts
         .filter()
@@ -219,14 +213,14 @@ class ContactService {
   }
 
   Future<List<Contact>> getContacts(String pubkey) async {
-    return await DBProvider.database.contacts
+    return DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(pubkey)
         .findAll();
   }
 
   List<String>? getMyReceiveKeys(Room room) {
-    ContactReceiveKey? crk = DBProvider.database.contactReceiveKeys
+    final crk = DBProvider.database.contactReceiveKeys
         .filter()
         .identityIdEqualTo(room.identityId)
         .pubkeyEqualTo(room.toMainPubkey)
@@ -235,43 +229,54 @@ class ContactService {
     return crk?.receiveKeys;
   }
 
-  Future<Contact> getOrCreateContact(int identityId, String npubkey,
-      {String? name, String? curve25519PkHex}) async {
-    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: npubkey);
-    Contact? c = await getContact(identityId, pubkey);
+  Future<Contact> getOrCreateContact({
+    required int identityId,
+    required String pubkey,
+    String? name,
+    String? curve25519PkHex,
+    bool autoCreateFromGroup = false,
+  }) async {
+    final hex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    final c = await getContact(identityId, hex);
 
     if (c != null) {
       return c;
     }
 
-    return await createContact(
-        identityId: identityId,
-        pubkey: pubkey,
-        name: name,
-        curve25519PkHex: curve25519PkHex);
+    return createContact(
+      identityId: identityId,
+      pubkey: pubkey,
+      name: name,
+      curve25519PkHex: curve25519PkHex,
+      autoCreateFromGroup: autoCreateFromGroup,
+    );
   }
 
   Future<ContactReceiveKey> getOrCreateContactReceiveKey(
-      int identityId, String toMainPubkey,
-      [int? roomId]) async {
-    ContactReceiveKey? crk = DBProvider.database.contactReceiveKeys
+    int identityId,
+    String toMainPubkey, [
+    int? roomId,
+  ]) async {
+    final crk = DBProvider.database.contactReceiveKeys
         .filter()
         .identityIdEqualTo(identityId)
         .pubkeyEqualTo(toMainPubkey)
         .findFirstSync();
     if (crk != null) return crk;
-    var model = ContactReceiveKey(identityId: identityId, pubkey: toMainPubkey)
-      ..roomId = roomId ?? -1;
+    final model = ContactReceiveKey(
+      identityId: identityId,
+      pubkey: toMainPubkey,
+    )..roomId = roomId ?? -1;
     await DBProvider.database.writeTxn(() async {
-      int id = await DBProvider.database.contactReceiveKeys.put(model);
+      final id = await DBProvider.database.contactReceiveKeys.put(model);
       model.id = id;
     });
     return model;
   }
 
   Contact? getOrCreateContactSync(int identityId, String toMainPubkey) {
-    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: toMainPubkey);
-    Contact? c = DBProvider.database.contacts
+    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: toMainPubkey);
+    var c = DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(pubkey)
         .identityIdEqualTo(identityId)
@@ -280,50 +285,54 @@ class ContactService {
     if (c != null) {
       return c;
     }
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey);
-    c = Contact(identityId: identityId, npubkey: npub, pubkey: pubkey);
+    c = Contact(identityId: identityId, pubkey: pubkey);
     DBProvider.database.writeTxnSync(() {
-      int id = DBProvider.database.contacts.putSync(c!);
+      final id = DBProvider.database.contacts.putSync(c!);
       c.id = id;
     });
     return c;
   }
 
-  Future removeAllToRemoveKeys() async {
-    List<ContactReceiveKey> list = await DBProvider.database.contactReceiveKeys
+  Future<void> removeAllToRemoveKeys() async {
+    final list = await DBProvider.database.contactReceiveKeys
         .filter()
         .removeReceiveKeysElementIsNotEmpty()
         .findAll();
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     await database.writeTxn(() async {
-      for (ContactReceiveKey c in list) {
+      for (final c in list) {
         c.removeReceiveKeys = [];
         await database.contactReceiveKeys.put(c);
       }
     });
   }
 
-  Future<int> saveContact(Contact contact, {bool sync = true}) async {
-    Isar database = DBProvider.database;
-    int id = 0;
+  Future<int> saveContact(Contact contact) async {
+    final database = DBProvider.database;
+    var id = 0;
     await database.writeTxn(() async {
       id = await database.contacts.put(contact);
     });
     return id;
   }
 
-  Future updateContact(
-      {required int identityId,
-      required String pubkey,
-      String? petname,
-      String? name,
-      String? metadata}) async {
-    String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+  Future<void> updateContact({
+    required int identityId,
+    required String pubkey,
+    String? petname,
+    String? name,
+    String? metadata,
+  }) async {
+    final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
 
-    var contact = await getContact(identityId, pubKeyHex);
+    final contact = await getContact(identityId, pubKeyHex);
     if (contact == null) {
       await createContact(
-          pubkey: pubkey, identityId: identityId, petname: petname, name: name);
+        pubkey: pubkey,
+        identityId: identityId,
+        petname: petname,
+        name: name,
+      );
       return;
     }
     if (name != null) {
@@ -336,14 +345,14 @@ class ContactService {
     if (metadata != null) {
       contact.metadata = metadata;
     }
-    await saveContact(contact, sync: false);
+    await saveContact(contact);
   }
 
-  Future updateOrCreateByRoom(Room room, String? contactName) async {
+  Future<void> updateOrCreateByRoom(Room room, String? contactName) async {
     if (contactName == null) return;
-    Contact contact = await getOrCreateContact(
-      room.identityId,
-      room.toMainPubkey,
+    final contact = await getOrCreateContact(
+      identityId: room.identityId,
+      pubkey: room.toMainPubkey,
     );
     if (contact.name != contactName) {
       contact.name = contactName;
@@ -351,15 +360,17 @@ class ContactService {
     }
   }
 
-  Future _saveReceiveKey(ContactReceiveKey crk) async {
+  Future<void> _saveReceiveKey(ContactReceiveKey crk) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.contactReceiveKeys.put(crk);
     });
   }
 
-  Future updateReceiveKeyIsMute(Room room, bool value) async {
-    ContactReceiveKey crk =
-        await getOrCreateContactReceiveKey(room.identityId, room.toMainPubkey);
+  Future<void> updateReceiveKeyIsMute(Room room, bool value) async {
+    final crk = await getOrCreateContactReceiveKey(
+      room.identityId,
+      room.toMainPubkey,
+    );
     return DBProvider.database.writeTxn(() async {
       crk.isMute = value;
       await DBProvider.database.contactReceiveKeys.put(crk);
@@ -367,6 +378,109 @@ class ContactService {
   }
 
   Contact? getContactSync(String pubkey) {
+    return DBProvider.database.contacts
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .findFirstSync();
+  }
+
+  Future<Contact> saveContactFromQrCode({
+    required int identityId,
+    required String pubkey,
+    required int version,
+    bool download = true,
+    String? name,
+    String? avatarRemoteUrl,
+    String? lightning,
+    String? bio,
+  }) async {
+    final contact = await ContactService.instance.getOrCreateContact(
+      identityId: identityId,
+      pubkey: pubkey,
+    );
+
+    if (version < contact.version) {
+      throw Exception('Older profile version');
+    }
+    contact.version = version;
+    if (name != null && contact.name != name) {
+      contact.name = name;
+    }
+    if (contact.lightning != lightning) {
+      contact.lightning = lightning;
+    }
+    if (contact.about != bio) {
+      contact.about = bio != null && bio.length > 200
+          ? bio.substring(0, 200)
+          : bio;
+    }
+    if (avatarRemoteUrl != contact.avatarRemoteUrl) {
+      try {
+        contact.avatarRemoteUrl = avatarRemoteUrl;
+        if (avatarRemoteUrl != null && download) {
+          final decryptedFile = await FileService.instance
+              .downloadAndDecryptToPath(
+                url: avatarRemoteUrl,
+                outputFolder: Utils.avatarsFolder,
+              );
+          logger.i(
+            'Avatar ${contact.pubkey} downloaded to ${decryptedFile.path}',
+          );
+          contact.avatarLocalPath = decryptedFile.path.replaceFirst(
+            Utils.appFolder.path,
+            '',
+          );
+        }
+      } catch (e) {
+        logger.e('Failed to download avatar: $e');
+      }
+    }
+    await ContactService.instance.saveContact(contact);
+    Utils.removeAvatarCacheByPubkey(contact.pubkey);
+    return contact;
+  }
+
+  Future<Contact> addContactToFriend({
+    required String pubkey,
+    required int identityId,
+    String? name,
+    bool fetchAvatar = false,
+  }) async {
+    final contact = await ContactService.instance.getOrCreateContact(
+      identityId: identityId,
+      pubkey: pubkey,
+      name: name,
+    );
+    if (contact.autoCreateFromGroup) {
+      contact.autoCreateFromGroup = false;
+      await ContactService.instance.saveContact(contact);
+    }
+
+    if (fetchAvatar &&
+        contact.avatarRemoteUrl != null &&
+        (contact.avatarLocalPath == null || contact.avatarLocalPath!.isEmpty)) {
+      try {
+        final decryptedFile = await FileService.instance
+            .downloadAndDecryptToPath(
+              url: contact.avatarRemoteUrl!,
+              outputFolder: Utils.avatarsFolder,
+            );
+        logger.i(
+          'Avatar ${contact.pubkey} downloaded to ${decryptedFile.path}',
+        );
+        contact.avatarLocalPath = decryptedFile.path.replaceFirst(
+          Utils.appFolder.path,
+          '',
+        );
+        await ContactService.instance.saveContact(contact);
+      } catch (e) {
+        logger.e('Failed to download avatar: $e');
+      }
+    }
+    return contact;
+  }
+
+  Contact? getContactByPubkeySync(String pubkey) {
     return DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(pubkey)

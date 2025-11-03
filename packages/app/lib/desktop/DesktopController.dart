@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/service/storage.dart';
@@ -10,8 +12,8 @@ class DesktopController extends GetxController {
   late SidebarXController sidebarXController;
   final globalKey = GlobalKey<ScaffoldState>();
 
-  final roomListWidth = 260.0.obs;
-  final browserSidebarWidth = 180.0.obs;
+  RxDouble roomListWidth = 260.0.obs;
+  RxDouble browserSidebarWidth = 180.0.obs;
   late HomeController hc;
 
   @override
@@ -19,18 +21,27 @@ class DesktopController extends GetxController {
     hc = Get.find<HomeController>();
     sidebarXController =
         SidebarXController(selectedIndex: hc.selectedTabIndex, extended: false);
-    sidebarXController.addListener(() {
-      hc.setSelectedTab(sidebarXController.selectedIndex);
+    sidebarXController.addListener(() async {
+      await hc.setSelectedTab(sidebarXController.selectedIndex);
     });
     super.onInit();
-    _loadRoomListWidth();
-    _loadBrowserSidebarWidth(); // Add this line to load browser sidebar width
+    unawaited(_loadRoomListWidth());
+    unawaited(
+      _loadBrowserSidebarWidth(),
+    ); // Add this line to load browser sidebar width
+  }
+
+  void activeChatTabAndToRoom(Room room) {
+    selectedRoom.value = room;
+    sidebarXController.selectIndex(0);
+    unawaited(hc.setSelectedTab(0));
   }
 
   Future<void> _loadRoomListWidth() async {
-    double? savedWidth = double.tryParse(
-        (await Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
-            roomListWidth.value.toString());
+    final savedWidth = double.tryParse(
+      (Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
+          roomListWidth.value.toString(),
+    );
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       roomListWidth.value = savedWidth;
     }
@@ -38,9 +49,10 @@ class DesktopController extends GetxController {
 
   // Add this method to load browser sidebar width
   Future<void> _loadBrowserSidebarWidth() async {
-    double? savedWidth = double.tryParse((await Storage.getString(
-            StorageKeyString.desktopBrowserSidebarWidth)) ??
-        browserSidebarWidth.value.toString());
+    final savedWidth = double.tryParse(
+      (Storage.getString(StorageKeyString.desktopBrowserSidebarWidth)) ??
+          browserSidebarWidth.value.toString(),
+    );
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       browserSidebarWidth.value = savedWidth;
     }
@@ -48,13 +60,17 @@ class DesktopController extends GetxController {
 
   Future<void> _saveRoomListWidth() async {
     await Storage.setString(
-        StorageKeyString.desktopRoomListWidth, roomListWidth.value.toString());
+      StorageKeyString.desktopRoomListWidth,
+      roomListWidth.value.toString(),
+    );
   }
 
   // Add this method to save browser sidebar width
   Future<void> _saveBrowserSidebarWidth() async {
-    await Storage.setString(StorageKeyString.desktopBrowserSidebarWidth,
-        browserSidebarWidth.value.toString());
+    await Storage.setString(
+      StorageKeyString.desktopBrowserSidebarWidth,
+      browserSidebarWidth.value.toString(),
+    );
   }
 
   void setRoomListWidth(double width) {

@@ -4,7 +4,7 @@ const String nip04MessageKeyword = '?iv=';
 int gDefaultNumWaitSeconds = 5000; // is used in main()
 int waitContactSeconds = 5000; // is used in main()
 
-class NostrResKinds {
+class NostrResponseKinds {
   static const String notice = 'NOTICE';
   static const String ok = 'OK';
   static const String auth = 'AUTH';
@@ -47,6 +47,7 @@ class KeyChatEventKinds {
   static const int signalRelaySyncInvite = 45;
   static const int signalRelaySyncConfirm = 46;
   static const int signalRelaySyncRefuse = 47;
+  static const int signalSendProfile = 48;
 
   // > 2000, common proccess
   // WebRTC

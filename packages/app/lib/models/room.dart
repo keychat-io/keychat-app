@@ -1,10 +1,8 @@
 import 'dart:convert';
 
 import 'package:app/bot/bot_server_message_model.dart';
-
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
-
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -48,20 +46,33 @@ enum RoomStatus {
   groupUser, // not show in room list. used by group
 }
 
-@Collection(ignore: {
-  'props',
-  'contact',
-  'unReadCount',
-  'lastMessageModel',
-  'isSendAllGroup',
-  'isShareKeyGroup',
-  'isKDFGroup',
-  'isMLSGroup',
-  'parentRoom',
-  'keyPair'
-})
+@Collection(
+  ignore: {
+    'props',
+    'contact',
+    'unReadCount',
+    'lastMessageModel',
+    'isSendAllGroup',
+    'isShareKeyGroup',
+    'isKDFGroup',
+    'isMLSGroup',
+    'parentRoom',
+    'keyPair',
+  },
+)
 // ignore: must_be_immutable
 class Room extends Equatable {
+  // for mls group
+
+  Room({
+    required this.toMainPubkey,
+    required this.npub,
+    required this.identityId,
+    this.status = RoomStatus.enabled,
+    this.type = RoomType.common,
+  }) {
+    createdAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
@@ -124,16 +135,7 @@ class Room extends Equatable {
   // relays
   List<String> receivingRelays = [];
   List<String> sendingRelays = [];
-  bool sentHelloToMLS = false; // for mls group
-
-  Room(
-      {required this.toMainPubkey,
-      required this.npub,
-      required this.identityId,
-      this.status = RoomStatus.enabled,
-      this.type = RoomType.common}) {
-    createdAt = DateTime.now();
-  }
+  bool sentHelloToMLS = false;
 
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
@@ -149,22 +151,22 @@ class Room extends Equatable {
   List<Object?> get props => [
         id,
         toMainPubkey,
-        mykey,
         createdAt,
         unReadCount,
         name,
-        // groupChat
+        status,
+        type,
       ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
 
   // if exist signalIdPubkey return it ,else use identity's keypair
   Future<KeychatIdentityKeyPair> getKeyPair() async {
-    ChatxService chatxService = Get.find<ChatxService>();
+    final chatxService = Get.find<ChatxService>();
     if (signalIdPubkey == null) {
-      return await chatxService.getKeyPairByIdentity(getIdentity());
+      return chatxService.getKeyPairByIdentity(getIdentity());
     }
-    SignalId? si = getMySignalId();
+    final si = getMySignalId();
     if (si != null) {
       return chatxService.setupSignalStoreBySignalId(si.pubkey, si);
     }
@@ -189,7 +191,7 @@ class Room extends Equatable {
   SignalId? getMySignalId() {
     if (signalIdPubkey == null) return null;
 
-    SignalId? res = DBProvider.database.signalIds
+    final res = DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(signalIdPubkey!)
         .identityIdEqualTo(identityId)
@@ -200,7 +202,7 @@ class Room extends Equatable {
   SignalId getGroupSharedSignalId() {
     if (sharedSignalID == null) throw Exception('signalId is null');
 
-    SignalId? res = DBProvider.database.signalIds
+    final res = DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(sharedSignalID!)
         .findFirstSync();
@@ -209,8 +211,8 @@ class Room extends Equatable {
   }
 
   Future<RoomMember?> getEnableMember(String pubkey) async {
-    Isar database = DBProvider.database;
-    return await database.roomMembers
+    final database = DBProvider.database;
+    return database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .idPubkeyEqualTo(pubkey)
@@ -219,33 +221,33 @@ class Room extends Equatable {
   }
 
   Future<Map<String, RoomMember>> getMembers() async {
-    Map<String, RoomMember> map = {};
-    var list = await DBProvider.database.roomMembers
+    final map = <String, RoomMember>{};
+    final list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .findAll();
-    for (var rm in list) {
+    for (final rm in list) {
       map[rm.idPubkey] = rm;
     }
     return map;
   }
 
   Future<Map<String, RoomMember>> getEnableMembers() async {
-    Map<String, RoomMember> map = {};
+    final map = <String, RoomMember>{};
 
-    var list = await DBProvider.database.roomMembers
+    final list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .statusEqualTo(UserStatusType.invited)
         .findAll();
-    for (var rm in list) {
+    for (final rm in list) {
       map[rm.idPubkey] = rm;
     }
     return map;
   }
 
   Future<List<RoomMember>> getNotEnableMembers() async {
-    return await DBProvider.database.roomMembers
+    return DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .not()
@@ -255,18 +257,20 @@ class Room extends Equatable {
 
   // inviting + invited
   Future<List<RoomMember>> getActiveMembers() async {
-    return await DBProvider.database.roomMembers
+    return DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
-        .group((q) => q
-            .statusEqualTo(UserStatusType.invited)
-            .or()
-            .statusEqualTo(UserStatusType.inviting))
+        .group(
+          (q) => q
+              .statusEqualTo(UserStatusType.invited)
+              .or()
+              .statusEqualTo(UserStatusType.inviting),
+        )
         .findAll();
   }
 
   Future<List<RoomMember>> getInvitingMembers() async {
-    return await DBProvider.database.roomMembers
+    return DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .statusEqualTo(UserStatusType.inviting)
@@ -274,16 +278,16 @@ class Room extends Equatable {
   }
 
   Future<bool> checkAdminByIdPubkey(String pubkey) async {
-    String? admin = await getAdmin();
+    final admin = await getAdmin();
     if (admin == null) return false;
     return admin == pubkey;
   }
 
   Future<String?> getAdmin() async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     if (isMLSGroup) {
       try {
-        var info = await MlsGroupService.instance.getGroupExtension(this);
+        final info = await MlsGroupService.instance.getGroupExtension(this);
         if (info.admins.isEmpty) {
           return null;
         } else {
@@ -294,7 +298,7 @@ class Room extends Equatable {
         return null;
       }
     }
-    RoomMember? rm = await database.roomMembers
+    final rm = await database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .isAdminEqualTo(true)
@@ -306,15 +310,15 @@ class Room extends Equatable {
   Future<RoomMember> addMember({
     required String name,
     required String idPubkey,
-    String? curve25519PkHex,
     required UserStatusType status,
     required DateTime updatedAt,
     required DateTime createdAt,
+    String? curve25519PkHex,
     bool isAdmin = false,
   }) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    RoomMember? rm = await getMemberByIdPubkey(idPubkey);
+    var rm = await getMemberByIdPubkey(idPubkey);
     if (rm == null) {
       rm = RoomMember(idPubkey: idPubkey, name: name, roomId: id)
         ..createdAt = createdAt
@@ -340,15 +344,15 @@ class Room extends Equatable {
     return rm;
   }
 
-  Future updateAllMember(List<dynamic> list) async {
-    Isar database = DBProvider.database;
+  Future<void> updateAllMember(List<dynamic> list) async {
+    final database = DBProvider.database;
     if (list.isEmpty) return;
     await database.writeTxn(() async {
       // await database.roomMembers.filter().roomIdEqualTo(id).deleteAll();
-      for (var user in list) {
+      for (final user in list) {
         user['roomId'] = id;
-        RoomMember rm = RoomMember.fromJson(user);
-        RoomMember? exist = await database.roomMembers
+        final rm = RoomMember.fromJson(user);
+        final exist = await database.roomMembers
             .filter()
             .roomIdEqualTo(id)
             .idPubkeyEqualTo(rm.idPubkey)
@@ -377,10 +381,10 @@ class Room extends Equatable {
     });
   }
 
-  Future updateAllMemberTx(List<dynamic> list) async {
-    Isar database = DBProvider.database;
+  Future<void> updateAllMemberTx(List<dynamic> list) async {
+    final database = DBProvider.database;
     if (list.isEmpty) return;
-    for (var user in list) {
+    for (final user in list) {
       late RoomMember rm;
       if (user is RoomMember) {
         user.roomId = id;
@@ -389,7 +393,7 @@ class Room extends Equatable {
         user['roomId'] = id;
         rm = RoomMember.fromJson(user);
       }
-      RoomMember? exist = await database.roomMembers
+      final exist = await database.roomMembers
           .filter()
           .roomIdEqualTo(id)
           .idPubkeyEqualTo(rm.idPubkey)
@@ -421,17 +425,17 @@ class Room extends Equatable {
     RoomService.getController(id)?.resetMembers();
   }
 
-  Future updateMember(RoomMember rm) async {
-    Isar database = DBProvider.database;
+  Future<void> updateMember(RoomMember rm) async {
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.roomMembers.put(rm);
     });
   }
 
   Future<void> updateMemberName(String pubkey, String name) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    RoomMember? rm = await getMemberByIdPubkey(pubkey);
+    final rm = await getMemberByIdPubkey(pubkey);
     if (rm == null) return;
     rm.name = name;
     await database.writeTxn(() async {
@@ -440,9 +444,9 @@ class Room extends Equatable {
   }
 
   // soft delete
-  Future removeMember(String idPubkey) async {
-    Isar database = DBProvider.database;
-    RoomMember? rm = await getMemberByIdPubkey(idPubkey);
+  Future<void> removeMember(String idPubkey) async {
+    final database = DBProvider.database;
+    final rm = await getMemberByIdPubkey(idPubkey);
     if (rm == null) return;
 
     await database.writeTxn(() async {
@@ -451,8 +455,8 @@ class Room extends Equatable {
     });
   }
 
-  Future setMemberDisable(RoomMember rm) async {
-    RoomMember? model = await DBProvider.database.roomMembers
+  Future<void> setMemberDisable(RoomMember rm) async {
+    final model = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(rm.roomId)
         .idPubkeyEqualTo(rm.idPubkey)
@@ -464,8 +468,8 @@ class Room extends Equatable {
     });
   }
 
-  Future setMemberDisableByPubkey(String idPubkey) async {
-    RoomMember? model = await DBProvider.database.roomMembers
+  Future<void> setMemberDisableByPubkey(String idPubkey) async {
+    final model = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .idPubkeyEqualTo(idPubkey)
@@ -489,33 +493,34 @@ class Room extends Equatable {
   }
 
   Future<Map<String, Room>> getEnableMemberRooms() async {
-    Map<String, Room> memberRooms = {};
-    var rms = await getEnableMembers();
-    for (RoomMember rm in rms.values) {
+    final memberRooms = <String, Room>{};
+    final rms = await getEnableMembers();
+    for (final rm in rms.values) {
       if (rm.idPubkey == myIdPubkey) continue;
 
-      Room idRoom = await RoomService.instance.getOrCreateRoom(
-          rm.idPubkey, myIdPubkey, RoomStatus.groupUser,
-          contactName: rm.name);
+      final idRoom = await RoomService.instance.getOrCreateRoom(
+        rm.idPubkey,
+        myIdPubkey,
+        RoomStatus.groupUser,
+        contactName: rm.name,
+      );
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
-    RoomMember? member =
-        RoomService.getController(id)?.getMemberByIdPubkey(pubkey);
+    final member = RoomService.getController(id)?.getMemberByIdPubkey(pubkey);
     if (member != null) {
       return member;
     }
     if (isMLSGroup) {
-      Map<String, RoomMember> map =
-          await MlsGroupService.instance.getMembers(this);
+      final map = await MlsGroupService.instance.getMembers(this);
       return map[pubkey];
     }
 
     if (isSendAllGroup) {
-      return await DBProvider.database.roomMembers
+      return DBProvider.database.roomMembers
           .filter()
           .roomIdEqualTo(id)
           .idPubkeyEqualTo(pubkey)
@@ -525,12 +530,12 @@ class Room extends Equatable {
   }
 
   Future<Map<String, Room>> getActiveMemberRooms(Mykey mainMykey) async {
-    Map<String, Room> memberRooms = {};
-    List<RoomMember> rms = (await getMembers()).values.toList();
-    for (RoomMember rm in rms) {
+    final memberRooms = <String, Room>{};
+    final rms = (await getMembers()).values.toList();
+    for (final rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 
-      Room idRoom = await RoomService.instance
+      final idRoom = await RoomService.instance
           .getOrCreateRoom(rm.idPubkey, mainMykey.pubkey, RoomStatus.groupUser);
       memberRooms[rm.idPubkey] = idRoom;
     }
@@ -538,7 +543,7 @@ class Room extends Equatable {
   }
 
   Future<RoomMember?> getMemberByNostrPubkey(String pubkey) async {
-    return await DBProvider.database.roomMembers
+    return DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .idPubkeyEqualTo(pubkey)
@@ -549,20 +554,8 @@ class Room extends Equatable {
     return type == RoomType.common ? identityId : 10000 + id;
   }
 
-  Future createMember(
-      String pubkey, String displayName, UserStatusType status) async {
-    var me = RoomMember(idPubkey: pubkey, name: displayName, roomId: id)
-      ..status = status
-      ..createdAt = DateTime.now()
-      ..updatedAt = DateTime.now();
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.roomMembers.put(me);
-    });
-    return getMemberByNostrPubkey(pubkey);
-  }
-
-  Future incrMessageCountForMember(RoomMember member) async {
-    bool changeMember = false;
+  Future<void> incrMessageCountForMember(RoomMember member) async {
+    var changeMember = false;
     if (member.status != UserStatusType.invited) {
       member.status = UserStatusType.invited;
       changeMember = true;
@@ -577,7 +570,8 @@ class Room extends Equatable {
   }
 
   String getDebugInfo(String error) {
-    return '''$error
+    return '''
+$error
 Room: $id, ${getRoomName()} $toMainPubkey,
 Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
   }
@@ -586,9 +580,10 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
     if (botLocalConfig == null) return null;
     BotMessageData? bmd;
     try {
-      Map config = jsonDecode(botLocalConfig!);
+      final Map config = jsonDecode(botLocalConfig!) as Map<String, dynamic>;
       bmd = BotMessageData.fromJson(
-          config[MessageMediaType.botPricePerMessageRequest.name]);
+        config[MessageMediaType.botPricePerMessageRequest.name],
+      );
     } catch (e) {
       return null;
     }

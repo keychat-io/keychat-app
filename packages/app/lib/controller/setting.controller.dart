@@ -1,14 +1,10 @@
-import 'dart:io' show Directory;
-
 import 'package:app/app.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
 class SettingController extends GetxController with StateMixin<Type> {
@@ -23,43 +19,20 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   RxList<String> mediaServers = [
     KeychatGlobal.defaultFileServer,
-    "https://void.cat",
-    'https://nostr.download'
+    'https://void.cat',
+    'https://nostr.download',
   ].obs;
-
-  Directory appFolder = Directory('/');
-  late String avatarsFolder;
-  late String browserCacheFolder;
-  late String browserUserDataFolder;
 
   RxInt biometricsAuthTime = RxInt(0);
 
   @override
-  void onInit() async {
-    loadBiometricsStatus();
-    appFolder = await Utils.getAppFolder();
-
+  Future<void> onInit() async {
+    await loadBiometricsStatus();
     // viewKeychatFutures.value = await getViewKeychatFutures();
-    autoCleanMessageDays.value =
-        await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+    autoCleanMessageDays.value = Storage.getIntOrZero(
+      StorageKeyString.autoDeleteMessageDays,
+    );
 
-    // avatar folder
-    avatarsFolder = '${appFolder.path}/avatars';
-    browserCacheFolder = '${appFolder.path}/browserCache';
-    browserUserDataFolder = '${appFolder.path}/browserUserData';
-    String errorsFolder = '${appFolder.path}/errors';
-
-    for (var folder in [
-      avatarsFolder,
-      browserCacheFolder,
-      browserUserDataFolder,
-      errorsFolder
-    ]) {
-      Directory(folder).exists().then((res) {
-        if (res) return;
-        Directory(folder).createSync(recursive: true);
-      });
-    }
     // Catch uncaught Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
@@ -88,29 +61,31 @@ class SettingController extends GetxController with StateMixin<Type> {
     initMediaServer();
   }
 
-  Future loadBiometricsStatus() async {
-    bool status = await SecureStorage.instance.isBiometricsEnable();
+  Future<void> loadBiometricsStatus() async {
+    final status = await SecureStorage.instance.isBiometricsEnable();
     biometricsEnabled.value = status;
 
-    biometricsAuthTime.value =
-        await Storage.getIntOrZero(StorageKeyString.biometricsAuthTime);
+    biometricsAuthTime.value = Storage.getIntOrZero(
+      StorageKeyString.biometricsAuthTime,
+    );
   }
 
-  Future setBiometricsStatus(bool status) async {
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate =
+  Future<void> setBiometricsStatus(bool status) async {
+    final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+    final canAuthenticate =
         canAuthenticateWithBiometrics || await auth.isDeviceSupported();
     logger.d(
-        'canAuthenticate: $canAuthenticate canAuthenticateWithBiometrics: $canAuthenticateWithBiometrics');
+      'canAuthenticate: $canAuthenticate canAuthenticateWithBiometrics: $canAuthenticateWithBiometrics',
+    );
     if (!canAuthenticate) {
       EasyLoading.showError('Biometrics not available');
       return;
     }
 
     try {
-      final bool didAuthenticate = await auth.authenticate(
-          localizedReason: 'Authenticate',
-          options: const AuthenticationOptions(useErrorDialogs: false));
+      final didAuthenticate = await auth.authenticate(
+        localizedReason: 'Authenticate',
+      );
       loggerNoLine.i('User authenticated: $didAuthenticate');
       if (!didAuthenticate) {
         EasyLoading.showError('Authentication failed');
@@ -118,22 +93,22 @@ class SettingController extends GetxController with StateMixin<Type> {
       }
       await SecureStorage.instance.setBiometrics(status);
       biometricsEnabled.value = status;
-    } on PlatformException catch (e) {
+    } on LocalAuthException catch (e) {
       late String message;
-      if (e.code == auth_error.notAvailable) {
+      if (e.code == LocalAuthExceptionCode.noBiometricHardware) {
         message = 'Biometrics are not available.';
-      } else if (e.code == auth_error.notEnrolled) {
+      } else if (e.code == LocalAuthExceptionCode.noBiometricsEnrolled) {
         message = 'No biometrics are enrolled.';
       } else {
-        message = 'Authentication failed: ${e.message}';
+        message = 'Authentication failed: $e';
       }
       EasyLoading.showError(message);
     }
   }
 
   Future<bool> authenticate() async {
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate =
+    final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+    final canAuthenticate =
         canAuthenticateWithBiometrics || await auth.isDeviceSupported();
     if (!canAuthenticate) {
       EasyLoading.showError('Biometrics not available');
@@ -141,9 +116,9 @@ class SettingController extends GetxController with StateMixin<Type> {
     }
 
     try {
-      bool result = await auth.authenticate(
-          localizedReason: 'Authenticate',
-          options: const AuthenticationOptions(useErrorDialogs: false));
+      final result = await auth.authenticate(
+        localizedReason: 'Authenticate',
+      );
       return result;
     } catch (e) {
       EasyLoading.showError('Auth Failed: $e');
@@ -153,8 +128,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   }
 
   Future<bool> getViewKeychatFutures() async {
-    int res =
-        await Storage.getIntOrZero(StorageKeyString.getViewKeychatFutures);
+    final res = Storage.getIntOrZero(StorageKeyString.getViewKeychatFutures);
     return res == 1;
   }
 
@@ -164,13 +138,12 @@ class SettingController extends GetxController with StateMixin<Type> {
   }
 
   Future<void> initMediaServer() async {
-    String? res = await Storage.getString(StorageKeyString.selectedMediaServer);
+    final res = Storage.getString(StorageKeyString.selectedMediaServer);
     if (res != null) {
       selectedMediaServer.value = res;
     }
 
-    List<String> servers =
-        await Storage.getStringList(StorageKeyString.mediaServers);
+    final servers = Storage.getStringList(StorageKeyString.mediaServers);
     if (servers.isNotEmpty) {
       mediaServers.value = servers;
     }
@@ -186,7 +159,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     await Storage.setStringList(StorageKeyString.mediaServers, servers);
   }
 
-  void removeMediaServer(String url) async {
+  Future<void> removeMediaServer(String url) async {
     mediaServers.remove(url);
     if (url == selectedMediaServer.value) {
       selectedMediaServer.value = mediaServers.isNotEmpty
@@ -194,10 +167,12 @@ class SettingController extends GetxController with StateMixin<Type> {
           : KeychatGlobal.defaultFileServer;
     }
     await Storage.setStringList(
-        StorageKeyString.mediaServers, List.from(mediaServers));
+      StorageKeyString.mediaServers,
+      List.from(mediaServers),
+    );
   }
 
-  Future setBiometricsAuthTime(int minutes) async {
+  Future<void> setBiometricsAuthTime(int minutes) async {
     biometricsAuthTime.value = minutes;
     await Storage.setInt(StorageKeyString.biometricsAuthTime, minutes);
   }

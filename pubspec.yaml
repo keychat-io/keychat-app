@@ -9,13 +9,12 @@ workspace:
   - packages/keychat_rust_ffi_plugin
 
 dev_dependencies:
-  melos: ^7.0.0-dev.8
-  flutter_lints: ^6.0.0
-  test: ^1.21.0
+  melos: 7.1.1
+  very_good_analysis: ^10.0.0
 
 melos:
   name: keychat_workspace
-  repository: https://github.com/key-chat/app-melos
+  repository: https://github.com/keychat-io/keychat-app
 
   ignore:
     - packages/app/build/**

@@ -6,29 +6,29 @@ part of 'bot_client_message_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_BotClientMessageModel _$BotClientMessageModelFromJson(
-        Map<String, dynamic> json) =>
-    _BotClientMessageModel(
-      type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
-      message: json['message'] as String,
-      id: json['id'] as String?,
-      priceModel: json['priceModel'] as String?,
-      payToken: json['payToken'] as String?,
-    );
+BotClientMessageModel _$BotClientMessageModelFromJson(
+  Map<String, dynamic> json,
+) => BotClientMessageModel(
+  type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
+  message: json['message'] as String,
+  id: json['id'] as String?,
+  priceModel: json['priceModel'] as String?,
+  payToken: json['payToken'] as String?,
+);
 
 Map<String, dynamic> _$BotClientMessageModelToJson(
-        _BotClientMessageModel instance) =>
-    <String, dynamic>{
-      'type': _$MessageMediaTypeEnumMap[instance.type]!,
-      'message': instance.message,
-      if (instance.id case final value?) 'id': value,
-      if (instance.priceModel case final value?) 'priceModel': value,
-      if (instance.payToken case final value?) 'payToken': value,
-    };
+  BotClientMessageModel instance,
+) => <String, dynamic>{
+  'type': _$MessageMediaTypeEnumMap[instance.type]!,
+  'message': instance.message,
+  'id': ?instance.id,
+  'priceModel': ?instance.priceModel,
+  'payToken': ?instance.payToken,
+};
 
 const _$MessageMediaTypeEnumMap = {
   MessageMediaType.text: 'text',
-  MessageMediaType.cashuA: 'cashuA',
+  MessageMediaType.cashu: 'cashu',
   MessageMediaType.image: 'image',
   MessageMediaType.video: 'video',
   MessageMediaType.contact: 'contact',
@@ -44,4 +44,5 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.groupInvitationInfo: 'groupInvitationInfo',
   MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
   MessageMediaType.lightningInvoice: 'lightningInvoice',
+  MessageMediaType.profileRequest: 'profileRequest',
 };

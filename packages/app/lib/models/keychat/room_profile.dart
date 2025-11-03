@@ -1,12 +1,17 @@
 import 'dart:convert' show jsonEncode;
 
+import 'package:app/models/room.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../room.dart';
 part 'room_profile.g.dart';
 
 @JsonSerializable(includeIfNull: false)
 class RoomProfile {
+  RoomProfile(
+      this.pubkey, this.name, this.users, this.groupType, this.updatedAt);
+
+  factory RoomProfile.fromJson(Map<String, dynamic> json) =>
+      _$RoomProfileFromJson(json);
   final String pubkey;
   String? prikey;
   String? avatar;
@@ -21,14 +26,9 @@ class RoomProfile {
   String? signalPubkey;
   String? signaliPrikey;
   int? signalKeyId;
-  RoomProfile(
-      this.pubkey, this.name, this.users, this.groupType, this.updatedAt);
-
-  factory RoomProfile.fromJson(Map<String, dynamic> json) =>
-      _$RoomProfileFromJson(json);
 
   @override
-  toString() => jsonEncode(toJson());
+  String toString() => jsonEncode(toJson());
 
   Map<String, dynamic> toJson() => _$RoomProfileToJson(this);
 }

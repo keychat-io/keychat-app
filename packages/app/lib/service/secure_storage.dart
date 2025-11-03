@@ -5,9 +5,9 @@ import 'package:app/utils/config.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SecureStorage {
-  static SecureStorage? _instance;
   // Avoid self instance
   SecureStorage._();
+  static SecureStorage? _instance;
   static SecureStorage get instance => _instance ??= SecureStorage._();
   static const FlutterSecureStorage storage = FlutterSecureStorage(
       mOptions: MacOsOptions(
@@ -22,31 +22,44 @@ class SecureStorage {
 
   static Map<String, String> keys = {};
 
-  Future write(String key, String value) async {
+  Future<void> write(String key, String value) async {
     await storage.write(key: key, value: value);
     keys[key] = value;
   }
 
   Future<String?> read(String key) async {
-    return await storage.read(key: key);
+    return storage.read(key: key);
   }
 
-  Future writePhraseWordsWhenNotExist(String words) async {
-    String? exist = await getPhraseWords();
+  Future<void> writePhraseWordsWhenNotExist(String words) async {
+    final exist = await getPhraseWords();
     if (exist == null) {
       await storage.write(key: mnemonicKey, value: words);
     }
   }
 
   Future<String?> getPhraseWords() async {
-    return await storage.read(key: mnemonicKey);
+    return storage.read(key: mnemonicKey);
+  }
+
+  Future<String> getOrCreatePhraseWords() async {
+    var words = await getPhraseWords();
+    if (words == null) {
+      final account = await rust_nostr.generateFromMnemonic();
+      words = account.mnemonic;
+    }
+    if (words == null) {
+      throw Exception('Failed to generate mnemonic phrase');
+    }
+    await writePhraseWordsWhenNotExist(words);
+    return words;
   }
 
   Future<String?> readPrikey(String pubkey) async {
     if (keys.containsKey(pubkey)) {
       return keys[pubkey];
     }
-    String? res = await storage.read(key: _getPrivateKeyName(pubkey));
+    var res = await storage.read(key: _getPrivateKeyName(pubkey));
     res ??= await storage.read(key: pubkey);
     if (res != null) {
       keys[pubkey] = res; // store in memory
@@ -66,24 +79,24 @@ class SecureStorage {
     }
 
     // restore from mnemonic
-    String? prikey = await _restoreSecp256k1Prikey(pubkey);
+    final prikey = await _restoreSecp256k1Prikey(pubkey);
     if (prikey != null && prikey.isNotEmpty) {
       return prikey;
     }
 
-    throw Exception('$pubkey \'s private key not found');
+    throw Exception("$pubkey 's private key not found");
   }
 
   Future<String?> _restoreSecp256k1Prikey(String secp256k1PKHex) async {
-    String? mnemonic = await getPhraseWords();
+    final mnemonic = await getPhraseWords();
     if (mnemonic == null || mnemonic.isEmpty) {
       return null;
     }
 
     try {
-      List<rust_nostr.Secp256k1Account> list = await rust_nostr
-          .importFromPhraseWith(phrase: mnemonic, offset: 0, count: 10);
-      for (var account in list) {
+      final list = await rust_nostr.importFromPhraseWith(
+          phrase: mnemonic, offset: 0, count: 10);
+      for (final account in list) {
         if (account.pubkey == secp256k1PKHex) {
           await write(account.pubkey, account.prikey);
           return account.prikey;
@@ -105,15 +118,15 @@ class SecureStorage {
       keys[pubkey] = res;
       return res;
     }
-    throw Exception('$pubkey \'s private key not found');
+    throw Exception("$pubkey 's private key not found");
   }
 
   @Deprecated('Use pubkey instead')
   String _getPrivateKeyName(String pubkey) {
     if (kReleaseMode) {
-      return "prikey:$pubkey";
+      return 'prikey:$pubkey';
     }
-    return "${Config.env}:prikey:$pubkey";
+    return '${Config.env}:prikey:$pubkey';
   }
 
   Future<Map<String, String>> readAll() {
@@ -121,7 +134,7 @@ class SecureStorage {
   }
 
   Future<void> deletePrikey(String pubkey) async {
-    String key = _getPrivateKeyName(pubkey);
+    final key = _getPrivateKeyName(pubkey);
     keys.remove(pubkey);
     await storage.delete(key: key);
     await storage.delete(key: pubkey);
@@ -150,30 +163,30 @@ class SecureStorage {
   }
 
   Future<bool> isBiometricsEnable() async {
-    String? value = await storage.read(key: biometricsStatusKey);
+    final value = await storage.read(key: biometricsStatusKey);
     return value == '1';
   }
 
   Future<String> _hashPin(String pin) async {
-    var hash = await rust_nostr.sha256Hash(data: pin);
+    final hash = await rust_nostr.sha256Hash(data: pin);
     return hash;
   }
 
   Future<bool> hasPinCode() async {
-    String? pinHash = await storage.read(key: pinKey);
+    final pinHash = await storage.read(key: pinKey);
     return pinHash != null && pinHash.isNotEmpty;
   }
 
   Future<void> savePinCode(String pin) async {
-    String hashedPin = await _hashPin(pin);
+    final hashedPin = await _hashPin(pin);
     await storage.write(key: pinKey, value: hashedPin);
   }
 
   Future<bool> verifyPinCode(String pin) async {
-    String? storedHash = await storage.read(key: pinKey);
+    final storedHash = await storage.read(key: pinKey);
     if (storedHash == null) return false;
 
-    String inputHash = await _hashPin(pin);
+    final inputHash = await _hashPin(pin);
     return storedHash == inputHash;
   }
 

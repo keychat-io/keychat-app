@@ -14,20 +14,20 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:app/models/models.dart';
 
-import 'identity.service.dart';
+import 'package:app/service/identity.service.dart';
 
 class RelayService {
+  // Avoid self instance
+  RelayService._();
   static final DBProvider dbProvider = DBProvider.instance;
   static final IdentityService identityService = IdentityService.instance;
 
   static RelayService? _instance;
   static RelayService get instance => _instance ??= RelayService._();
-  // Avoid self instance
-  RelayService._();
 
   Future<bool> addAndConnect(String url) async {
-    WebsocketService ws = Get.find<WebsocketService>();
-    Relay relay = await RelayService.instance.getOrPutRelay(url);
+    final ws = Get.find<WebsocketService>();
+    final relay = await RelayService.instance.getOrPutRelay(url);
 
     if (ws.channels[url] != null) {
       if (ws.channels[url]!.isConnected()) return false; // already connected
@@ -36,16 +36,19 @@ class RelayService {
     relay.active = true;
     relay.errorMessage = null;
     await update(relay);
-    await ws.addChannel(relay, connectedCallback: () async {
-      NotifyService.syncPubkeysToServer(); // sub new relay
-      RelayService.instance.initRelayFeeInfo([relay]);
-      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
-    });
+    await ws.addChannel(
+      relay,
+      connectedCallback: () async {
+        NotifyService.syncPubkeysToServer(); // sub new relay
+        RelayService.instance.initRelayFeeInfo([relay]);
+        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
+      },
+    );
     return true;
   }
 
   Future<Relay> add(String url, [bool isDefault = false]) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     final relay = Relay(url);
     await database.writeTxn(() async {
       relay.isDefault = isDefault;
@@ -55,16 +58,16 @@ class RelayService {
   }
 
   Future<Relay> getOrPutRelay(String url) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    Relay? r = await database.relays.filter().urlEqualTo(url).findFirst();
+    var r = await database.relays.filter().urlEqualTo(url).findFirst();
     if (r == null) {
-      Relay relay = Relay(url);
+      final relay = Relay(url);
 
-      int? id = await database.writeTxn(() async {
-        return await database.relays.put(relay);
+      final id = await database.writeTxn(() async {
+        return database.relays.put(relay);
       });
-      r = await database.relays.get(id!);
+      r = await database.relays.get(id);
     }
     if (r == null) throw Exception('getOrPutRelay error');
     return r;
@@ -89,51 +92,52 @@ class RelayService {
   // }
 
   Future<bool> delete(int id) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.writeTxn(() async {
-      return await database.relays.delete(id);
+    return database.writeTxn(() async {
+      return database.relays.delete(id);
     });
   }
 
   Future<List<Relay>> list() async {
-    List<Relay> list = await DBProvider.database.relays.where().findAll();
+    final list = await DBProvider.database.relays.where().findAll();
 
-    Map<String, Relay> newList = {};
-    for (Relay relay in list) {
+    final newList = <String, Relay>{};
+    for (final relay in list) {
       newList[relay.url] = relay;
     }
     return newList.values.toList();
   }
 
   Future<List<String>> getEnableList() async {
-    List<Relay> list =
+    final list =
         await DBProvider.database.relays.filter().activeEqualTo(true).findAll();
 
-    Set<String> newList = {};
-    for (Relay relay in list) {
+    final newList = <String>{};
+    for (final relay in list) {
       newList.add(relay.url);
     }
     return newList.toList();
   }
 
   Future<List<Relay>> getEnableRelays() async {
-    List<Relay> list =
+    final list =
         await DBProvider.database.relays.filter().activeEqualTo(true).findAll();
 
     return list;
   }
 
   Future<int> count() async {
-    return await DBProvider.database.relays.where().count();
+    return DBProvider.database.relays.where().count();
   }
 
-  Future<void> updateReadWrite(
-      {required int id,
-      required bool read,
-      required bool write,
-      required bool active}) async {
-    Isar database = DBProvider.database;
+  Future<void> updateReadWrite({
+    required int id,
+    required bool read,
+    required bool write,
+    required bool active,
+  }) async {
+    final database = DBProvider.database;
 
     await database.writeTxn(() async {
       final relay = await database.relays.get(id);
@@ -148,9 +152,12 @@ class RelayService {
     });
   }
 
-  Future<void> updateStatus(
-      {required Relay relay, DateTime? updatedAt, String? errorMessage}) async {
-    Isar database = DBProvider.database;
+  Future<void> updateStatus({
+    required Relay relay,
+    DateTime? updatedAt,
+    String? errorMessage,
+  }) async {
+    final database = DBProvider.database;
 
     try {
       await database.writeTxn(() async {
@@ -166,7 +173,7 @@ class RelayService {
   }
 
   Future<Relay> updateP104(String relayUrl, bool isEnableNip104) async {
-    Relay relay = await getOrPutRelay(relayUrl);
+    final relay = await getOrPutRelay(relayUrl);
     relay.isEnableNip104 = isEnableNip104;
     await update(relay);
     Utils.getGetxController<WebsocketService>()
@@ -176,13 +183,13 @@ class RelayService {
     return relay;
   }
 
-  Future update(Relay relay) async {
+  Future<void> update(Relay relay) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.relays.put(relay);
     });
   }
 
-  Future updateDefault(Relay relay, bool afterValue) async {
+  Future<void> updateDefault(Relay relay, bool afterValue) async {
     await DBProvider.database.writeTxn(() async {
       if (afterValue) {
         await DBProvider.database.relays
@@ -190,7 +197,7 @@ class RelayService {
             .isDefaultEqualTo(true)
             .findAll()
             .then((value) async {
-          for (Relay r in value) {
+          for (final r in value) {
             r.isDefault = false;
             await DBProvider.database.relays.put(r);
           }
@@ -201,28 +208,30 @@ class RelayService {
     });
   }
 
-  Future checkDefaultRelay(List<Relay> relays) async {
-    for (Relay r in relays) {
+  Future<List<Relay>> checkDefaultRelay(List<Relay> relays) async {
+    for (final r in relays) {
       if (r.isDefault) {
         return relays;
       }
     }
-    Relay? defaultRelay = relays.firstWhereOrNull(
-        (element) => element.url == KeychatGlobal.defaultRelay);
+    final defaultRelay = relays.firstWhereOrNull(
+      (element) => element.url == KeychatGlobal.defaultRelay,
+    );
     if (defaultRelay == null) {
-      var relay = await add(KeychatGlobal.defaultRelay);
+      final relay = await add(KeychatGlobal.defaultRelay);
       relays.add(relay);
       return relays;
     }
     defaultRelay.isDefault = true;
     await update(defaultRelay);
-    relays.removeWhere((element) => element.url == defaultRelay.url);
-    relays.add(defaultRelay);
+    relays
+      ..removeWhere((element) => element.url == defaultRelay.url)
+      ..add(defaultRelay);
     return relays;
   }
 
   Future<Map<String, dynamic>?> fetchRelayNostrInfo(Relay relay) async {
-    Dio dio = Dio();
+    final dio = Dio();
     try {
       late String url;
       if (relay.url.startsWith('ws://')) {
@@ -233,14 +242,17 @@ class RelayService {
       }
       if (url.isEmpty) return null;
 
-      final res = await dio.get(url,
-          options: Options(
-              headers: {"Accept": "application/nostr+json"},
-              sendTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10)));
-      return res.data;
+      final res = await dio.get(
+        url,
+        options: Options(
+          headers: {'Accept': 'application/nostr+json'},
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
+      return res.data as Map<String, dynamic>?;
     } on DioException catch (e, s) {
-      String? msg = e.response?.data;
+      final msg = e.response?.data as String?;
       logger.e('relay faild: ${relay.url} , $msg', stackTrace: s);
     } catch (e, s) {
       logger.e('relay faild: ${relay.url} , $e', stackTrace: s);
@@ -248,7 +260,7 @@ class RelayService {
     return null;
   }
 
-  Future initRelayFeeInfo([List<Relay>? relays]) async {
+  Future<void> initRelayFeeInfo([List<Relay>? relays]) async {
     try {
       try {
         Get.find<WebsocketService>();
@@ -264,41 +276,44 @@ class RelayService {
         await RelayService.instance.fetchRelayFileFee();
       }
     } catch (e, s) {
-      logger.e('fee: ${e.toString()}', stackTrace: s);
+      logger.e('fee: $e', stackTrace: s);
     }
   }
 
   /// get a online relay and it is the default setting
   Future<String?> getDefaultOnlineRelay() async {
-    Relay? relay = await DBProvider.database.relays
+    final relay = await DBProvider.database.relays
         .filter()
         .isDefaultEqualTo(true)
         .findFirst();
     if (relay != null) return relay.url;
 
-    RelayWebsocket? rw =
+    final rw =
         Get.find<WebsocketService>().channels[KeychatGlobal.defaultRelay];
     if (rw != null) KeychatGlobal.defaultRelay;
 
-    List<String> relays = Get.find<WebsocketService>().channels.keys.toList();
+    final relays = Get.find<WebsocketService>().channels.keys.toList();
     return relays.first;
   }
 
   Future<Relay?> getDefault() async {
-    return await DBProvider.database.relays
+    return DBProvider.database.relays
         .filter()
         .isDefaultEqualTo(true)
         .findFirst();
   }
 
   Future<List<Relay>> initRelay() async {
-    Isar database = DBProvider.database;
-    List<Relay> list = await RelayService.instance.list();
+    final database = DBProvider.database;
+    var list = await RelayService.instance.list();
     if (list.isEmpty) {
       await database.writeTxn(() async {
-        for (var url in Config.getEnvConfig('nostrRelays')) {
-          final relay = Relay(url);
-          await database.relays.put(relay);
+        final nostrRelays = Config.getEnvConfig('nostrRelays');
+        if (nostrRelays is Iterable) {
+          for (final url in nostrRelays) {
+            final relay = Relay(url);
+            await database.relays.put(relay);
+          }
         }
       });
       list = await RelayService.instance.list();
@@ -307,21 +322,20 @@ class RelayService {
     return list;
   }
 
-  Future fetchRelayMessageFee([List<Relay>? relays]) async {
-    WebsocketService ws = Get.find<WebsocketService>();
+  Future<void> fetchRelayMessageFee([List<Relay>? relays]) async {
+    final ws = Get.find<WebsocketService>();
     relays ??= await getEnableRelays();
-    for (Relay relay in relays) {
+    for (final relay in relays) {
       try {
         if (relay.errorMessage != null) {
           relay.errorMessage = null;
           update(relay);
         }
 
-        RelayMessageFee? payInfo = await _fetchCashuPayInfo(relay);
+        final payInfo = await _fetchCashuPayInfo(relay);
         // logger.i('fetchRelayMessageFee, $relay: $payInfo');
         if (payInfo != null) {
           ws.relayMessageFeeModels[relay.url] = payInfo;
-          // logger.i('_fetchCashuPayInfo: ${payInfo.amount} ${payInfo.mints}');
           ws.relayMessageFeeModels.refresh();
         }
       } catch (e, s) {
@@ -330,43 +344,54 @@ class RelayService {
     }
     // store to local
     await Storage.setLocalStorageMap(
-        StorageKeyString.relayMessageFeeConfig, ws.relayMessageFeeModels);
+      StorageKeyString.relayMessageFeeConfig,
+      ws.relayMessageFeeModels,
+    );
   }
 
-  Future fetchRelayFileFee() async {
-    WebsocketService ws = Get.find<WebsocketService>();
+  Future<void> fetchRelayFileFee() async {
+    final ws = Get.find<WebsocketService>();
 
-    RelayFileFee? fuc =
-        await initRelayFileFeeModel(KeychatGlobal.defaultFileServer);
+    final fuc = await initRelayFileFeeModel(KeychatGlobal.defaultFileServer);
     if (fuc != null) {
       ws.setRelayFileFeeModel(KeychatGlobal.defaultFileServer, fuc);
     }
 
     // store to local
     await Storage.setLocalStorageMap(
-        StorageKeyString.relayFileFeeConfig, ws.relayFileFeeModels);
+      StorageKeyString.relayFileFeeConfig,
+      ws.relayFileFeeModels,
+    );
   }
 
   // curl -H "Accept: application/nostr+json" https://relay.keychat.io
   Future<RelayMessageFee?> _fetchCashuPayInfo(Relay relay) async {
-    Map? data = await fetchRelayNostrInfo(relay);
+    final Map? data = await fetchRelayNostrInfo(relay);
     if (data == null || data.isEmpty) return null;
     if (data['limitation'] != null) {
-      if (data['limitation']['payment_required'] ?? false) {
-        Map fees = data["fees"] ?? {};
-        for (var map in fees.entries) {
+      final payRequired =
+          data['limitation']['payment_required'] as bool? ?? false;
+      if (payRequired) {
+        final fees = data['fees'] as Map<String, dynamic>? ?? {};
+        for (final map in fees.entries) {
           if (map.key == 'publication') {
             if (map.value.length == 0) continue;
-            Map publication = fees['publication'][0];
+            final publication = fees['publication'][0] as Map<String, dynamic>;
             if (publication['method'] != null) {
-              List<String> mints = [];
-              for (var m in publication['method']['Cashu']["mints"]) {
-                mints.add(m);
+              final mints = <String>[];
+              final mintsList =
+                  publication['method']['Cashu']['mints'] as List?;
+              if (mintsList != null) {
+                for (final item in mintsList) {
+                  mints.add(item as String);
+                }
               }
 
-              RelayMessageFee payInfo = RelayMessageFee()
-                ..amount = publication['amount']
-                ..unit = RelayMessageFee.getSymbolByName(publication['unit'])
+              final payInfo = RelayMessageFee()
+                ..amount = publication['amount'] as int? ?? 0
+                ..unit = RelayMessageFee.getSymbolByName(
+                  publication['unit'] as String? ?? '-',
+                )
                 ..mints = mints;
 
               return payInfo;
@@ -381,20 +406,22 @@ class RelayService {
   // curl https://backup.keychat.io/api/v1/info
   // {"maxsize":104857600,"mints":["https://8333.space:3338"],"prices":[{"max":10485760,"min":1,"price":1},{"max":104857600,"min":10485761,"price":2}],"unit":"sat"}
   Future<Map?> _fetchFileUploadConfig(String url) async {
-    final dio = Dio();
-    dio.options = BaseOptions(
+    final dio = Dio()
+      ..options = BaseOptions(
         headers: {'Content-Type': 'application/json'},
         connectTimeout: const Duration(seconds: 6),
         receiveTimeout: const Duration(seconds: 6),
-        sendTimeout: const Duration(seconds: 6));
+        sendTimeout: const Duration(seconds: 6),
+      );
     try {
-      var response = await dio.get('$url/api/v1/info');
+      final response = await dio.get('$url/api/v1/info');
 
       if (response.statusCode == 200 && response.data is Map) {
-        return response.data;
+        return response.data as Map<dynamic, dynamic>?;
       } else {
         loggerNoLine.e(
-            'Failed to fetch file server info. Error: ${response.statusCode}');
+          'Failed to fetch file server info. Error: ${response.statusCode}',
+        );
       }
     } catch (e) {
       loggerNoLine.e('Failed to fetch file server info', error: e);
@@ -405,15 +432,15 @@ class RelayService {
 
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
     try {
-      Map? map = await _fetchFileUploadConfig(url);
+      final map = await _fetchFileUploadConfig(url);
       logger.i('fetchAndSetFileUploadConfig, $url: $map');
       if (map != null) {
-        RelayFileFee rufc = RelayFileFee();
-        rufc.maxSize = map['maxsize'] ?? 0;
-        rufc.mints = map['mints'] ?? [];
-        rufc.prices = map['prices'] ?? [];
-        rufc.unit = map['unit'] ?? '-';
-        rufc.expired = map['expired'] ?? '-';
+        final rufc = RelayFileFee()
+          ..maxSize = map['maxsize'] as int? ?? 0
+          ..mints = map['mints'] as List<dynamic>? ?? []
+          ..prices = map['prices'] as List<dynamic>? ?? []
+          ..unit = map['unit'] as String? ?? '-'
+          ..expired = map['expired'] as String? ?? '-';
         return rufc;
       }
     } catch (e) {
@@ -423,9 +450,9 @@ class RelayService {
   }
 
   Future<int> addOrActiveRelay(List<String> relays) async {
-    int success = 0;
-    for (String url in relays) {
-      bool result = await addAndConnect(url);
+    var success = 0;
+    for (final url in relays) {
+      final result = await addAndConnect(url);
       if (result) {
         success++;
       }

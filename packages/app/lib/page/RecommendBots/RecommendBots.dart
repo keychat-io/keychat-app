@@ -12,17 +12,17 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class RecommendBots extends StatelessWidget {
+  const RecommendBots(this.identity, this.rooms, {super.key});
   final Identity identity;
   final List<Room> rooms;
-  const RecommendBots(this.identity, this.rooms, {super.key});
 
   @override
   Widget build(BuildContext context) {
     if (identity.name.toLowerCase() != KeychatGlobal.bot.toLowerCase()) {
       return Container();
     }
-    HomeController homeController = Get.find<HomeController>();
-    List npubs = rooms.map((e) => e.npub).toList();
+    final homeController = Get.find<HomeController>();
+    final List npubs = rooms.map((e) => e.npub).toList();
 
     return Obx(() => homeController.recommendBots.isEmpty
         ? Container()
@@ -32,9 +32,9 @@ class RecommendBots extends StatelessWidget {
                 color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
             itemCount: homeController.recommendBots.length,
             shrinkWrap: true,
-            padding: const EdgeInsets.only(bottom: 0),
+            padding: const EdgeInsets.only(),
             itemBuilder: (context, index) {
-              Map bot = homeController.recommendBots[index];
+              final bot = homeController.recommendBots[index] as Map;
               if (npubs.contains(bot['npub'])) {
                 return Container();
               }
@@ -51,10 +51,10 @@ class RecommendBots extends StatelessWidget {
                 subtitle: textSmallGray(context, bot['description']),
                 trailing: OutlinedButton(
                     onPressed: () async {
-                      String hexPubkey =
+                      final hexPubkey =
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
 
-                      Room room = await RoomService.instance.getOrCreateRoom(
+                      final room = await RoomService.instance.getOrCreateRoom(
                           hexPubkey,
                           identity.secp256k1PKHex,
                           RoomStatus.enabled,

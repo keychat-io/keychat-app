@@ -1,20 +1,20 @@
 import 'dart:convert' show jsonDecode;
 import 'dart:typed_data' show Uint8List;
 
-import 'package:app/constants.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/mykey.dart';
-import 'package:app/models/room.dart';
-import 'package:app/models/signal_id.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/secure_storage.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/identity.dart';
+import 'package:keychat/models/mykey.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/models/signal_id.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/signalId.service.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
@@ -28,8 +28,9 @@ class ChatxService extends GetxService {
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
     // delete expired one time keys
     await IdentityService.instance.deleteExpiredOneTimeKeys();
-    final newKeys =
-        await IdentityService.instance.getOneTimeKeyByIdentity(identityId);
+    final newKeys = await IdentityService.instance.getOneTimeKeyByIdentity(
+      identityId,
+    );
 
     final needListen = <String>[];
     for (final key in newKeys) {
@@ -47,8 +48,10 @@ class ChatxService extends GetxService {
       newKeys.addAll(newKeys2);
     }
     if (needListen.isNotEmpty) {
-      Get.find<WebsocketService>()
-          .listenPubkey(needListen, kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkey(
+        needListen,
+        kinds: [EventKinds.nip04],
+      );
       NotifyService.addPubkeys(needListen);
     }
     return newKeys;
@@ -59,8 +62,9 @@ class ChatxService extends GetxService {
     // await deleteExpiredSignalIds();
     final identity = await IdentityService.instance.getIdentityById(identityId);
     if (identity == null) throw Exception('Identity not found');
-    final signalIds =
-        await SignalIdService.instance.getSignalIdByIdentity(identityId);
+    final signalIds = await SignalIdService.instance.getSignalIdByIdentity(
+      identityId,
+    );
     if (signalIds.length < KeychatGlobal.signalIdsPoolLength) {
       final signalIds2 = await _generateSignalIds(
         identity.id,
@@ -305,8 +309,9 @@ class ChatxService extends GetxService {
     if (identity.curve25519PkHex == null) {
       throw Exception('curve25519PkHex_is_null');
     }
-    final prikey = await SecureStorage.instance
-        .readCurve25519PrikeyOrFail(identity.curve25519PkHex!);
+    final prikey = await SecureStorage.instance.readCurve25519PrikeyOrFail(
+      identity.curve25519PkHex!,
+    );
     return _getKeyPair(identity.curve25519PkHex!, prikey);
   }
 
@@ -362,13 +367,14 @@ class ChatxService extends GetxService {
     roomKPA.remove(key);
   }
 
-// generate onetime pubkey to receive add new friends message
+  // generate onetime pubkey to receive add new friends message
   Future<List<Mykey>> _generateOneTimePubkeys(int identityId, int num) async {
     final onetimekeys = <Mykey>[];
-// create three one time keys
+    // create three one time keys
     for (var i = 0; i < num; i++) {
-      final onetimekey =
-          await IdentityService.instance.createOneTimeKey(identityId);
+      final onetimekey = await IdentityService.instance.createOneTimeKey(
+        identityId,
+      );
       onetimekeys.add(onetimekey);
     }
     return onetimekeys;
@@ -377,8 +383,9 @@ class ChatxService extends GetxService {
   Future<List<SignalId>> _generateSignalIds(int identityId, int num) async {
     final signalIds = <SignalId>[];
     for (var i = 0; i < num; i++) {
-      final signalId =
-          await SignalIdService.instance.createSignalId(identityId);
+      final signalId = await SignalIdService.instance.createSignalId(
+        identityId,
+      );
 
       signalIds.add(signalId);
     }

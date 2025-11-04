@@ -1,9 +1,9 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/page/chat/create_group_page.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/qrscan.service.dart';
-import 'package:app/service/storage.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/page/chat/create_contact_page.dart';
+import 'package:keychat/page/chat/create_group_page.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/service/storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -38,10 +38,14 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
     showAddFriendTips = widget.showAddFriendTips;
 
     const addContact = MenuItem(text: menuAddContacts, icon: Icons.person_add);
-    const addGroup =
-        MenuItem(text: menuNewGroup, icon: CupertinoIcons.group_solid);
-    const scan =
-        MenuItem(text: menuScan, icon: CupertinoIcons.qrcode_viewfinder);
+    const addGroup = MenuItem(
+      text: menuNewGroup,
+      icon: CupertinoIcons.group_solid,
+    );
+    const scan = MenuItem(
+      text: menuScan,
+      icon: CupertinoIcons.qrcode_viewfinder,
+    );
     // MenuItem qrcode =
     //     const MenuItem(text: menuMyQrcode, icon: CupertinoIcons.qrcode);
     firstItems = [addContact, addGroup, scan];

@@ -1,9 +1,9 @@
-import 'package:app/models/room.dart';
-import 'package:app/page/chat/SelectRoomRelay.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/signal_chat.service.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/chat/SelectRoomRelay.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -100,8 +100,9 @@ class ChatSettingSecurity extends StatelessWidget {
                             isDestructiveAction: true,
                             onPressed: () async {
                               cc.roomObs.value.receivingRelays = [];
-                              await RoomService.instance
-                                  .updateRoomAndRefresh(cc.roomObs.value);
+                              await RoomService.instance.updateRoomAndRefresh(
+                                cc.roomObs.value,
+                              );
                               EasyLoading.showToast('Save Success');
                               Get.back<void>();
                             },
@@ -135,10 +136,13 @@ class ChatSettingSecurity extends StatelessWidget {
                       );
                       if (relays == null) return;
                       cc.roomObs.value.receivingRelays = relays;
-                      await RoomService.instance
-                          .updateRoomAndRefresh(cc.roomObs.value);
-                      await SignalChatService.instance
-                          .sendRelaySyncMessage(cc.roomObs.value, relays);
+                      await RoomService.instance.updateRoomAndRefresh(
+                        cc.roomObs.value,
+                      );
+                      await SignalChatService.instance.sendRelaySyncMessage(
+                        cc.roomObs.value,
+                        relays,
+                      );
                       EasyLoading.showToast('Save Success');
                     },
                   ),

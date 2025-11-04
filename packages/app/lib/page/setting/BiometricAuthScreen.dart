@@ -1,14 +1,15 @@
-import 'package:app/controller/setting.controller.dart';
+import 'package:keychat/controller/setting.controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BiometricAuthScreen extends StatefulWidget {
-  const BiometricAuthScreen(
-      {this.autoAuth = false,
-      super.key,
-      this.canPop = false,
-      this.title = 'Unlock Keychat'});
+  const BiometricAuthScreen({
+    this.autoAuth = false,
+    super.key,
+    this.canPop = false,
+    this.title = 'Unlock Keychat',
+  });
   final bool autoAuth;
   final bool canPop;
   final String title;
@@ -45,16 +46,18 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: widget.canPop,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (widget.canPop) {
-            Get.back(result: false);
-          }
-        },
-        child: Scaffold(
-          body: Center(
-              child: FilledButton(onPressed: auth, child: Text(widget.title))),
-        ));
+      canPop: widget.canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (widget.canPop) {
+          Get.back(result: false);
+        }
+      },
+      child: Scaffold(
+        body: Center(
+          child: FilledButton(onPressed: auth, child: Text(widget.title)),
+        ),
+      ),
+    );
   }
 }

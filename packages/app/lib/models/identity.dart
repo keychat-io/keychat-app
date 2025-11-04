@@ -1,8 +1,8 @@
 import 'dart:io' show File;
-import 'package:app/service/file.service.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/secure_storage.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
@@ -70,12 +70,12 @@ class Identity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        weight,
-        isDefault,
-        note,
-        createdAt,
-      ];
+    id,
+    weight,
+    isDefault,
+    note,
+    createdAt,
+  ];
 
   Future<String> getSecp256k1SKHex() async {
     return SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
@@ -104,8 +104,10 @@ class Identity extends Equatable {
       final file = File(filePath + avatarLocalPath!);
       final exists = file.existsSync();
       if (!exists) return null;
-      final mfi = await FileService.instance
-          .encryptAndUploadImage(XFile(file.path), writeToLocal: false);
+      final mfi = await FileService.instance.encryptAndUploadImage(
+        XFile(file.path),
+        writeToLocal: false,
+      );
       if (mfi == null) return null;
       mfi.sourceName = '';
       mfi.fileInfo?.sourceName = '';

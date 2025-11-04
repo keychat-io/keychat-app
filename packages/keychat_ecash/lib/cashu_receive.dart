@@ -1,8 +1,8 @@
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:app/models/embedded/cashu_info.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:app/page/components.dart';
+import 'package:keychat/page/components.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

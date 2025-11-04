@@ -1,4 +1,4 @@
-import 'package:app/global.dart';
+import 'package:keychat/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

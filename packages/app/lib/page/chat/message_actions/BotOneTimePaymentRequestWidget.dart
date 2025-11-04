@@ -1,13 +1,13 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/bot/bot_client_message_model.dart';
-import 'package:app/bot/bot_server_message_model.dart';
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:app/models/message.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/bot/bot_client_message_model.dart';
+import 'package:keychat/bot/bot_server_message_model.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

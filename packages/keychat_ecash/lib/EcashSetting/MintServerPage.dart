@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:app/global.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

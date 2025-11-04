@@ -1,8 +1,8 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/page/components.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/page/chat/create_contact_page.dart';
+import 'package:keychat/page/components.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:bip21_uri/bip21_uri.dart' show bip21;
 import 'package:easy_debounce/easy_throttle.dart';
@@ -11,9 +11,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,21 +41,26 @@ class QrScanService {
     final mobileScannerController = MobileScannerController(
       formats: [BarcodeFormat.qrCode],
     );
-    final result = await Get.to<String>(() => AiBarcodeScanner(
-          controller: mobileScannerController,
-          validator: (value) {
-            return true;
-          },
-          onDetect: (BarcodeCapture capture) async {
-            if (capture.barcodes.isNotEmpty) {
-              EasyThrottle.throttle(
-                  'qr_scan', const Duration(milliseconds: 500), () async {
+    final result = await Get.to<String>(
+      () => AiBarcodeScanner(
+        controller: mobileScannerController,
+        validator: (value) {
+          return true;
+        },
+        onDetect: (BarcodeCapture capture) async {
+          if (capture.barcodes.isNotEmpty) {
+            EasyThrottle.throttle(
+              'qr_scan',
+              const Duration(milliseconds: 500),
+              () async {
                 await mobileScannerController.dispose();
                 Get.back(result: capture.barcodes.first.rawValue);
-              });
-            }
-          },
-        ));
+              },
+            );
+          }
+        },
+      ),
+    );
 
     if (result == null || result.isEmpty || !autoProcess) return result;
     debugPrint('Barcode detected: $result');
@@ -101,8 +106,11 @@ class QrScanService {
     // Handle LNURL and email addresses
     if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
       showModalBottomSheetWidget(
-          Get.context!, '', PayInvoicePage(invoce: trimmedStr),
-          showAppBar: false);
+        Get.context!,
+        '',
+        PayInvoicePage(invoce: trimmedStr),
+        showAppBar: false,
+      );
       return;
     }
 
@@ -113,8 +121,11 @@ class QrScanService {
 
     // Handle Nostr public keys
     if (_isNostrPubkey(trimmedStr)) {
-      await Get.bottomSheet<void>(AddtoContactsPage(trimmedStr),
-          isScrollControlled: true, ignoreSafeArea: false);
+      await Get.bottomSheet<void>(
+        AddtoContactsPage(trimmedStr),
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+      );
       return;
     }
 
@@ -155,7 +166,9 @@ class QrScanService {
   }
 
   Future<void> handleBitcoinUri(
-      String str, EcashController ecashController) async {
+    String str,
+    EcashController ecashController,
+  ) async {
     try {
       final decoded = bip21.decode(str);
       final lightningInvoice = decoded.lightningInvoice;
@@ -191,37 +204,39 @@ class QrScanService {
       return;
     }
 
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text('Url'),
-      content: Text(url),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Get.back<void>();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text('Copy'),
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: url));
-            EasyLoading.showSuccess('Copied');
-            Get.back<void>();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text('View in browser'),
-          onPressed: () async {
-            Get.back<void>();
-            if (url.startsWith('https:') || url.startsWith('http:')) {
-              Get.find<MultiWebviewController>().launchWebview(initUrl: url);
-              return;
-            }
-            launchUrl(uri);
-          },
-        ),
-      ],
-    ));
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('Url'),
+        content: Text(url),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            child: const Text('Copy'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: url));
+              EasyLoading.showSuccess('Copied');
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            child: const Text('View in browser'),
+            onPressed: () async {
+              Get.back<void>();
+              if (url.startsWith('https:') || url.startsWith('http:')) {
+                Get.find<MultiWebviewController>().launchWebview(initUrl: url);
+                return;
+              }
+              launchUrl(uri);
+            },
+          ),
+        ],
+      ),
+    );
     return;
   }
 

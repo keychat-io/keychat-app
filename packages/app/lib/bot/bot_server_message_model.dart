@@ -1,4 +1,4 @@
-import 'package:app/models/message.dart';
+import 'package:keychat/models/message.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'bot_server_message_model.g.dart';

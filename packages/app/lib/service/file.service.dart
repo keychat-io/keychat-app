@@ -3,17 +3,17 @@ import 'dart:io' show Directory, File;
 import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
 
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/embedded/msg_file_info.dart';
-import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/s3.dart';
-import 'package:app/utils.dart';
-import 'package:app/utils/config.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/embedded/msg_file_info.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/s3.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/utils/config.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:encrypt/encrypt.dart';
@@ -81,8 +81,10 @@ class FileService {
     final encrypter = Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr));
 
     final encryptedBytes = Encrypted(await input.readAsBytes());
-    final decryptedBytes =
-        encrypter.decryptBytes(encryptedBytes, iv: IV.fromBase64(iv));
+    final decryptedBytes = encrypter.decryptBytes(
+      encryptedBytes,
+      iv: IV.fromBase64(iv),
+    );
     await output.writeAsBytes(decryptedBytes);
     return output;
   }
@@ -140,8 +142,11 @@ class FileService {
   }) async {
     final input = await downloadFile(url, onReceiveProgress);
     if (input == null) throw Exception('File_download_faild');
-    final dir =
-        await getRoomFolder(identityId: identityId, roomId: roomId, type: type);
+    final dir = await getRoomFolder(
+      identityId: identityId,
+      roomId: roomId,
+      type: type,
+    );
     late String outputFile;
     if (fileName != null) {
       outputFile = '$dir$fileName';
@@ -364,27 +369,32 @@ class FileService {
       final localFile = File(localPath);
 
       // Download the file
-      final downloadedFile = await FileService.instance.downloadFile(
-        avatarUrl,
-        (int count, int total) async {
-          EasyThrottle.throttle('downloadAndSaveAvatar$avatarUrl',
-              const Duration(milliseconds: 300), () async {
-            if (total > 0) {
-              await EasyLoading.showProgress(
-                count / total,
-                status: 'Downloading avatar...',
+      final downloadedFile = await FileService.instance
+          .downloadFile(
+            avatarUrl,
+            (int count, int total) async {
+              EasyThrottle.throttle(
+                'downloadAndSaveAvatar$avatarUrl',
+                const Duration(milliseconds: 300),
+                () async {
+                  if (total > 0) {
+                    await EasyLoading.showProgress(
+                      count / total,
+                      status: 'Downloading avatar...',
+                    );
+                  }
+                },
               );
-            }
-          });
-        },
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () async {
-          await EasyLoading.dismiss();
-          await EasyLoading.showError('Download timeout');
-          return null;
-        },
-      );
+            },
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () async {
+              await EasyLoading.dismiss();
+              await EasyLoading.showError('Download timeout');
+              return null;
+            },
+          );
 
       if (downloadedFile != null) {
         // Copy to avatars folder
@@ -436,15 +446,18 @@ class FileService {
 
       // Wrap the progress callback to show loading status
       void progressCallback(int count, int total) {
-        EasyThrottle.throttle('uploadImageProgress${xfile.path}',
-            const Duration(milliseconds: 300), () {
-          if (total > 0) {
-            EasyLoading.showProgress(
-              count / total,
-              status: 'Encrypting and Uploading avatar...',
-            );
-          }
-        });
+        EasyThrottle.throttle(
+          'uploadImageProgress${xfile.path}',
+          const Duration(milliseconds: 300),
+          () {
+            if (total > 0) {
+              EasyLoading.showProgress(
+                count / total,
+                status: 'Encrypting and Uploading avatar...',
+              );
+            }
+          },
+        );
       }
 
       EasyLoading.showProgress(
@@ -456,26 +469,27 @@ class FileService {
         fileInfo = await AwsS3.instance
             .encryptAndUploadByRelay(tempFile, onSendProgress: progressCallback)
             .timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            EasyLoading.dismiss();
-            EasyLoading.showError('Upload timeout');
-            throw Exception('Upload timeout after 30 seconds');
-          },
-        );
+              const Duration(seconds: 30),
+              onTimeout: () {
+                EasyLoading.dismiss();
+                EasyLoading.showError('Upload timeout');
+                throw Exception('Upload timeout after 30 seconds');
+              },
+            );
       } else {
         try {
-          fileInfo = await uploadToBlossom(
-            input: tempFile,
-            onSendProgress: progressCallback,
-          ).timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              EasyLoading.dismiss();
-              EasyLoading.showError('Upload timeout');
-              throw Exception('Upload timeout after 30 seconds');
-            },
-          );
+          fileInfo =
+              await uploadToBlossom(
+                input: tempFile,
+                onSendProgress: progressCallback,
+              ).timeout(
+                const Duration(seconds: 30),
+                onTimeout: () {
+                  EasyLoading.dismiss();
+                  EasyLoading.showError('Upload timeout');
+                  throw Exception('Upload timeout after 30 seconds');
+                },
+              );
         } catch (e, s) {
           EasyLoading.dismiss();
           logger.e('Upload to blossom failed: $e', stackTrace: s);
@@ -550,14 +564,18 @@ class FileService {
   }) async {
     final iv = IV.fromSecureRandom(16);
     final salt = SecureRandom(16).bytes;
-    final key =
-        Key.fromUtf8(Random(16).nextInt(10).toString()).stretch(32, salt: salt);
+    final key = Key.fromUtf8(
+      Random(16).nextInt(10).toString(),
+    ).stretch(32, salt: salt);
     final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
     final fileName = path.basename(input.path);
-    final encryptedBytes = encrypter
-        .encryptBytes(Uint8List.fromList(await input.readAsBytes()), iv: iv);
-    var sha256Result =
-        await rust_nostr.sha256HashBytes(data: encryptedBytes.bytes);
+    final encryptedBytes = encrypter.encryptBytes(
+      Uint8List.fromList(await input.readAsBytes()),
+      iv: iv,
+    );
+    var sha256Result = await rust_nostr.sha256HashBytes(
+      data: encryptedBytes.bytes,
+    );
     if (base64Hash) {
       sha256Result = base64Encode(Utils.hexToBytes(sha256Result));
     }
@@ -622,8 +640,10 @@ class FileService {
     final uri = Uri.parse(selectedMediaServer);
     late FileEncryptInfo fileInfo;
     if (uri.host == 'relay.keychat.io') {
-      fileInfo = await AwsS3.instance
-          .encryptAndUploadByRelay(newFile, onSendProgress: onSendProgress);
+      fileInfo = await AwsS3.instance.encryptAndUploadByRelay(
+        newFile,
+        onSendProgress: onSendProgress,
+      );
     } else {
       try {
         fileInfo = await uploadToBlossom(
@@ -974,45 +994,64 @@ class FileService {
   /// Check if file path is an image file
   bool isImageFile(String filePath) {
     final extension = path.extension(filePath).toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg']
-        .contains(extension);
+    return [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.bmp',
+      '.webp',
+      '.tiff',
+      '.svg',
+    ].contains(extension);
   }
 
   /// Check if file path is a video file
   bool isVideoFile(String filePath) {
     final extension = path.extension(filePath).toLowerCase();
-    return ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v']
-        .contains(extension);
+    return [
+      '.mp4',
+      '.avi',
+      '.mov',
+      '.mkv',
+      '.webm',
+      '.flv',
+      '.wmv',
+      '.m4v',
+    ].contains(extension);
   }
 
   void onSendProgress(String status, int count, int total) {
-    EasyThrottle.throttle('onSendProgress', const Duration(milliseconds: 100),
-        () {
-      if (count == total && total != 0) {
-        EasyLoading.showSuccess('Upload success');
-        return;
-      }
-      var progress = count / total;
-      if (progress < 0.2) {
-        progress = 0.2;
-      }
-      EasyLoading.showProgress(progress, status: status);
-    });
+    EasyThrottle.throttle(
+      'onSendProgress',
+      const Duration(milliseconds: 100),
+      () {
+        if (count == total && total != 0) {
+          EasyLoading.showSuccess('Upload success');
+          return;
+        }
+        var progress = count / total;
+        if (progress < 0.2) {
+          progress = 0.2;
+        }
+        EasyLoading.showProgress(progress, status: status);
+      },
+    );
   }
 
-// pick image only
+  // pick image only
   Future<XFile?> pickImage(ImageSource imageSource) async {
     final picker = ImagePicker();
     return picker.pickImage(source: imageSource, imageQuality: 75);
   }
 
-// Pick singe image or video.
+  // Pick singe image or video.
   Future<XFile?> pickMedia() async {
     final picker = ImagePicker();
     return picker.pickMedia(imageQuality: 50);
   }
 
-// Pick a video only
+  // Pick a video only
   Future<XFile?> pickVideo(ImageSource imageSource) async {
     final picker = ImagePicker();
     return picker.pickVideo(

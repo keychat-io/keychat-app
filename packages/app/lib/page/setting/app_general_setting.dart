@@ -1,22 +1,22 @@
 import 'dart:io' show exit;
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/page/FileExplore.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/dbSetup/db_setting.dart';
-import 'package:app/page/login/OnboardingPage2.dart';
-import 'package:app/page/routes.dart';
-import 'package:app/page/setting/BiometricAuthScreen.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/secure_storage.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/page/FileExplore.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/page/dbSetup/db_setting.dart';
+import 'package:keychat/page/login/OnboardingPage2.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/page/setting/BiometricAuthScreen.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -48,9 +48,13 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
 
   void setStartupTabName() {
     setState(() {
-      startupTabName = hc.defaultTabConfig.entries
-          .firstWhere((entry) => entry.value == hc.defaultSelectedTab.value)
-          .key as String;
+      startupTabName =
+          hc.defaultTabConfig.entries
+                  .firstWhere(
+                    (entry) => entry.value == hc.defaultSelectedTab.value,
+                  )
+                  .key
+              as String;
     });
   }
 
@@ -72,8 +76,9 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   Get.bottomSheet(
                     clipBehavior: Clip.antiAlias,
                     shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
                     ),
                     Obx(
                       () => SettingsList(
@@ -95,7 +100,8 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                   );
                                 },
                                 title: const Text('System Mode'),
-                                trailing: controller.themeMode.value ==
+                                trailing:
+                                    controller.themeMode.value ==
                                         ThemeMode.system.name
                                     ? const Icon(
                                         Icons.done,
@@ -116,7 +122,8 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                   );
                                 },
                                 title: const Text('Light Mode'),
-                                trailing: controller.themeMode.value ==
+                                trailing:
+                                    controller.themeMode.value ==
                                         ThemeMode.light.name
                                     ? const Icon(
                                         Icons.done,
@@ -135,7 +142,8 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                   );
                                 },
                                 title: const Text('Dark Mode'),
-                                trailing: controller.themeMode.value ==
+                                trailing:
+                                    controller.themeMode.value ==
                                         ThemeMode.dark.name
                                     ? const Icon(
                                         Icons.done,
@@ -254,12 +262,12 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                       ),
                                       trailing:
                                           controller.biometricsAuthTime.value ==
-                                                  minutes
-                                              ? const Icon(
-                                                  Icons.done,
-                                                  color: Colors.green,
-                                                )
-                                              : null,
+                                              minutes
+                                          ? const Icon(
+                                              Icons.done,
+                                              color: Colors.green,
+                                            )
+                                          : null,
                                     ),
                                   )
                                   .toList(),
@@ -297,8 +305,10 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   CupertinoIcons.trash,
                   color: Colors.red,
                 ),
-                title:
-                    const Text('Logout', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onPressed: deleteAccount,
               ),
             ],
@@ -503,8 +513,8 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
             onPressed: () async {
               // Biometrics Auth
               if (GetPlatform.isMobile) {
-                final isBiometricsEnable =
-                    await SecureStorage.instance.isBiometricsEnable();
+                final isBiometricsEnable = await SecureStorage.instance
+                    .isBiometricsEnable();
                 if (isBiometricsEnable) {
                   final authed = await Get.to(
                     () => const BiometricAuthScreen(

@@ -1,16 +1,16 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:app/constants.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/service/chat.service.dart';
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/group.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/nip4_chat.service.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:app/service/signal_chat.service.dart';
-import 'package:app/service/signal_chat_util.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/service/chat.service.dart';
+import 'package:keychat/service/chatx.service.dart';
+import 'package:keychat/service/group.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/nip4_chat.service.dart';
+import 'package:keychat/service/signalId.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
+import 'package:keychat/service/signal_chat_util.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 

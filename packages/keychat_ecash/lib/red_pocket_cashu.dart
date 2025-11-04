@@ -1,7 +1,7 @@
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:app/models/message.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

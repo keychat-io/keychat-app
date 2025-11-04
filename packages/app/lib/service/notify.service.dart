@@ -1,12 +1,12 @@
 import 'dart:async' show TimeoutException;
 
-import 'package:app/app.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/firebase_options.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/firebase_options.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,8 +20,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
     if (Firebase.apps.isEmpty) {
       final app = await Firebase.initializeApp(
-          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-          options: DefaultFirebaseOptions.currentPlatform);
+        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       logger.i('Firebase initialized in background: ${app.name}');
     }
     debugPrint('Handling a background message: ${message.messageId}');
@@ -30,21 +31,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class NotifyService {
   static String? fcmToken;
-  static Future<bool> addPubkeys(List<String> toAddPubkeys,
-      [List<String> toRemovePubkeys = const []]) async {
+  static Future<bool> addPubkeys(
+    List<String> toAddPubkeys, [
+    List<String> toRemovePubkeys = const [],
+  ]) async {
     if (fcmToken == null) return false;
     final res = await hasNotifyPermission();
     if (!res) return false;
     final relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
     try {
-      final res =
-          await Dio().post('${KeychatGlobal.notifycationServer}/add', data: {
-        'deviceId': fcmToken,
-        'pubkeys': toAddPubkeys,
-        'toRemove': toRemovePubkeys,
-        'relays': relays
-      });
+      final res = await Dio().post(
+        '${KeychatGlobal.notifycationServer}/add',
+        data: {
+          'deviceId': fcmToken,
+          'pubkeys': toAddPubkeys,
+          'toRemove': toRemovePubkeys,
+          'relays': relays,
+        },
+      );
       logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
       return (res.data['data'] is bool) ? res.data['data'] as bool : true;
     } on DioException catch (e) {
@@ -71,7 +76,8 @@ class NotifyService {
   static Future<bool> checkHashcode(String playerId, String hashcode) async {
     try {
       final res = await Dio().get(
-          '${KeychatGlobal.notifycationServer}/hashcode?play_id=$playerId');
+        '${KeychatGlobal.notifycationServer}/hashcode?play_id=$playerId',
+      );
       return hashcode == res.data['data'];
     } catch (e, s) {
       logger.e('checkPushed', error: e, stackTrace: s);
@@ -83,8 +89,10 @@ class NotifyService {
     if (fcmToken == null) return;
     fcmToken == null;
     try {
-      final res = await Dio().post('${KeychatGlobal.notifycationServer}/delete',
-          data: {'deviceId': fcmToken});
+      final res = await Dio().post(
+        '${KeychatGlobal.notifycationServer}/delete',
+        data: {'deviceId': fcmToken},
+      );
       logger.i('clearAll success: ${res.data}');
     } catch (e, s) {
       logger.e('clearAll', error: e, stackTrace: s);
@@ -114,8 +122,9 @@ class NotifyService {
     if (!enable) return;
     if (fcmToken == null) return;
 
-    final idPubkeys =
-        await IdentityService.instance.getListenPubkeys(skipMute: true);
+    final idPubkeys = await IdentityService.instance.getListenPubkeys(
+      skipMute: true,
+    );
     final pubkeys2 = await IdentityService.instance.getRoomPubkeysSkipMute();
 
     final relays = await RelayService.instance.getEnableList();
@@ -123,21 +132,27 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      final hashcode =
-          await NotifyService.calculateHash([...idPubkeys, ...pubkeys2]);
-      final hasUploaded =
-          await NotifyService.checkHashcode(fcmToken!, hashcode);
+      final hashcode = await NotifyService.calculateHash([
+        ...idPubkeys,
+        ...pubkeys2,
+      ]);
+      final hasUploaded = await NotifyService.checkHashcode(
+        fcmToken!,
+        hashcode,
+      );
       if (hasUploaded) return;
     }
     final map = {
       'kind': 4,
       'deviceId': fcmToken,
       'pubkeys': [...idPubkeys, ...pubkeys2],
-      'relays': relays
+      'relays': relays,
     };
     try {
-      final res = await Dio()
-          .post('${KeychatGlobal.notifycationServer}/init', data: map);
+      final res = await Dio().post(
+        '${KeychatGlobal.notifycationServer}/init',
+        data: map,
+      );
 
       logger.i('initNofityConfig ${res.data}');
     } on DioException catch (e, s) {
@@ -154,8 +169,9 @@ class NotifyService {
     }
     final homeController = Get.find<HomeController>();
 
-    final settingNotifyStatus =
-        Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
+    final settingNotifyStatus = Storage.getIntOrZero(
+      StorageKeyString.settingNotifyStatus,
+    );
     if (settingNotifyStatus == NotifySettingStatus.disable) {
       homeController.notificationStatus.value = false;
       return;
@@ -164,15 +180,19 @@ class NotifyService {
     if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
-                name: GetPlatform.isAndroid ? 'keychat' : null,
-                options: DefaultFirebaseOptions.currentPlatform)
-            .then((_) {
-          logger.i('Firebase initialized in main');
-          FirebaseMessaging.onBackgroundMessage(
-              _firebaseMessagingBackgroundHandler);
-        }, onError: (error) {
-          logger.e('Firebase initialize failed: $error');
-        });
+          name: GetPlatform.isAndroid ? 'keychat' : null,
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).then(
+          (_) {
+            logger.i('Firebase initialized in main');
+            FirebaseMessaging.onBackgroundMessage(
+              _firebaseMessagingBackgroundHandler,
+            );
+          },
+          onError: (error) {
+            logger.e('Firebase initialize failed: $error');
+          },
+        );
       }
     }
 
@@ -191,72 +211,85 @@ class NotifyService {
     homeController.notificationStatus.value = true;
     if (settingNotifyStatus != NotifySettingStatus.enable) {
       Storage.setInt(
-          StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
+        StorageKeyString.settingNotifyStatus,
+        NotifySettingStatus.enable,
+      );
     }
     fcmToken ??= await FirebaseMessaging.instance
         .getToken()
-        .timeout(const Duration(seconds: 8), onTimeout: () async {
-      fcmToken = Storage.getString(StorageKeyString.notificationFCMToken);
-      loggerNoLine.d('Load FCMToken from local: $fcmToken');
-      if (fcmToken != null) return fcmToken;
-      Get.showSnackbar(
-        GetSnackBar(
-            snackPosition: SnackPosition.TOP,
-            icon: const Icon(Icons.error, color: Colors.amber, size: 24),
-            duration: const Duration(seconds: 8),
-            onTap: (snack) {
-              Get.back<void>();
-            },
-            title: 'Notification Init Error',
-            message: '''
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () async {
+            fcmToken = Storage.getString(StorageKeyString.notificationFCMToken);
+            loggerNoLine.d('Load FCMToken from local: $fcmToken');
+            if (fcmToken != null) return fcmToken;
+            Get.showSnackbar(
+              GetSnackBar(
+                snackPosition: SnackPosition.TOP,
+                icon: const Icon(Icons.error, color: Colors.amber, size: 24),
+                duration: const Duration(seconds: 8),
+                onTap: (snack) {
+                  Get.back<void>();
+                },
+                title: 'Notification Init Error',
+                message: '''
 Timeout to call device-provisioning.googleapis.com.
 Fix:
 1. Check your network connection.
 2. Restart the app.
-'''),
-      );
-      throw TimeoutException('FCMTokenTimeout');
-    }).catchError((e) {
-      logger.e('getAPNSToken error: $e');
-      fcmToken = null;
-      return null;
-    });
+''',
+              ),
+            );
+            throw TimeoutException('FCMTokenTimeout');
+          },
+        )
+        .catchError((e) {
+          logger.e('getAPNSToken error: $e');
+          fcmToken = null;
+          return null;
+        });
     // end get fcm timeout
     if (fcmToken != null) {
       await Storage.setString(StorageKeyString.notificationFCMToken, fcmToken!);
-      final initialMessage =
-          await FirebaseMessaging.instance.getInitialMessage();
+      final initialMessage = await FirebaseMessaging.instance
+          .getInitialMessage();
       if (initialMessage != null) {
         NotifyService.handleMessage(initialMessage);
       }
     }
 
     // fcm onMessage listen
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      logger.i('notification: ${message.data}');
+    FirebaseMessaging.onMessage.listen(
+      (RemoteMessage message) {
+        logger.i('notification: ${message.data}');
 
-      if (message.notification != null) {
-        debugPrint('notification: ${message.notification?.body}');
-      }
-    }, onError: (e) {
-      logger.e('onMessage', error: e);
-    }, onDone: () {
-      logger.i('onMessage done');
-    });
+        if (message.notification != null) {
+          debugPrint('notification: ${message.notification?.body}');
+        }
+      },
+      onError: (e) {
+        logger.e('onMessage', error: e);
+      },
+      onDone: () {
+        logger.i('onMessage done');
+      },
+    );
 
     // fcm onMessageOpenedApp listen
     FirebaseMessaging.onMessageOpenedApp.listen(NotifyService.handleMessage);
 
     logger.i('fcmToken: $fcmToken');
     // fcm onTokenRefresh listen
-    FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
-      logger.i('onTokenRefresh: $fcmToken');
-      NotifyService.fcmToken = fcmToken;
-      Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
-      NotifyService.syncPubkeysToServer();
-    }).onError((err) {
-      logger.e('onTokenRefresh', error: err);
-    });
+    FirebaseMessaging.instance.onTokenRefresh
+        .listen((fcmToken) {
+          logger.i('onTokenRefresh: $fcmToken');
+          NotifyService.fcmToken = fcmToken;
+          Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
+          NotifyService.syncPubkeysToServer();
+        })
+        .onError((err) {
+          logger.e('onTokenRefresh', error: err);
+        });
 
     await syncPubkeysToServer(checkUpload: true);
   }
@@ -265,8 +298,10 @@ Fix:
     if (fcmToken == null) return true;
 
     try {
-      final res = await Dio().post('${KeychatGlobal.notifycationServer}/remove',
-          data: {'deviceId': fcmToken, 'pubkeys': pubkeys});
+      final res = await Dio().post(
+        '${KeychatGlobal.notifycationServer}/remove',
+        data: {'deviceId': fcmToken, 'pubkeys': pubkeys},
+      );
       logger.i('removePubkeys ${res.data}');
       return true;
     } catch (e, s) {
@@ -300,7 +335,8 @@ Fix:
       final room = await RoomService.instance.getRoomByMyReceiveKey(pubkey);
       if (room == null) {
         logger.e(
-            'handleMessage: Room not found. pubkey: $pubkey, event id: ${message.data['id']}');
+          'handleMessage: Room not found. pubkey: $pubkey, event id: ${message.data['id']}',
+        );
         return;
       }
       final isCurrentPage = DBProvider.instance.isCurrentPage(room.id);

@@ -1,21 +1,21 @@
 import 'dart:io' show Directory;
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/page/app_theme.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/page/pages.dart';
-import 'package:app/page/routes.dart';
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
-import 'package:app/utils/MyCustomScrollBehavior.dart';
-import 'package:app/utils/config.dart' as env_config;
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/page/app_theme.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/page/pages.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/service/chatx.service.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/utils/MyCustomScrollBehavior.dart';
+import 'package:keychat/utils/config.dart' as env_config;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,8 +40,9 @@ void main() async {
     enableLog: kDebugMode,
     logWriterCallback: _logWriterCallback,
     defaultPopGesture: true,
-    defaultTransition:
-        GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino,
+    defaultTransition: GetPlatform.isDesktop
+        ? Transition.fadeIn
+        : Transition.cupertino,
   );
   final initialRoute = await getInitRoute(isLogin: isLogin);
   final getMaterialApp = GetMaterialApp(

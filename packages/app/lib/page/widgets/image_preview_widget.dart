@@ -1,9 +1,9 @@
 import 'dart:io' show File;
 
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/page/chat/message_actions/VideoPlayWidget.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -23,8 +23,10 @@ class ImagePreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filePath = FileService.instance
-        .getAbsolutelyFilePath(Utils.appFolder.path, localPath);
+    final filePath = FileService.instance.getAbsolutelyFilePath(
+      Utils.appFolder.path,
+      localPath,
+    );
     final file = File(filePath);
     if (!file.existsSync()) return errorCallback(text: '[Image cleaned]');
     return GestureDetector(
@@ -43,8 +45,9 @@ class ImagePreviewWidget extends StatelessWidget {
             child: Center(child: Image.file(file, fit: BoxFit.contain)),
           );
         } else if (FileService.instance.isVideoFile(file.path)) {
-          final thumb =
-              await FileService.instance.getOrCreateThumbForVideo(file.path);
+          final thumb = await FileService.instance.getOrCreateThumbForVideo(
+            file.path,
+          );
           child = VideoPlayWidget(thumb, file.path, true);
         }
         final w = Scaffold(
@@ -81,8 +84,9 @@ class ImagePreviewWidget extends StatelessWidget {
                           ShareParams(
                             previewThumbnail: XFile(filePath),
                             files: [XFile(filePath)],
-                            subject: FileService.instance
-                                .getDisplayFileName(file.path),
+                            subject: FileService.instance.getDisplayFileName(
+                              file.path,
+                            ),
                             sharePositionOrigin:
                                 box!.localToGlobal(Offset.zero) & box.size,
                           ),

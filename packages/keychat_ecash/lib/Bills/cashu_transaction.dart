@@ -1,6 +1,6 @@
-import 'package:app/page/components.dart';
-import 'package:app/rust_api.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

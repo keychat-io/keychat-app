@@ -1,5 +1,5 @@
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/service/storage.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/service/storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -33,8 +33,9 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
       builder: (BuildContext context) {
         return CupertinoAlertDialog(
           title: const Text('Remove Host'),
-          content:
-              Text('Are you sure you want to remove "$host" from KeepAlive?'),
+          content: Text(
+            'Are you sure you want to remove "$host" from KeepAlive?',
+          ),
           actions: [
             CupertinoActionSheetAction(
               onPressed: Get.back,
@@ -86,8 +87,10 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                   EasyLoading.showSuccess('All KeepAlive hosts cleared');
                 }
               },
-              child:
-                  const Text('Clear All', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -141,10 +144,10 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                       Expanded(
                         child: Text(
                           'KeepAlive hosts save the web sessions to local storage',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.blue,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.blue,
+                              ),
                         ),
                       ),
                     ],
@@ -182,8 +185,8 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                     child: Text(
                       '${hosts.length} host${hosts.length == 1 ? '' : 's'} configured',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
               ],

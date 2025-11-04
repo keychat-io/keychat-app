@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:app/models/models.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/group.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/group.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -62,8 +62,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         pubkeys.add(contact['pubkey']);
       }
     }
-    final result =
-        await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+    final result = await MlsGroupService.instance.getKeyPackagesFromRelay(
+      pubkeys,
+    );
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
@@ -106,8 +107,10 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     // only isSendAllGroup
     if (!isAdmin && widget.room.isSendAllGroup) {
       try {
-        await GroupService.instance
-            .sendInviteToAdmin(widget.room, selectAccounts);
+        await GroupService.instance.sendInviteToAdmin(
+          widget.room,
+          selectAccounts,
+        );
 
         EasyLoading.dismiss();
         Get.dialog(
@@ -134,15 +137,21 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
     try {
       EasyLoading.show(status: 'Processing...');
-      final groupRoom =
-          await RoomService.instance.getRoomByIdOrFail(widget.room.id);
+      final groupRoom = await RoomService.instance.getRoomByIdOrFail(
+        widget.room.id,
+      );
       final sender = widget.room.getIdentity().displayName;
       if (widget.room.isMLSGroup) {
-        await MlsGroupService.instance
-            .addMemeberToGroup(groupRoom, selectUsers, sender);
+        await MlsGroupService.instance.addMemeberToGroup(
+          groupRoom,
+          selectUsers,
+          sender,
+        );
       } else if (widget.room.isSendAllGroup) {
-        await GroupService.instance
-            .inviteToJoinGroup(groupRoom, selectAccounts);
+        await GroupService.instance.inviteToJoinGroup(
+          groupRoom,
+          selectAccounts,
+        );
       }
       EasyLoading.showSuccess('Success');
       Get.back<void>();
@@ -198,8 +207,10 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                       user['npubkey'] as String,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing:
-                        getAddMemeberCheckBox(widget.room.groupType, user),
+                    trailing: getAddMemeberCheckBox(
+                      widget.room.groupType,
+                      user,
+                    ),
                   );
                 },
               ),
@@ -314,8 +325,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                   hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
                 }
                 // Check if hexPubkey already exists in users
-                final alreadyExists = users
-                    .firstWhereOrNull((user) => user['pubkey'] == hexPubkey);
+                final alreadyExists = users.firstWhereOrNull(
+                  (user) => user['pubkey'] == hexPubkey,
+                );
                 if (alreadyExists != null) {
                   if (alreadyExists['exist'] == true) {
                     EasyLoading.showError('User already exists in the group');

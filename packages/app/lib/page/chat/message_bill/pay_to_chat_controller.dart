@@ -1,4 +1,4 @@
-import 'package:app/models/nostr_event_status.dart';
+import 'package:keychat/models/nostr_event_status.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

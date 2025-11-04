@@ -1,7 +1,7 @@
-import 'package:app/models/models.dart';
-import 'package:app/page/browser/BookmarkEdit.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/browser/BookmarkEdit.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -97,143 +97,144 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _bookmarks.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.bookmark_border,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No bookmarks yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.bookmark_border,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No bookmarks yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : _isEditMode
+          ? ReorderableListView.builder(
+              itemCount: _bookmarks.length,
+              onReorder: _onReorder,
+              itemBuilder: (context, index) {
+                final bookmark = _bookmarks[index];
+                return Container(
+                  key: ValueKey(bookmark.id),
+                  child: ListTile(
+                    leading: bookmark.favicon != null
+                        ? Utils.getNeworkImageOrDefault(
+                            bookmark.favicon,
+                            size: 32,
+                            radius: 4,
+                          )
+                        : const Icon(Icons.bookmark),
+                    title: Text(
+                      bookmark.title ?? bookmark.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      bookmark.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            CupertinoIcons.delete,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => _deleteBookmark(bookmark),
                         ),
+                        const Icon(Icons.drag_handle),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
+          : ListView.builder(
+              itemCount: _bookmarks.length,
+              itemBuilder: (context, index) {
+                final bookmark = _bookmarks[index];
+                return ListTile(
+                  leading: bookmark.favicon != null
+                      ? Utils.getNeworkImageOrDefault(
+                          bookmark.favicon,
+                          size: 32,
+                          radius: 4,
+                        )
+                      : const Icon(Icons.bookmark),
+                  title: Text(
+                    bookmark.title ?? bookmark.url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    bookmark.url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    final controller = Get.find<MultiWebviewController>();
+                    controller.launchWebview(
+                      initUrl: bookmark.url,
+                      defaultTitle: bookmark.title,
+                    );
+                    if (Get.isBottomSheetOpen ?? false) {
+                      Get.back<void>();
+                    }
+                  },
+                  onLongPress: _toggleEditMode,
+                  trailing: Wrap(
+                    children: [
+                      if (exists.contains(bookmark.url))
+                        IconButton(
+                          onPressed: () async {
+                            await BrowserFavorite.deleteByUrl(bookmark.url);
+                            setState(() {
+                              exists = exists..remove(bookmark.url);
+                            });
+
+                            EasyLoading.showSuccess('Remved from Favorites');
+                          },
+                          icon: const Icon(Icons.check, color: Colors.green),
+                        )
+                      else
+                        IconButton(
+                          onPressed: () async {
+                            await BrowserFavorite.add(
+                              url: bookmark.url,
+                              title: bookmark.title,
+                              favicon: bookmark.favicon,
+                            );
+                            setState(() {
+                              exists = exists..add(bookmark.url);
+                            });
+
+                            EasyLoading.showSuccess('Added to Favorites');
+                          },
+                          icon: const Icon(Icons.add),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.more_horiz),
+                        onPressed: () async {
+                          await Get.to(() => BookmarkEdit(model: bookmark));
+                          _loadBookmarks();
+                        },
                       ),
                     ],
                   ),
-                )
-              : _isEditMode
-                  ? ReorderableListView.builder(
-                      itemCount: _bookmarks.length,
-                      onReorder: _onReorder,
-                      itemBuilder: (context, index) {
-                        final bookmark = _bookmarks[index];
-                        return Container(
-                          key: ValueKey(bookmark.id),
-                          child: ListTile(
-                            leading: bookmark.favicon != null
-                                ? Utils.getNeworkImageOrDefault(
-                                    bookmark.favicon,
-                                    size: 32,
-                                    radius: 4,
-                                  )
-                                : const Icon(Icons.bookmark),
-                            title: Text(
-                              bookmark.title ?? bookmark.url,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              bookmark.url,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(CupertinoIcons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteBookmark(bookmark),
-                                ),
-                                const Icon(Icons.drag_handle),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : ListView.builder(
-                      itemCount: _bookmarks.length,
-                      itemBuilder: (context, index) {
-                        final bookmark = _bookmarks[index];
-                        return ListTile(
-                          leading: bookmark.favicon != null
-                              ? Utils.getNeworkImageOrDefault(
-                                  bookmark.favicon,
-                                  size: 32,
-                                  radius: 4,
-                                )
-                              : const Icon(Icons.bookmark),
-                          title: Text(
-                            bookmark.title ?? bookmark.url,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            bookmark.url,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () {
-                            final controller =
-                                Get.find<MultiWebviewController>();
-                            controller.launchWebview(
-                              initUrl: bookmark.url,
-                              defaultTitle: bookmark.title,
-                            );
-                            if (Get.isBottomSheetOpen ?? false) {
-                              Get.back<void>();
-                            }
-                          },
-                          onLongPress: _toggleEditMode,
-                          trailing: Wrap(children: [
-                            if (exists.contains(bookmark.url))
-                              IconButton(
-                                  onPressed: () async {
-                                    await BrowserFavorite.deleteByUrl(
-                                        bookmark.url);
-                                    setState(() {
-                                      exists = exists..remove(bookmark.url);
-                                    });
-
-                                    EasyLoading.showSuccess(
-                                        'Remved from Favorites');
-                                  },
-                                  icon: const Icon(Icons.check,
-                                      color: Colors.green))
-                            else
-                              IconButton(
-                                  onPressed: () async {
-                                    await BrowserFavorite.add(
-                                        url: bookmark.url,
-                                        title: bookmark.title,
-                                        favicon: bookmark.favicon);
-                                    setState(() {
-                                      exists = exists..add(bookmark.url);
-                                    });
-
-                                    EasyLoading.showSuccess(
-                                        'Added to Favorites');
-                                  },
-                                  icon: const Icon(Icons.add)),
-                            IconButton(
-                              icon: const Icon(Icons.more_horiz),
-                              onPressed: () async {
-                                await Get.to(
-                                    () => BookmarkEdit(model: bookmark));
-                                _loadBookmarks();
-                              },
-                            )
-                          ]),
-                        );
-                      },
-                    ),
+                );
+              },
+            ),
     );
   }
 }

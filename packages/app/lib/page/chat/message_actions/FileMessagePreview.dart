@@ -1,10 +1,10 @@
 import 'dart:io' show File;
 
-import 'package:app/models/embedded/msg_file_info.dart';
-import 'package:app/models/message.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/embedded/msg_file_info.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

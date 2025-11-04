@@ -1,14 +1,14 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/browser/BrowserSetting.dart';
-import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
-import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
-import 'package:app/page/login/SelectModeToCreateID.dart';
-import 'package:app/page/routes.dart';
-import 'package:app/page/setting/app_general_setting.dart';
-import 'package:app/page/setting/more_chat_setting.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/browser/BrowserSetting.dart';
+import 'package:keychat/page/login/AccountSetting/AccountSetting_bindings.dart';
+import 'package:keychat/page/login/AccountSetting/AccountSetting_page.dart';
+import 'package:keychat/page/login/SelectModeToCreateID.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/page/setting/app_general_setting.dart';
+import 'package:keychat/page/setting/more_chat_setting.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -75,10 +75,9 @@ class _MinePageState extends State<MinePage> {
                   title: const Text('Create ID'),
                   trailing: Icon(
                     CupertinoIcons.add,
-                    color: Theme.of(Get.context!)
-                        .iconTheme
-                        .color
-                        ?.withValues(alpha: 0.5),
+                    color: Theme.of(
+                      Get.context!,
+                    ).iconTheme.color?.withValues(alpha: 0.5),
                     size: 22,
                   ),
                   onPressed: (context) async {
@@ -168,18 +167,18 @@ class _MinePageState extends State<MinePage> {
     final platform = GetPlatform.isAndroid
         ? 'android'
         : GetPlatform.isIOS
-            ? 'ios'
-            : GetPlatform.isMacOS
-                ? 'macos'
-                : GetPlatform.isWindows
-                    ? 'windows'
-                    : GetPlatform.isLinux
-                        ? 'linux'
-                        : 'ios';
+        ? 'ios'
+        : GetPlatform.isMacOS
+        ? 'macos'
+        : GetPlatform.isWindows
+        ? 'windows'
+        : GetPlatform.isLinux
+        ? 'linux'
+        : 'ios';
 
     final newVersion =
         homeController.remoteAppConfig['${platform}Version'] as String? ??
-            '0.0.0+0';
+        '0.0.0+0';
 
     final localVersion =
         homeController.remoteAppConfig['appVersion'] as String? ?? '0.0.0+0';
@@ -232,9 +231,9 @@ class _MinePageState extends State<MinePage> {
             overflow: TextOverflow.ellipsis,
             style: i == 0
                 ? Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.primary,
-                    )
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                  )
                 : Theme.of(context).textTheme.bodyLarge,
           ),
           value: Text(getPublicKeyDisplay(identity.npub)),

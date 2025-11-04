@@ -1,4 +1,4 @@
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;

@@ -1,10 +1,10 @@
-import 'package:app/app.dart';
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/models/embedded/relay_file_fee.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/models/embedded/relay_file_fee.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -30,8 +30,9 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   }
 
   Future<void> _init() async {
-    final fuc =
-        await RelayService.instance.initRelayFileFeeModel(defaultFileServer);
+    final fuc = await RelayService.instance.initRelayFileFeeModel(
+      defaultFileServer,
+    );
     if (fuc != null) {
       ws.setRelayFileFeeModel(defaultFileServer, fuc);
     }
@@ -58,8 +59,9 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                           'Upload File: Not Supported',
                           style: TextStyle(color: Colors.red),
                         ),
-                        description:
-                            const Text('Please try another file server'),
+                        description: const Text(
+                          'Please try another file server',
+                        ),
                       ),
                     if (isInit && (relayFileFee?.mints ?? []).isNotEmpty)
                       SettingsTile(
@@ -70,8 +72,9 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                       SettingsTile(
                         title: const Text('MaxSize'),
                         value: Text(
-                          FileService.instance
-                              .getFileSizeDisplay(relayFileFee?.maxSize ?? 0),
+                          FileService.instance.getFileSizeDisplay(
+                            relayFileFee?.maxSize ?? 0,
+                          ),
                         ),
                       ),
                     if (isInit && (relayFileFee?.mints ?? []).isNotEmpty)

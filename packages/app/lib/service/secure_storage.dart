@@ -1,7 +1,7 @@
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:app/utils/config.dart';
+import 'package:keychat/utils/config.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SecureStorage {
@@ -10,11 +10,12 @@ class SecureStorage {
   static SecureStorage? _instance;
   static SecureStorage get instance => _instance ??= SecureStorage._();
   static const FlutterSecureStorage storage = FlutterSecureStorage(
-      mOptions: MacOsOptions(
-        synchronizable: true,
-        accessibility: KeychainAccessibility.first_unlock,
-      ),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
+    mOptions: MacOsOptions(
+      synchronizable: true,
+      accessibility: KeychainAccessibility.first_unlock,
+    ),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
 
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
   String pinKey = 'APP_PIN_HASH';
@@ -95,7 +96,10 @@ class SecureStorage {
 
     try {
       final list = await rust_nostr.importFromPhraseWith(
-          phrase: mnemonic, offset: 0, count: 10);
+        phrase: mnemonic,
+        offset: 0,
+        count: 10,
+      );
       for (final account in list) {
         if (account.pubkey == secp256k1PKHex) {
           await write(account.pubkey, account.prikey);
@@ -144,19 +148,25 @@ class SecureStorage {
   Future<void> clearAll([bool force = false]) async {
     if (force || kReleaseMode) {
       await storage.deleteAll(
-          iOptions: const IOSOptions(
-              accessibility: KeychainAccessibility.first_unlock));
+        iOptions: const IOSOptions(
+          accessibility: KeychainAccessibility.first_unlock,
+        ),
+      );
     }
     await storage.delete(
-        key: mnemonicKey,
-        iOptions: const IOSOptions(
-            accessibility: KeychainAccessibility.first_unlock));
+      key: mnemonicKey,
+      iOptions: const IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock,
+      ),
+    );
   }
 
   Future<void> setBiometrics(bool status) async {
     if (status) {
       await storage.write(
-          key: biometricsStatusKey, value: (status ? 1 : 0).toString());
+        key: biometricsStatusKey,
+        value: (status ? 1 : 0).toString(),
+      );
       return;
     }
     await storage.delete(key: biometricsStatusKey);

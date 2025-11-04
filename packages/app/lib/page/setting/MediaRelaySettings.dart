@@ -1,7 +1,7 @@
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/page/setting/KeychatS3ProtocolSetting.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/page/setting/KeychatS3ProtocolSetting.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,36 +15,38 @@ class MediaRelaySettings extends GetView<SettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Media Relay'),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              onPressed: () {
-                final urlController = TextEditingController();
+      appBar: AppBar(
+        title: const Text('Media Relay'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              final urlController = TextEditingController();
 
-                Get.dialog(CupertinoAlertDialog(
+              Get.dialog(
+                CupertinoAlertDialog(
                   title: const Text('Add Server'),
                   content: Container(
-                      color: Colors.transparent,
-                      padding: const EdgeInsets.only(top: 15),
-                      child: Column(
-                        children: [
-                          NoticeTextWidget.info('''
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.only(top: 15),
+                    child: Column(
+                      children: [
+                        NoticeTextWidget.info('''
 1. The server needs to support uploading encrypted files.
 2. Each file will be encrypted with a random private key.'''),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: urlController,
-                            textInputAction: TextInputAction.done,
-                            autofocus: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Blossom Server url',
-                              border: OutlineInputBorder(),
-                            ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: urlController,
+                          textInputAction: TextInputAction.done,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Blossom Server url',
+                            border: OutlineInputBorder(),
                           ),
-                        ],
-                      )),
+                        ),
+                      ],
+                    ),
+                  ),
                   actions: <Widget>[
                     CupertinoDialogAction(
                       child: const Text('Cancel'),
@@ -60,13 +62,15 @@ class MediaRelaySettings extends GetView<SettingController> {
                       child: const Text('Confirm'),
                     ),
                   ],
-                ));
-              },
-              icon: const Icon(CupertinoIcons.add_circled),
-            )
-          ],
-        ),
-        body: Obx(() => controller.mediaServers.isNotEmpty
+                ),
+              );
+            },
+            icon: const Icon(CupertinoIcons.add_circled),
+          ),
+        ],
+      ),
+      body: Obx(
+        () => controller.mediaServers.isNotEmpty
             ? RadioGroup<String>(
                 groupValue: controller.selectedMediaServer.value,
                 onChanged: (value) {
@@ -74,60 +78,76 @@ class MediaRelaySettings extends GetView<SettingController> {
                   controller.setSelectedMediaServer(value);
                   EasyLoading.showSuccess('Successed');
                 },
-                child: SettingsList(platform: DevicePlatform.iOS, sections: [
-                  SettingsSection(
-                    margin:
-                        const EdgeInsetsDirectional.symmetric(horizontal: 16),
-                    tiles: controller.mediaServers.map((String url) {
-                      final uri = Uri.parse(url);
-                      final isKeychat = uri.host.contains('keychat.io');
-                      return SettingsTile.navigation(
-                        title: Text(isKeychat ? uri.host : url),
-                        leading: Radio<String>(value: url),
-                        onPressed: (context) {
-                          if (isKeychat) {
-                            Get.to(KeychatS3Protocol.new);
-                            return;
-                          }
-                          Get.bottomSheet(SettingsList(sections: [
-                            SettingsSection(
-                              title: Text(url),
-                              tiles: [
-                                SettingsTile.navigation(
-                                  title: const Text('View'),
-                                  onPressed: (context) {
-                                    Get.back<void>();
-                                    Get.find<MultiWebviewController>()
-                                        .launchWebview(initUrl: url);
-                                  },
-                                ),
-                                SettingsTile(
-                                  title: const Text('Copy URL'),
-                                  onPressed: (context) {
-                                    Get.back<void>();
-                                    Clipboard.setData(ClipboardData(text: url));
-                                    EasyLoading.showSuccess(
-                                        'Copied to clipboard');
-                                  },
-                                ),
-                                SettingsTile(
-                                  title: const Text('Delete',
-                                      style: TextStyle(color: Colors.red)),
-                                  onPressed: (context) {
-                                    Get.back<void>();
-                                    controller.removeMediaServer(url);
-                                    EasyLoading.showSuccess('Removed');
-                                  },
-                                ),
-                              ],
-                            )
-                          ]));
-                        },
-                      );
-                    }).toList(),
-                  )
-                ]))
-            : const Center(child: Text('No media relay configured yet'))));
+                child: SettingsList(
+                  platform: DevicePlatform.iOS,
+                  sections: [
+                    SettingsSection(
+                      margin: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 16,
+                      ),
+                      tiles: controller.mediaServers.map((String url) {
+                        final uri = Uri.parse(url);
+                        final isKeychat = uri.host.contains('keychat.io');
+                        return SettingsTile.navigation(
+                          title: Text(isKeychat ? uri.host : url),
+                          leading: Radio<String>(value: url),
+                          onPressed: (context) {
+                            if (isKeychat) {
+                              Get.to(KeychatS3Protocol.new);
+                              return;
+                            }
+                            Get.bottomSheet(
+                              SettingsList(
+                                sections: [
+                                  SettingsSection(
+                                    title: Text(url),
+                                    tiles: [
+                                      SettingsTile.navigation(
+                                        title: const Text('View'),
+                                        onPressed: (context) {
+                                          Get.back<void>();
+                                          Get.find<MultiWebviewController>()
+                                              .launchWebview(initUrl: url);
+                                        },
+                                      ),
+                                      SettingsTile(
+                                        title: const Text('Copy URL'),
+                                        onPressed: (context) {
+                                          Get.back<void>();
+                                          Clipboard.setData(
+                                            ClipboardData(text: url),
+                                          );
+                                          EasyLoading.showSuccess(
+                                            'Copied to clipboard',
+                                          );
+                                        },
+                                      ),
+                                      SettingsTile(
+                                        title: const Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                        onPressed: (context) {
+                                          Get.back<void>();
+                                          controller.removeMediaServer(url);
+                                          EasyLoading.showSuccess('Removed');
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              )
+            : const Center(child: Text('No media relay configured yet')),
+      ),
+    );
   }
 
   void addUrlSubmit(TextEditingController urlController) {

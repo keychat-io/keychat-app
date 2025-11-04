@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:app/models/models.dart';
-import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/contact/contact_detail_page.dart';
-import 'package:app/page/contact/contact_index_bar.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/create_contact_page.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/page/contact/contact_detail_page.dart';
+import 'package:keychat/page/contact/contact_index_bar.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

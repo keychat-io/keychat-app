@@ -1,8 +1,8 @@
-import 'package:app/app.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;

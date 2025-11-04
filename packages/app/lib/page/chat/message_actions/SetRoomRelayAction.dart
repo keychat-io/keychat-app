@@ -1,66 +1,66 @@
 import 'dart:convert';
 
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/models/message.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class SetRoomRelayAction extends StatelessWidget {
+  const SetRoomRelayAction(this.cc, this.message, {super.key});
   final Message message;
   final ChatController cc;
-  const SetRoomRelayAction(this.cc, this.message, {super.key});
 
   @override
   Widget build(BuildContext context) {
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
         return Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             OutlinedButton(
-                onPressed: () {
-                  message.requestConfrim = RequestConfrimEnum.rejected;
-                  MessageService.instance.updateMessageAndRefresh(message);
-                },
-                child: const Text('Reject')),
+              onPressed: () {
+                message.requestConfrim = RequestConfrimEnum.rejected;
+                MessageService.instance.updateMessageAndRefresh(message);
+              },
+              child: const Text('Reject'),
+            ),
             const SizedBox(width: 30),
             FilledButton(
-                onPressed: () async {
-                  List<String> relays =
-                      List<String>.from(jsonDecode(message.content));
-                  if (relays.isEmpty) {
+              onPressed: () async {
+                final relays = List<String>.from(jsonDecode(message.content));
+                if (relays.isEmpty) {
+                  EasyLoading.showToast('Invalid relay url');
+                  return;
+                }
+                for (final relay in relays) {
+                  if (!(relay.startsWith('ws://') ||
+                      relay.startsWith('wss://'))) {
                     EasyLoading.showToast('Invalid relay url');
                     return;
                   }
-                  for (var relay in relays) {
-                    if (!(relay.startsWith('ws://') ||
-                        relay.startsWith('wss://'))) {
-                      EasyLoading.showToast('Invalid relay url');
-                      return;
-                    }
+                }
+
+                final ws = Get.find<WebsocketService>();
+                for (final relay in relays) {
+                  if (ws.channels[relay] == null) {
+                    RelayService.instance.addAndConnect(relay);
                   }
+                }
 
-                  WebsocketService ws = Get.find<WebsocketService>();
-                  for (var relay in relays) {
-                    if (ws.channels[relay] == null) {
-                      RelayService.instance.addAndConnect(relay);
-                    }
-                  }
+                cc.roomObs.value.sendingRelays = relays;
+                await RoomService.instance.updateRoomAndRefresh(
+                  cc.roomObs.value,
+                );
 
-                  cc.roomObs.value.sendingRelays = relays;
-                  await RoomService.instance
-                      .updateRoomAndRefresh(cc.roomObs.value);
-
-                  message.requestConfrim = RequestConfrimEnum.approved;
-                  await MessageService.instance
-                      .updateMessageAndRefresh(message);
-                },
-                child: const Text('Approve'))
+                message.requestConfrim = RequestConfrimEnum.approved;
+                await MessageService.instance.updateMessageAndRefresh(message);
+              },
+              child: const Text('Approve'),
+            ),
           ],
         );
       case RequestConfrimEnum.approved:

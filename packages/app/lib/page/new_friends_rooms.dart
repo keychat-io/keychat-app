@@ -1,8 +1,8 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/room.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -104,13 +104,13 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
               ),
               trailing:
                   homeController.roomLastMessage[room.id]?.createdAt != null
-                      ? textSmallGray(
-                          context,
-                          Utils.formatTimeMsg(
-                            homeController.roomLastMessage[room.id]!.createdAt,
-                          ),
-                        )
-                      : null,
+                  ? textSmallGray(
+                      context,
+                      Utils.formatTimeMsg(
+                        homeController.roomLastMessage[room.id]!.createdAt,
+                      ),
+                    )
+                  : null,
             );
           },
         ),

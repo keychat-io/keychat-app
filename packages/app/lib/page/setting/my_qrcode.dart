@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode;
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:app/service/signal_chat_util.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/signalId.service.dart';
+import 'package:keychat/service/signal_chat_util.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

@@ -1,11 +1,11 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:typed_data' show Uint8List;
 
-import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/keychat/room_profile.dart';
-import 'package:app/models/signal_id.dart';
-import 'package:app/service/chatx.service.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/keychat/room_profile.dart';
+import 'package:keychat/models/signal_id.dart';
+import 'package:keychat/service/chatx.service.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';

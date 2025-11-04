@@ -89,10 +89,10 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.keychat.io" "\0"
-            VALUE "FileDescription", "Keychat is a chat app, built on Bitcoin Ecash , Nostr Protocol and Signal / MLS Protocol" "\0"
+            VALUE "CompanyName", "KEYME" "\0"
+            VALUE "FileDescription", "Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "app" "\0"
+            VALUE "InternalName", "keychat" "\0"
             VALUE "LegalCopyright", "Copyright © KEYME PTE. LTD. 2025. All rights reserved." "\0"
             VALUE "OriginalFilename", "Keychat.exe" "\0"
             VALUE "ProductName", "Keychat" "\0"

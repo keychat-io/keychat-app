@@ -31,7 +31,8 @@ pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 **/*.DS_Store
-
+dist/
+**/*/libisar.so
 **/*/Podfile.lock
 packages/app/ios/Podfile.lock
 packages/app/macos/Podfile.lock

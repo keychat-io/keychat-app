@@ -59,7 +59,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    # if: false
+    if: false
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -108,7 +108,7 @@ jobs:
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
           fastforge package \
-            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
+            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
             --targets deb,rpm,appimage \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
@@ -410,7 +410,7 @@ jobs:
   upload:
     # if: false # Temporarily disabled for testing
     permissions: write-all
-    needs: [get-version, build-windows, build-linux, build-android]
+    needs: [get-version, build-windows, build-android] # , build-linux, build-macos
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout

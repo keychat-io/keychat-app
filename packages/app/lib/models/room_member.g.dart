@@ -34,21 +34,22 @@ const RoomMemberSchema = CollectionSchema(
       type: IsarType.string,
     ),
     r'isAdmin': PropertySchema(id: 4, name: r'isAdmin', type: IsarType.bool),
-    r'name': PropertySchema(id: 5, name: r'name', type: IsarType.string),
-    r'roomId': PropertySchema(id: 6, name: r'roomId', type: IsarType.long),
+    r'msg': PropertySchema(id: 5, name: r'msg', type: IsarType.string),
+    r'name': PropertySchema(id: 6, name: r'name', type: IsarType.string),
+    r'roomId': PropertySchema(id: 7, name: r'roomId', type: IsarType.long),
     r'status': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomMemberstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
@@ -101,6 +102,12 @@ int _roomMemberEstimateSize(
     }
   }
   bytesCount += 3 + object.idPubkey.length * 3;
+  {
+    final value = object.msg;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
 }
@@ -116,11 +123,12 @@ void _roomMemberSerialize(
   writer.writeLong(offsets[2], object.hashCode);
   writer.writeString(offsets[3], object.idPubkey);
   writer.writeBool(offsets[4], object.isAdmin);
-  writer.writeString(offsets[5], object.name);
-  writer.writeLong(offsets[6], object.roomId);
-  writer.writeInt(offsets[7], object.status.index);
-  writer.writeBool(offsets[8], object.stringify);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeString(offsets[5], object.msg);
+  writer.writeString(offsets[6], object.name);
+  writer.writeLong(offsets[7], object.roomId);
+  writer.writeInt(offsets[8], object.status.index);
+  writer.writeBool(offsets[9], object.stringify);
+  writer.writeDateTime(offsets[10], object.updatedAt);
 }
 
 RoomMember _roomMemberDeserialize(
@@ -131,17 +139,18 @@ RoomMember _roomMemberDeserialize(
 ) {
   final object = RoomMember(
     idPubkey: reader.readString(offsets[3]),
-    name: reader.readString(offsets[5]),
-    roomId: reader.readLong(offsets[6]),
+    name: reader.readString(offsets[6]),
+    roomId: reader.readLong(offsets[7]),
     status:
-        _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[7])] ??
+        _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
         UserStatusType.invited,
   );
   object.createdAt = reader.readDateTimeOrNull(offsets[0]);
   object.curve25519PkHex = reader.readStringOrNull(offsets[1]);
   object.id = id;
   object.isAdmin = reader.readBool(offsets[4]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[9]);
+  object.msg = reader.readStringOrNull(offsets[5]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[10]);
   return object;
 }
 
@@ -163,16 +172,18 @@ P _roomMemberDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readLong(offset)) as P;
+    case 8:
       return (_RoomMemberstatusValueEnumMap[reader.readIntOrNull(offset)] ??
               UserStatusType.invited)
           as P;
-    case 8:
-      return (reader.readBoolOrNull(offset)) as P;
     case 9:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 10:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1067,6 +1078,168 @@ extension RoomMemberQueryFilter
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'msg'),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'msg'),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'msg',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'msg',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'msg',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'msg', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> msgIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'msg', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1504,6 +1677,18 @@ extension RoomMemberQuerySortBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByMsg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'msg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByMsgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'msg', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1640,6 +1825,18 @@ extension RoomMemberQuerySortThenBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByMsg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'msg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByMsgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'msg', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1740,6 +1937,14 @@ extension RoomMemberQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByMsg({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'msg', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByName({
     bool caseSensitive = true,
   }) {
@@ -1812,6 +2017,12 @@ extension RoomMemberQueryProperty
     });
   }
 
+  QueryBuilder<RoomMember, String?, QQueryOperations> msgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'msg');
+    });
+  }
+
   QueryBuilder<RoomMember, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -1862,7 +2073,8 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) =>
       ..updatedAt = json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String)
-      ..isAdmin = json['isAdmin'] as bool;
+      ..isAdmin = json['isAdmin'] as bool
+      ..msg = json['msg'] as String?;
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
     <String, dynamic>{
@@ -1873,6 +2085,7 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
       'updatedAt': ?instance.updatedAt?.toIso8601String(),
       'isAdmin': instance.isAdmin,
       'status': _$UserStatusTypeEnumMap[instance.status]!,
+      'msg': ?instance.msg,
     };
 
 const _$UserStatusTypeEnumMap = {

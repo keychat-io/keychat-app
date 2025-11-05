@@ -1,4 +1,4 @@
-import 'package:app/models/db_provider.dart';
+import 'package:keychat/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 
@@ -53,8 +53,11 @@ class BrowserBookmark extends Equatable {
     });
   }
 
-  static Future<void> add(
-      {required String url, String? title, String? favicon}) async {
+  static Future<void> add({
+    required String url,
+    String? title,
+    String? favicon,
+  }) async {
     await DBProvider.database.writeTxn(() async {
       // Get the maximum weight from existing bookmarks
       final maxWeightBookmark = await DBProvider.database.browserBookmarks
@@ -78,7 +81,8 @@ class BrowserBookmark extends Equatable {
   }
 
   static Future<void> batchUpdateWeights(
-      List<BrowserBookmark> bookmarks) async {
+    List<BrowserBookmark> bookmarks,
+  ) async {
     await DBProvider.database.writeTxn(() async {
       for (var i = 0; i < bookmarks.length; i++) {
         bookmarks[i].weight = bookmarks.length - i;

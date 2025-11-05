@@ -1,12 +1,12 @@
-import 'package:app/constants.dart';
-import 'package:app/models/relay.dart';
-import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/models/relay.dart';
+import 'package:keychat/nostr-core/nostr_nip4_req.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
@@ -35,14 +35,15 @@ class RelayWebsocket {
     );
 
     // mls group room
-    final since =
-        await MessageService.instance.getNostrListenStartAt(relay.url);
+    final since = await MessageService.instance.getNostrListenStartAt(
+      relay.url,
+    );
     final mlsRoomKeys = await IdentityService.instance.getMlsRoomPubkeys();
     listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);
 
     // signal room keys
-    final signalRoomKeys =
-        await IdentityService.instance.getSignalRoomPubkeys();
+    final signalRoomKeys = await IdentityService.instance
+        .getSignalRoomPubkeys();
 
     listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
@@ -150,11 +151,15 @@ class RelayWebsocket {
     await _startListen();
 
     EasyDebounce.debounce(
-        'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
-      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
-    });
+      'connectSuccess:${relay.url}',
+      const Duration(seconds: 3),
+      () async {
+        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
+      },
+    );
     // nwc reconnect
-    Utils.getGetxController<NostrWalletConnectController>()
-        ?.startListening(relay.url);
+    Utils.getGetxController<NostrWalletConnectController>()?.startListening(
+      relay.url,
+    );
   }
 }

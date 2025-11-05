@@ -1,32 +1,32 @@
 import 'dart:collection' as collection;
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/models.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/service/group_tx.dart';
-import 'package:app/service/chat.service.dart';
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/nip4_chat.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/signal_chat.service.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/service/group_tx.dart';
+import 'package:keychat/service/chat.service.dart';
+import 'package:keychat/service/chatx.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/nip4_chat.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
+import 'package:keychat/service/signalId.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:queue/queue.dart';
 
-import 'package:app/constants.dart';
-import 'package:app/nostr-core/nostr.dart';
-import 'package:app/utils.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/nostr-core/nostr.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
 
 const String changeNickName = 'change nickname to: ';
 const String joinGreeting = 'joined group';
@@ -200,8 +200,10 @@ class GroupService extends BaseChatService {
     final users = roomProfile.users;
     final newPubkey = rust_nostr.getHexPubkeyByPrikey(prikey: newPrikey);
 
-    var room =
-        await roomService.getRoomByIdentity(oldToRoomPubKey, idRoom.identityId);
+    var room = await roomService.getRoomByIdentity(
+      oldToRoomPubKey,
+      idRoom.identityId,
+    );
     if (room == null) return;
     final roomMemberAdmin = await room.getAdmin();
     if (roomMemberAdmin == null) throw Exception('not found admin');
@@ -217,8 +219,11 @@ class GroupService extends BaseChatService {
       );
       room.mykey.value = newkey;
     });
-    Get.find<WebsocketService>()
-        .listenPubkey([newPubkey], limit: 1000, kinds: [EventKinds.nip04]);
+    Get.find<WebsocketService>().listenPubkey(
+      [newPubkey],
+      limit: 1000,
+      kinds: [EventKinds.nip04],
+    );
     room = await RoomService.instance.updateRoom(room, updateMykey: true);
 
     await room.updateAllMember(users);
@@ -251,8 +256,9 @@ class GroupService extends BaseChatService {
     String? msgKeyHash,
     NostrEventModel? sourceEvent,
   }) async {
-    final signPubkey =
-        room.isSendAllGroup ? idRoom!.toMainPubkey : event.pubkey;
+    final signPubkey = room.isSendAllGroup
+        ? idRoom!.toMainPubkey
+        : event.pubkey;
     final subType = groupMessage.subtype;
     final ext = groupMessage.ext;
 
@@ -414,8 +420,9 @@ class GroupService extends BaseChatService {
           }
         });
         if (groupRoom != null) {
-          Get.find<HomeController>()
-              .loadIdentityRoomList(groupRoom!.identityId);
+          Get.find<HomeController>().loadIdentityRoomList(
+            groupRoom!.identityId,
+          );
         }
         return;
       }
@@ -529,8 +536,10 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupSendToAllMessage:
         final gm = GroupMessage.fromJson(jsonDecode(km.msg!));
 
-        final groupRoom = await RoomService.instance
-            .getRoomByIdentity(gm.pubkey, room.identityId);
+        final groupRoom = await RoomService.instance.getRoomByIdentity(
+          gm.pubkey,
+          room.identityId,
+        );
         if (groupRoom == null) {
           return;
         }
@@ -583,8 +592,9 @@ class GroupService extends BaseChatService {
 
     // Add to the local contact list in batches, update if it exists, create if it does not exist
     for (final idPubkey in toUsers.keys) {
-      var rm = allMembers
-          .firstWhereOrNull((element) => element.idPubkey == idPubkey);
+      var rm = allMembers.firstWhereOrNull(
+        (element) => element.idPubkey == idPubkey,
+      );
       if (rm == null) {
         final c = await contactService.getOrCreateContact(
           identityId: groupRoom.identityId,
@@ -730,8 +740,11 @@ class GroupService extends BaseChatService {
             return; // skip nip04 room
           }
 
-          final smr =
-              await chatService.sendMessage(idRoom, toSendMessage, save: false);
+          final smr = await chatService.sendMessage(
+            idRoom,
+            toSendMessage,
+            save: false,
+          );
 
           msgKeyHash = smr.msgKeyHash;
           toAddPubkeys.addAll(smr.toAddPubkeys ?? []);
@@ -813,15 +826,16 @@ class GroupService extends BaseChatService {
     List<String>? groupRelays,
     SignalId? signalId,
   }) async {
-    var room = Room(
-      toMainPubkey: toMainPubkey,
-      npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
-      identityId: identity.id,
-      type: RoomType.group,
-    )
-      ..name = groupName
-      ..groupType = groupType
-      ..version = version;
+    var room =
+        Room(
+            toMainPubkey: toMainPubkey,
+            npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
+            identityId: identity.id,
+            type: RoomType.group,
+          )
+          ..name = groupName
+          ..groupType = groupType
+          ..version = version;
     if (groupRelays != null) {
       room.sendingRelays = groupRelays;
     }
@@ -958,8 +972,11 @@ class GroupService extends BaseChatService {
           );
           return;
         }
-        await RoomService.instance
-            .sendMessage(room, content, realMessage: realMessage);
+        await RoomService.instance.sendMessage(
+          room,
+          content,
+          realMessage: realMessage,
+        );
       });
     }
     await queue.onComplete;
@@ -993,8 +1010,10 @@ class GroupService extends BaseChatService {
   ) async {
     final toMainPubkey = km.msg;
     if (toMainPubkey == null) return;
-    final groupRoom = await RoomService.instance
-        .getRoomByIdentity(toMainPubkey, idRoom.identityId);
+    final groupRoom = await RoomService.instance.getRoomByIdentity(
+      toMainPubkey,
+      idRoom.identityId,
+    );
     if (groupRoom == null) return;
     final member = await groupRoom.getMemberByIdPubkey(idRoom.toMainPubkey);
     if (member == null) return;
@@ -1022,7 +1041,8 @@ class GroupService extends BaseChatService {
   }
 
   Future<void> _removeMemberPairwise(Room room, RoomMember rm) async {
-    final msg = '''
+    final msg =
+        '''
 Remove member: ${rm.name}
 ${rm.idPubkey}
 ''';
@@ -1079,19 +1099,26 @@ ${rm.idPubkey}
     }
     final identity = room.getIdentity();
     final names = selectAccounts.values.join(',');
-    final sm = KeychatMessage(
-      c: MessageType.group,
-      type: KeyChatEventKinds.inviteToGroupRequest,
-    )
-      ..name = jsonEncode([room.toMainPubkey, selectAccounts])
-      ..msg =
-          'Invite [${names.isEmpty ? selectAccounts.keys.join(',') : names}] to join group ${room.name}, Please confirm';
+    final sm =
+        KeychatMessage(
+            c: MessageType.group,
+            type: KeyChatEventKinds.inviteToGroupRequest,
+          )
+          ..name = jsonEncode([room.toMainPubkey, selectAccounts])
+          ..msg =
+              'Invite [${names.isEmpty ? selectAccounts.keys.join(',') : names}] to join group ${room.name}, Please confirm';
 
-    final adminRoom = await RoomService.instance
-        .getOrCreateRoom(roomMember, identity.secp256k1PKHex, RoomStatus.init);
+    final adminRoom = await RoomService.instance.getOrCreateRoom(
+      roomMember,
+      identity.secp256k1PKHex,
+      RoomStatus.init,
+    );
     Get.find<HomeController>().loadIdentityRoomList(adminRoom.identityId);
-    await RoomService.instance
-        .sendMessage(adminRoom, sm.toString(), realMessage: sm.msg);
+    await RoomService.instance.sendMessage(
+      adminRoom,
+      sm.toString(),
+      realMessage: sm.msg,
+    );
   }
 
   Future<void> _processinviteToGroupRequest(
@@ -1120,15 +1147,16 @@ ${rm.idPubkey}
     final roomMykey = groupRoom.mykey.value;
     final roomPubkey =
         mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
-    final roomProfile = RoomProfile(
-      roomPubkey,
-      groupRoom.name!,
-      allMembers,
-      groupRoom.groupType,
-      DateTime.now().millisecondsSinceEpoch,
-    )
-      ..oldToRoomPubKey = groupRoom.toMainPubkey
-      ..prikey = mykey?.prikey ?? roomMykey?.prikey;
+    final roomProfile =
+        RoomProfile(
+            roomPubkey,
+            groupRoom.name!,
+            allMembers,
+            groupRoom.groupType,
+            DateTime.now().millisecondsSinceEpoch,
+          )
+          ..oldToRoomPubKey = groupRoom.toMainPubkey
+          ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
     if (mlsWelcome != null) {
       roomProfile.ext = mlsWelcome;

@@ -1,4 +1,4 @@
-import 'package:app/page/theme.dart';
+import 'package:keychat/page/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

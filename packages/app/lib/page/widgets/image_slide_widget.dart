@@ -1,7 +1,7 @@
 import 'dart:io' show File;
 
-import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
-import 'package:app/service/file.service.dart';
+import 'package:keychat/page/chat/message_actions/VideoPlayWidget.dart';
+import 'package:keychat/service/file.service.dart';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
@@ -34,8 +34,9 @@ class _NewPageState extends State<SlidesImageViewWidget> {
   void initState() {
     _files = widget.files.isEmpty ? [widget.selected] : widget.files;
 
-    final index =
-        _files.indexWhere((element) => element.path == widget.selected.path);
+    final index = _files.indexWhere(
+      (element) => element.path == widget.selected.path,
+    );
     if (index == -1) {
       _files = [widget.selected];
     }
@@ -62,8 +63,8 @@ class _NewPageState extends State<SlidesImageViewWidget> {
         child: Text(
           '${_currentIndex + 1} / ${_files.length}',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white70,
-              ),
+            color: Colors.white70,
+          ),
         ),
       ),
       body: CarouselSlider(
@@ -138,8 +139,9 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   SharePlus.instance.share(
                     ShareParams(
                       files: [XFile(_files[_currentIndex].path)],
-                      subject: FileService.instance
-                          .getDisplayFileName(_files[_currentIndex].path),
+                      subject: FileService.instance.getDisplayFileName(
+                        _files[_currentIndex].path,
+                      ),
                       sharePositionOrigin:
                           box!.localToGlobal(Offset.zero) & box.size,
                     ),

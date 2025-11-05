@@ -1,6 +1,6 @@
-import 'package:app/models/models.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

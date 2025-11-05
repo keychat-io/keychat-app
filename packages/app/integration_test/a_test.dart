@@ -1,6 +1,6 @@
-import 'package:app/constants.dart';
-import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/utils.dart' show Utils, generate64RandomHexChars;
+import 'package:keychat/constants.dart';
+import 'package:keychat/nostr-core/nostr_nip4_req.dart';
+import 'package:keychat/utils.dart' show Utils, generate64RandomHexChars;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

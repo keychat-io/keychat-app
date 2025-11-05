@@ -1,11 +1,11 @@
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/keychat/room_profile.dart';
-import 'package:app/models/message.dart';
-import 'package:app/models/mykey.dart';
-import 'package:app/models/room.dart';
-import 'package:app/models/room_member.dart';
-import 'package:app/service/signalId.service.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/identity.dart';
+import 'package:keychat/models/keychat/room_profile.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/models/mykey.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/models/room_member.dart';
+import 'package:keychat/service/signalId.service.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -16,8 +16,10 @@ class GroupTx {
   static GroupTx get instance => _instance ??= GroupTx._();
 
   Future<Mykey> importMykeyTx(
-      int identityId, rust_nostr.Secp256k1Account keychain,
-      [int? roomId]) async {
+    int identityId,
+    rust_nostr.Secp256k1Account keychain, [
+    int? roomId,
+  ]) async {
     final database = DBProvider.database;
     final mykey = await database.mykeys
         .filter()
@@ -26,34 +28,39 @@ class GroupTx {
         .findFirst();
     if (mykey != null) return mykey;
     final newUser = Mykey(
-        prikey: keychain.prikey,
-        identityId: identityId,
-        pubkey: keychain.pubkey)
-      ..roomId = roomId;
+      prikey: keychain.prikey,
+      identityId: identityId,
+      pubkey: keychain.pubkey,
+    )..roomId = roomId;
     final savedId = await database.mykeys.put(newUser);
     return (await database.mykeys.get(savedId))!;
   }
 
-  Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
-      {required GroupType groupType,
-      required Identity identity,
-      required int version,
-      List<dynamic> members = const [],
-      int? roomUpdateAt,
-      Mykey? sharedKey,
-      List<String> sendingRelays = const [],
-      String? sharedSignalID}) async {
-    var room = Room(
-        toMainPubkey: toMainPubkey,
-        npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
-        identityId: identity.id,
-        type: RoomType.group)
-      ..mykey.value = sharedKey
-      ..name = groupName
-      ..groupType = groupType
-      ..sendingRelays = sendingRelays
-      ..version = version
-      ..sharedSignalID = sharedSignalID;
+  Future<Room> _createGroupToDB(
+    String toMainPubkey,
+    String groupName, {
+    required GroupType groupType,
+    required Identity identity,
+    required int version,
+    List<dynamic> members = const [],
+    int? roomUpdateAt,
+    Mykey? sharedKey,
+    List<String> sendingRelays = const [],
+    String? sharedSignalID,
+  }) async {
+    var room =
+        Room(
+            toMainPubkey: toMainPubkey,
+            npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
+            identityId: identity.id,
+            type: RoomType.group,
+          )
+          ..mykey.value = sharedKey
+          ..name = groupName
+          ..groupType = groupType
+          ..sendingRelays = sendingRelays
+          ..version = version
+          ..sharedSignalID = sharedSignalID;
 
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
@@ -74,8 +81,11 @@ class GroupTx {
     return room;
   }
 
-  Future<Room> joinGroup(RoomProfile roomProfile, Identity identity,
-      [Message? message]) async {
+  Future<Room> joinGroup(
+    RoomProfile roomProfile,
+    Identity identity, [
+    Message? message,
+  ]) async {
     final toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     final toRoomPriKey = roomProfile.prikey;
     final version = roomProfile.updatedAt;
@@ -83,17 +93,22 @@ class GroupTx {
     Mykey? roomKey;
     if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
-          identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));
+        identity.id,
+        await rust_nostr.importKey(senderKeys: toRoomPriKey),
+      );
     }
 
-    final groupRoom = await _createGroupToDB(toMainPubkey, roomProfile.name,
-        sharedKey: roomKey,
-        members: users,
-        identity: identity,
-        groupType: roomProfile.groupType,
-        version: version,
-        sharedSignalID: roomProfile.signalPubkey,
-        roomUpdateAt: roomProfile.updatedAt);
+    final groupRoom = await _createGroupToDB(
+      toMainPubkey,
+      roomProfile.name,
+      sharedKey: roomKey,
+      members: users,
+      identity: identity,
+      groupType: roomProfile.groupType,
+      version: version,
+      sharedSignalID: roomProfile.signalPubkey,
+      roomUpdateAt: roomProfile.updatedAt,
+    );
 
     // import signalId for kdf group
     if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
@@ -101,8 +116,10 @@ class GroupTx {
         message.content = '******';
         await DBProvider.database.messages.put(message);
       }
-      await SignalIdService.instance
-          .importOrGetSignalId(groupRoom.identityId, roomProfile);
+      await SignalIdService.instance.importOrGetSignalId(
+        groupRoom.identityId,
+        roomProfile,
+      );
     }
     return groupRoom;
   }

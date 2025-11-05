@@ -1,13 +1,13 @@
-import 'package:app/constants.dart';
-import 'package:app/models/models.dart';
-import 'package:app/nostr-core/nostr.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/service/chat.service.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/nostr-core/nostr.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/service/chat.service.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class Nip4ChatService extends BaseChatService {

@@ -1,7 +1,7 @@
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/global.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -212,8 +212,9 @@ class _HoverCloseListTileState extends State<HoverCloseListTile> {
                   ? IconButton(
                       iconSize: 20,
                       icon: const Icon(Icons.close),
-                      hoverColor:
-                          KeychatGlobal.primaryColor.withValues(alpha: 100),
+                      hoverColor: KeychatGlobal.primaryColor.withValues(
+                        alpha: 100,
+                      ),
                       onPressed: widget.onClose,
                     )
                   : const SizedBox(width: 48),

@@ -1,8 +1,8 @@
-import 'package:app/models/contact.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/contact.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

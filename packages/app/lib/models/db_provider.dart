@@ -1,5 +1,5 @@
-import 'package:app/app.dart';
-import 'package:app/desktop/DesktopController.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/desktop/DesktopController.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';

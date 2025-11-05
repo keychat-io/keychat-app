@@ -1,15 +1,15 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/models/keychat/group_invitation_request_model.dart';
-import 'package:app/models/keychat/keychat_message.dart';
-import 'package:app/models/message.dart';
-import 'package:app/page/chat/invite_member_to_mls.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/models/keychat/group_invitation_request_model.dart';
+import 'package:keychat/models/keychat/keychat_message.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/page/chat/invite_member_to_mls.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,8 +31,9 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     GroupInvitationRequestModel map;
     try {
-      final keychatMessage =
-          KeychatMessage.fromJson(jsonDecode(message.content));
+      final keychatMessage = KeychatMessage.fromJson(
+        jsonDecode(message.content),
+      );
       map = GroupInvitationRequestModel.fromJson(
         jsonDecode(keychatMessage.name!),
       );
@@ -72,8 +73,8 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
           // bulk to proccess multi requesting
           final requestId = message.requestId;
           if (requestId != null) {
-            final requests =
-                await MessageService.instance.getMessageByRequestId(requestId);
+            final requests = await MessageService.instance
+                .getMessageByRequestId(requestId);
             if (requests.length >= 2) {
               Get.bottomSheet(
                 clipBehavior: Clip.antiAlias,
@@ -102,36 +103,39 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                   child: const Text('Send Invite'),
                   onPressed: () async {
                     EasyThrottle.throttle(
-                        'sendJoinGroupRequest', const Duration(seconds: 5),
-                        () async {
-                      try {
-                        final users = <Map<String, dynamic>>[
-                          {
-                            'pubkey': map.myPubkey,
-                            'name': map.myName,
-                            'mlsPK': map.mlsPK,
-                          }
-                        ];
+                      'sendJoinGroupRequest',
+                      const Duration(seconds: 5),
+                      () async {
+                        try {
+                          final users = <Map<String, dynamic>>[
+                            {
+                              'pubkey': map.myPubkey,
+                              'name': map.myName,
+                              'mlsPK': map.mlsPK,
+                            },
+                          ];
 
-                        await MlsGroupService.instance.addMemeberToGroup(
-                          groupRoom,
-                          users,
-                          cc.roomObs.value.getIdentity().displayName,
-                        );
+                          await MlsGroupService.instance.addMemeberToGroup(
+                            groupRoom,
+                            users,
+                            cc.roomObs.value.getIdentity().displayName,
+                          );
 
-                        message.requestConfrim = RequestConfrimEnum.approved;
-                        message.isRead = true;
-                        await MessageService.instance
-                            .updateMessageAndRefresh(message);
+                          message.requestConfrim = RequestConfrimEnum.approved;
+                          message.isRead = true;
+                          await MessageService.instance.updateMessageAndRefresh(
+                            message,
+                          );
 
-                        EasyLoading.showSuccess('Success');
-                      } catch (e, s) {
-                        final msg = Utils.getErrorMessage(e);
-                        EasyLoading.showError('Error: $msg');
-                        logger.e(msg, error: e, stackTrace: s);
-                      }
-                      Get.back<void>();
-                    });
+                          EasyLoading.showSuccess('Success');
+                        } catch (e, s) {
+                          final msg = Utils.getErrorMessage(e);
+                          EasyLoading.showError('Error: $msg');
+                          logger.e(msg, error: e, stackTrace: s);
+                        }
+                        Get.back<void>();
+                      },
+                    );
                   },
                 ),
               ],

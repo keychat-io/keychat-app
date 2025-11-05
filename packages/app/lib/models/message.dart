@@ -1,6 +1,6 @@
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:app/models/embedded/msg_file_info.dart';
-import 'package:app/models/embedded/msg_reply.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
+import 'package:keychat/models/embedded/msg_file_info.dart';
+import 'package:keychat/models/embedded/msg_reply.dart';
 
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';

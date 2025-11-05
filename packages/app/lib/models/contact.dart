@@ -1,4 +1,4 @@
-import 'package:app/service/contact.service.dart';
+import 'package:keychat/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;

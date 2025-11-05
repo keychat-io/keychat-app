@@ -1,7 +1,7 @@
-import 'package:app/models/identity.dart';
-import 'package:app/page/login/SelectModeToCreateID.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/identity.dart';
+import 'package:keychat/page/login/SelectModeToCreateID.dart';
+import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

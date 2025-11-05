@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:app/service/secure_storage.dart';
+import 'package:keychat/service/secure_storage.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class ResetPinPage extends StatefulWidget {
@@ -13,8 +13,10 @@ class ResetPinPage extends StatefulWidget {
 enum PinStep { enterOld, enterNew, confirmNew }
 
 class _ResetPinPageState extends State<ResetPinPage> {
-  final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
   bool _hasExistingPin = false;
@@ -30,10 +32,10 @@ class _ResetPinPageState extends State<ResetPinPage> {
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
+    for (final controller in _controllers) {
       controller.dispose();
     }
-    for (var focusNode in _focusNodes) {
+    for (final focusNode in _focusNodes) {
       focusNode.dispose();
     }
     super.dispose();
@@ -41,7 +43,7 @@ class _ResetPinPageState extends State<ResetPinPage> {
 
   Future<void> _checkExistingPin() async {
     // await SecureStorage.instance.deletePinCode(); // TODO
-    bool hasPin = await SecureStorage.instance.hasPinCode();
+    final hasPin = await SecureStorage.instance.hasPinCode();
     setState(() {
       _hasExistingPin = hasPin;
       _currentStep = hasPin ? PinStep.enterOld : PinStep.enterNew;
@@ -75,7 +77,7 @@ class _ResetPinPageState extends State<ResetPinPage> {
   }
 
   void _clearInputs() {
-    for (var controller in _controllers) {
+    for (final controller in _controllers) {
       controller.clear();
     }
     _focusNodes[0].requestFocus();
@@ -91,8 +93,9 @@ class _ResetPinPageState extends State<ResetPinPage> {
     try {
       switch (_currentStep) {
         case PinStep.enterOld:
-          bool isValid =
-              await SecureStorage.instance.verifyPinCode(_currentPin);
+          final isValid = await SecureStorage.instance.verifyPinCode(
+            _currentPin,
+          );
           if (isValid) {
             setState(() {
               _currentStep = PinStep.enterNew;
@@ -102,7 +105,6 @@ class _ResetPinPageState extends State<ResetPinPage> {
             EasyLoading.showError('Incorrect PIN. Please try again.');
             _clearInputs();
           }
-          break;
 
         case PinStep.enterNew:
           _newPin = _currentPin;
@@ -116,7 +118,6 @@ class _ResetPinPageState extends State<ResetPinPage> {
             await SecureStorage.instance.savePinCode(_newPin);
             _showSuccessAndGoBack();
           }
-          break;
 
         case PinStep.confirmNew:
           if (_currentPin == _newPin) {
@@ -129,7 +130,6 @@ class _ResetPinPageState extends State<ResetPinPage> {
             });
             _clearInputs();
           }
-          break;
       }
     } catch (e) {
       EasyLoading.showError('An error occurred. Please try again.');
@@ -144,9 +144,11 @@ class _ResetPinPageState extends State<ResetPinPage> {
   void _showSuccessAndGoBack() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_hasExistingPin
-            ? 'PIN updated successfully'
-            : 'PIN created successfully'),
+        content: Text(
+          _hasExistingPin
+              ? 'PIN updated successfully'
+              : 'PIN created successfully',
+        ),
         backgroundColor: Colors.green,
       ),
     );
@@ -167,7 +169,7 @@ class _ResetPinPageState extends State<ResetPinPage> {
         title: Text(_title),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -180,10 +182,9 @@ class _ResetPinPageState extends State<ResetPinPage> {
             if (_currentStep == PinStep.confirmNew)
               Text(
                 'Lost or forgotten PINs cannot be recovered!',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.amber),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.amber),
                 textAlign: TextAlign.center,
               ),
             Row(
@@ -208,8 +209,8 @@ class _ResetPinPageState extends State<ResetPinPage> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (value) => _onPinChanged(index, value),
                     onTap: () {
-                      _controllers[index].selection =
-                          TextSelection.fromPosition(
+                      _controllers[index]
+                          .selection = TextSelection.fromPosition(
                         TextPosition(offset: _controllers[index].text.length),
                       );
                     },

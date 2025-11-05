@@ -4,7 +4,7 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "app")
+set(BINARY_NAME "keychat")
 
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
@@ -68,7 +68,7 @@ add_executable(${BINARY_NAME}
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 set_target_properties(${BINARY_NAME} PROPERTIES
-    OUTPUT_NAME "Keychat"
+    OUTPUT_NAME "keychat"
 )
 
 # Apply the standard set of build settings. This can be removed for applications

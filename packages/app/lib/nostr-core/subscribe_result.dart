@@ -1,4 +1,4 @@
-import 'package:app/nostr-core/nostr_event.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
 
 class SubscribeResult {
   // Avoid self instance
@@ -46,19 +46,19 @@ class SubscribeResult {
     _map.remove(subId);
     // Filter out events with the same ID (keep only the first occurrence)
     final uniqueEvents = <String>{};
-    list = list.where((event) {
-      final model = event as NostrEventModel;
-      if (uniqueEvents.contains(model.id)) {
-        return false;
-      }
-      uniqueEvents.add(model.id);
-      return true;
-    }).toList()
-      ..sort(
-        (a, b) => (a as NostrEventModel)
-            .createdAt
-            .compareTo((b as NostrEventModel).createdAt),
-      );
+    list =
+        list.where((event) {
+          final model = event as NostrEventModel;
+          if (uniqueEvents.contains(model.id)) {
+            return false;
+          }
+          uniqueEvents.add(model.id);
+          return true;
+        }).toList()..sort(
+          (a, b) => (a as NostrEventModel).createdAt.compareTo(
+            (b as NostrEventModel).createdAt,
+          ),
+        );
     return list as List<NostrEventModel>;
   }
 }

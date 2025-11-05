@@ -1,13 +1,13 @@
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/global.dart';
-import 'package:app/models/room.dart';
-import 'package:app/page/chat/chat_page.dart';
-import 'package:app/page/chat/chat_setting_contact_page.dart';
-import 'package:app/page/chat/chat_setting_group_page.dart';
-import 'package:app/page/chat/chat_settings_security.dart';
-import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/room_list.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/chat/chat_page.dart';
+import 'package:keychat/page/chat/chat_setting_contact_page.dart';
+import 'package:keychat/page/chat/chat_setting_group_page.dart';
+import 'package:keychat/page/chat/chat_settings_security.dart';
+import 'package:keychat/page/chat/message_bill/pay_to_relay_page.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/page/room_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,7 +20,9 @@ class DeskRoomList extends GetView<DesktopController> {
       children: [
         Obx(
           () => SizedBox(
-              width: controller.roomListWidth.value, child: const RoomList()),
+            width: controller.roomListWidth.value,
+            child: const RoomList(),
+          ),
         ),
         MouseRegion(
           cursor: SystemMouseCursors.resizeLeftRight,

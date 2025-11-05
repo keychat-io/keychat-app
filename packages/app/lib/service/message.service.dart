@@ -1,15 +1,15 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/bot/bot_server_message_model.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/models.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/routes.dart';
-import 'package:app/rust_api.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/bot/bot_server_message_model.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

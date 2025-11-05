@@ -1,9 +1,9 @@
 import 'dart:io' show Directory, File, FileSystemEntity;
 
-import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
-import 'package:app/page/widgets/image_slide_widget.dart';
-import 'package:app/service/file.service.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/widgets/image_slide_widget.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -55,11 +55,11 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                         onPressed: () async {
                           EasyLoading.show(status: 'Deleting...');
                           try {
-                            final directory =
-                                await FileService.instance.getRoomFolder(
-                              identityId: widget.room.identityId,
-                              roomId: widget.room.id,
-                            );
+                            final directory = await FileService.instance
+                                .getRoomFolder(
+                                  identityId: widget.room.identityId,
+                                  roomId: widget.room.id,
+                                );
                             await Directory(directory).delete(recursive: true);
                             EasyLoading.dismiss();
                             EasyLoading.showSuccess('Deleted');
@@ -115,8 +115,9 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                     );
                   } else if (FileService.instance.isVideoFile(file.path)) {
                     child = FutureBuilder(
-                      future: FileService.instance
-                          .getOrCreateThumbForVideo(file.path),
+                      future: FileService.instance.getOrCreateThumbForVideo(
+                        file.path,
+                      ),
                       builder: (context, snapshot) {
                         if (snapshot.data != null) {
                           final thumbnailFile = snapshot.data!;
@@ -140,8 +141,9 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                 Positioned(
                                   child: CircleAvatar(
                                     radius: 20,
-                                    backgroundColor:
-                                        Colors.grey.withValues(alpha: 0.8),
+                                    backgroundColor: Colors.grey.withValues(
+                                      alpha: 0.8,
+                                    ),
                                     child: IconButton(
                                       onPressed: () {},
                                       icon: const Icon(
@@ -165,8 +167,9 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                     width: 90,
                     height: 150,
                     decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: child,
@@ -185,8 +188,11 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                     final files = snapshot.data as List<FileSystemEntity>;
                     return media.isEmpty
                         ? const Center(
-                            child:
-                                Icon(Icons.inbox, size: 60, color: Colors.grey),
+                            child: Icon(
+                              Icons.inbox,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
                           )
                         : ListView.builder(
                             itemCount: files.length,
@@ -219,8 +225,9 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                       OpenFilex.open(filePath);
                                     }
                                   } catch (e) {
-                                    final box = context.findRenderObject()
-                                        as RenderBox?;
+                                    final box =
+                                        context.findRenderObject()
+                                            as RenderBox?;
 
                                     SharePlus.instance.share(
                                       ShareParams(
@@ -230,7 +237,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                             .getDisplayFileName(fileFullName),
                                         sharePositionOrigin:
                                             box!.localToGlobal(Offset.zero) &
-                                                box.size,
+                                            box.size,
                                       ),
                                     );
                                   }
@@ -249,8 +256,10 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
   }
 
   Future<void> loadMedia() async {
-    final files = await FileService.instance
-        .getRoomImageAndVideo(widget.room.identityId, widget.room.id);
+    final files = await FileService.instance.getRoomImageAndVideo(
+      widget.room.identityId,
+      widget.room.id,
+    );
     setState(() {
       media = files;
     });

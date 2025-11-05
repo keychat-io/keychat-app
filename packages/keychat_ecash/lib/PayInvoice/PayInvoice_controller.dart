@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:app/app.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';

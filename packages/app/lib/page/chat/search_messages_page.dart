@@ -1,11 +1,11 @@
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/components.dart' show textSmallGray;
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/contact.service.dart'; // Add this import
-import 'package:app/utils.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/components.dart' show textSmallGray;
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/contact.service.dart'; // Add this import
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -60,12 +60,15 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
     isLoading.value = true;
     try {
-      final results = await MessageService.instance
-          .getMessageByContent(query, room.identityId);
+      final results = await MessageService.instance.getMessageByContent(
+        query,
+        room.identityId,
+      );
 
       // Filter results to only messages from current room
-      final filteredResults =
-          results.where((message) => message.roomId == room.id).toList();
+      final filteredResults = results
+          .where((message) => message.roomId == room.id)
+          .toList();
 
       searchResults.value = filteredResults;
     } catch (e) {
@@ -119,8 +122,9 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
                         },
                       )
                     : null,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -136,8 +140,10 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
               if (_searchController.text.trim().isEmpty) {
                 return Center(
-                  child:
-                      textSmallGray(context, 'Enter text to search messages'),
+                  child: textSmallGray(
+                    context,
+                    'Enter text to search messages',
+                  ),
                 );
               }
 
@@ -167,7 +173,8 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
     final showSenderName = !shouldHideSenderName && !message.isMeSend;
 
     // Get contact from cache or fetch from database if not cached
-    final contact = _contactCache[message.idPubkey] ??
+    final contact =
+        _contactCache[message.idPubkey] ??
         (() {
           final c = ContactService.instance.getContactSync(message.idPubkey);
           _contactCache[message.idPubkey] = c; // Cache the result
@@ -267,17 +274,17 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 'You',
                                 style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onPrimaryContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),

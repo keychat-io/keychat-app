@@ -1,4 +1,4 @@
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -18,9 +18,9 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
     final ws = Get.find<WebsocketService>();
     setState(() {
       relays = ws.getActiveRelayString();
-      selectedRelays = Set<String>.from(widget.currents)
-          .where((relay) => relays.contains(relay))
-          .toSet();
+      selectedRelays = Set<String>.from(
+        widget.currents,
+      ).where((relay) => relays.contains(relay)).toSet();
     });
     super.initState();
   }
@@ -28,50 +28,51 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.close),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () {
+            Get.back<void>();
+          },
+        ),
+        centerTitle: true,
+        title: const Text('Select Receving Relays'),
+        actions: [
+          FilledButton(
+            child: const Text('Done'),
             onPressed: () {
-              Get.back<void>();
+              Get.back(result: selectedRelays.toList());
             },
           ),
-          centerTitle: true,
-          title: const Text('Select Receving Relays'),
-          actions: [
-            FilledButton(
-              child: const Text('Done'),
-              onPressed: () {
-                Get.back(result: selectedRelays.toList());
-              },
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: relays.isEmpty
-                ? const Text('No any connected relay')
-                : ListView.builder(
-                    itemCount: relays.length,
-                    itemBuilder: (context, index) {
-                      return CheckboxListTile(
-                        title: Text(relays[index]),
-                        value: selectedRelays.contains(relays[index]),
-                        onChanged: (bool? value) {
-                          if (value == null) return;
+        ],
+      ),
+      body: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: relays.isEmpty
+              ? const Text('No any connected relay')
+              : ListView.builder(
+                  itemCount: relays.length,
+                  itemBuilder: (context, index) {
+                    return CheckboxListTile(
+                      title: Text(relays[index]),
+                      value: selectedRelays.contains(relays[index]),
+                      onChanged: (bool? value) {
+                        if (value == null) return;
 
-                          setState(() {
-                            if (value) {
-                              selectedRelays.add(relays[index]);
-                            } else {
-                              selectedRelays.remove(relays[index]);
-                            }
-                          });
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ));
+                        setState(() {
+                          if (value) {
+                            selectedRelays.add(relays[index]);
+                          } else {
+                            selectedRelays.remove(relays[index]);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
   }
 }

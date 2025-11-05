@@ -1,6 +1,6 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:app/service/file.service.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -11,6 +11,10 @@ enum FileStatus { init, downloading, downloaded, decryptSuccess, failed }
 @JsonSerializable(includeIfNull: false)
 @embedded
 class MsgFileInfo {
+  MsgFileInfo();
+
+  factory MsgFileInfo.fromJson(Map<String, dynamic> json) =>
+      _$MsgFileInfoFromJson(json);
   String? localPath; // relative path in app folder
   String? url;
 
@@ -30,32 +34,30 @@ class MsgFileInfo {
   @ignore
   FileEncryptInfo? fileInfo;
 
-  MsgFileInfo();
-
   @override
-  toString() => jsonEncode(toJson());
+  String toString() => jsonEncode(toJson());
 
   String get fileName =>
       (localPath ?? sourceName ?? url)?.split('/').last ?? '';
 
-  factory MsgFileInfo.fromJson(Map<String, dynamic> json) =>
-      _$MsgFileInfoFromJson(json);
-
   Map<String, dynamic> toJson() => _$MsgFileInfoToJson(this);
 
   String getUriString(String type) {
-    final Map<String, dynamic> queryParams = {
+    final queryParams = <String, dynamic>{
       'kctype': type,
       'suffix': fileInfo?.suffix,
       'key': fileInfo?.key,
       'iv': fileInfo?.iv,
       'size': fileInfo?.size,
       'hash': fileInfo?.hash,
-      'sourceName': fileInfo?.sourceName
+      'sourceName': fileInfo?.sourceName,
     };
-    Uri base = Uri.parse(fileInfo?.url ?? '');
-    Uri uri = Uri.https(base.host, base.path,
-        queryParams.map((key, value) => MapEntry(key, value.toString())));
+    final base = Uri.parse(fileInfo?.url ?? '');
+    final uri = Uri.https(
+      base.host,
+      base.path,
+      queryParams.map((key, value) => MapEntry(key, value.toString())),
+    );
     return uri.toString();
   }
 }

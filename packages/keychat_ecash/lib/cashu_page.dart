@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:app/app.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/qrscan.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/qrscan.service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';

@@ -1,10 +1,10 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'package:app/constants.dart';
-import 'package:app/nostr-core/nostr_event.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:amberflutter/amberflutter.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 
 class SignerService {
   // Avoid self instance

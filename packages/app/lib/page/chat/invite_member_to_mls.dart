@@ -1,13 +1,13 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/models/models.dart';
-import 'package:app/service/message.service.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/service/message.service.dart';
 
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/room.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/room.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -63,18 +63,23 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     }
 
     try {
-      final groupRoom =
-          await RoomService.instance.getRoomByIdOrFail(widget.room.id);
+      final groupRoom = await RoomService.instance.getRoomByIdOrFail(
+        widget.room.id,
+      );
       final sender = widget.room.getIdentity().displayName;
 
-      await MlsGroupService.instance
-          .addMemeberToGroup(groupRoom, selectUsers, sender);
+      await MlsGroupService.instance.addMemeberToGroup(
+        groupRoom,
+        selectUsers,
+        sender,
+      );
 
       // update message status
       for (var i = 0; i < selectedMessages.length; i++) {
         selectedMessages[i].requestConfrim = RequestConfrimEnum.approved;
-        await MessageService.instance
-            .updateMessageAndRefresh(selectedMessages[i]);
+        await MessageService.instance.updateMessageAndRefresh(
+          selectedMessages[i],
+        );
       }
       EasyLoading.showSuccess('Success');
       Get.back<void>();
@@ -100,7 +105,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
           'isCheck': false,
           'mlsPK': gir.mlsPK,
           'isAdmin': false,
-          'message': message
+          'message': message,
         });
       } catch (e, s) {
         logger.i(e.toString(), stackTrace: s);
@@ -114,64 +119,80 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: Scaffold(
-      appBar: AppBar(
+      child: Scaffold(
+        appBar: AppBar(
           centerTitle: false,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.room.name ?? ''),
               Text(
-                  style: Theme.of(context).textTheme.bodySmall,
-                  'Request to Join Group')
+                style: Theme.of(context).textTheme.bodySmall,
+                'Request to Join Group',
+              ),
             ],
           ),
           actions: [
             FilledButton(
               onPressed: () {
-                EasyThrottle.throttle('_completeFromContacts',
-                    const Duration(seconds: 2), _completeFromContacts);
+                EasyThrottle.throttle(
+                  '_completeFromContacts',
+                  const Duration(seconds: 2),
+                  _completeFromContacts,
+                );
               },
-              child: const Text('Send Invite',
-                  style: TextStyle(color: Colors.white, fontSize: 12)),
-            )
-          ]),
-      body: ListView.builder(
+              child: const Text(
+                'Send Invite',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        body: ListView.builder(
           itemCount: users.length,
           controller: _scrollController,
           itemBuilder: (context, index) {
             final user = users[index];
             return ListTile(
-                leading: Utils.getRandomAvatar(user['pubkey']),
-                title: Text(user['name'],
-                    style: Theme.of(context).textTheme.titleMedium),
-                dense: true,
-                subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(user['npubkey'], overflow: TextOverflow.ellipsis),
-                      if (widget.room.groupType == GroupType.mls &&
-                          user['mlsPK'] == null)
-                        Text('Not upload MLS keys',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.pink))
-                      else
-                        Container()
-                    ]),
-                trailing: (user['isAdmin'] == true || user['exist'] == true
-                    ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
-                    : Checkbox(
-                        value: user['isCheck'],
-                        onChanged: widget.room.groupType == GroupType.mls &&
-                                user['mlsPK'] == null
-                            ? null
-                            : (isCheck) {
-                                user['isCheck'] = isCheck;
-                                setState(() {});
-                              })));
-          }),
-    ));
+              leading: Utils.getRandomAvatar(user['pubkey']),
+              title: Text(
+                user['name'],
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              dense: true,
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                  if (widget.room.groupType == GroupType.mls &&
+                      user['mlsPK'] == null)
+                    Text(
+                      'Not upload MLS keys',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.pink),
+                    )
+                  else
+                    Container(),
+                ],
+              ),
+              trailing: (user['isAdmin'] == true || user['exist'] == true
+                  ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
+                  : Checkbox(
+                      value: user['isCheck'],
+                      onChanged:
+                          widget.room.groupType == GroupType.mls &&
+                              user['mlsPK'] == null
+                          ? null
+                          : (isCheck) {
+                              user['isCheck'] = isCheck;
+                              setState(() {});
+                            },
+                    )),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

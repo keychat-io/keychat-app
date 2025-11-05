@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/room.dart';
-import 'package:app/service/storage.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/service/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sidebarx/sidebarx.dart';
@@ -19,8 +19,10 @@ class DesktopController extends GetxController {
   @override
   void onInit() {
     hc = Get.find<HomeController>();
-    sidebarXController =
-        SidebarXController(selectedIndex: hc.selectedTabIndex, extended: false);
+    sidebarXController = SidebarXController(
+      selectedIndex: hc.selectedTabIndex,
+      extended: false,
+    );
     sidebarXController.addListener(() async {
       await hc.setSelectedTab(sidebarXController.selectedIndex);
     });

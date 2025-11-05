@@ -1,6 +1,6 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:app/nostr-core/filter.dart';
+import 'package:keychat/nostr-core/filter.dart';
 
 /// Used to request events and subscribe to new updates.
 class Request {
@@ -26,8 +26,9 @@ class Request {
   /// Serialize to nostr request message
   /// - ["REQ", subscription_id, filter JSON, filter JSON, ...]
   String serialize() {
-    final theFilters =
-        jsonEncode(filters.map((item) => item.toJson()).toList());
+    final theFilters = jsonEncode(
+      filters.map((item) => item.toJson()).toList(),
+    );
     final header = jsonEncode(['REQ', subscriptionId]);
     return '${header.substring(0, header.length - 1)},${theFilters.substring(1, theFilters.length)}';
   }

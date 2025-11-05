@@ -1,12 +1,14 @@
-import 'package:app/models/db_provider.dart';
+import 'package:keychat/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 
 part 'browser_favorite.g.dart';
 
-@Collection(ignore: {
-  'props',
-})
+@Collection(
+  ignore: {
+    'props',
+  },
+)
 // ignore: must_be_immutable
 class BrowserFavorite extends Equatable {
   BrowserFavorite({required this.url, this.title, this.favicon}) {
@@ -64,8 +66,11 @@ class BrowserFavorite extends Equatable {
         .findFirst();
   }
 
-  static Future<void> add(
-      {required String url, String? title, String? favicon}) async {
+  static Future<void> add({
+    required String url,
+    String? title,
+    String? favicon,
+  }) async {
     await DBProvider.database.writeTxn(() async {
       final model = BrowserFavorite(url: url, title: title, favicon: favicon);
       await DBProvider.database.browserFavorites.put(model);
@@ -81,7 +86,8 @@ class BrowserFavorite extends Equatable {
   }
 
   static Future<void> batchUpdateWeights(
-      List<BrowserFavorite> favorites) async {
+    List<BrowserFavorite> favorites,
+  ) async {
     await DBProvider.database.writeTxn(() async {
       for (var i = 0; i < favorites.length; i++) {
         favorites[i].weight = i;

@@ -1,13 +1,13 @@
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/models/room.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/signal_chat.service.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
-import 'package:app/service/room.service.dart';
+import 'package:keychat/service/room.service.dart';
 
 class EncryptModeWidget extends StatelessWidget {
   const EncryptModeWidget({required this.cc, super.key});
@@ -21,7 +21,7 @@ class EncryptModeWidget extends StatelessWidget {
 ✅ 2. End-to-End Encryption
 ✅ 3. Forward Secrecy
 ✅ 4. Backward Secrecy
-✅ 5. Metadata Privacy'''
+✅ 5. Metadata Privacy''',
     ];
 
     final nostrIntro = [
@@ -30,7 +30,7 @@ class EncryptModeWidget extends StatelessWidget {
 ✅ 2. End-to-End Encryption
 ❌ 3. Forward Secrecy
 ❌ 4. Backward Secrecy
-❌ 5. Metadata Privacy'''
+❌ 5. Metadata Privacy''',
     ];
 
     return Padding(
@@ -42,8 +42,10 @@ class EncryptModeWidget extends StatelessWidget {
           children: [
             Card(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 child: Flex(
                   direction: Axis.vertical,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,10 +56,12 @@ class EncryptModeWidget extends StatelessWidget {
                           'Signal Protocol',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        subtitle:
-                            const Text('Security and Privacy Level: ⭐⭐⭐⭐⭐'),
-                        leading:
-                            const Radio<EncryptMode>(value: EncryptMode.signal),
+                        subtitle: const Text(
+                          'Security and Privacy Level: ⭐⭐⭐⭐⭐',
+                        ),
+                        leading: const Radio<EncryptMode>(
+                          value: EncryptMode.signal,
+                        ),
                         onTap: () {
                           handleClick(EncryptMode.signal);
                         },
@@ -72,8 +76,10 @@ class EncryptModeWidget extends StatelessWidget {
             ),
             Card(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -84,8 +90,9 @@ class EncryptModeWidget extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         subtitle: const Text('Security and Privacy Level: ⭐'),
-                        leading:
-                            const Radio<EncryptMode>(value: EncryptMode.nip04),
+                        leading: const Radio<EncryptMode>(
+                          value: EncryptMode.nip04,
+                        ),
                         onTap: () {
                           handleClick(EncryptMode.nip04);
                         },
@@ -114,8 +121,10 @@ class EncryptModeWidget extends StatelessWidget {
       return;
     }
     if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
-      await SignalChatService.instance
-          .sendHelloMessage(room, room.getIdentity());
+      await SignalChatService.instance.sendHelloMessage(
+        room,
+        room.getIdentity(),
+      );
       await ContactService.instance.addContactToFriend(
         pubkey: room.toMainPubkey,
         identityId: room.identityId,

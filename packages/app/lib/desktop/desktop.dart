@@ -1,11 +1,11 @@
-import 'package:app/app.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/desktop/DeskBrowser.dart';
-import 'package:app/desktop/DeskEcash.dart';
-import 'package:app/desktop/DeskRoomList.dart';
-import 'package:app/desktop/DeskSetting.dart';
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/desktop/DeskBrowser.dart';
+import 'package:keychat/desktop/DeskEcash.dart';
+import 'package:keychat/desktop/DeskRoomList.dart';
+import 'package:keychat/desktop/DeskSetting.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -81,8 +81,10 @@ class HomeSidebarX extends GetView<DesktopController> {
           ),
         ),
         iconTheme: const IconThemeData(size: iconSize),
-        selectedIconTheme:
-            const IconThemeData(color: Colors.white, size: iconSize),
+        selectedIconTheme: const IconThemeData(
+          color: Colors.white,
+          size: iconSize,
+        ),
       ),
       showToggleButton: false, // footerDivider: divider,
       headerBuilder: (context, extended) {
@@ -133,9 +135,13 @@ class HomeSidebarX extends GetView<DesktopController> {
           },
           onTap: () {
             EasyThrottle.throttle(
-                'loadCashuABalance', const Duration(seconds: 1), () {
-              Utils.getGetxController<EcashController>()?.requestPageRefresh();
-            });
+              'loadCashuABalance',
+              const Duration(seconds: 1),
+              () {
+                Utils.getGetxController<EcashController>()
+                    ?.requestPageRefresh();
+              },
+            );
           },
         ),
         const SidebarXItem(icon: CupertinoIcons.person),

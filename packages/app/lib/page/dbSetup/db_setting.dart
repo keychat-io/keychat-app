@@ -1,8 +1,8 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
-import 'package:app/service/secure_storage.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -25,7 +25,9 @@ class DbSetting {
   }
 
   Future<List<Map<String, dynamic>>> encryptFiles(
-      List<File> files, String encryptionKey) async {
+    List<File> files,
+    String encryptionKey,
+  ) async {
     final key = encrypt.Key.fromUtf8(encryptionKey.padRight(32, '0'));
     final iv = encrypt.IV.fromLength(16);
     final encrypter = encrypt.Encrypter(encrypt.AES(key));
@@ -47,7 +49,9 @@ class DbSetting {
   }
 
   Future<File> packageEncryptedFiles(
-      List<Map<String, dynamic>> encryptedFiles, String outputPath) async {
+    List<Map<String, dynamic>> encryptedFiles,
+    String outputPath,
+  ) async {
     final outputFile = File(outputPath);
 
     final sink = outputFile.openWrite();
@@ -81,14 +85,22 @@ class DbSetting {
     final exportSecureStorageFile = File(secureStoragePath);
     await exportSecureStorage(exportSecureStorageFile);
     await exportAndEncryptDatabases(
-        sourcePath, outputPath, fileName, encryptionKey);
+      sourcePath,
+      outputPath,
+      fileName,
+      encryptionKey,
+    );
     // export then delete
     exportsharedPrefsFile.deleteSync();
     exportSecureStorageFile.deleteSync();
   }
 
-  Future<void> exportAndEncryptDatabases(String sourcePath, String outputPath,
-      String fileName, String encryptionKey) async {
+  Future<void> exportAndEncryptDatabases(
+    String sourcePath,
+    String outputPath,
+    String fileName,
+    String encryptionKey,
+  ) async {
     try {
       final files = await getDatabaseFiles(sourcePath);
       if (files.isEmpty) {
@@ -98,8 +110,10 @@ class DbSetting {
 
       final encryptedFiles = await encryptFiles(files, encryptionKey);
 
-      final packagedFile =
-          await packageEncryptedFiles(encryptedFiles, outputPath);
+      final packagedFile = await packageEncryptedFiles(
+        encryptedFiles,
+        outputPath,
+      );
       logger.i('Encrypted package created at: ${packagedFile.path}');
 
       await exportFile(packagedFile.path, fileName);
@@ -123,7 +137,8 @@ class DbSetting {
   }
 
   Future<List<Map<String, dynamic>>> parseEncryptedPackage(
-      String packagePath) async {
+    String packagePath,
+  ) async {
     final packageFile = File(packagePath);
     if (!await packageFile.exists()) {
       throw Exception('Encrypted package does not exist: $packagePath');
@@ -134,16 +149,19 @@ class DbSetting {
     final parsedFiles = <Map<String, dynamic>>[];
 
     while (offset < bytes.length) {
-      final fileNameLength =
-          int.parse(String.fromCharCodes(bytes.sublist(offset, offset + 4)));
+      final fileNameLength = int.parse(
+        String.fromCharCodes(bytes.sublist(offset, offset + 4)),
+      );
       offset += 4;
 
-      final fileName =
-          String.fromCharCodes(bytes.sublist(offset, offset + fileNameLength));
+      final fileName = String.fromCharCodes(
+        bytes.sublist(offset, offset + fileNameLength),
+      );
       offset += fileNameLength;
 
-      final dataLength =
-          int.parse(String.fromCharCodes(bytes.sublist(offset, offset + 8)));
+      final dataLength = int.parse(
+        String.fromCharCodes(bytes.sublist(offset, offset + 8)),
+      );
       offset += 8;
 
       final encryptedData = bytes.sublist(offset, offset + dataLength);
@@ -158,8 +176,11 @@ class DbSetting {
     return parsedFiles;
   }
 
-  Future<bool> decryptAndSaveFiles(List<Map<String, dynamic>> encryptedFiles,
-      String decryptionKey, String targetDirectory) async {
+  Future<bool> decryptAndSaveFiles(
+    List<Map<String, dynamic>> encryptedFiles,
+    String decryptionKey,
+    String targetDirectory,
+  ) async {
     final key = encrypt.Key.fromUtf8(decryptionKey.padRight(32, '0'));
     final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
@@ -171,8 +192,10 @@ class DbSetting {
         final iv = encrypt.IV(Uint8List.fromList(encryptedData.sublist(0, 16)));
         final encryptedContent = Uint8List.fromList(encryptedData.sublist(16));
 
-        final decrypted =
-            encrypter.decryptBytes(encrypt.Encrypted(encryptedContent), iv: iv);
+        final decrypted = encrypter.decryptBytes(
+          encrypt.Encrypted(encryptedContent),
+          iv: iv,
+        );
 
         final targetFile = File('$targetDirectory$fileName');
         await targetFile.writeAsBytes(decrypted);
@@ -188,7 +211,10 @@ class DbSetting {
   }
 
   Future<bool> importAndDecryptPackage(
-      String packagePath, String decryptionKey, String targetDirectory) async {
+    String packagePath,
+    String decryptionKey,
+    String targetDirectory,
+  ) async {
     try {
       final encryptedFiles = await parseEncryptedPackage(packagePath);
 
@@ -199,7 +225,10 @@ class DbSetting {
       logger.i('Files successfully decrypted to: $targetDirectory');
 
       return await decryptAndSaveFiles(
-          encryptedFiles, decryptionKey, targetDirectory);
+        encryptedFiles,
+        decryptionKey,
+        targetDirectory,
+      );
     } catch (e) {
       logger.e('Error occurred: $e');
       return false;

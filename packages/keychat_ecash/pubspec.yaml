@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   timer_builder: ^2.0.0
-  app: ^1.32.0
+  keychat: ^1.36.5
   keychat_rust_ffi_plugin: 1.0.0
   flutter_easyloading: ^3.0.5
   easy_debounce: ^2.0.3

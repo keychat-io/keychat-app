@@ -1,10 +1,10 @@
 import 'dart:async' show unawaited;
 
-import 'package:app/global.dart';
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:app/rust_api.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

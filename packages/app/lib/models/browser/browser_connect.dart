@@ -1,12 +1,14 @@
-import 'package:app/models/db_provider.dart';
+import 'package:keychat/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 
 part 'browser_connect.g.dart';
 
-@Collection(ignore: {
-  'props',
-})
+@Collection(
+  ignore: {
+    'props',
+  },
+)
 // ignore: must_be_immutable
 class BrowserConnect extends Equatable {
   BrowserConnect({required this.host, required this.pubkey, this.favicon}) {
@@ -24,8 +26,10 @@ class BrowserConnect extends Equatable {
   @override
   List get props => [id, host, pubkey, favicon];
 
-  static Future<List<BrowserConnect>> getAll(
-      {int limit = 20, int offset = 0}) async {
+  static Future<List<BrowserConnect>> getAll({
+    int limit = 20,
+    int offset = 0,
+  }) async {
     final list = await DBProvider.database.browserConnects
         .where(sort: Sort.desc)
         .sortByCreatedAtDesc()
@@ -35,8 +39,11 @@ class BrowserConnect extends Equatable {
     return list;
   }
 
-  static Future<List<BrowserConnect>> getAllByPubkey(
-      {required String pubkey, int limit = 20, int offset = 0}) async {
+  static Future<List<BrowserConnect>> getAllByPubkey({
+    required String pubkey,
+    int limit = 20,
+    int offset = 0,
+  }) async {
     final list = await DBProvider.database.browserConnects
         .filter()
         .pubkeyEqualTo(pubkey)

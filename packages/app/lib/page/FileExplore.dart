@@ -1,8 +1,8 @@
 import 'dart:io'
     show Directory, File, FileStat, FileSystemEntity, FileSystemEntityType;
 
-import 'package:app/page/log_viewer.dart';
-import 'package:app/service/file.service.dart';
+import 'package:keychat/page/log_viewer.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -13,8 +13,11 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class FileExplorerPage extends StatefulWidget {
-  const FileExplorerPage(
-      {required this.dir, super.key, this.showDeleteButton = false});
+  const FileExplorerPage({
+    required this.dir,
+    super.key,
+    this.showDeleteButton = false,
+  });
   final Directory dir;
   final bool showDeleteButton;
 
@@ -70,11 +73,13 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         actions: widget.showDeleteButton
             ? [
                 IconButton(
-                    onPressed: () async {
-                      Get.dialog(CupertinoAlertDialog(
+                  onPressed: () async {
+                    Get.dialog(
+                      CupertinoAlertDialog(
                         title: const Text('Delete All'),
                         content: const Text(
-                            'Are you sure you want to delete all log files?'),
+                          'Are you sure you want to delete all log files?',
+                        ),
                         actions: [
                           CupertinoDialogAction(
                             child: const Text('Cancel'),
@@ -87,28 +92,31 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                             onPressed: () async {
                               await widget.dir.delete(recursive: true);
                               EasyLoading.showSuccess('Deleted');
-                              Directory(widget.dir.path)
-                                  .create(recursive: true);
+                              Directory(
+                                widget.dir.path,
+                              ).create(recursive: true);
                               Get.back<void>();
                               Get.back<void>();
                             },
                             child: const Text('Delete'),
                           ),
                         ],
-                      ));
-                    },
-                    icon: const Icon(Icons.delete)),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete),
+                ),
               ]
             : GetPlatform.isDesktop
-                ? [
-                    TextButton(
-                      onPressed: () {
-                        OpenFilex.open(widget.dir.path);
-                      },
-                      child: const Text('Open'),
-                    )
-                  ]
-                : null,
+            ? [
+                TextButton(
+                  onPressed: () {
+                    OpenFilex.open(widget.dir.path);
+                  },
+                  child: const Text('Open'),
+                ),
+              ]
+            : null,
       ),
       body: ListView.builder(
         itemCount: _files.length,
@@ -121,8 +129,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             return ListTile(
               leading: const Icon(CupertinoIcons.doc),
               title: Text(file.path.substring(widget.dir.path.length + 1)),
-              subtitle:
-                  Text(FileService.instance.getFileSizeDisplay(stat.size)),
+              subtitle: Text(
+                FileService.instance.getFileSizeDisplay(stat.size),
+              ),
               trailing: _getDownloadButton(file),
               dense: true,
               onTap: () {
@@ -148,11 +157,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => FileExplorerPage(
-                            key: Key(file.path),
-                            dir: file as Directory,
-                            showDeleteButton: isLogFile,
-                          )),
+                    builder: (context) => FileExplorerPage(
+                      key: Key(file.path),
+                      dir: file as Directory,
+                      showDeleteButton: isLogFile,
+                    ),
+                  ),
                 );
                 return;
               }
@@ -163,7 +173,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                   '.isar',
                   '.lock',
                   'db-wal',
-                  'db-shm'
+                  'db-shm',
                 };
                 final suffix = file.path.split('.').last;
                 if (suffixs.contains(suffix)) {
@@ -177,8 +187,11 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 ? SizedBox(
                     width: 24,
                     height: 24,
-                    child: Image.asset('assets/images/file.png',
-                        fit: BoxFit.contain))
+                    child: Image.asset(
+                      'assets/images/file.png',
+                      fit: BoxFit.contain,
+                    ),
+                  )
                 : const Icon(CupertinoIcons.doc),
             title: Text(file.path.substring(widget.dir.path.length + 1)),
             subtitle: isDirectory
@@ -193,45 +206,54 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
 
   IconButton _getDownloadButton(FileSystemEntity sourceFile) {
     return IconButton(
-        onPressed: () async {
-          if (GetPlatform.isDesktop) {
-            final dir =
-                sourceFile.path.substring(0, sourceFile.path.lastIndexOf('/'));
-            OpenFilex.open(dir);
-            return;
-          }
+      onPressed: () async {
+        if (GetPlatform.isDesktop) {
+          final dir = sourceFile.path.substring(
+            0,
+            sourceFile.path.lastIndexOf('/'),
+          );
+          OpenFilex.open(dir);
+          return;
+        }
 
-          await SharePlus.instance.share(ShareParams(
-              files: [XFile(sourceFile.path)],
-              previewThumbnail: XFile(sourceFile.path),
-              subject: FileService.instance
-                  .getDisplayFileName(path.basename(sourceFile.path))));
-        },
-        icon: const Icon(CupertinoIcons.share));
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(sourceFile.path)],
+            previewThumbnail: XFile(sourceFile.path),
+            subject: FileService.instance.getDisplayFileName(
+              path.basename(sourceFile.path),
+            ),
+          ),
+        );
+      },
+      icon: const Icon(CupertinoIcons.share),
+    );
   }
 
   void showClickDialog(FileSystemEntity file) {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text('Delete'),
-      content: const Text('Are you sure you want to delete this file?'),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Get.back<void>();
-          },
-        ),
-        CupertinoDialogAction(
-          isDestructiveAction: true,
-          onPressed: () async {
-            await file.delete(recursive: file is Directory);
-            EasyLoading.showSuccess('Deleted');
-            Get.back<void>();
-            _getFilesAndFolders(widget.dir);
-          },
-          child: const Text('Delete'),
-        ),
-      ],
-    ));
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('Delete'),
+        content: const Text('Are you sure you want to delete this file?'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              await file.delete(recursive: file is Directory);
+              EasyLoading.showSuccess('Deleted');
+              Get.back<void>();
+              _getFilesAndFolders(widget.dir);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }

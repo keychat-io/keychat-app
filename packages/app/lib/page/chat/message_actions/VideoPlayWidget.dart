@@ -1,13 +1,17 @@
 import 'dart:io' show File;
 
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPlayWidget extends StatefulWidget {
-  const VideoPlayWidget(this.thumbnailFile, this.filePath, this.autoPlay,
-      {super.key});
+  const VideoPlayWidget(
+    this.thumbnailFile,
+    this.filePath,
+    this.autoPlay, {
+    super.key,
+  });
   final String filePath;
   final File thumbnailFile;
   final bool autoPlay;
@@ -22,16 +26,18 @@ class _VideoPlayWidgetState extends State<VideoPlayWidget> {
   @override
   void initState() {
     _controller = VideoPlayerController.file(File(widget.filePath))
-      ..initialize().then((_) {
-        if (widget.autoPlay) {
-          _controller!.play();
-        }
-        setState(() {
-          isPause = !widget.autoPlay;
-        });
-      }).catchError((e, s) {
-        logger.e(e.toString(), error: e, stackTrace: s);
-      });
+      ..initialize()
+          .then((_) {
+            if (widget.autoPlay) {
+              _controller!.play();
+            }
+            setState(() {
+              isPause = !widget.autoPlay;
+            });
+          })
+          .catchError((e, s) {
+            logger.e(e.toString(), error: e, stackTrace: s);
+          });
     _controller!.addListener(() {
       if (_controller!.value.isCompleted) {
         setState(() {
@@ -51,8 +57,8 @@ class _VideoPlayWidgetState extends State<VideoPlayWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Center(
-      child: GestureDetector(
+      body: Center(
+        child: GestureDetector(
           onTap: () {
             if (_controller == null) return;
             final isPlaying = _controller!.value.isPlaying;
@@ -74,8 +80,7 @@ class _VideoPlayWidgetState extends State<VideoPlayWidget> {
             _controller?.pause();
             Get.back<void>();
           },
-          child: _controller == null ||
-                  _controller!.value.isInitialized == false
+          child: _controller == null || !_controller!.value.isInitialized
               ? Stack(
                   children: <Widget>[
                     Image.file(widget.thumbnailFile, fit: BoxFit.contain),
@@ -91,30 +96,35 @@ class _VideoPlayWidgetState extends State<VideoPlayWidget> {
                         children: <Widget>[
                           VideoPlayer(_controller!),
                           ClosedCaption(text: _controller!.value.caption.text),
-                          VideoProgressIndicator(_controller!,
-                              allowScrubbing: true),
+                          VideoProgressIndicator(
+                            _controller!,
+                            allowScrubbing: true,
+                          ),
                         ],
                       ),
                     ),
                     if (isPause)
                       Positioned(
                         child: CircleAvatar(
-                            radius: 32,
-                            child: IconButton(
-                              onPressed: () {
-                                _controller!.play();
-                                setState(() {
-                                  isPause = false;
-                                });
-                              },
-                              icon: const Icon(
-                                Icons.play_arrow,
-                                size: 32,
-                              ),
-                            )),
+                          radius: 32,
+                          child: IconButton(
+                            onPressed: () {
+                              _controller!.play();
+                              setState(() {
+                                isPause = false;
+                              });
+                            },
+                            icon: const Icon(
+                              Icons.play_arrow,
+                              size: 32,
+                            ),
+                          ),
+                        ),
                       ),
                   ],
-                )),
-    ));
+                ),
+        ),
+      ),
+    );
   }
 }

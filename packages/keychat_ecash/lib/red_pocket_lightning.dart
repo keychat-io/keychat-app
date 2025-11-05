@@ -1,7 +1,7 @@
-import 'package:app/models/embedded/cashu_info.dart';
-import 'package:app/models/message.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -136,8 +136,11 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                       side: const BorderSide(color: Colors.white70),
                     ),
                     onPressed: checkStatus,
-                    icon: const Icon(Icons.refresh,
-                        color: Colors.white, size: 16),
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
               ],
             ),

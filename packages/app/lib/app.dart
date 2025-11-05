@@ -1,13 +1,11 @@
-library;
+export 'package:keychat/utils/config.dart';
+export 'package:keychat/utils.dart';
+export 'package:keychat/constants.dart';
+export 'package:keychat/global.dart';
+export 'package:keychat/models/models.dart';
 
-export 'package:app/utils/config.dart';
-export 'package:app/utils.dart';
-export 'package:app/constants.dart';
-export 'package:app/global.dart';
-export 'package:app/models/models.dart';
-
-export 'package:app/service/nip4_chat.service.dart';
-export 'package:app/service/storage.dart';
-export 'package:app/service/room.service.dart';
-export 'package:app/page/chat/chat_setting_contact_page.dart';
-export 'package:app/page/chat/contact_page.dart';
+export 'package:keychat/service/nip4_chat.service.dart';
+export 'package:keychat/service/storage.dart';
+export 'package:keychat/service/room.service.dart';
+export 'package:keychat/page/chat/chat_setting_contact_page.dart';
+export 'package:keychat/page/chat/contact_page.dart';

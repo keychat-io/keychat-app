@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:app/models/browser/browser_connect.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/browser/browser_connect.dart';
+import 'package:keychat/models/identity.dart';
+import 'package:keychat/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

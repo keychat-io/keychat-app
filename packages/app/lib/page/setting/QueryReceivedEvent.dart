@@ -1,5 +1,5 @@
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/nostr_event_status.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/nostr_event_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -16,9 +16,9 @@ class _QueryReceivedEventState extends State<QueryReceivedEvent> {
   final TextEditingController _controller = TextEditingController();
   List<NostrEventStatus> _results = [];
 
-  void _onSearchChanged() async {
-    String query = _controller.text;
-    List<NostrEventStatus> list = await DBProvider.database.nostrEventStatus
+  Future<void> _onSearchChanged() async {
+    final query = _controller.text;
+    final list = await DBProvider.database.nostrEventStatus
         .filter()
         .eventIdEqualTo(query)
         .findAll();
@@ -32,36 +32,36 @@ class _QueryReceivedEventState extends State<QueryReceivedEvent> {
     return Scaffold(
       appBar: AppBar(title: const Text('Query Received Event')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: _controller,
               decoration: InputDecoration(
-                  labelText: 'Input Nostr Event Id',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.paste),
-                    onPressed: () async {
-                      final clipboardData =
-                          await Clipboard.getData('text/plain');
-                      if (clipboardData != null) {
-                        final pastedText = clipboardData.text;
-                        if (pastedText != null && pastedText != '') {
-                          _controller.text = pastedText;
-                          _onSearchChanged();
-                        }
+                labelText: 'Input Nostr Event Id',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.paste),
+                  onPressed: () async {
+                    final clipboardData = await Clipboard.getData('text/plain');
+                    if (clipboardData != null) {
+                      final pastedText = clipboardData.text;
+                      if (pastedText != null && pastedText != '') {
+                        _controller.text = pastedText;
+                        _onSearchChanged();
                       }
-                    },
-                  )),
+                    }
+                  },
+                ),
+              ),
               onChanged: (value) => _onSearchChanged(),
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
-                  NostrEventStatus nes = _results[index];
+                  final nes = _results[index];
                   return ListTile(
                     title: Text(nes.eventId),
                     leading: CircleAvatar(child: Text((index + 1).toString())),
@@ -70,20 +70,22 @@ class _QueryReceivedEventState extends State<QueryReceivedEvent> {
                       children: [
                         Text(nes.sendStatus.name.toUpperCase()),
                         Text(
-                            '${nes.isReceive ? 'Receive From: ' : 'Send To:'} ${nes.relay}'),
+                          '${nes.isReceive ? 'Receive From: ' : 'Send To:'} ${nes.relay}',
+                        ),
                         Text(nes.createdAt.toIso8601String()),
                         if (nes.isReceive) Text(nes.error ?? ''),
                         GestureDetector(
-                            onTap: () {
-                              String? text =
-                                  nes.rawEvent ?? nes.receiveSnapshot;
-                              if (text != null) {
-                                Clipboard.setData(ClipboardData(text: text));
-                                EasyLoading.showSuccess('');
-                              }
-                            },
-                            child: Text(
-                                nes.rawEvent ?? nes.receiveSnapshot ?? "")),
+                          onTap: () {
+                            final text = nes.rawEvent ?? nes.receiveSnapshot;
+                            if (text != null) {
+                              Clipboard.setData(ClipboardData(text: text));
+                              EasyLoading.showSuccess('');
+                            }
+                          },
+                          child: Text(
+                            nes.rawEvent ?? nes.receiveSnapshot ?? '',
+                          ),
+                        ),
                       ],
                     ),
                   );

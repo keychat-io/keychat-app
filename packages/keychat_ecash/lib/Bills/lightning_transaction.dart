@@ -1,8 +1,8 @@
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/status_enum.dart';
-import 'package:app/page/components.dart';
+import 'package:keychat/page/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

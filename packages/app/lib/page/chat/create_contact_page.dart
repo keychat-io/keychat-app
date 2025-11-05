@@ -1,17 +1,17 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/browser/SelectIdentityForward.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/qrscan.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/signal_chat.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/page/browser/SelectIdentityForward.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:app/models/models.dart';
+import 'package:keychat/models/models.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:share_plus/share_plus.dart';
 

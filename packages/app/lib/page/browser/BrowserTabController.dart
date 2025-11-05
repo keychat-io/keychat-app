@@ -1,7 +1,7 @@
 import 'dart:math' show Random;
 
-import 'package:app/app.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
@@ -83,7 +83,8 @@ class WebviewTabController extends GetxController {
         userScript: multiWebviewController.textSizeUserScript,
       );
       multiWebviewController.textSizeUserScript = UserScript(
-        source: """
+        source:
+            """
 window.addEventListener('DOMContentLoaded', function(event) {
   document.body.style.textSizeAdjust = '$textSize%';
   document.body.style.webkitTextSizeAdjust = '$textSize%';
@@ -128,19 +129,22 @@ window.addEventListener('DOMContentLoaded', function(event) {
   Future<void> checkWebViewControllerAlive() async {
     if (inAppWebViewController == null) return;
     EasyThrottle.throttle(
-        'checkWebViewControllerAlive:$url', const Duration(seconds: 1),
-        () async {
-      try {
-        await inAppWebViewController!
-            .getUrl()
-            .timeout(const Duration(seconds: 2));
-      } catch (e) {
-        logger.e('tabController dispose: $url');
-        // ⛔ A MacOSInAppWebViewController was used after being disposed.
-        // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
-        pageStorageKey.value =
-            PageStorageKey<String>(Random().nextInt(1 << 32).toString());
-      }
-    });
+      'checkWebViewControllerAlive:$url',
+      const Duration(seconds: 1),
+      () async {
+        try {
+          await inAppWebViewController!.getUrl().timeout(
+            const Duration(seconds: 2),
+          );
+        } catch (e) {
+          logger.e('tabController dispose: $url');
+          // ⛔ A MacOSInAppWebViewController was used after being disposed.
+          // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+          pageStorageKey.value = PageStorageKey<String>(
+            Random().nextInt(1 << 32).toString(),
+          );
+        }
+      },
+    );
   }
 }

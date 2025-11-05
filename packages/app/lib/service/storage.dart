@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:app/utils.dart';
+import 'package:keychat/utils.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,8 +72,10 @@ class Storage {
       _sp = await SharedPreferences.getInstance();
     } catch (error) {
       final appSupportDirectory = await getApplicationSupportDirectory();
-      final appDataPath =
-          path.join(appSupportDirectory.path, 'shared_preferences.json');
+      final appDataPath = path.join(
+        appSupportDirectory.path,
+        'shared_preferences.json',
+      );
       logger.e(
         'Failed to load the preferences file at $appDataPath. Attempting to repair it.',
       );

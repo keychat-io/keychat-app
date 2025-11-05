@@ -134,7 +134,7 @@ adb shell am start -W -a android.intent.action.VIEW -d "scheme:xxxx"
 
 ```
 git submodule update --init --recursive
-dart pub global activate melos 7.0.0-dev.9
+dart pub global activate melos 7.1.1
 melos bootstrap
 
 # build rust lib: packages\keychat_rust_ffi_plugin\README.md

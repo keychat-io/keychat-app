@@ -1,20 +1,20 @@
-import 'package:app/global.dart';
-import 'package:app/models/embedded/relay_file_fee.dart';
-import 'package:app/models/embedded/relay_message_fee.dart';
-import 'package:app/nostr-core/relay_websocket.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/storage.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/embedded/relay_file_fee.dart';
+import 'package:keychat/models/embedded/relay_message_fee.dart';
+import 'package:keychat/nostr-core/relay_websocket.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/storage.dart';
 
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
-import 'package:app/utils/config.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/utils/config.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:app/models/models.dart';
+import 'package:keychat/models/models.dart';
 
-import 'package:app/service/identity.service.dart';
+import 'package:keychat/service/identity.service.dart';
 
 class RelayService {
   // Avoid self instance
@@ -110,8 +110,10 @@ class RelayService {
   }
 
   Future<List<String>> getEnableList() async {
-    final list =
-        await DBProvider.database.relays.filter().activeEqualTo(true).findAll();
+    final list = await DBProvider.database.relays
+        .filter()
+        .activeEqualTo(true)
+        .findAll();
 
     final newList = <String>{};
     for (final relay in list) {
@@ -121,8 +123,10 @@ class RelayService {
   }
 
   Future<List<Relay>> getEnableRelays() async {
-    final list =
-        await DBProvider.database.relays.filter().activeEqualTo(true).findAll();
+    final list = await DBProvider.database.relays
+        .filter()
+        .activeEqualTo(true)
+        .findAll();
 
     return list;
   }
@@ -177,9 +181,10 @@ class RelayService {
     relay.isEnableNip104 = isEnableNip104;
     await update(relay);
     Utils.getGetxController<WebsocketService>()
-        ?.channels[relayUrl]
-        ?.relay
-        .isEnableNip104 = isEnableNip104;
+            ?.channels[relayUrl]
+            ?.relay
+            .isEnableNip104 =
+        isEnableNip104;
     return relay;
   }
 
@@ -197,11 +202,11 @@ class RelayService {
             .isDefaultEqualTo(true)
             .findAll()
             .then((value) async {
-          for (final r in value) {
-            r.isDefault = false;
-            await DBProvider.database.relays.put(r);
-          }
-        });
+              for (final r in value) {
+                r.isDefault = false;
+                await DBProvider.database.relays.put(r);
+              }
+            });
       }
       relay.isDefault = afterValue;
       await DBProvider.database.relays.put(relay);

@@ -1,5 +1,5 @@
-import 'package:app/page/chat/message_bill/pay_to_relay_controller.dart';
-import 'package:app/page/components.dart';
+import 'package:keychat/page/chat/message_bill/pay_to_relay_controller.dart';
+import 'package:keychat/page/components.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

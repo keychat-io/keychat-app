@@ -1,17 +1,17 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/create_group_select_member.dart';
-import 'package:app/page/setting/RelaySetting.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/chat/create_group_select_member.dart';
+import 'package:keychat/page/setting/RelaySetting.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
-import 'package:app/models/models.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/group.service.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/group.service.dart';
 
 class AddGroupPage extends StatefulWidget {
   const AddGroupPage({super.key});
@@ -74,8 +74,9 @@ class _AddGroupPageState extends State<AddGroupPage>
               return;
             }
 
-            var contactList = await ContactService.instance
-                .getFriendContacts(selectedIdentity.id);
+            var contactList = await ContactService.instance.getFriendContacts(
+              selectedIdentity.id,
+            );
             contactList = contactList.reversed.toList();
             final list = <Map<String, dynamic>>[];
             for (var i = 0; i < contactList.length; i++) {
@@ -186,16 +187,14 @@ class _AddGroupPageState extends State<AddGroupPage>
                     ),
                     leading: const Radio<GroupType>(value: GroupType.mls),
                     selected: groupType == GroupType.mls,
-                    selectedTileColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
+                    selectedTileColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                   ),
                   ListTile(
-                    selectedTileColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
+                    selectedTileColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     title: Text(
                       'Small Group - Signal Protocol',
                       style: Theme.of(context).textTheme.titleSmall,

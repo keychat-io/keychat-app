@@ -1,4 +1,4 @@
-import 'package:app/models/contact.dart';
+import 'package:keychat/models/contact.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';

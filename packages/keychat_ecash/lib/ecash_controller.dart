@@ -2,11 +2,11 @@ import 'dart:async' show FutureOr, unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
-import 'package:app/app.dart';
-import 'package:app/rust_api.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/secure_storage.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';

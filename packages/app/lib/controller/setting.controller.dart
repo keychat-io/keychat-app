@@ -1,5 +1,5 @@
-import 'package:app/app.dart';
-import 'package:app/service/secure_storage.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/service/secure_storage.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
 import 'package:flutter_easyloading/flutter_easyloading.dart';

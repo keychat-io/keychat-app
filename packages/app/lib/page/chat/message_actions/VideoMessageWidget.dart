@@ -1,9 +1,9 @@
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
-import 'package:app/app.dart';
-import 'package:app/page/widgets/image_slide_widget.dart';
-import 'package:app/service/file.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/widgets/image_slide_widget.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -59,7 +59,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
       final filePath = '$appFolder${mfi.localPath!}';
       final fileExists = File(filePath).existsSync();
-      if (fileExists == false) {
+      if (!fileExists) {
         setState(() {
           fileStatus = FileStatus.init;
           msgFileInfo = mfi;
@@ -86,26 +86,36 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
       return Wrap(
         children: [
           widget.errorCallback(
-              text:
-                  '[Video File]: ${fileStatus == FileStatus.failed ? 'Download Failed' : FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
+            text:
+                '[Video File]: ${fileStatus == FileStatus.failed ? 'Download Failed' : FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
+          ),
           IconButton(
             onPressed: () {
               if (msgFileInfo == null) return;
               EasyLoading.showToast('Start downloading');
               FileService.instance.downloadForMessage(
-                  widget.message, msgFileInfo!, callback: _init,
-                  onReceiveProgress: (int count, int total) {
-                EasyDebounce.debounce(
-                    'downloadProgress', const Duration(milliseconds: 300), () {
-                  setState(() {
-                    downloadProgress = (count / total * 100).toStringAsFixed(2);
-                  });
-                });
-              });
+                widget.message,
+                msgFileInfo!,
+                callback: _init,
+                onReceiveProgress: (int count, int total) {
+                  EasyDebounce.debounce(
+                    'downloadProgress',
+                    const Duration(milliseconds: 300),
+                    () {
+                      setState(() {
+                        downloadProgress = (count / total * 100)
+                            .toStringAsFixed(2);
+                      });
+                    },
+                  );
+                },
+              );
             },
-            icon: Icon(Icons.download_sharp,
-                color: Theme.of(context).colorScheme.primary),
-          )
+            icon: Icon(
+              Icons.download_sharp,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ],
       );
     }
@@ -116,9 +126,11 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
           widget.errorCallback(text: '[Downloading]- $downloadProgress%'),
           IconButton(
             onPressed: () {},
-            icon: Icon(Icons.downloading_rounded,
-                color: Theme.of(context).colorScheme.primary),
-          )
+            icon: Icon(
+              Icons.downloading_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ],
       );
     }
@@ -129,36 +141,44 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
             alignment: Alignment.center,
             children: <Widget>[
               ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox(
-                      width: 150,
-                      child: Image.file(thumbnailFile!, fit: BoxFit.contain))),
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: 150,
+                  child: Image.file(thumbnailFile!, fit: BoxFit.contain),
+                ),
+              ),
               Positioned(
                 child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.grey.withValues(alpha: 0.8),
-                    child: IconButton(
-                      onPressed: () async {
-                        final cc =
-                            RoomService.getController(widget.message.roomId);
-                        if (cc == null || videoPath == null) return;
-                        final files = await FileService.instance
-                            .getRoomImageAndVideo(cc.roomObs.value.identityId,
-                                cc.roomObs.value.id);
-                        Get.to(
-                            () => SlidesImageViewWidget(
-                                files: files.reversed.toList(),
-                                selected: File(videoPath!),
-                                file: thumbnailFile),
-                            transition: Transition.zoom,
-                            fullscreenDialog: true);
-                      },
-                      icon: const Icon(
-                        Icons.play_arrow,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    )),
+                  radius: 28,
+                  backgroundColor: Colors.grey.withValues(alpha: 0.8),
+                  child: IconButton(
+                    onPressed: () async {
+                      final cc = RoomService.getController(
+                        widget.message.roomId,
+                      );
+                      if (cc == null || videoPath == null) return;
+                      final files = await FileService.instance
+                          .getRoomImageAndVideo(
+                            cc.roomObs.value.identityId,
+                            cc.roomObs.value.id,
+                          );
+                      Get.to(
+                        () => SlidesImageViewWidget(
+                          files: files.reversed.toList(),
+                          selected: File(videoPath!),
+                          file: thumbnailFile,
+                        ),
+                        transition: Transition.zoom,
+                        fullscreenDialog: true,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.play_arrow,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
               ),
             ],
           );

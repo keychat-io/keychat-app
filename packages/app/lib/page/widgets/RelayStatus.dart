@@ -1,8 +1,8 @@
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/relay.dart';
-import 'package:app/page/setting/RelaySetting.dart';
-import 'package:app/page/widgets/home_drop_menu.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/relay.dart';
+import 'package:keychat/page/setting/RelaySetting.dart';
+import 'package:keychat/page/widgets/home_drop_menu.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -50,23 +50,23 @@ class RelayStatus extends GetView<HomeController> {
                 ),
               )
             : (ws.mainRelayStatus.value == RelayStatusEnum.connecting.name ||
-                    ws.mainRelayStatus.value == RelayStatusEnum.init.name)
-                ? SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: IconButton(
-                      color: Colors.black,
-                      icon: SpinKitDoubleBounce(
-                        color: Colors.amber.shade200,
-                        size: 22,
-                        duration: const Duration(milliseconds: 4000),
-                      ),
-                      onPressed: () {
-                        _showDialogForReconnect(false, 'Relays connecting');
-                      },
-                    ),
-                  )
-                : relayErrorIcon(),
+                  ws.mainRelayStatus.value == RelayStatusEnum.init.name)
+            ? SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  color: Colors.black,
+                  icon: SpinKitDoubleBounce(
+                    color: Colors.amber.shade200,
+                    size: 22,
+                    duration: const Duration(milliseconds: 4000),
+                  ),
+                  onPressed: () {
+                    _showDialogForReconnect(false, 'Relays connecting');
+                  },
+                ),
+              )
+            : relayErrorIcon(),
       );
     });
   }

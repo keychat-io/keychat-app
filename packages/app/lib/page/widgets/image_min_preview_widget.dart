@@ -1,6 +1,6 @@
 import 'dart:io' show File;
-import 'package:app/service/file.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 
 class ImageMinPreviewWidget extends StatelessWidget {
@@ -9,8 +9,10 @@ class ImageMinPreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filePath = FileService.instance
-        .getAbsolutelyFilePath(Utils.appFolder.path, localPath);
+    final filePath = FileService.instance.getAbsolutelyFilePath(
+      Utils.appFolder.path,
+      localPath,
+    );
     final file = File(filePath);
     if (!file.existsSync()) return const Text('[File cleaned]');
 

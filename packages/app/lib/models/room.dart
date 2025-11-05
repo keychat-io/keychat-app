@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:app/bot/bot_server_message_model.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/models.dart';
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/bot/bot_server_message_model.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/service/chatx.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
@@ -19,7 +19,7 @@ enum RoomType {
   @Deprecated('use common instead')
   private,
   group,
-  bot
+  bot,
 }
 
 enum GroupType {
@@ -28,7 +28,7 @@ enum GroupType {
   sendAll,
   @Deprecated('use mls instead')
   kdf,
-  mls
+  mls,
 }
 
 enum EncryptMode { nip04, signal }
@@ -149,14 +149,14 @@ class Room extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        toMainPubkey,
-        createdAt,
-        unReadCount,
-        name,
-        status,
-        type,
-      ];
+    id,
+    toMainPubkey,
+    createdAt,
+    unReadCount,
+    name,
+    status,
+    type,
+  ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
 
@@ -535,8 +535,11 @@ class Room extends Equatable {
     for (final rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 
-      final idRoom = await RoomService.instance
-          .getOrCreateRoom(rm.idPubkey, mainMykey.pubkey, RoomStatus.groupUser);
+      final idRoom = await RoomService.instance.getOrCreateRoom(
+        rm.idPubkey,
+        mainMykey.pubkey,
+        RoomStatus.groupUser,
+      );
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;

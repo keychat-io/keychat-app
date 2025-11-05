@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/models.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/group.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/group.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -35,8 +35,9 @@ class CreateGroupSelectMember extends StatefulWidget {
 class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final TextEditingController _userNameController =
-      TextEditingController(text: '');
+  final TextEditingController _userNameController = TextEditingController(
+    text: '',
+  );
 
   List<Map<String, dynamic>> users = [];
 
@@ -65,8 +66,9 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         pubkeys.add(contact['pubkey']);
       }
     }
-    final result =
-        await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+    final result = await MlsGroupService.instance.getKeyPackagesFromRelay(
+      pubkeys,
+    );
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
@@ -112,8 +114,11 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     try {
       late Room room;
       if (widget.groupType == GroupType.sendAll) {
-        room = await GroupService.instance
-            .createGroup(widget.groupName, identity, widget.groupType);
+        room = await GroupService.instance.createGroup(
+          widget.groupName,
+          identity,
+          widget.groupType,
+        );
         await GroupService.instance.inviteToJoinGroup(room, selectAccounts);
       } else if (widget.groupType == GroupType.mls) {
         room = await MlsGroupService.instance.createGroup(

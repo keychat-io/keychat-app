@@ -1,4 +1,4 @@
-import 'package:app/models/db_provider.dart';
+import 'package:keychat/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 

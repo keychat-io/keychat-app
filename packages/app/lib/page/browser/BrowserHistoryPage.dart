@@ -1,6 +1,6 @@
-import 'package:app/models/browser/browser_history.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/browser/browser_history.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,101 +31,120 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('History'),
-          actions: [
-            IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () async {
-                  Get.dialog(CupertinoAlertDialog(
-                      title: const Text('Clear History'),
-                      content: const Text(
-                          'Are you sure you want to clear your browsing history?'),
-                      actions: [
-                        CupertinoDialogAction(
-                            child: const Text('Cancel'),
-                            onPressed: () {
-                              Get.back<void>();
-                            }),
-                        CupertinoDialogAction(
-                            child: const Text('Clear'),
-                            onPressed: () async {
-                              await BrowserHistory.deleteAll();
-                              controller.lastHistory = null;
-                              setState(() {
-                                groupedHistory.clear();
-                              });
-                              Get.back<void>();
-                            })
-                      ]));
-                })
-          ],
-        ),
-        body: CustomMaterialIndicator(
-            onRefresh: () async {
-              final amount = groupedHistory.values.fold<int>(0,
-                  (previousValue, element) => previousValue + element.length);
-              await loadData(limit: 20, offset: amount);
-            },
-            displacement: 20,
-            backgroundColor: Colors.white,
-            trigger: IndicatorTrigger.trailingEdge,
-            triggerMode: IndicatorTriggerMode.anywhere,
-            child: ListView.builder(
-              itemCount: groupedHistory.length,
-              itemBuilder: (context, index) {
-                final dateKey = groupedHistory.keys.elementAt(index);
-                final date = DateTime.parse(dateKey);
-                final urls = groupedHistory[dateKey]!;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16, top: 16),
-                      child: Text(
-                          formatTime(date.millisecondsSinceEpoch, 'yyyy-MM-dd'),
-                          style: Theme.of(context).textTheme.titleMedium),
-                    ),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: urls.length,
-                      itemBuilder: (context, index) {
-                        final site = urls[index];
-                        return ListTile(
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
-                          leading: Utils.getNetworkImage(site.favicon),
-                          title: (site.title == null || site.title!.isEmpty)
-                              ? Text(site.url)
-                              : Text(site.title!),
-                          subtitle: (site.title == null || site.title!.isEmpty)
-                              ? Text(Uri.parse(site.url).host)
-                              : Text(site.url,
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
-                          dense: true,
-                          onTap: () {
-                            Get.find<MultiWebviewController>().launchWebview(
-                                initUrl: site.url, defaultTitle: site.title);
-                            if (Get.isBottomSheetOpen ?? false) {
-                              Get.back<void>();
-                            }
-                          },
-                          trailing: IconButton(
-                              onPressed: () async {
-                                await BrowserHistory.delete(site.id);
-                                setState(() {
-                                  groupedHistory[dateKey]!.removeAt(index);
-                                });
-                              },
-                              icon: const Icon(Icons.close)),
-                        );
+      appBar: AppBar(
+        title: const Text('History'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () async {
+              Get.dialog(
+                CupertinoAlertDialog(
+                  title: const Text('Clear History'),
+                  content: const Text(
+                    'Are you sure you want to clear your browsing history?',
+                  ),
+                  actions: [
+                    CupertinoDialogAction(
+                      child: const Text('Cancel'),
+                      onPressed: () {
+                        Get.back<void>();
                       },
-                    )
+                    ),
+                    CupertinoDialogAction(
+                      child: const Text('Clear'),
+                      onPressed: () async {
+                        await BrowserHistory.deleteAll();
+                        controller.lastHistory = null;
+                        setState(() {
+                          groupedHistory.clear();
+                        });
+                        Get.back<void>();
+                      },
+                    ),
                   ],
-                );
-              },
-            )));
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: CustomMaterialIndicator(
+        onRefresh: () async {
+          final amount = groupedHistory.values.fold<int>(
+            0,
+            (previousValue, element) => previousValue + element.length,
+          );
+          await loadData(limit: 20, offset: amount);
+        },
+        displacement: 20,
+        backgroundColor: Colors.white,
+        trigger: IndicatorTrigger.trailingEdge,
+        triggerMode: IndicatorTriggerMode.anywhere,
+        child: ListView.builder(
+          itemCount: groupedHistory.length,
+          itemBuilder: (context, index) {
+            final dateKey = groupedHistory.keys.elementAt(index);
+            final date = DateTime.parse(dateKey);
+            final urls = groupedHistory[dateKey]!;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 16),
+                  child: Text(
+                    formatTime(date.millisecondsSinceEpoch, 'yyyy-MM-dd'),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: urls.length,
+                  itemBuilder: (context, index) {
+                    final site = urls[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      leading: Utils.getNetworkImage(site.favicon),
+                      title: (site.title == null || site.title!.isEmpty)
+                          ? Text(site.url)
+                          : Text(site.title!),
+                      subtitle: (site.title == null || site.title!.isEmpty)
+                          ? Text(Uri.parse(site.url).host)
+                          : Text(
+                              site.url,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                      dense: true,
+                      onTap: () {
+                        Get.find<MultiWebviewController>().launchWebview(
+                          initUrl: site.url,
+                          defaultTitle: site.title,
+                        );
+                        if (Get.isBottomSheetOpen ?? false) {
+                          Get.back<void>();
+                        }
+                      },
+                      trailing: IconButton(
+                        onPressed: () async {
+                          await BrowserHistory.delete(site.id);
+                          setState(() {
+                            groupedHistory[dateKey]!.removeAt(index);
+                          });
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   String formatDateKey(DateTime date) {

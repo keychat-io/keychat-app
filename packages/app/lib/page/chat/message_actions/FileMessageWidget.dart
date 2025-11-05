@@ -1,17 +1,17 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/app.dart';
-import 'package:app/page/components.dart';
-import 'package:app/service/file.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'FileMessagePreview.dart';
+import 'package:keychat/page/chat/message_actions/FileMessagePreview.dart';
 
 class FileMessageWidget extends StatefulWidget {
+  const FileMessageWidget(this.message, this.errorCallback, {super.key});
   final Message message;
   final Widget Function({Widget? child, String? text}) errorCallback;
-  const FileMessageWidget(this.message, this.errorCallback, {super.key});
 
   @override
   _FileMessageWidgetState createState() => _FileMessageWidgetState();
@@ -29,8 +29,7 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
       if (widget.message.realMessage == null) {
         throw Exception('realMessage is null');
       }
-      MsgFileInfo mfi =
-          MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
+      final mfi = MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
       setState(() {
         msgFileInfo = mfi;
       });
@@ -43,9 +42,10 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (decodeError == true || msgFileInfo == null) {
+    if (decodeError ?? false || msgFileInfo == null) {
       return widget.errorCallback(
-          text: '[File Decode Error]: ${widget.message.content}');
+        text: '[File Decode Error]: ${widget.message.content}',
+      );
     }
     return Container(
       constraints: const BoxConstraints(maxWidth: 350),
@@ -70,8 +70,10 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
             width: 36,
             height: 36,
             child: msgFileInfo?.localPath == null
-                ? Image.asset('assets/images/file-download.png',
-                    fit: BoxFit.contain)
+                ? Image.asset(
+                    'assets/images/file-download.png',
+                    fit: BoxFit.contain,
+                  )
                 : Image.asset('assets/images/file.png', fit: BoxFit.contain),
           ),
         ),

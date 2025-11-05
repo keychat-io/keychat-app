@@ -1,5 +1,5 @@
-import 'package:app/models/models.dart';
-import 'package:app/utils.dart'; // Added import for isEmail function
+import 'package:keychat/models/models.dart';
+import 'package:keychat/utils.dart'; // Added import for isEmail function
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -92,8 +92,9 @@ class _LightningAddressEditDialogState
             }
 
             final newValue = value.isEmpty ? null : value;
-            final success =
-                await widget.identity.updateLightningAddress(newValue);
+            final success = await widget.identity.updateLightningAddress(
+              newValue,
+            );
 
             if (success) {
               EasyLoading.showSuccess('Lightning address updated');

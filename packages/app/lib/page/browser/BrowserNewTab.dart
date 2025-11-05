@@ -1,10 +1,10 @@
-import 'package:app/page/browser/BrowserBookmarkPage.dart';
-import 'package:app/page/browser/BrowserHistoryPage.dart';
-import 'package:app/page/browser/BrowserSetting.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
-import 'package:app/page/browser/WebStorePage.dart';
-import 'package:app/utils.dart';
-import 'package:app/widgets/browser/quick_section.dart';
+import 'package:keychat/page/browser/BrowserBookmarkPage.dart';
+import 'package:keychat/page/browser/BrowserHistoryPage.dart';
+import 'package:keychat/page/browser/BrowserSetting.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
+import 'package:keychat/page/browser/WebStorePage.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/widgets/browser/quick_section.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -163,7 +163,7 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
             await Get.to(() => const BrowserSetting());
           }
         },
-      }
+      },
     ];
     return Container(
       decoration: BoxDecoration(

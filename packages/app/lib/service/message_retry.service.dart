@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:app/models/models.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:get/get.dart';
@@ -95,15 +95,20 @@ class MessageRetryService extends GetxService {
 
   Future<void> retryPendingMessages(String relay) async {
     EasyThrottle.throttle(
-        'retryPendingMessages:$relay', const Duration(seconds: 5), () async {
-      final pendingItems = _retryQueue.entries
-          .where((entry) => entry.value.relay == relay && entry.value.canRetry)
-          .toList();
+      'retryPendingMessages:$relay',
+      const Duration(seconds: 5),
+      () async {
+        final pendingItems = _retryQueue.entries
+            .where(
+              (entry) => entry.value.relay == relay && entry.value.canRetry,
+            )
+            .toList();
 
-      for (final entry in pendingItems) {
-        await _retryMessage(entry.key);
-      }
-    });
+        for (final entry in pendingItems) {
+          await _retryMessage(entry.key);
+        }
+      },
+    );
   }
 
   void clearEventMessages(String eventId) {
@@ -254,10 +259,13 @@ class MessageRetryService extends GetxService {
               ? SendStatusType.success
               : SendStatusType.failed
           ..successRelays = sentSuccessRelay;
-        EasyDebounce.debounce('updateMessageAndRefresh${message.id}',
-            const Duration(milliseconds: 200), () async {
-          await MessageService.instance.updateMessageAndRefresh(message);
-        });
+        EasyDebounce.debounce(
+          'updateMessageAndRefresh${message.id}',
+          const Duration(milliseconds: 200),
+          () async {
+            await MessageService.instance.updateMessageAndRefresh(message);
+          },
+        );
       }
 
       // clear old subscriptions

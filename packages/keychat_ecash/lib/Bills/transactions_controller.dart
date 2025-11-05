@@ -1,4 +1,4 @@
-import 'package:app/app.dart';
+import 'package:keychat/app.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';

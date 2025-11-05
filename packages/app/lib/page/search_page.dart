@@ -2,16 +2,16 @@
 
 import 'dart:async';
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/models/contact.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
-import 'package:app/page/theme.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/contact.dart';
+import 'package:keychat/models/identity.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/theme.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -129,8 +129,9 @@ class _SearchPageState extends State<SearchPage> {
       final cacheKey = 'message_${message.roomId}';
       if (!_roomCache.containsKey(cacheKey)) {
         try {
-          final room =
-              await RoomService.instance.getRoomByIdOrFail(message.roomId);
+          final room = await RoomService.instance.getRoomByIdOrFail(
+            message.roomId,
+          );
           final contact = await ContactService.instance.getContact(
             message.identityId,
             message.idPubkey,

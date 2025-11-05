@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/global.dart';
-import 'package:app/models/browser/browser_favorite.dart';
-import 'package:app/models/browser/browser_history.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/page/browser/BrowserTabController.dart';
-import 'package:app/page/browser/WebviewTab.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/browser/browser_favorite.dart';
+import 'package:keychat/models/browser/browser_history.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/page/browser/BrowserTabController.dart';
+import 'package:keychat/page/browser/WebviewTab.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -382,8 +382,9 @@ class MultiWebviewController extends GetxController {
     if (!(config['enableHistory'] as bool)) return;
 
     final retentionDays = config['historyRetentionDays'] as int? ?? 30;
-    final thresholdDate =
-        DateTime.now().subtract(Duration(days: retentionDays));
+    final thresholdDate = DateTime.now().subtract(
+      Duration(days: retentionDays),
+    );
 
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys
@@ -402,8 +403,9 @@ class MultiWebviewController extends GetxController {
       );
       final browserCacheFolder = Utils.browserCacheFolder;
       webViewEnvironment = await WebViewEnvironment.create(
-        settings:
-            WebViewEnvironmentSettings(userDataFolder: browserCacheFolder),
+        settings: WebViewEnvironmentSettings(
+          userDataFolder: browserCacheFolder,
+        ),
       );
     }
 
@@ -501,13 +503,14 @@ class MultiWebviewController extends GetxController {
             windowId: getLastWindowId(),
           );
 
-          final tabData = WebviewTabData(
-            tab: tab,
-            uniqueKey: uniqueId,
-            url: url,
-          )
-            ..title = title.isNotEmpty ? title : null
-            ..favicon = favicon;
+          final tabData =
+              WebviewTabData(
+                  tab: tab,
+                  uniqueKey: uniqueId,
+                  url: url,
+                )
+                ..title = title.isNotEmpty ? title : null
+                ..favicon = favicon;
 
           tabs.add(tabData);
         }
@@ -590,7 +593,8 @@ class MultiWebviewController extends GetxController {
   }
 
   RxInt kInitialTextSize = 100.obs;
-  late String kTextSizeSourceJS = """
+  late String kTextSizeSourceJS =
+      """
 window.addEventListener('DOMContentLoaded', function(event) {
   document.body.style.textSizeAdjust = '$kInitialTextSize%';
   document.body.style.webkitTextSizeAdjust = '$kInitialTextSize%';
@@ -607,7 +611,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
 
   Future<void> setTextsize(int textSize) async {
     kInitialTextSize.value = textSize;
-    kTextSizeSourceJS = """
+    kTextSizeSourceJS =
+        """
               document.body.style.textSizeAdjust = '$textSize%';
               document.body.style.webkitTextSizeAdjust = '$textSize%';
               document.body.style.fontSize = '$textSize%';

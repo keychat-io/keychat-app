@@ -1,7 +1,7 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:app/constants.dart';
-import 'package:app/models/message.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/models/message.dart';
 
 class BIP340VerifyError implements Exception {
   String message = 'BIP340VerifyError';
@@ -109,8 +109,10 @@ class NostrEventModel {
   /// This option adds event checks such as id, signature, non-futuristic event: default=True
   ///
   /// Performances could be a reason to disable event checks
-  factory NostrEventModel.fromJson(Map<String, dynamic> json,
-      {bool verify = true}) {
+  factory NostrEventModel.fromJson(
+    Map<String, dynamic> json, {
+    bool verify = true,
+  }) {
     final tags = ((json['tags'] ?? []) as List<dynamic>)
         .map((e) => (e as List<dynamic>).map((e) => e as String).toList())
         .toList();
@@ -215,14 +217,14 @@ class NostrEventModel {
 
   /// Serialize an event in JSON
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'pubkey': pubkey,
-        'created_at': createdAt,
-        'kind': kind,
-        'tags': tags,
-        'content': content,
-        'sig': sig
-      };
+    'id': id,
+    'pubkey': pubkey,
+    'created_at': createdAt,
+    'kind': kind,
+    'tags': tags,
+    'content': content,
+    'sig': sig,
+  };
   @override
   String toString() => jsonEncode(toJson());
 

@@ -1,6 +1,6 @@
-import 'package:app/page/theme.dart';
-import 'package:app/service/qrscan.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/page/theme.dart';
+import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

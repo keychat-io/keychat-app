@@ -1,12 +1,13 @@
-import 'package:app/models/embedded/cashu_info.dart';
+import 'package:keychat/models/embedded/cashu_info.dart';
 
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class RustAPI {
-  static Future<CashuInfoModel> receiveToken(
-      {required String encodedToken}) async {
-    Transaction ct = await rust_cashu.receiveToken(encodedToken: encodedToken);
+  static Future<CashuInfoModel> receiveToken({
+    required String encodedToken,
+  }) async {
+    final ct = await rust_cashu.receiveToken(encodedToken: encodedToken);
 
     return CashuInfoModel()
       ..id = ct.id
@@ -16,9 +17,10 @@ class RustAPI {
       ..mint = ct.mintUrl;
   }
 
-  static Future<CashuInfoModel> decodeToken(
-      {required String encodedToken}) async {
-    var tokenData = await rust_cashu.decodeToken(encodedToken: encodedToken);
+  static Future<CashuInfoModel> decodeToken({
+    required String encodedToken,
+  }) async {
+    final tokenData = await rust_cashu.decodeToken(encodedToken: encodedToken);
 
     return CashuInfoModel()
       ..status = TransactionStatus.pending

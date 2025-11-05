@@ -1,8 +1,8 @@
 import 'dart:io' show File;
 import 'dart:typed_data';
 
-import 'package:app/app.dart' show Utils, logger;
-import 'package:app/service/file.service.dart';
+import 'package:keychat/app.dart' show Utils, logger;
+import 'package:keychat/service/file.service.dart';
 import 'package:dio/dio.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 

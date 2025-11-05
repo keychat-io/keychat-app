@@ -1,4 +1,4 @@
-import 'package:app/page/theme.dart';
+import 'package:keychat/page/theme.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ class MintServerDart extends StatefulWidget {
 class _MintServerDartState extends State<MintServerDart> {
   @override
   Widget build(BuildContext context) {
-    EcashController controller = Get.find<EcashController>();
+    final controller = Get.find<EcashController>();
 
     return Scaffold(
       appBar: AppBar(
@@ -26,37 +26,46 @@ class _MintServerDartState extends State<MintServerDart> {
         shrinkWrap: true,
         children: <Widget>[
           DrawerHeader(
-              decoration: BoxDecoration(
-                color: MaterialTheme.lightScheme().primary,
-              ),
-              child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(CupertinoIcons.bitcoin_circle,
-                        color: Color(0xfff2a900), size: 80),
-                    Text(
-                      'Select Mint Server',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
-                    ),
-                  ])),
-          Obx(() => ListView.builder(
+            decoration: BoxDecoration(
+              color: MaterialTheme.lightScheme().primary,
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  CupertinoIcons.bitcoin_circle,
+                  color: Color(0xfff2a900),
+                  size: 80,
+                ),
+                Text(
+                  'Select Mint Server',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Obx(
+            () => ListView.builder(
               shrinkWrap: true,
               itemCount: controller.mintBalances.length,
               controller: controller.scrollController,
               itemBuilder: (context, index) {
-                MintBalanceClass item = controller.mintBalances[index];
+                final item = controller.mintBalances[index];
                 return ListTile(
-                    title: Text(item.mint),
-                    trailing: Text(item.balance.toString()),
-                    onTap: () {
-                      controller.latestMintUrl.value = item.mint;
-                      EasyLoading.showToast('Switch Mint Url Successfully');
-                      Navigator.pop(context);
-                    });
-              }))
+                  title: Text(item.mint),
+                  trailing: Text(item.balance.toString()),
+                  onTap: () {
+                    controller.latestMintUrl.value = item.mint;
+                    EasyLoading.showToast('Switch Mint Url Successfully');
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

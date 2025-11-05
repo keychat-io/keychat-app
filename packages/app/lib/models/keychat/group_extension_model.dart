@@ -1,12 +1,6 @@
-import 'package:app/models/room.dart';
+import 'package:keychat/models/room.dart';
 
 class GroupExtension {
-  final String name;
-  final String description;
-  final String status;
-  final List<String> admins;
-  final List<String> relays;
-
   GroupExtension({
     required this.name,
     required this.description,
@@ -24,6 +18,11 @@ class GroupExtension {
       status: map['status'] ?? RoomStatus.enabled,
     );
   }
+  final String name;
+  final String description;
+  final String status;
+  final List<String> admins;
+  final List<String> relays;
 
   Map<String, dynamic> toMap() {
     return {

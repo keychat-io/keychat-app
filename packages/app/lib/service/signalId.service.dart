@@ -1,11 +1,11 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:typed_data' show Uint8List;
 
-import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/keychat/room_profile.dart';
-import 'package:app/models/signal_id.dart';
-import 'package:app/service/chatx.service.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/keychat/room_profile.dart';
+import 'package:keychat/models/signal_id.dart';
+import 'package:keychat/service/chatx.service.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
@@ -23,13 +23,14 @@ class SignalIdService {
   ]) async {
     final database = DBProvider.database;
     final keychain = await rust_signal.generateSignalIds();
-    final signalId = SignalId(
-      prikey: hex.encode(keychain.$1),
-      identityId: identityId,
-      pubkey: hex.encode(keychain.$2),
-    )
-      ..isGroupSharedKey = isGroupSharedKey
-      ..isUsed = false;
+    final signalId =
+        SignalId(
+            prikey: hex.encode(keychain.$1),
+            identityId: identityId,
+            pubkey: hex.encode(keychain.$2),
+          )
+          ..isGroupSharedKey = isGroupSharedKey
+          ..isUsed = false;
     final chatxService = Get.find<ChatxService>();
     final keypair = await chatxService.setupSignalStoreBySignalId(
       signalId.pubkey,
@@ -60,8 +61,10 @@ class SignalIdService {
       await database.signalIds.put(signalId);
     });
 
-    await Get.find<ChatxService>()
-        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
+    await Get.find<ChatxService>().setupSignalStoreBySignalId(
+      signalId.pubkey,
+      signalId,
+    );
     return signalId;
   }
 
@@ -127,13 +130,17 @@ class SignalIdService {
           .isUsedEqualTo(true)
           .updatedAtLessThan(
             DateTime.now().subtract(
-                const Duration(hours: KeychatGlobal.signalIdLifetime)),
+              const Duration(hours: KeychatGlobal.signalIdLifetime),
+            ),
           )
           .deleteAll();
     });
   }
 
-  Future<Map<String, dynamic>> getQRCodeData(SignalId signalId) async {
+  Future<Map<String, dynamic>> getQRCodeData(
+    SignalId signalId,
+    int time,
+  ) async {
     final keypair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
 
     final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
@@ -152,7 +159,7 @@ class SignalIdService {
     final res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
     data['prekeyId'] = res2.$1;
     data['prekeyPubkey'] = hex.encode(res2.$2);
-    data['time'] = DateTime.now().millisecondsSinceEpoch;
+    data['time'] = time;
     return data;
   }
 
@@ -166,21 +173,24 @@ class SignalIdService {
     final exist = await getSignalId(identityId, roomProfile.signalPubkey!);
     if (exist != null) return exist;
 
-    final signalId = SignalId(
-      prikey: roomProfile.signaliPrikey!,
-      pubkey: roomProfile.signalPubkey!,
-      identityId: identityId,
-    )
-      ..signalKeyId = roomProfile.signalKeyId
-      ..keys = roomProfile.signalKeys
-      ..isGroupSharedKey = true
-      ..createdAt = DateTime.now()
-      ..updatedAt = DateTime.now();
+    final signalId =
+        SignalId(
+            prikey: roomProfile.signaliPrikey!,
+            pubkey: roomProfile.signalPubkey!,
+            identityId: identityId,
+          )
+          ..signalKeyId = roomProfile.signalKeyId
+          ..keys = roomProfile.signalKeys
+          ..isGroupSharedKey = true
+          ..createdAt = DateTime.now()
+          ..updatedAt = DateTime.now();
     await DBProvider.database.signalIds.put(signalId);
 
     final keys = jsonDecode(roomProfile.signalKeys!) as Map<String, dynamic>;
-    final keyPair = await Get.find<ChatxService>()
-        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
+    final keyPair = await Get.find<ChatxService>().setupSignalStoreBySignalId(
+      signalId.pubkey,
+      signalId,
+    );
 
     await rust_signal.storePrekeyApi(
       keyPair: keyPair,

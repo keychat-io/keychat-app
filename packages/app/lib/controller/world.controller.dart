@@ -1,14 +1,14 @@
 import 'dart:math';
 
-import 'package:app/nostr-core/filter.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/nostr-core/request.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/nostr-core/filter.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/nostr-core/nostr_nip4_req.dart';
+import 'package:keychat/nostr-core/request.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:app/constants.dart';
+import 'package:keychat/constants.dart';
 
 class WorldController extends GetxController with GetTickerProviderStateMixin {
   RxInt count = 0.obs;

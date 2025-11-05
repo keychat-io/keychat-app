@@ -1,13 +1,13 @@
-import 'package:app/app.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/desktop/DesktopController.dart';
-import 'package:app/page/RecommendBots/RecommendBots.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/new_friends_rooms.dart';
-import 'package:app/page/search_page.dart';
-import 'package:app/page/widgets/RelayStatus.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/page/RecommendBots/RecommendBots.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/page/new_friends_rooms.dart';
+import 'package:keychat/page/search_page.dart';
+import 'package:keychat/page/widgets/RelayStatus.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
@@ -105,8 +105,9 @@ class RoomList extends GetView<HomeController> {
                     }
                     return Divider(
                       height: 0.1,
-                      color:
-                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.1),
                       indent: 80,
                     );
                   }
@@ -124,9 +125,9 @@ class RoomList extends GetView<HomeController> {
                           height: 40,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                           ),
                           margin: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -140,9 +141,7 @@ class RoomList extends GetView<HomeController> {
                                 ),
                                 child: Icon(
                                   Icons.search,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
+                                  color: Theme.of(context).colorScheme.onSurface
                                       .withValues(alpha: 0.4),
                                 ),
                               ),
@@ -207,8 +206,8 @@ class RoomList extends GetView<HomeController> {
                     child: ColoredBox(
                       color: room.pin
                           ? Get.isDarkMode
-                              ? const Color(0xFF202020)
-                              : const Color(0xFFEDEDED)
+                                ? const Color(0xFF202020)
+                                : const Color(0xFFEDEDED)
                           : Colors.transparent,
                       child: Obx(
                         () => ListTile(
@@ -218,10 +217,11 @@ class RoomList extends GetView<HomeController> {
                           ),
                           leading: Utils.getAvatarByRoom(room),
                           key: Key('room:${room.id}'),
-                          selected: desktopController?.selectedRoom.value.id ==
+                          selected:
+                              desktopController?.selectedRoom.value.id ==
                               room.id,
-                          selectedTileColor:
-                              KeychatGlobal.primaryColor.withAlpha(50),
+                          selectedTileColor: KeychatGlobal.primaryColor
+                              .withAlpha(50),
                           title: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -239,7 +239,8 @@ class RoomList extends GetView<HomeController> {
                                     textSmallGray(
                                       context,
                                       Utils.formatTimeMsg(
-                                        controller.roomLastMessage[room.id]!
+                                        controller
+                                            .roomLastMessage[room.id]!
                                             .createdAt,
                                       ),
                                     ),

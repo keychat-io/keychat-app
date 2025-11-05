@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/page/browser/BrowserNewTab.dart';
-import 'package:app/page/login/me.dart';
-import 'package:app/page/room_list.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/browser/BrowserNewTab.dart';
+import 'package:keychat/page/login/me.dart';
+import 'package:keychat/page/room_list.dart';
+import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -54,10 +54,13 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
               }
               if (index == pages.length - 1) {
                 EasyThrottle.throttle(
-                    'loadCashuABalance', const Duration(seconds: 1), () {
-                  Utils.getGetxController<EcashController>()
-                      ?.requestPageRefresh();
-                });
+                  'loadCashuABalance',
+                  const Duration(seconds: 1),
+                  () {
+                    Utils.getGetxController<EcashController>()
+                        ?.requestPageRefresh();
+                  },
+                );
               }
             },
             iconSize: 26,

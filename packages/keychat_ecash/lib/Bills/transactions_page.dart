@@ -1,7 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'package:app/page/components.dart';
-import 'package:app/utils.dart' show formatTime;
+import 'package:keychat/page/components.dart';
+import 'package:keychat/utils.dart' show formatTime;
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

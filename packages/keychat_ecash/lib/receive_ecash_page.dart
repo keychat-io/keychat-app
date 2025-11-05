@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:app/service/qrscan.service.dart';
-import 'package:app/utils.dart';
+import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

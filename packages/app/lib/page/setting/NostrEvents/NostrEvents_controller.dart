@@ -1,5 +1,5 @@
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/nostr_event_status.dart';
+import 'package:keychat/models/db_provider.dart';
+import 'package:keychat/models/nostr_event_status.dart';
 
 import 'package:get/get.dart';
 

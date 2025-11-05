@@ -1,14 +1,14 @@
-import 'package:app/desktop/desktop.dart';
-import 'package:app/page/chat/chat_page.dart';
-import 'package:app/page/chat/chat_setting_contact_page.dart';
-import 'package:app/page/chat/chat_setting_group_page.dart';
-import 'package:app/page/chat/chat_settings_security.dart';
-import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
-import 'package:app/page/login/OnboardingPage2.dart';
-import 'package:app/page/login/login.dart';
-import 'package:app/page/room_list.dart';
-import 'package:app/page/root_page_cupertino.dart';
-import 'package:app/page/routes.dart';
+import 'package:keychat/desktop/desktop.dart';
+import 'package:keychat/page/chat/chat_page.dart';
+import 'package:keychat/page/chat/chat_setting_contact_page.dart';
+import 'package:keychat/page/chat/chat_setting_group_page.dart';
+import 'package:keychat/page/chat/chat_settings_security.dart';
+import 'package:keychat/page/chat/message_bill/pay_to_relay_page.dart';
+import 'package:keychat/page/login/OnboardingPage2.dart';
+import 'package:keychat/page/login/login.dart';
+import 'package:keychat/page/room_list.dart';
+import 'package:keychat/page/root_page_cupertino.dart';
+import 'package:keychat/page/routes.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 

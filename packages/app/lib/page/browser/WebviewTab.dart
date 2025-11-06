@@ -968,12 +968,59 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
+  Future<WebUri> _getCurrentUriTimeOut() async {
+    final completer = Completer<WebUri>();
+    Timer? timeoutTimer;
+    var isCompleted = false;
+
+    try {
+      timeoutTimer = Timer(const Duration(seconds: 2), () {
+        if (!isCompleted) {
+          isCompleted = true;
+          if (!completer.isCompleted) {
+            completer.completeError(
+              TimeoutException('Get URL timeout after 2 seconds'),
+            );
+          }
+        }
+      });
+      final uri = await tabController.inAppWebViewController!.getUrl();
+
+      if (!isCompleted) {
+        isCompleted = true;
+        timeoutTimer.cancel();
+        if (uri != null) {
+          if (!completer.isCompleted) {
+            completer.complete(uri);
+          }
+        } else {
+          if (!completer.isCompleted) {
+            completer.completeError(Exception('URL is null'));
+          }
+        }
+      }
+
+      return await completer.future;
+    } catch (e) {
+      if (!isCompleted) {
+        isCompleted = true;
+        timeoutTimer?.cancel();
+        if (!completer.isCompleted) {
+          completer.completeError(e);
+        }
+      }
+      rethrow;
+    } finally {
+      timeoutTimer?.cancel();
+    }
+  }
+
   WebUri? lastViewUri;
   Future<WebUri> getCurrentUrl() async {
     try {
-      final uri = await tabController.inAppWebViewController?.getUrl();
+      final uri = await _getCurrentUriTimeOut();
       lastViewUri = uri;
-      return uri ?? WebUri.uri(Uri.parse(widget.initUrl));
+      return uri;
     } catch (e) {
       await refreshPage();
       return WebUri.uri(Uri.parse(widget.initUrl));
@@ -1748,26 +1795,31 @@ img {
   }
 
   Future<void> refreshPage() async {
-    try {
-      await tabController.inAppWebViewController!.getUrl().timeout(
-        const Duration(seconds: 2),
-      );
-      await tabController.inAppWebViewController!.reload().timeout(
-        const Duration(
-          seconds: 4,
-        ),
-      );
-    } catch (e) {
-      // ⛔ A MacOSInAppWebViewController was used after being disposed.
-      // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
-      logger.e(e.toString(), error: e);
-      tabController.url = lastViewUri != null
-          ? lastViewUri.toString()
-          : widget.initUrl;
-      tabController.pageStorageKey.value = PageStorageKey<String>(
-        Random().nextInt(1 << 32).toString(),
-      );
-    }
+    EasyThrottle.throttle(
+      'refreshPage${tabController.hashCode}',
+      const Duration(seconds: 2),
+      () async {
+        try {
+          final uri = await _getCurrentUriTimeOut();
+          logger.i('refreshPage-geturi: $uri');
+          await tabController.inAppWebViewController!.loadUrl(
+            urlRequest: URLRequest(url: uri),
+          );
+          logger.i('refreshPage-done: $uri');
+        } catch (e) {
+          // ⛔ A MacOSInAppWebViewController was used after being disposed.
+          // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+          logger.e(e.toString(), error: e);
+          tabController.url = lastViewUri != null
+              ? lastViewUri.toString()
+              : widget.initUrl;
+          tabController.pageStorageKey.value = PageStorageKey<String>(
+            Random().nextInt(1 << 32).toString(),
+          );
+          logger.i('refreshBuildPage: ${tabController.url}');
+        }
+      },
+    );
   }
 
   void initPullToRefreshController() {

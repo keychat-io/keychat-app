@@ -1426,12 +1426,14 @@ Init File: $time \n
   }
 
   static Widget getAvatarByIdentity(Identity identity, {double size = 48}) {
-    final cacheKey = 'avatar_dot_${identity.secp256k1PKHex}_$size';
+    final avatarPath =
+        identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath;
+    final cacheKey =
+        'avatar_dot_${identity.secp256k1PKHex}_${avatarPath}_$size';
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       return _avatarWidgetCache[cacheKey]!;
     }
     late Widget avatarWidget;
-    final avatarPath = identity.avatarLocalPath;
     // Check if local avatar file exists
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final avatarFile = File(Utils.appFolder.path + avatarPath);

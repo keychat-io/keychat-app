@@ -552,6 +552,7 @@ class IdentityService {
 
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();
+    Utils.removeAvatarCacheByPubkey(identity.secp256k1PKHex);
     Get.find<HomeController>().tabBodyDatas.refresh();
     return identity;
   }

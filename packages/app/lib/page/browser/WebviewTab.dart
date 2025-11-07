@@ -240,7 +240,9 @@ class _WebviewTabState extends State<WebviewTab> {
           floatingActionButton:
               GetPlatform.isMobile && multiWebviewController.showFAB()
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: 60),
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).size.height / 3,
+                  ),
                   child: Tooltip(
                     key: _tooltipKey,
                     message: 'Long-Press to close mini app',

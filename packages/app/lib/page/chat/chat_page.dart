@@ -852,7 +852,7 @@ class _ChatPage2State extends State<ChatPage> {
                       contact: rm.contact,
                     ),
                     title: Text(
-                      rm.name,
+                      rm.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

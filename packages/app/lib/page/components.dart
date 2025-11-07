@@ -503,8 +503,10 @@ Widget _buildStatusChip(
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
+            overflow: TextOverflow.ellipsis,
             color: textColor,
           ),
+          maxLines: 3,
         ),
       ],
     ),

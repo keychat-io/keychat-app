@@ -110,7 +110,7 @@ class GroupInfoWidget extends StatelessWidget {
               child: Column(
                 children: [
                   Utils.getRandomAvatar(rm.idPubkey),
-                  Text(rm.name, overflow: TextOverflow.ellipsis),
+                  Text(rm.displayName, overflow: TextOverflow.ellipsis),
                   if (rm.status == UserStatusType.inviting)
                     Text(
                       'Inviting',

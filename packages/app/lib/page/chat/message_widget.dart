@@ -836,7 +836,7 @@ class MessageWidget extends StatelessWidget {
                         final thumbail = FileService.instance.getVideoThumbPath(
                           filePath,
                         );
-                        final thumbExists = await File(thumbail).exists();
+                        final thumbExists = File(thumbail).existsSync();
                         if (thumbExists) {
                           await File(thumbail).delete();
                         }
@@ -1240,7 +1240,7 @@ class MessageWidget extends StatelessWidget {
       if (cc.roomObs.value.isSendAllGroup || cc.roomObs.value.isMLSGroup) {
         final rm = cc.getMemberByIdPubkey(message.idPubkey);
         if (rm != null) {
-          senderName = rm.name;
+          senderName = rm.displayName;
         }
       }
       message.fromContact = FromContact(message.idPubkey, senderName);

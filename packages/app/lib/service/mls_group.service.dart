@@ -404,14 +404,14 @@ class MlsGroupService extends BaseChatService {
     );
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     for (final element in extensions.entries) {
-      var name = element.key;
+      String? name;
       var status = UserStatusType.invited;
       String? msg;
       if (element.value.isNotEmpty) {
         try {
           final res = utf8.decode(element.value[0]);
           final extension = jsonDecode(res) as Map<String, dynamic>;
-          name = extension['name'] as String? ?? element.key;
+          name = extension['name'] as String?;
           msg = extension['msg'] as String?;
           if (extension['status'] != null) {
             status = UserStatusType.values.firstWhere(
@@ -580,7 +580,7 @@ class MlsGroupService extends BaseChatService {
     final bLeafNodes = <Uint8List>[];
     for (final rm in list) {
       idPubkeys.add(rm.idPubkey);
-      names.add(rm.name);
+      names.add(rm.displayName);
       final bLeafNode = await rust_mls.getLeadNodeIndex(
         nostrIdAdmin: identity.secp256k1PKHex,
         nostrIdCommon: rm.idPubkey,

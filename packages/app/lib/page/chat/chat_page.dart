@@ -3,6 +3,8 @@ import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:giphy_get/giphy_get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
@@ -324,8 +326,49 @@ class _ChatPage2State extends State<ChatPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
-                if (controller.botCommands.isNotEmpty)
-                  botMenuWidget(controller, context),
+                // if (controller.botCommands.isNotEmpty)
+                //   botMenuWidget(controller, context),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  splashRadius: 24,
+                  onPressed: () async {
+                    final giphy = dotenv.get('GIPHY');
+                    if (giphy.isEmpty) {
+                      await EasyLoading.showInfo(
+                        'GIPHY API key is not configured.',
+                      );
+                      return;
+                    }
+                    try {
+                      final gif = await GiphyGet.getGif(
+                        context: context,
+                        apiKey: giphy,
+                        randomID: Utils.randomString(8),
+                        loadingWidget: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                        failedWidget: ColoredBox(
+                          color: Theme.of(context).cardColor,
+                          child: const Center(
+                            child: Text('Load Failed'),
+                          ),
+                        ),
+                        tabBottomBuilder: (context) => Container(),
+                      );
+                      logger.d('Selected GIF: $gif');
+                      if (gif == null) return;
+
+                      final imageUrl =
+                          gif.images?.fixedWidthDownsampled?.url ??
+                          gif.images?.fixedWidth.url;
+                      if (imageUrl == null) return;
+                      await controller.sendGiphyMessage(imageUrl);
+                    } catch (e) {
+                      logger.e(e);
+                    }
+                  },
+                  icon: const Icon(Icons.emoji_emotions_outlined),
+                ),
                 Expanded(
                   child: KeyboardListener(
                     focusNode: controller.keyboardFocus,

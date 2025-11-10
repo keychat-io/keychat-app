@@ -97,6 +97,7 @@ dependencies:
       url: https://github.com/keychat-io/dart-bip21-uri.git
   flutter_json_view: ^1.1.5
   json_serializable: ^6.9.0
+  giphy_get: ^3.6.1+1
 
 dev_dependencies:
   flutter_test:

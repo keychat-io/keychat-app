@@ -2,6 +2,16 @@ import 'dart:async' show Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/keychat/profile_request_model.dart';
@@ -18,15 +28,6 @@ import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -603,7 +604,6 @@ Add as a friend and start the signal protocol chat
                   roomObs.value,
                   xfile!,
                   MessageMediaType.image,
-                  true,
                 );
                 Get.back<void>();
               } finally {
@@ -645,7 +645,7 @@ Add as a friend and start the signal protocol chat
         roomObs.value,
         xfile,
         MessageMediaType.video,
-        true,
+        compress: true,
       );
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
@@ -1071,11 +1071,11 @@ Add as a friend and start the signal protocol chat
     }
 
     final fileFormats = [
+      (Formats.gif, MessageMediaType.image),
       (Formats.png, MessageMediaType.image),
       (Formats.jpeg, MessageMediaType.image),
       (Formats.webp, MessageMediaType.image),
       (Formats.svg, MessageMediaType.image),
-      (Formats.gif, MessageMediaType.image),
       (Formats.tiff, MessageMediaType.image),
       (Formats.bmp, MessageMediaType.image),
       (Formats.ico, MessageMediaType.image),
@@ -1126,7 +1126,7 @@ Add as a friend and start the signal protocol chat
         final mediaType = fileFormats[i].$2;
         final canProcess = reader.canProvide(format);
         if (canProcess) {
-          logger.d('Clipboard can provide: $format');
+          logger.d('Clipboard can provide: $format, $mediaType');
           await _readFromStream(
             reader,
             format,
@@ -1271,7 +1271,6 @@ Add as a friend and start the signal protocol chat
               roomObs.value,
               xfile,
               type,
-              compress,
             );
           } finally {
             _isUploading = false;
@@ -1302,7 +1301,6 @@ Add as a friend and start the signal protocol chat
                       roomObs.value,
                       xfile,
                       MessageMediaType.image,
-                      true,
                     );
                     Get.back<void>();
                   } finally {
@@ -1328,5 +1326,67 @@ Add as a friend and start the signal protocol chat
   Future<void> loadFromMessageId(int messageId) async {
     messages.clear();
     await loadAllChat(searchMsgIndex: messageId);
+  }
+
+  Future<void> sendGiphyMessage(String gifUrl) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
+    _isUploading = true;
+    try {
+      EasyLoading.show(status: 'Downloading GIF...');
+      // Download GIF from URL
+      final dio = Dio();
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'giphy_$timestamp.gif';
+      final filePath = '${tempDir.path}/$fileName';
+      // Download the file
+      await dio.download(
+        gifUrl,
+        filePath,
+        options: Options(
+          responseType: ResponseType.bytes,
+        ),
+        onReceiveProgress: (int received, int total) {
+          if (total != -1) {
+            final progress = (received / total * 100).toStringAsFixed(0);
+            EasyLoading.showProgress(
+              received / total * 0.5,
+              status: 'Downloading GIF... $progress%',
+            );
+          }
+        },
+      );
+
+      EasyLoading.showProgress(0.6, status: 'Encrypting and Uploading...');
+
+      // Create XFile from downloaded file
+      final xfile = XFile(
+        filePath,
+        mimeType: 'image/gif',
+        name: fileName,
+      );
+
+      // Use existing upload logic
+      await FileService.instance.handleSendMediaFile(
+        roomObs.value,
+        xfile,
+        MessageMediaType.image,
+      );
+
+      hideAdd.value = true; // close features section
+      EasyLoading.dismiss();
+    } catch (e, s) {
+      EasyLoading.dismiss();
+      final msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg, duration: const Duration(seconds: 3));
+      logger.e('sendGiphyMessage failed', error: e, stackTrace: s);
+    } finally {
+      _isUploading = false;
+    }
   }
 }

@@ -1,25 +1,25 @@
-import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/global.dart';
-import 'package:keychat/page/setting/QueryReceivedEvent.dart';
-import 'package:keychat/page/setting/MediaRelaySettings.dart';
-import 'package:keychat/page/setting/UnreadMessages.dart';
-import 'package:keychat/page/setting/UploadedPubkeys.dart';
-import 'package:keychat/page/widgets/notice_text_widget.dart';
-import 'package:keychat/service/mls_group.service.dart';
-import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/service/websocket.service.dart';
-import 'package:keychat/utils.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat/page/setting/RelaySetting.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:settings_ui/settings_ui.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/setting/MediaRelaySettings.dart';
 import 'package:keychat/page/setting/NostrEvents/NostrEvents_bindings.dart';
 import 'package:keychat/page/setting/NostrEvents/NostrEvents_page.dart';
+import 'package:keychat/page/setting/QueryReceivedEvent.dart';
+import 'package:keychat/page/setting/RelaySetting.dart';
+import 'package:keychat/page/setting/UnreadMessages.dart';
+import 'package:keychat/page/setting/UploadedPubkeys.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:settings_ui/settings_ui.dart';
 
 class MoreChatSetting extends StatelessWidget {
   const MoreChatSetting({super.key});
@@ -68,14 +68,7 @@ class MoreChatSetting extends StatelessWidget {
                 SettingsTile.navigation(
                   leading: const Icon(Icons.notifications_outlined),
                   onPressed: (x) async {
-                    try {
-                      await handleNotificationSettting();
-                    } catch (e, s) {
-                      logger.e(
-                        'Request notification permission failed: $e',
-                        stackTrace: s,
-                      );
-                    }
+                    await handleNotificationSetting();
                   },
                   title: const Text('Notifications'),
                 ),
@@ -89,8 +82,13 @@ class MoreChatSetting extends StatelessWidget {
                 title: const Text('Upload KeyPackage'),
                 onPressed: (context) async {
                   try {
+                    final identities = Get.find<HomeController>()
+                        .allIdentities
+                        .values
+                        .toList();
                     await MlsGroupService.instance.uploadKeyPackages(
                       forceUpload: true,
+                      identities: identities,
                     );
                     EasyLoading.showSuccess('Upload Success');
                   } catch (e, s) {
@@ -152,10 +150,9 @@ class MoreChatSetting extends StatelessWidget {
     hc.checkRunStatus.value = false;
   }
 
-  Future<void> handleNotificationSettting() async {
+  Future<void> handleNotificationSetting() async {
     final homeController = Get.find<HomeController>();
-    final permission = await NotifyService.hasNotifyPermission();
-    logger.d('Notification permission: $permission');
+    final permission = await NotifyService.instance.hasNotifyPermission();
     Get.bottomSheet(
       Obx(
         () => SettingsList(
@@ -184,22 +181,26 @@ class MoreChatSetting extends StatelessWidget {
                 SettingsTile.navigation(
                   title: const Text('FCMToken'),
                   onPressed: (context) {
-                    if (NotifyService.fcmToken == null) {
+                    if (NotifyService.instance.fcmToken == null) {
                       EasyLoading.showError(
                         'FCM Token not available! Please check your network and re-open the notification status.',
                       );
                       return;
                     }
                     Clipboard.setData(
-                      ClipboardData(text: NotifyService.fcmToken ?? ''),
+                      ClipboardData(
+                        text: NotifyService.instance.fcmToken ?? '',
+                      ),
                     );
-                    logger.i('FCMToken: ${NotifyService.fcmToken}');
+                    logger.i('FCMToken: ${NotifyService.instance.fcmToken}');
                     EasyLoading.showSuccess('Copied');
                   },
                   value: Text(
-                    NotifyService.fcmToken == null
-                        ? 'Fetch Failed'
-                        : NotifyService.fcmToken!.substring(0, 5),
+                    homeController.notificationStatus.value && permission
+                        ? NotifyService.instance.fcmToken == null
+                              ? 'Fetch Failed'
+                              : NotifyService.instance.fcmToken!.substring(0, 5)
+                        : '',
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
@@ -247,7 +248,13 @@ class MoreChatSetting extends StatelessWidget {
             onPressed: () async {
               EasyLoading.show(status: 'Processing');
               try {
-                await NotifyService.updateUserSetting(false);
+                Get.find<HomeController>().notificationStatus.value = false;
+                Get.find<HomeController>().notificationStatus.refresh();
+                await Storage.setInt(
+                  StorageKeyString.settingNotifyStatus,
+                  NotifySettingStatus.disable,
+                );
+                await NotifyService.instance.clearAll();
                 EasyLoading.showSuccess('Disable');
                 Get.back(result: true);
               } catch (e, s) {
@@ -277,37 +284,41 @@ class MoreChatSetting extends StatelessWidget {
           CupertinoDialogAction(
             child: const Text('Cancel'),
             onPressed: () {
-              Get.back(result: true);
+              Get.back(result: false);
             },
           ),
           CupertinoDialogAction(
             child: const Text('Confirm'),
             onPressed: () async {
-              EasyLoading.show(status: 'Processing');
-              final setting = await FirebaseMessaging.instance
-                  .getNotificationSettings();
-
-              if (setting.authorizationStatus == AuthorizationStatus.denied) {
-                EasyLoading.showSuccess(
-                  'Please enable this config in system setting',
-                );
-
-                openAppSettings();
-                return;
-              }
               try {
-                if (setting.authorizationStatus ==
-                        AuthorizationStatus.notDetermined ||
-                    NotifyService.fcmToken == null) {
-                  await NotifyService.init();
+                EasyLoading.show(status: 'Initializing...');
+
+                // Initialize notification service with permission request
+                Get.find<HomeController>().notificationStatus.value = true;
+                await Storage.setInt(
+                  StorageKeyString.settingNotifyStatus,
+                  NotifySettingStatus.enable,
+                );
+                await NotifyService.instance.init(requestPermission: true);
+
+                // Check if initialization was successful
+                final status = await Permission.notification.status;
+                if (!(status.isGranted || status.isProvisional)) {
+                  await EasyLoading.showError(
+                    'Please enable notification permission in system settings',
+                  );
+                  await openAppSettings();
+                  Get.back(result: false);
+                  return;
                 }
 
-                await NotifyService.updateUserSetting(true);
-                EasyLoading.showSuccess('Enabled');
+                await NotifyService.instance.syncPubkeysToServer();
+                await EasyLoading.showSuccess('Enabled');
                 Get.back(result: true);
               } catch (e, s) {
                 logger.e(e.toString(), error: e, stackTrace: s);
-                EasyLoading.showError(e.toString());
+                await EasyLoading.showError(e.toString());
+                Get.back(result: false);
               }
             },
           ),

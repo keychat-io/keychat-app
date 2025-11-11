@@ -1,20 +1,20 @@
-import 'package:keychat/global.dart';
-import 'package:keychat/models/embedded/relay_file_fee.dart';
-import 'package:keychat/models/embedded/relay_message_fee.dart';
-import 'package:keychat/nostr-core/relay_websocket.dart';
-import 'package:keychat/service/mls_group.service.dart';
-import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/service/storage.dart';
+import 'dart:async';
 
-import 'package:keychat/service/websocket.service.dart';
-import 'package:keychat/utils.dart';
-import 'package:keychat/utils/config.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/embedded/relay_file_fee.dart';
+import 'package:keychat/models/embedded/relay_message_fee.dart';
 import 'package:keychat/models/models.dart';
-
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/websocket.service.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat/utils/config.dart';
 
 class RelayService {
   // Avoid self instance
@@ -33,15 +33,21 @@ class RelayService {
       if (ws.channels[url]!.isConnected()) return false; // already connected
       ws.channels.remove(url);
     }
-    relay.active = true;
-    relay.errorMessage = null;
+    relay
+      ..active = true
+      ..errorMessage = null;
     await update(relay);
     await ws.addChannel(
       relay,
       connectedCallback: () async {
-        NotifyService.syncPubkeysToServer(); // sub new relay
-        RelayService.instance.initRelayFeeInfo([relay]);
-        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
+        unawaited(NotifyService.instance.syncPubkeysToServer());
+        unawaited(RelayService.instance.initRelayFeeInfo([relay]));
+        final identities = Get.find<HomeController>().allIdentities.values
+            .toList();
+        await MlsGroupService.instance.uploadKeyPackages(
+          toRelay: relay.url,
+          identities: identities,
+        );
       },
     );
     return true;

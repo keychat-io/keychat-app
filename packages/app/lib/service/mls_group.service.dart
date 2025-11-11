@@ -648,7 +648,7 @@ class MlsGroupService extends BaseChatService {
     if (toDeletePubkey != null) {
       ws.removePubkeyFromSubscription(toDeletePubkey);
       if (!room.isMute) {
-        NotifyService.removePubkeys([toDeletePubkey]);
+        NotifyService.instance.removePubkeys([toDeletePubkey]);
       }
     }
     ws.listenPubkeyNip17(
@@ -660,7 +660,7 @@ class MlsGroupService extends BaseChatService {
     );
 
     if (!room.isMute) {
-      unawaited(NotifyService.addPubkeys([newPubkey]));
+      unawaited(NotifyService.instance.addPubkeys([newPubkey]));
     }
     loggerNoLine.i(
       '[MLS] replaceListenPubkey END - success for room: ${room.id}',
@@ -891,7 +891,7 @@ class MlsGroupService extends BaseChatService {
   static bool _isUploading = false;
 
   Future<void> uploadKeyPackages({
-    List<Identity>? identities,
+    required List<Identity> identities,
     String? toRelay,
     bool forceUpload = false,
   }) async {
@@ -910,13 +910,10 @@ class MlsGroupService extends BaseChatService {
     );
 
     _uploadQueue.add(request);
-    loggerNoLine.i(
-      'Added key package upload request to queue. Queue size: ${_uploadQueue.length}',
-    );
 
     // If there's no upload in progress, start processing the queue
     if (!_isUploading) {
-      _processUploadQueue();
+      await _processUploadQueue();
     }
   }
 
@@ -943,11 +940,9 @@ class MlsGroupService extends BaseChatService {
   Future<void> _executeUpload({
     required bool forceUpload,
     required List<String> onlineRelays,
-    List<Identity>? identities,
+    required List<Identity> identities,
     String? toRelay,
   }) async {
-    identities ??= Get.find<HomeController>().allIdentities.values.toList();
-
     // Create a list to track all completers
     final uploadFutures = <Future<void>>[];
 
@@ -1496,7 +1491,7 @@ class MlsGroupService extends BaseChatService {
           );
 
           if (!room.isMute) {
-            NotifyService.addPubkeys([newPubkey]);
+            NotifyService.instance.addPubkeys([newPubkey]);
           }
         }
       } catch (e) {
@@ -1536,10 +1531,10 @@ class _KeyPackageUploadRequest {
   _KeyPackageUploadRequest({
     required this.forceUpload,
     required this.onlineRelays,
-    this.identities,
+    required this.identities,
     this.toRelay,
   });
-  final List<Identity>? identities;
+  final List<Identity> identities;
   final String? toRelay;
   final bool forceUpload;
   final List<String> onlineRelays;

@@ -251,7 +251,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               await IdentityService.instance.updateIdentity(
                                 controller.identity.value,
                               );
-                              NotifyService.syncPubkeysToServer();
+                              NotifyService.instance.syncPubkeysToServer();
                               Get.find<WebsocketService>().start();
                               controller.identity.refresh();
                               Get.find<HomeController>().loadRoomList(

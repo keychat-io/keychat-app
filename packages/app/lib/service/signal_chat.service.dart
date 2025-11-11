@@ -94,7 +94,8 @@ class SignalChatService extends BaseChatService {
         since: DateTime.now().subtract(const Duration(seconds: 5)),
         kinds: [EventKinds.nip04],
       );
-      if (!room.isMute) unawaited(NotifyService.addPubkeys(toAddPubkeys));
+      if (!room.isMute)
+        unawaited(NotifyService.instance.addPubkeys(toAddPubkeys));
     }
 
     final senderKey = await rust_nostr.generateSimple();

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/home.controller.dart';
@@ -43,7 +44,7 @@ class NotifyService {
     List<String> toRemovePubkeys = const [],
   ]) async {
     if (fcmToken == null) return false;
-    final res = await hasNotifyPermission();
+    final res = await checkAllNotifyPermission();
     if (!res) return false;
     final relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
@@ -72,7 +73,7 @@ class NotifyService {
   }
 
   Future<bool> checkAllNotifyPermission() async {
-    final isGrant = await hasNotifyPermission();
+    final isGrant = await isNotifyPermissionGrant();
     if (!isGrant) return false;
 
     final enable = Get.find<HomeController>().notificationStatus.value;
@@ -106,23 +107,26 @@ class NotifyService {
     }
   }
 
-  Future<bool> hasNotifyPermission() async {
+  Future<bool> isNotifyPermissionGrant() async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
       logger.i('Notification not working on windows and linux');
       return false;
     }
+
     try {
-      final s = await FirebaseMessaging.instance.getNotificationSettings();
-      return s.authorizationStatus == AuthorizationStatus.authorized;
-    } catch (e) {
-      // Fallback to permission_handler if Firebase fails
-      try {
+      if (GetPlatform.isMacOS) {
+        // macOS must use Firebase
+        final s = await FirebaseMessaging.instance.getNotificationSettings();
+        return s.authorizationStatus == AuthorizationStatus.authorized ||
+            s.authorizationStatus == AuthorizationStatus.provisional;
+      } else {
+        // Android and iOS use permission_handler
         final status = await Permission.notification.status;
-        return status.isGranted;
-      } catch (e2) {
-        logger.e('hasNotifyPermission error', error: e2);
-        return false;
+        return status.isGranted || status.isProvisional;
       }
+    } catch (e) {
+      logger.e('hasNotifyPermission error', error: e);
+      return false;
     }
   }
 
@@ -260,7 +264,6 @@ class NotifyService {
 
     // fcm onMessageOpenedApp listen
     FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
-
     // fcm onTokenRefresh listen
     FirebaseMessaging.instance.onTokenRefresh
         .listen((newToken) {
@@ -354,7 +357,7 @@ Fix:
     if (requestPermission) {
       hasPermission = await requestNotifyPermission();
     } else {
-      hasPermission = await hasNotifyPermission();
+      hasPermission = await isNotifyPermissionGrant();
     }
 
     if (!hasPermission) {
@@ -367,7 +370,9 @@ Fix:
     fcmToken ??= await _getFCMToken();
 
     if (fcmToken == null) {
-      logger.w('Failed to get FCM token');
+      await EasyLoading.showError(
+        'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
+      );
       homeController.notificationStatus.value = false;
       return;
     }

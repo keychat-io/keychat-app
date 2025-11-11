@@ -318,8 +318,6 @@ class _ChatPage2State extends State<ChatPage> {
           _getReplyWidget(),
           Container(
             padding: EdgeInsets.only(
-              left: 8,
-              right: 8,
               bottom: 8,
               top: controller.inputReplys.isNotEmpty ? 0 : 4,
             ),
@@ -539,8 +537,8 @@ class _ChatPage2State extends State<ChatPage> {
                           controller.hideAdd.value = true;
                         },
                         onChanged: handleOnChanged,
-                        onFieldSubmitted: (c) {
-                          controller.handleSubmitted();
+                        onFieldSubmitted: (c) async {
+                          await controller.handleSubmitted();
                         },
                         enabled: true,
                       ),
@@ -556,12 +554,7 @@ class _ChatPage2State extends State<ChatPage> {
                           CupertinoIcons.arrow_up_circle_fill,
                           color: KeychatGlobal.primaryColor,
                         )
-                      : Icon(
-                          CupertinoIcons.add_circled,
-                          color: Theme.of(
-                            context,
-                          ).iconTheme.color?.withAlpha(155),
-                        ),
+                      : const Icon(CupertinoIcons.add_circled),
                 ),
               ],
             ),

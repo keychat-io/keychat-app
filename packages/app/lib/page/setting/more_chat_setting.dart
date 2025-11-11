@@ -152,8 +152,8 @@ class MoreChatSetting extends StatelessWidget {
 
   Future<void> handleNotificationSetting() async {
     final homeController = Get.find<HomeController>();
-    final permission = await NotifyService.instance.hasNotifyPermission();
-    Get.bottomSheet(
+    final permission = await NotifyService.instance.isNotifyPermissionGrant();
+    await Get.bottomSheet<void>(
       Obx(
         () => SettingsList(
           platform: DevicePlatform.iOS,
@@ -302,8 +302,10 @@ class MoreChatSetting extends StatelessWidget {
                 await NotifyService.instance.init(requestPermission: true);
 
                 // Check if initialization was successful
-                final status = await Permission.notification.status;
-                if (!(status.isGranted || status.isProvisional)) {
+                final hasPermission = await NotifyService.instance
+                    .isNotifyPermissionGrant();
+
+                if (!hasPermission) {
                   await EasyLoading.showError(
                     'Please enable notification permission in system settings',
                   );

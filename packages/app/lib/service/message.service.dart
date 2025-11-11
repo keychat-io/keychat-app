@@ -667,4 +667,11 @@ $content'''
       await updateMessageAndRefresh(m);
     }
   }
+
+  Future<void> addReactionToMessage({
+    required Message sourceMessage,
+    required String emoji,
+    required String reactionMessageId,
+    required Identity identity,
+  }) async {}
 }

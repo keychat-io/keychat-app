@@ -976,6 +976,10 @@ class _WebviewTabState extends State<WebviewTab> {
     var isCompleted = false;
 
     try {
+      if (tabController.inAppWebViewController == null) {
+        throw Exception('WebViewController is null');
+      }
+
       timeoutTimer = Timer(const Duration(seconds: 2), () {
         if (!isCompleted) {
           isCompleted = true;

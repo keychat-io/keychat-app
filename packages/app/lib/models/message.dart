@@ -40,6 +40,7 @@ enum MessageMediaType {
   groupInvitationRequesting,
   lightningInvoice,
   profileRequest, // sync my profile to others
+  messageReaction, // reaction to a message
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }
@@ -117,6 +118,7 @@ class Message extends Equatable {
 
   int connectedRelays = -1; // target relays to send
   int successRelays = 0; // successful relays
+  List<String> reactionMessages = []; // [{messageEventId,emoji,fromPubkey},...]
 
   @override
   List<Object?> get props => [

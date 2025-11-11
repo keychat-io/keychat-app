@@ -54,6 +54,7 @@ class StorageKeyString {
   static const String biometricsAuthTime = 'biometricsAuthTime';
 
   static const String ecashDBVersion = 'ecashDBVersion';
+  static const String recentEmojis = 'recentEmojis';
 }
 
 class Storage {

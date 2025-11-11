@@ -83,62 +83,67 @@ const MessageSchema = CollectionSchema(
       name: r'rawEvents',
       type: IsarType.stringList,
     ),
-    r'realMessage': PropertySchema(
+    r'reactionMessages': PropertySchema(
       id: 18,
+      name: r'reactionMessages',
+      type: IsarType.stringList,
+    ),
+    r'realMessage': PropertySchema(
+      id: 19,
       name: r'realMessage',
       type: IsarType.string,
     ),
     r'receiveAt': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'receiveAt',
       type: IsarType.dateTime,
     ),
     r'reply': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'reply',
       type: IsarType.object,
 
       target: r'MsgReply',
     ),
     r'requestConfrim': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'requestConfrim',
       type: IsarType.int,
       enumMap: _MessagerequestConfrimEnumValueMap,
     ),
     r'requestId': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'requestId',
       type: IsarType.string,
     ),
-    r'roomId': PropertySchema(id: 23, name: r'roomId', type: IsarType.long),
+    r'roomId': PropertySchema(id: 24, name: r'roomId', type: IsarType.long),
     r'senderName': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'senderName',
       type: IsarType.string,
     ),
     r'sent': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'successRelays': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'successRelays',
       type: IsarType.long,
     ),
-    r'to': PropertySchema(id: 29, name: r'to', type: IsarType.string),
+    r'to': PropertySchema(id: 30, name: r'to', type: IsarType.string),
   },
 
   estimateSize: _messageEstimateSize,
@@ -226,6 +231,13 @@ int _messageEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  bytesCount += 3 + object.reactionMessages.length * 3;
+  {
+    for (var i = 0; i < object.reactionMessages.length; i++) {
+      final value = object.reactionMessages[i];
+      bytesCount += value.length * 3;
+    }
+  }
   {
     final value = object.realMessage;
     if (value != null) {
@@ -291,23 +303,24 @@ void _messageSerialize(
   writer.writeString(offsets[15], object.msgKeyHash);
   writer.writeString(offsets[16], object.msgid);
   writer.writeStringList(offsets[17], object.rawEvents);
-  writer.writeString(offsets[18], object.realMessage);
-  writer.writeDateTime(offsets[19], object.receiveAt);
+  writer.writeStringList(offsets[18], object.reactionMessages);
+  writer.writeString(offsets[19], object.realMessage);
+  writer.writeDateTime(offsets[20], object.receiveAt);
   writer.writeObject<MsgReply>(
-    offsets[20],
+    offsets[21],
     allOffsets,
     MsgReplySchema.serialize,
     object.reply,
   );
-  writer.writeInt(offsets[21], object.requestConfrim?.index);
-  writer.writeString(offsets[22], object.requestId);
-  writer.writeLong(offsets[23], object.roomId);
-  writer.writeString(offsets[24], object.senderName);
-  writer.writeInt(offsets[25], object.sent.index);
-  writer.writeBool(offsets[26], object.stringify);
-  writer.writeString(offsets[27], object.subEvent);
-  writer.writeLong(offsets[28], object.successRelays);
-  writer.writeString(offsets[29], object.to);
+  writer.writeInt(offsets[22], object.requestConfrim?.index);
+  writer.writeString(offsets[23], object.requestId);
+  writer.writeLong(offsets[24], object.roomId);
+  writer.writeString(offsets[25], object.senderName);
+  writer.writeInt(offsets[26], object.sent.index);
+  writer.writeBool(offsets[27], object.stringify);
+  writer.writeString(offsets[28], object.subEvent);
+  writer.writeLong(offsets[29], object.successRelays);
+  writer.writeString(offsets[30], object.to);
 }
 
 Message _messageDeserialize(
@@ -331,17 +344,17 @@ Message _messageDeserialize(
     msgKeyHash: reader.readStringOrNull(offsets[15]),
     msgid: reader.readString(offsets[16]),
     rawEvents: reader.readStringList(offsets[17]) ?? [],
-    realMessage: reader.readStringOrNull(offsets[18]),
+    realMessage: reader.readStringOrNull(offsets[19]),
     reply: reader.readObjectOrNull<MsgReply>(
-      offsets[20],
+      offsets[21],
       MsgReplySchema.deserialize,
       allOffsets,
     ),
-    roomId: reader.readLong(offsets[23]),
+    roomId: reader.readLong(offsets[24]),
     sent:
-        _MessagesentValueEnumMap[reader.readIntOrNull(offsets[25])] ??
+        _MessagesentValueEnumMap[reader.readIntOrNull(offsets[26])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[29]),
+    to: reader.readString(offsets[30]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
@@ -355,13 +368,14 @@ Message _messageDeserialize(
   object.mediaType =
       _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[14])] ??
       MessageMediaType.text;
-  object.receiveAt = reader.readDateTimeOrNull(offsets[19]);
+  object.reactionMessages = reader.readStringList(offsets[18]) ?? [];
+  object.receiveAt = reader.readDateTimeOrNull(offsets[20]);
   object.requestConfrim =
-      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[21])];
-  object.requestId = reader.readStringOrNull(offsets[22]);
-  object.senderName = reader.readStringOrNull(offsets[24]);
-  object.subEvent = reader.readStringOrNull(offsets[27]);
-  object.successRelays = reader.readLong(offsets[28]);
+      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[22])];
+  object.requestId = reader.readStringOrNull(offsets[23]);
+  object.senderName = reader.readStringOrNull(offsets[25]);
+  object.subEvent = reader.readStringOrNull(offsets[28]);
+  object.successRelays = reader.readLong(offsets[29]);
   return object;
 }
 
@@ -418,36 +432,38 @@ P _messageDeserializeProp<P>(
     case 17:
       return (reader.readStringList(offset) ?? []) as P;
     case 18:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 19:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 21:
       return (reader.readObjectOrNull<MsgReply>(
             offset,
             MsgReplySchema.deserialize,
             allOffsets,
           ))
           as P;
-    case 21:
+    case 22:
       return (_MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offset)])
           as P;
-    case 22:
-      return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readLong(offset)) as P;
-    case 24:
       return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readLong(offset)) as P;
     case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
               SendStatusType.sending)
           as P;
-    case 26:
-      return (reader.readBoolOrNull(offset)) as P;
     case 27:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 28:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 29:
+      return (reader.readLong(offset)) as P;
+    case 30:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -491,6 +507,7 @@ const _MessagemediaTypeEnumValueMap = {
   'groupInvitationRequesting': 15,
   'lightningInvoice': 16,
   'profileRequest': 17,
+  'messageReaction': 18,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -511,6 +528,7 @@ const _MessagemediaTypeValueEnumMap = {
   15: MessageMediaType.groupInvitationRequesting,
   16: MessageMediaType.lightningInvoice,
   17: MessageMediaType.profileRequest,
+  18: MessageMediaType.messageReaction,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,
@@ -2673,6 +2691,206 @@ extension MessageQueryFilter
     });
   }
 
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'reactionMessages',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'reactionMessages',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'reactionMessages',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'reactionMessages', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'reactionMessages', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'reactionMessages', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'reactionMessages', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'reactionMessages', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'reactionMessages', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'reactionMessages',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+  reactionMessagesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'reactionMessages',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterFilterCondition> realMessageIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -4617,6 +4835,12 @@ extension MessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Message, Message, QDistinct> distinctByReactionMessages() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reactionMessages');
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByRealMessage({
     bool caseSensitive = true,
   }) {
@@ -4809,6 +5033,13 @@ extension MessageQueryProperty
   QueryBuilder<Message, List<String>, QQueryOperations> rawEventsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'rawEvents');
+    });
+  }
+
+  QueryBuilder<Message, List<String>, QQueryOperations>
+  reactionMessagesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reactionMessages');
     });
   }
 

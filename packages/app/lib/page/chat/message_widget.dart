@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show File;
 
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/controller/chat.controller.dart';
@@ -27,6 +28,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji_picker;
 
 // ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
@@ -1382,77 +1384,246 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
+  Future<void> _showMoreEmojis() async {
+    await Get.bottomSheet<void>(
+      Scaffold(
+        body: emoji_picker.EmojiPicker(
+          onEmojiSelected:
+              (emoji_picker.Category? category, emoji_picker.Emoji emoji) {
+                Get.back<void>();
+                _handleEmojiReact(emoji.emoji);
+              },
+          config: emoji_picker.Config(
+            emojiViewConfig: emoji_picker.EmojiViewConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+            ),
+            categoryViewConfig: emoji_picker.CategoryViewConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              iconColorSelected: Theme.of(Get.context!).colorScheme.primary,
+              iconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+              indicatorColor: Theme.of(Get.context!).colorScheme.primary,
+              dividerColor: Theme.of(Get.context!).colorScheme.outline,
+            ),
+            bottomActionBarConfig: emoji_picker.BottomActionBarConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonIconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            searchViewConfig: emoji_picker.SearchViewConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonIconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<Set<String>> _getRecentEmojis() async {
+    final list = Storage.getStringList(StorageKeyString.recentEmojis);
+    return Set.from(list.reversed);
+  }
+
+  Future<void> _handleEmojiReact(String emoji) async {
+    //TODO: if is a pairdise group. send message with reply
+    try {
+      await _saveRecentEmoji(emoji);
+      final relay = MsgReply()
+        ..id = message.msgid
+        ..user = cc.getContactByPubkey(message.idPubkey).displayName
+        ..content = emoji;
+      final result = await RoomService.instance.sendMessage(
+        cc.roomObs.value,
+        relay.toString(),
+        mediaType: MessageMediaType.messageReaction,
+      );
+      if (result.message == null) {
+        throw Exception('Send reaction failed');
+      }
+      logger.d('new message id: ${result.message?.id}');
+      await MessageService.instance.addReactionToMessage(
+        sourceMessage: message,
+        emoji: emoji,
+        reactionMessageId: result.message!.msgid,
+        identity: cc.roomObs.value.getIdentity(),
+      );
+      Get.back<void>();
+    } catch (e) {
+      logger.e('emoji react error', error: e);
+      EasyLoading.showError('Failed to send reaction');
+      return;
+    }
+  }
+
+  Future<void> _saveRecentEmoji(String emoji) async {
+    final recentEmojis = await _getRecentEmojis();
+    recentEmojis
+      ..remove(emoji)
+      ..add(emoji);
+    final list = recentEmojis.toList();
+    if (list.length > 10) {
+      list.removeAt(0);
+    }
+    await Storage.setStringList(
+      StorageKeyString.recentEmojis,
+      list,
+    );
+  }
+
+  Widget _buildEmojiReactionRow(Set<String> recentEmojis) {
+    final commonEmojis = [...recentEmojis, '👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          ...commonEmojis.map(
+            (emoji) => GestureDetector(
+              onTap: () => _handleEmojiReact(emoji),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    Get.context!,
+                  ).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Center(
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: _showMoreEmojis,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  Get.context!,
+                ).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(
+                Icons.add_circle_outline,
+                color: Theme.of(Get.context!).colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleTextLongPress() async {
     await HapticFeedback.lightImpact();
-    Get.bottomSheet(
+    Get.bottomSheet<void>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      SettingsList(
-        sections: [
-          SettingsSection(
-            title: Text(
-              '「${message.content}」',
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
+      Scaffold(
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FutureBuilder(
+              future: _getRecentEmojis(),
+              builder:
+                  (
+                    context,
+                    AsyncSnapshot<Set<String>> snapshot,
+                  ) {
+                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                      return _buildEmojiReactionRow(snapshot.data!);
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+                  },
             ),
-            tiles: [
-              SettingsTile.navigation(
-                title: const Text('Copy'),
-                leading: const Icon(Icons.copy),
-                onPressed: (context) async {
-                  var conent = message.content;
-                  if (message.realMessage != null &&
-                      cc.roomObs.value.type == RoomType.bot) {
-                    conent = message.realMessage!;
-                  }
-                  Clipboard.setData(ClipboardData(text: conent));
-                  EasyLoading.showToast('Copied');
-                  Get.back<void>();
-                },
+            Flexible(
+              child: SettingsList(
+                shrinkWrap: true,
+                sections: [
+                  SettingsSection(
+                    title: Text(
+                      '「${message.content}」',
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    tiles: [
+                      SettingsTile.navigation(
+                        title: const Text('Copy'),
+                        leading: const Icon(Icons.copy),
+                        onPressed: (context) async {
+                          var conent = message.content;
+                          if (message.realMessage != null &&
+                              cc.roomObs.value.type == RoomType.bot) {
+                            conent = message.realMessage!;
+                          }
+                          Clipboard.setData(ClipboardData(text: conent));
+                          EasyLoading.showToast('Copied');
+                          Get.back<void>();
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        onPressed: _handleReply,
+                        leading: const Icon(CupertinoIcons.reply),
+                        title: const Text('Reply'),
+                      ),
+                      if (!message.isSystem &&
+                          (message.mediaType == MessageMediaType.text ||
+                              message.mediaType == MessageMediaType.image ||
+                              message.mediaType == MessageMediaType.video ||
+                              message.mediaType == MessageMediaType.file))
+                        SettingsTile.navigation(
+                          onPressed: _handleForward,
+                          leading: const Icon(
+                            CupertinoIcons.arrowshape_turn_up_right,
+                          ),
+                          title: const Text('Forward'),
+                        ),
+                      SettingsTile.navigation(
+                        leading: const Icon(Icons.code),
+                        onPressed: (_) async {
+                          await _handleShowRawdata();
+                        },
+                        title: const Text('Raw Data'),
+                      ),
+                      SettingsTile.navigation(
+                        leading: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                        ),
+                        onPressed: (BuildContext context) {
+                          Get.back<void>();
+                          _showDeleteDialog(message);
+                        },
+                        title: Text(
+                          'Delete',
+                          style: Theme.of(
+                            Get.context!,
+                          ).textTheme.bodyLarge?.copyWith(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SettingsTile.navigation(
-                onPressed: _handleReply,
-                leading: const Icon(CupertinoIcons.reply),
-                title: const Text('Reply'),
-              ),
-              if (!message.isSystem &&
-                  (message.mediaType == MessageMediaType.text ||
-                      message.mediaType == MessageMediaType.image ||
-                      message.mediaType == MessageMediaType.video ||
-                      message.mediaType == MessageMediaType.file))
-                SettingsTile.navigation(
-                  onPressed: _handleForward,
-                  leading: const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                  title: const Text('Forward'),
-                ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.code),
-                onPressed: (_) async {
-                  await _handleShowRawdata();
-                },
-                title: const Text('Raw Data'),
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(
-                  Icons.delete,
-                  color: Colors.red,
-                ),
-                onPressed: (BuildContext context) {
-                  Get.back<void>();
-                  _showDeleteDialog(message);
-                },
-                title: Text(
-                  'Delete',
-                  style: Theme.of(
-                    Get.context!,
-                  ).textTheme.bodyLarge?.copyWith(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

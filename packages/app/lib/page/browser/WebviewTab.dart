@@ -194,7 +194,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                 child: AutoSizeText(
                                   multiWebviewController.removeHttpPrefix(
                                     tabController.title.value.isEmpty
-                                        ? tabController.url
+                                        ? tabController.url.value
                                         : tabController.title.value,
                                   ),
                                   minFontSize: 10,
@@ -210,7 +210,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       : AutoSizeText(
                           multiWebviewController.removeHttpPrefix(
                             tabController.title.value.isEmpty
-                                ? tabController.url
+                                ? tabController.url.value
                                 : tabController.title.value,
                           ),
                           minFontSize: 10,
@@ -628,7 +628,7 @@ class _WebviewTabState extends State<WebviewTab> {
         key: tabController.pageStorageKey.value,
         keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
         webViewEnvironment: multiWebviewController.webViewEnvironment,
-        initialUrlRequest: URLRequest(url: WebUri(tabController.url)),
+        initialUrlRequest: URLRequest(url: WebUri(tabController.url.value)),
         initialSettings: tabController.settings,
         pullToRefreshController: pullToRefreshController,
         initialUserScripts: UnmodifiableListView([
@@ -638,7 +638,7 @@ class _WebviewTabState extends State<WebviewTab> {
           // Save scroll position by current URL
           if (GetPlatform.isAndroid) {
             EasyDebounce.debounce(
-              'saveScroll:${tabController.url}',
+              'saveScroll:${tabController.url.value}',
               const Duration(milliseconds: 500),
               () async {
                 final uri = await controller.getUrl();
@@ -1021,7 +1021,9 @@ class _WebviewTabState extends State<WebviewTab> {
   Future<WebUri> getCurrentUrl() async {
     try {
       final uri = await _getCurrentUriTimeOut();
-      lastViewUri = uri;
+      setState(() {
+        lastViewUri = uri;
+      });
       return uri;
     } catch (e) {
       await refreshPage();
@@ -1038,20 +1040,11 @@ class _WebviewTabState extends State<WebviewTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: FutureBuilder(
-              future: getCurrentUrl(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final currentUrl = snapshot.data!;
-                  return Text(
-                    currentUrl.toString(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  );
-                }
-                return const SizedBox.shrink();
-              },
+            child: Text(
+              lastViewUri?.toString() ?? tabController.url.value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
           IconButton(
@@ -1062,7 +1055,6 @@ class _WebviewTabState extends State<WebviewTab> {
             ),
             padding: EdgeInsets.zero,
             onPressed: () async {
-              Get.back<void>();
               final uri = await getCurrentUrl();
               await Clipboard.setData(ClipboardData(text: uri.toString()));
               await EasyLoading.showToast('URL Copied');
@@ -1336,7 +1328,8 @@ class _WebviewTabState extends State<WebviewTab> {
         tabController.inAppWebViewController?.webStorage.localStorage.clear();
         tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
-        refreshPage();
+        logger.i('Cache cleared, refreshing page');
+        await refreshPage();
       case 'disconnect':
         final res = await BrowserConnect.getByHost(currentUri.host);
         if (res != null) {
@@ -1433,7 +1426,7 @@ class _WebviewTabState extends State<WebviewTab> {
       url: url0,
     );
     tabController.title.value = title0;
-    tabController.url = url0;
+    tabController.url.value = url0;
   }
 
   Future<void> downloadFile(String url, [String? filename]) async {
@@ -1811,14 +1804,15 @@ img {
         } catch (e) {
           // ⛔ A MacOSInAppWebViewController was used after being disposed.
           // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
-          logger.e(e.toString(), error: e);
-          tabController.url = lastViewUri != null
+          tabController.url.value = lastViewUri != null
               ? lastViewUri.toString()
               : widget.initUrl;
           tabController.pageStorageKey.value = PageStorageKey<String>(
             Random().nextInt(1 << 32).toString(),
           );
-          logger.i('refreshBuildPage: ${tabController.url}');
+          logger.i(
+            'refreshBuildPage: ${tabController.url.value}',
+          );
         }
       },
     );
@@ -1842,14 +1836,14 @@ img {
   Future<bool> handleSpecialUrls(String urlString) async {
     try {
       if (urlString.startsWith('cashu')) {
-        ecashController.proccessCashuString(urlString);
+        await ecashController.proccessCashuString(urlString);
         return true;
       }
       // lightning invoice
       if (urlString.startsWith('lightning:')) {
         final str = urlString.replaceFirst('lightning:', '');
         if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
-          await Get.bottomSheet(
+          await Get.bottomSheet<void>(
             clipBehavior: Clip.antiAlias,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(4)),

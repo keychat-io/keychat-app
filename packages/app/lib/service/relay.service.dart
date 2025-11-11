@@ -291,22 +291,6 @@ class RelayService {
     }
   }
 
-  /// get a online relay and it is the default setting
-  Future<String?> getDefaultOnlineRelay() async {
-    final relay = await DBProvider.database.relays
-        .filter()
-        .isDefaultEqualTo(true)
-        .findFirst();
-    if (relay != null) return relay.url;
-
-    final rw =
-        Get.find<WebsocketService>().channels[KeychatGlobal.defaultRelay];
-    if (rw != null) KeychatGlobal.defaultRelay;
-
-    final relays = Get.find<WebsocketService>().channels.keys.toList();
-    return relays.first;
-  }
-
   Future<Relay?> getDefault() async {
     return DBProvider.database.relays
         .filter()
@@ -322,7 +306,7 @@ class RelayService {
         final nostrRelays = Config.getEnvConfig('nostrRelays');
         if (nostrRelays is Iterable) {
           for (final url in nostrRelays) {
-            final relay = Relay(url);
+            final relay = Relay(url as String);
             await database.relays.put(relay);
           }
         }

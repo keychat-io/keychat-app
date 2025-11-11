@@ -94,7 +94,7 @@ class NotifyService {
 
   Future<void> clearAll() async {
     if (fcmToken == null) return;
-    fcmToken == null;
+    fcmToken = null;
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/delete',

@@ -483,7 +483,6 @@ class NostrAPI {
     var ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
       loggerNoLine.i('Duplicate event: ${event.id}');
-      logger.d(ess);
       return;
     }
     loggerNoLine.i('Start proccess event: ${event.id}');

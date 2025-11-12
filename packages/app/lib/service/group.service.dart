@@ -766,7 +766,7 @@ class GroupService extends BaseChatService {
         kinds: [EventKinds.nip04],
         since: DateTime.now().subtract(const Duration(seconds: 60)),
       );
-      NotifyService.addPubkeys(toAddPubkeys);
+      NotifyService.instance.addPubkeys(toAddPubkeys);
     }
 
     Message? model;

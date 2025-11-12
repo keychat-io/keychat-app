@@ -52,7 +52,7 @@ class ChatxService extends GetxService {
         needListen,
         kinds: [EventKinds.nip04],
       );
-      NotifyService.addPubkeys(needListen);
+      NotifyService.instance.addPubkeys(needListen);
     }
     return newKeys;
   }

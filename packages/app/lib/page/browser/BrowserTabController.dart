@@ -1,18 +1,18 @@
 import 'dart:math' show Random;
 
-import 'package:keychat/app.dart';
-import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart' show PageStorageKey;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
 
 class WebviewTabController extends GetxController {
   WebviewTabController(String key, String initUrl, String? initTitle) {
     uniqueKey = key;
-    url = initUrl;
+    url.value = initUrl;
     final domain = Uri.parse(initUrl).host;
     pageStorageKey.value = PageStorageKey<String>(domain);
     if (initTitle != null && initTitle.isNotEmpty) {
@@ -25,7 +25,7 @@ class WebviewTabController extends GetxController {
   RxBool canGoForward = false.obs;
   InAppWebViewController? inAppWebViewController;
   RxString title = ''.obs;
-  String url = '';
+  RxString url = ''.obs;
   RxDouble progress = 0.1.obs;
   String? favicon;
   Rx<PageStorageKey<String>> pageStorageKey = const PageStorageKey('').obs;
@@ -36,8 +36,8 @@ class WebviewTabController extends GetxController {
 
   @override
   void onClose() {
-    if (title.value == url) {
-      multiWebviewController.removeKeepAlive(url);
+    if (title.value == url.value) {
+      multiWebviewController.removeKeepAlive(url.value);
     }
     inAppWebViewController?.dispose();
     super.onClose();
@@ -137,7 +137,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
             const Duration(seconds: 2),
           );
         } catch (e) {
-          logger.e('tabController dispose: $url');
+          logger.e('tabController dispose: ${url.value}');
           // ⛔ A MacOSInAppWebViewController was used after being disposed.
           // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
           pageStorageKey.value = PageStorageKey<String>(

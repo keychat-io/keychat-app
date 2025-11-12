@@ -318,20 +318,18 @@ class _ChatPage2State extends State<ChatPage> {
           _getReplyWidget(),
           Container(
             padding: EdgeInsets.only(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              top: controller.inputReplys.isNotEmpty ? 0 : 10,
+              bottom: 8,
+              top: controller.inputReplys.isNotEmpty ? 0 : 4,
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
                 // if (controller.botCommands.isNotEmpty)
                 //   botMenuWidget(controller, context),
                 IconButton(
+                  iconSize: 28,
                   padding: EdgeInsets.zero,
-                  splashRadius: 24,
                   onPressed: () async {
+                    Utils.hideKeyboard(context);
                     final giphy = dotenv.get('GIPHY');
                     if (giphy.isEmpty) {
                       await EasyLoading.showInfo(
@@ -379,7 +377,7 @@ class _ChatPage2State extends State<ChatPage> {
                             !HardwareKeyboard.instance.isMetaPressed &&
                             !HardwareKeyboard.instance.isShiftPressed &&
                             !HardwareKeyboard.instance.isAltPressed) {
-                          controller.handleSubmitted();
+                          await controller.handleSubmitted();
                           return;
                         }
 
@@ -390,7 +388,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 .contains(LogicalKeyboardKey.metaRight);
                         if (event.logicalKey == LogicalKeyboardKey.keyV &&
                             isCmdPressed) {
-                          controller.handlePasteboardFile();
+                          await controller.handlePasteboardFile();
                           return;
                         }
                         final isShiftPressed =
@@ -539,34 +537,24 @@ class _ChatPage2State extends State<ChatPage> {
                           controller.hideAdd.value = true;
                         },
                         onChanged: handleOnChanged,
-                        onFieldSubmitted: (c) {
-                          controller.handleSubmitted();
+                        onFieldSubmitted: (c) async {
+                          await controller.handleSubmitted();
                         },
                         enabled: true,
                       ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, bottom: 5),
-                  child: GestureDetector(
-                    onTap: handleMessageSend,
-                    child: controller.inputText.value.isNotEmpty
-                        ? const Icon(
-                            weight: 300,
-                            size: 28,
-                            CupertinoIcons.arrow_up_circle_fill,
-                            color: KeychatGlobal.primaryColor,
-                          )
-                        : Icon(
-                            size: 28,
-                            CupertinoIcons.add_circled,
-                            weight: 300,
-                            color: Theme.of(
-                              context,
-                            ).iconTheme.color?.withAlpha(155),
-                          ),
-                  ),
+                IconButton(
+                  iconSize: 28,
+                  padding: EdgeInsets.zero,
+                  onPressed: handleMessageSend,
+                  icon: controller.inputText.value.isNotEmpty
+                      ? const Icon(
+                          CupertinoIcons.arrow_up_circle_fill,
+                          color: KeychatGlobal.primaryColor,
+                        )
+                      : const Icon(CupertinoIcons.add_circled),
                 ),
               ],
             ),

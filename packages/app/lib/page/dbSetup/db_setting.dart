@@ -244,7 +244,6 @@ class DbSetting {
         if (entity is File) {
           try {
             entity.deleteSync(); // Delete the file
-            'Deleted file: ${entity.path}';
           } catch (e) {
             logger.e('Error deleting file: ${entity.path}, $e');
           }

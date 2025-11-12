@@ -175,7 +175,7 @@ const RoomSchema = CollectionSchema(
   getId: _roomGetId,
   getLinks: _roomGetLinks,
   attach: _roomAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _roomEstimateSize(

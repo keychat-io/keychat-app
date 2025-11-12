@@ -90,7 +90,7 @@ const SignalIdSchema = CollectionSchema(
   getId: _signalIdGetId,
   getLinks: _signalIdGetLinks,
   attach: _signalIdAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _signalIdEstimateSize(

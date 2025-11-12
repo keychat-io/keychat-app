@@ -45,7 +45,7 @@ const BrowserHistorySchema = CollectionSchema(
   getId: _browserHistoryGetId,
   getLinks: _browserHistoryGetLinks,
   attach: _browserHistoryAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _browserHistoryEstimateSize(

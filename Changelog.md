@@ -2,6 +2,10 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.36.7+6464
+1. fix: notifications cannot be enabled again after being disabled.
+2. Supports sending emoji reactions and GIFs.
+
 ## 1.36.4+6457
 - Replaced the Cashu SDK with the official implementation.
 - Local profile solution, supporting sending Profiles within chats.

@@ -180,7 +180,7 @@ const MessageSchema = CollectionSchema(
   getId: _messageGetId,
   getLinks: _messageGetLinks,
   attach: _messageAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _messageEstimateSize(

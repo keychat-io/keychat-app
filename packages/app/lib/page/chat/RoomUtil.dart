@@ -808,7 +808,8 @@ Let's start an encrypted chat.''';
             ),
           ],
         );
-      default:
+      case FileStatus.init:
+      case FileStatus.downloaded:
         return errorCallback(text: '[Image Crashed]');
     }
   }
@@ -910,6 +911,9 @@ Let's start an encrypted chat.''';
           // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botSelectionRequest:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.messageReaction:
           // TODO: Handle this case.
           throw UnimplementedError();
       }

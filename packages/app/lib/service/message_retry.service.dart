@@ -259,13 +259,7 @@ class MessageRetryService extends GetxService {
               ? SendStatusType.success
               : SendStatusType.failed
           ..successRelays = sentSuccessRelay;
-        EasyDebounce.debounce(
-          'updateMessageAndRefresh${message.id}',
-          const Duration(milliseconds: 200),
-          () async {
-            await MessageService.instance.updateMessageAndRefresh(message);
-          },
-        );
+        await MessageService.instance.updateMessageAndRefresh(message);
       }
 
       // clear old subscriptions

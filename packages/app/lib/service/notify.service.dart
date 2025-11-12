@@ -370,9 +370,11 @@ Fix:
     fcmToken ??= await _getFCMToken();
 
     if (fcmToken == null) {
-      await EasyLoading.showError(
-        'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
-      );
+      if (GetPlatform.isMobile) {
+        await EasyLoading.showError(
+          'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
+        );
+      }
       homeController.notificationStatus.value = false;
       return;
     }

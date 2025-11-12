@@ -1,5 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat/bot/bot_server_message_model.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
@@ -190,7 +191,13 @@ $content'''
       for (var i = 0; i < cc.messages.length; i++) {
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
-          cc.messages.refresh();
+          EasyDebounce.debounce(
+            'refreshMessageInPage${message.id}',
+            const Duration(milliseconds: 100),
+            () {
+              cc.messages.refresh();
+            },
+          );
           break;
         }
       }
@@ -671,7 +678,19 @@ $content'''
   Future<void> addReactionToMessage({
     required Message sourceMessage,
     required String emoji,
-    required String reactionMessageId,
-    required Identity identity,
-  }) async {}
+    required Message replyMessage,
+    required Room room,
+  }) async {
+    final message = await MessageService.instance.getMessageById(
+      sourceMessage.id,
+    );
+    if (message == null) return;
+    final react = {
+      'eventId': replyMessage.msgid,
+      'pubkey': replyMessage.idPubkey,
+      'emoji': emoji,
+    };
+    message.reactionMessages = [...message.reactionMessages, jsonEncode(react)];
+    await MessageService.instance.updateMessageAndRefresh(message);
+  }
 }

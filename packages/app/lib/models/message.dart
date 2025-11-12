@@ -118,7 +118,7 @@ class Message extends Equatable {
 
   int connectedRelays = -1; // target relays to send
   int successRelays = 0; // successful relays
-  List<String> reactionMessages = []; // [{messageEventId,emoji,fromPubkey},...]
+  List<String> reactionMessages = []; // [{eventId,pubkey,emoji},...]
 
   @override
   List<Object?> get props => [

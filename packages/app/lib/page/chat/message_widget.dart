@@ -1,7 +1,15 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show File;
 
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji_picker;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_json_view/flutter_json_view.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/controller/chat.controller.dart';
@@ -16,24 +24,12 @@ import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/websocket.service.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_json_view/flutter_json_view.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji_picker;
 
-// ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
-  // late MarkdownStyleSheet markdownStyleSheet;
-
   MessageWidget({
     required this.myAavtar,
     required this.index,
@@ -64,6 +60,9 @@ class MessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // if (message.mediaType == MessageMediaType.messageReaction) {
+    //   return Text('${message.idPubkey} ${message.content}');
+    // }
     return Column(
       children: [
         if (message.isMeSend) _getMessageContainer() else toTextContainer(),
@@ -316,44 +315,6 @@ class MessageWidget extends StatelessWidget {
           ),
         );
         return;
-
-        // // show resend dialog
-        // Get.dialog(
-        //   CupertinoAlertDialog(
-        //     title: const Text('Resend message'),
-        //     actions: [
-        //       CupertinoDialogAction(
-        //         child: const Text('Cancel'),
-        //         onPressed: () {
-        //           Get.back<void>();
-        //         },
-        //       ),
-        //       if (message.mediaType == MessageMediaType.text)
-        //         CupertinoDialogAction(
-        //           child: const Text('Resend'),
-        //           onPressed: () async {
-        //             Get.back<void>();
-
-        //             if (message.reply != null) {
-        //               Identity identity = Get.find<HomeController>()
-        //                   .allIdentities[cc.roomObs.value.identityId]!;
-        //               message.fromContact = FromContact(
-        //                   identity.secp256k1PKHex, identity.displayName);
-        //               var decodeContent = jsonDecode(message.content);
-        //               message.realMessage = message.reply!.content;
-        //               cc.inputReplys.value = [message];
-        //               cc.hideAdd.value = true;
-        //               cc.inputReplys.refresh();
-        //               cc.textEditingController.text = decodeContent['msg'];
-        //             } else {
-        //               cc.textEditingController.text = message.content;
-        //             }
-        //             cc.chatContentFocus.requestFocus();
-        //           },
-        //         ),
-        //     ],
-        //   ),
-        // );
       },
       icon: const SizedBox(
         child: Icon(
@@ -368,8 +329,8 @@ class MessageWidget extends StatelessWidget {
   Widget _getMessageContainer() {
     final widget = GestureDetector(
       onLongPress: _handleTextLongPress,
-      onSecondaryTapDown: (TapDownDetails e) {
-        _onSecondaryTapDown(Get.context!, e);
+      onSecondaryTapDown: (TapDownDetails e) async {
+        await _onSecondaryTapDown(Get.context!, e);
       },
       child: message.reply == null
           ? RoomUtil.getTextViewWidget(
@@ -1333,6 +1294,19 @@ class MessageWidget extends StatelessWidget {
             children: [
               Icon(CupertinoIcons.reply, size: 18),
               SizedBox(width: 8),
+              Text('Emoji Reaction'),
+            ],
+          ),
+          onTap: () async {
+            await _showMoreEmojis();
+          },
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: const Row(
+            children: [
+              Icon(CupertinoIcons.reply, size: 18),
+              SizedBox(width: 8),
               Text('Reply'),
             ],
           ),
@@ -1374,10 +1348,8 @@ class MessageWidget extends StatelessWidget {
               ),
             ],
           ),
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 100), () {
-              _showDeleteDialog(message);
-            });
+          onTap: () async {
+            await _showDeleteDialog(message);
           },
         ),
       ],
@@ -1385,19 +1357,27 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future<void> _showMoreEmojis() async {
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
     await Get.bottomSheet<void>(
       Scaffold(
+        resizeToAvoidBottomInset: false,
         body: emoji_picker.EmojiPicker(
           onEmojiSelected:
-              (emoji_picker.Category? category, emoji_picker.Emoji emoji) {
+              (
+                emoji_picker.Category? category,
+                emoji_picker.Emoji emoji,
+              ) async {
                 Get.back<void>();
-                _handleEmojiReact(emoji.emoji);
+                await cc.handleEmojiReact(message, emoji.emoji);
               },
           config: emoji_picker.Config(
             emojiViewConfig: emoji_picker.EmojiViewConfig(
               backgroundColor: Theme.of(Get.context!).colorScheme.surface,
             ),
             categoryViewConfig: emoji_picker.CategoryViewConfig(
+              recentTabBehavior: emoji_picker.RecentTabBehavior.NONE,
               backgroundColor: Theme.of(Get.context!).colorScheme.surface,
               iconColorSelected: Theme.of(Get.context!).colorScheme.primary,
               iconColor: Theme.of(
@@ -1425,86 +1405,58 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Future<Set<String>> _getRecentEmojis() async {
-    final list = Storage.getStringList(StorageKeyString.recentEmojis);
-    return Set.from(list.reversed);
-  }
-
-  Future<void> _handleEmojiReact(String emoji) async {
-    //TODO: if is a pairdise group. send message with reply
-    try {
-      await _saveRecentEmoji(emoji);
-      final relay = MsgReply()
-        ..id = message.msgid
-        ..user = cc.getContactByPubkey(message.idPubkey).displayName
-        ..content = emoji;
-      final result = await RoomService.instance.sendMessage(
-        cc.roomObs.value,
-        relay.toString(),
-        mediaType: MessageMediaType.messageReaction,
-      );
-      if (result.message == null) {
-        throw Exception('Send reaction failed');
-      }
-      logger.d('new message id: ${result.message?.id}');
-      await MessageService.instance.addReactionToMessage(
-        sourceMessage: message,
-        emoji: emoji,
-        reactionMessageId: result.message!.msgid,
-        identity: cc.roomObs.value.getIdentity(),
-      );
-      Get.back<void>();
-    } catch (e) {
-      logger.e('emoji react error', error: e);
-      EasyLoading.showError('Failed to send reaction');
-      return;
-    }
-  }
-
-  Future<void> _saveRecentEmoji(String emoji) async {
-    final recentEmojis = await _getRecentEmojis();
-    recentEmojis
-      ..remove(emoji)
-      ..add(emoji);
-    final list = recentEmojis.toList();
-    if (list.length > 10) {
-      list.removeAt(0);
-    }
-    await Storage.setStringList(
-      StorageKeyString.recentEmojis,
-      list,
-    );
-  }
-
   Widget _buildEmojiReactionRow(Set<String> recentEmojis) {
-    final commonEmojis = [...recentEmojis, '👍', '❤️', '😂', '😮', '😢', '🙏'];
+    final commonEmojis = {
+      ...recentEmojis,
+      '👍',
+      '❤️',
+      '😂',
+      '😮',
+      '😢',
+      '🙏',
+    }.toList();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          ...commonEmojis.map(
-            (emoji) => GestureDetector(
-              onTap: () => _handleEmojiReact(emoji),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    Get.context!,
-                  ).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Center(
-                  child: Text(
-                    emoji,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
+          Expanded(
+            child: SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: commonEmojis.length,
+                itemBuilder: (context, index) {
+                  final emoji = commonEmojis[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index < commonEmojis.length - 1 ? 12 : 0,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => cc.handleEmojiReact(message, emoji),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            Get.context!,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: _showMoreEmojis,
             child: Container(
@@ -1529,7 +1481,7 @@ class MessageWidget extends StatelessWidget {
 
   Future<void> _handleTextLongPress() async {
     await HapticFeedback.lightImpact();
-    Get.bottomSheet<void>(
+    await Get.bottomSheet<void>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -1539,13 +1491,13 @@ class MessageWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             FutureBuilder(
-              future: _getRecentEmojis(),
+              future: cc.getRecentEmojis(),
               builder:
                   (
                     context,
                     AsyncSnapshot<Set<String>> snapshot,
                   ) {
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                    if (snapshot.hasData) {
                       return _buildEmojiReactionRow(snapshot.data!);
                     } else {
                       return const SizedBox.shrink();

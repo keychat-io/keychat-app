@@ -187,14 +187,14 @@ class _MinePageState extends State<MinePage> {
     final l = Version.parse(localVersion);
     final isNewVersionAvailable = n.compareTo(l) > 0;
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         if (GetPlatform.isIOS) {
           const url = 'https://apps.apple.com/app/keychat-io/id6447493752';
-          launchUrl(Uri.parse(url));
+          await launchUrl(Uri.parse(url));
           return;
         }
         const url = 'https://github.com/keychat-io/keychat-app/releases';
-        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,

@@ -27,6 +27,7 @@ import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
+import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -273,14 +274,14 @@ class ChatController extends GetxController {
     textEditingController.clear();
     try {
       MsgReply? reply;
-
-      if (inputReplys.isNotEmpty) {
+      final sourceMessage = inputReplys.firstOrNull;
+      if (sourceMessage != null) {
         reply = MsgReply()
-          ..content = inputReplys.first.realMessage ?? inputReplys.first.content
-          ..user = inputReplys.first.fromContact?.name ?? '';
+          ..content = sourceMessage.realMessage ?? sourceMessage.content
+          ..user = sourceMessage.fromContact?.name ?? '';
         // if it is not text, show media type name
-        if (inputReplys.first.mediaType != MessageMediaType.text) {
-          reply.id = inputReplys.first.msgid;
+        if (sourceMessage.mediaType != MessageMediaType.text) {
+          reply.id = sourceMessage.msgid;
         }
       }
       if (GetPlatform.isMobile) {
@@ -1388,5 +1389,100 @@ Add as a friend and start the signal protocol chat
     } finally {
       _isUploading = false;
     }
+  }
+
+  // emoji
+  Future<Set<String>> getRecentEmojis() async {
+    final list = Storage.getStringList(StorageKeyString.recentEmojis);
+    return Set.from(list.reversed);
+  }
+
+  Future<SendMessageResponse> _sendReply(
+    Message message,
+    String content,
+  ) async {
+    if (message.isMeSend) {
+      message.fromContact = FromContact(
+        roomObs.value.myIdPubkey,
+        roomObs.value.getIdentity().displayName,
+      );
+    } else {
+      var senderName = roomObs.value.getRoomName();
+      if (roomObs.value.isSendAllGroup || roomObs.value.isMLSGroup) {
+        senderName = getContactByPubkey(message.idPubkey).displayName;
+      }
+      message.fromContact = FromContact(message.idPubkey, senderName);
+    }
+    final reply = MsgReply()
+      ..content = message.realMessage ?? message.content
+      ..user = message.fromContact?.name ?? '';
+    // if it is not text, show media type name
+    if (message.mediaType != MessageMediaType.text) {
+      reply.id = message.msgid;
+    }
+    return RoomService.instance.sendMessage(
+      roomObs.value,
+      content,
+      reply: reply,
+    );
+  }
+
+  Future<void> handleEmojiReact(Message message, String emoji) async {
+    // if (roomObs.value.isSendAllGroup) {
+    await _sendReply(message, emoji);
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
+    return;
+    // }
+
+    // try {
+    //   await saveRecentEmoji(emoji);
+    //   final myDisplayName = roomObs.value.type != RoomType.group
+    //       ? roomObs.value.getIdentity().displayName
+    //       : getContactByPubkey(message.idPubkey).displayName;
+    //   final reply = MsgReply()
+    //     ..id = message.msgid
+    //     ..user = myDisplayName
+    //     ..content = emoji;
+    //   final result = await RoomService.instance.sendMessage(
+    //     roomObs.value,
+    //     emoji,
+    //     reply: reply,
+    //     mediaType: MessageMediaType.messageReaction,
+    //   );
+    //   if (result.message == null) {
+    //     throw Exception('Send reaction failed');
+    //   }
+    //   logger.d('new message id: ${result.message?.id}');
+    //   await MessageService.instance.addReactionToMessage(
+    //     sourceMessage: message,
+    //     emoji: emoji,
+    //     replyMessage: result.message!,
+    //     room: roomObs.value,
+    //   );
+    //   if (Get.isBottomSheetOpen ?? false) {
+    //     Get.back<void>();
+    //   }
+    // } catch (e, s) {
+    //   logger.e('emoji react error', error: e, stackTrace: s);
+    //   EasyLoading.showError('Failed to send reaction: $e');
+    //   return;
+    // }
+  }
+
+  Future<void> saveRecentEmoji(String emoji) async {
+    final recentEmojis = await getRecentEmojis();
+    recentEmojis
+      ..remove(emoji)
+      ..add(emoji);
+    final list = recentEmojis.toList();
+    if (list.length > 10) {
+      list.removeAt(0);
+    }
+    await Storage.setStringList(
+      StorageKeyString.recentEmojis,
+      list,
+    );
   }
 }

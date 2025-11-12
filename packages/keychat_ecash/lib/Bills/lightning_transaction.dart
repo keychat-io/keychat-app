@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:keychat/utils.dart';
 
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
@@ -64,6 +65,42 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
               : 'Send to Lightning Wallet',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
+        actions: [
+          if (tx.status == TransactionStatus.pending)
+            IconButton(
+              onPressed: () async {
+                try {
+                  EasyLoading.show(status: 'Checking...');
+                  await rust_cashu.checkSinglePending(
+                    txId: tx.id,
+                    mintUrl: tx.mintUrl,
+                  );
+                  final checkedTx =
+                      await rust_cashu.checkTransaction(id: tx.id);
+                  setState(() {
+                    tx = checkedTx;
+                  });
+                  EasyLoading.showSuccess('Checked');
+                } catch (e) {
+                  final msg = Utils.getErrorMessage(e);
+                  await EasyLoading.dismiss();
+                  await Get.dialog<void>(
+                    AlertDialog(
+                      title: const Text('Error'),
+                      content: Text(msg),
+                      actions: [
+                        TextButton(
+                          onPressed: Get.back,
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.refresh),
+            ),
+        ],
       ),
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),

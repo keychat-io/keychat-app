@@ -433,12 +433,14 @@ const _RoomgroupTypeEnumValueMap = {
   'sendAll': 1,
   'kdf': 2,
   'mls': 3,
+  'common': 4,
 };
 const _RoomgroupTypeValueEnumMap = {
   0: GroupType.shareKey,
   1: GroupType.sendAll,
   2: GroupType.kdf,
   3: GroupType.mls,
+  4: GroupType.common,
 };
 const _RoomstatusEnumValueMap = {
   'init': 0,

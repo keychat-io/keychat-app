@@ -29,6 +29,7 @@ enum GroupType {
   @Deprecated('use mls instead')
   kdf,
   mls,
+  common,
 }
 
 enum EncryptMode { nip04, signal }
@@ -95,7 +96,7 @@ class Room extends Equatable {
   late EncryptMode encryptMode = EncryptMode.nip04;
 
   @Enumerated(EnumType.ordinal32)
-  GroupType groupType = GroupType.mls;
+  GroupType groupType = GroupType.common;
 
   @Enumerated(EnumType.ordinal32)
   late RoomStatus status;
@@ -486,10 +487,12 @@ class Room extends Equatable {
       return name ?? getPublicKeyDisplay(npub);
     }
 
-    if (contact == null) {
-      return name ?? getPublicKeyDisplay(npub);
-    }
-    return contact!.displayName;
+    contact ??= DBProvider.database.contacts
+        .filter()
+        .pubkeyEqualTo(toMainPubkey)
+        .identityIdEqualTo(identityId)
+        .findFirstSync();
+    return contact?.displayName ?? getPublicKeyDisplay(npub);
   }
 
   Future<Map<String, Room>> getEnableMemberRooms() async {

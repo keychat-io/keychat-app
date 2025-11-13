@@ -102,11 +102,12 @@ class MessageService {
             Get.closeAllSnackbars();
           } catch (e) {}
         }
+        final roomName = room.getRoomName();
         Get.snackbar(
-          room.getRoomName(),
+          roomName,
           content,
           titleText: Text(
-            room.getRoomName(),
+            roomName,
             style: Theme.of(Get.context!).textTheme.titleMedium,
           ),
           messageText: Text(

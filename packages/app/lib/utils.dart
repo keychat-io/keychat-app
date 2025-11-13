@@ -1205,9 +1205,9 @@ Init File: $time \n
       case GroupType.sendAll:
         return [const Color(0xff945BF3), const Color(0xff713CD0)];
       case GroupType.kdf:
-        return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
       case GroupType.shareKey:
-        return [const Color(0xff823C70), const Color(0xffAF362D)];
+      case GroupType.common:
+        throw UnimplementedError();
     }
   }
 
@@ -1479,6 +1479,17 @@ Init File: $time \n
         );
       },
     );
+  }
+
+  static String formartTextToLinkText(String text) {
+    final urlPattern = RegExp(
+      r'(?<!\[)(?<!\()(\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s\[\]()]+)(?!\))(?!\])',
+    );
+
+    return text.replaceAllMapped(urlPattern, (match) {
+      final url = match.group(1)!;
+      return '[$url]($url)';
+    });
   }
 }
 

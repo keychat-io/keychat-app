@@ -1,3 +1,5 @@
+import 'dart:convert' show jsonDecode;
+
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -7,6 +9,7 @@ import 'package:keychat/page/setting/my_qrcode.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signalId.service.dart';
+import 'package:keychat/service/signal_chat_util.dart';
 import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -636,43 +639,88 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
 }
 
 Future<void> showMyQrCode(
-  BuildContext context,
   Identity identity,
-  bool showMore,
 ) async {
-  // get one time keys from db
-  final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
-    identity.id,
-  );
-  // every time create one, due to need update signalKeyId
-  late SignalId signalId;
-  try {
-    signalId = await SignalIdService.instance.createSignalId(identity.id);
-  } catch (e, s) {
-    final msg = Utils.getErrorMessage(e);
-    logger.e('signalId: $e', error: e, stackTrace: s);
-    EasyLoading.showError(msg);
-    return;
-  }
-
-  Get.bottomSheet(
+  await Get.bottomSheet<void>(
     clipBehavior: Clip.antiAlias,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
     ),
     MyQRCode(
+      url: await getOneTimeLink(identity),
       title: identity.displayName,
-      identity: identity,
-      oneTimeKey: oneTimeKeys.first.pubkey,
-      signalId: signalId,
-      showMore: showMore,
-      time: RoomUtil.getValidateTime(),
+      expiredTime: RoomUtil.getValidateTime(),
       isOneTime: true,
-      onTap: Get.back,
     ),
     ignoreSafeArea: false,
     isScrollControlled: true,
   );
+}
+
+Future<String> getOneTimeLink(Identity identity) async {
+  // get one time keys from db
+  final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
+    identity.id,
+  );
+
+  // create signalId
+  final signalId = await SignalIdService.instance.createSignalId(identity.id);
+
+  final oneTimeKey = oneTimeKeys.first.pubkey;
+  final time = RoomUtil.getValidateTime();
+
+  // Generate QR code data
+  final qrString = await _generateQRCodeData(
+    identity,
+    oneTimeKey,
+    signalId,
+    time,
+  );
+
+  // Generate the one-time link
+  final url =
+      '${KeychatGlobal.mainWebsite}/u/?k=${Uri.encodeComponent(qrString)}';
+
+  return url;
+}
+
+Future<String> _generateQRCodeData(
+  Identity identity,
+  String onetimekey,
+  SignalId signalId,
+  int time,
+) async {
+  final userInfo = signalId.keys == null
+      ? await SignalIdService.instance.getQRCodeData(signalId, time)
+      : jsonDecode(signalId.keys!) as Map<String, dynamic>;
+
+  final content = SignalChatUtil.getToSignMessage(
+    nostrId: identity.secp256k1PKHex,
+    signalId: signalId.pubkey,
+    time: time,
+  );
+
+  final sig = await SignalChatUtil.signByIdentity(
+    identity: identity,
+    content: content,
+  );
+  if (sig == null) throw Exception('Sign failed or User denied');
+  final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
+
+  final data = <String, dynamic>{
+    'pubkey': identity.secp256k1PKHex,
+    'curve25519PkHex': signalId.pubkey,
+    'name': identity.displayName,
+    'time': time,
+    'relay': '',
+    'avatar': avatarRemoteUrl ?? '',
+    'lightning': identity.lightning ?? '',
+    'onetimekey': onetimekey,
+    'globalSign': sig,
+    ...userInfo.map(MapEntry.new),
+  };
+  logger.i('qrcode data: $data');
+  return QRUserModel.fromJson(data).toShortStringForQrcode();
 }
 
 Widget pageLoadingSpinKit({String title = 'Loading...'}) {

@@ -147,9 +147,9 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
           ),
         );
       case menuScan:
-        QrScanService.instance.handleQRScan();
+        await QrScanService.instance.handleQRScan();
       case menuNewGroup:
-        Get.bottomSheet(
+        await Get.bottomSheet<void>(
           const AddGroupPage(),
           isScrollControlled: true,
           ignoreSafeArea: false,
@@ -160,7 +160,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
         );
       case menuMyQrcode:
         final identity = Get.find<HomeController>().getSelectedIdentity();
-        showMyQrCode(context, identity, true);
+        await showMyQrCode(identity);
     }
   }
 }

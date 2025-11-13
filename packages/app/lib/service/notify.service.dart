@@ -373,6 +373,7 @@ Fix:
       if (GetPlatform.isMobile) {
         await EasyLoading.showError(
           'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
+          duration: const Duration(seconds: 4),
         );
       }
       homeController.notificationStatus.value = false;

@@ -197,6 +197,9 @@ class RoomList extends GetView<HomeController> {
                       await RoomService.instance.markAllRead(
                         room,
                       );
+                      if (GetPlatform.isMobile) {
+                        Utils.hideKeyboard(Get.context!);
+                      }
                     },
                     onSecondaryTapDown: (e) {
                       onSecondaryTapDown(e, room, context);

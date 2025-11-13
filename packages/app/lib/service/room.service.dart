@@ -811,6 +811,7 @@ class RoomService extends BaseChatService {
     MsgReply? reply,
   }) async {
     await checkRoomStatus(room);
+
     switch (room.groupType) {
       case GroupType.mls:
         return MlsGroupService.instance.sendMessage(
@@ -831,6 +832,9 @@ class RoomService extends BaseChatService {
       case GroupType.shareKey:
       case GroupType.kdf:
         throw Exception('not support');
+      case GroupType.common:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 

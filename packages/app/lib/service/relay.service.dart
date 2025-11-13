@@ -152,10 +152,11 @@ class RelayService {
     await database.writeTxn(() async {
       final relay = await database.relays.get(id);
       if (relay != null) {
-        relay.read = read;
-        relay.write = write;
-        relay.active = active;
-        relay.errorMessage = null;
+        relay
+          ..read = read
+          ..write = write
+          ..active = active
+          ..errorMessage = null;
 
         await database.relays.put(relay);
       }
@@ -261,6 +262,7 @@ class RelayService {
           receiveTimeout: const Duration(seconds: 10),
         ),
       );
+      logger.i('fetchRelayNostrInfo, $url: ${res.data}');
       return res.data as Map<String, dynamic>?;
     } on DioException catch (e, s) {
       final msg = e.response?.data as String?;
@@ -453,5 +455,9 @@ class RelayService {
       }
     }
     return success;
+  }
+
+  Future<Relay?> getRelayByUrl(String url) async {
+    return DBProvider.database.relays.filter().urlEqualTo(url).findFirst();
   }
 }

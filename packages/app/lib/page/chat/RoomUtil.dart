@@ -1,11 +1,19 @@
 import 'dart:convert' show jsonDecode;
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/ChatMediaFilesPage.dart';
 import 'package:keychat/page/chat/ForwardSelectRoom.dart';
 import 'package:keychat/page/chat/contact_page.dart';
@@ -15,18 +23,11 @@ import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signal_chat_util.dart';
 import 'package:keychat/service/storage.dart';
-import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/red_pocket_cashu.dart';
 import 'package:keychat_ecash/red_pocket_lightning.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -34,6 +35,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
 class RoomUtil {
   static Future<void> forwardTextMessage(
@@ -556,7 +558,6 @@ Let's start an encrypted chat.''';
   }
 
   // 600 seconds validate time,
-  // TODO: toremove later, for backward compatibility
   static int getValidateTime() {
     return DateTime.now().millisecondsSinceEpoch + 600 * 1000;
   }
@@ -619,44 +620,60 @@ Let's start an encrypted chat.''';
         return 'Medium Group';
       case GroupType.sendAll:
         return 'Small Group';
-      default:
+      case GroupType.shareKey:
+        throw UnimplementedError();
+      case GroupType.common:
+        throw UnimplementedError();
     }
-    return 'common';
   }
 
-  static String getGroupModeDescription(GroupType type) {
+  static String getDescriptionByNipType(NIPChatType type) {
     switch (type) {
-      case GroupType.kdf:
+      case NIPChatType.nip04:
+        return 'NIP04: Basic end-to-end encryption. No forward secrecy.';
+      case NIPChatType.nip17:
+        return 'NIP17: Enhanced end-to-end encryption with forward secrecy.';
+      case NIPChatType.common:
+        throw UnimplementedError();
+      case NIPChatType.signal:
         return '''
-1. Anti-Forgery ✅
+The Signal Protocol is an open-source, end-to-end encryption protocol developed by the Signal Foundation that secures instant messaging and voice calls. 
+
+1. Anti-Forgery ✅ 
 2. End-to-End Encryption ✅
-3. Forward Secrecy ✅
-4. Backward Secrecy 🟢60% 
-5. Metadata Privacy 🟢80%
-6. Recommended Group Limit: <60
+3. Forward Secrecy ✅ 
+4. Backward Secrecy ✅ 
+5. Metadata Privacy ✅
 ''';
-      case GroupType.mls:
+      case NIPChatType.mls:
         return '''
+Messaging Layer Security (MLS) is a security layer for encrypting messages in groups of size two to many. It is being built by the MLS working group and designed to be efficient, practical and secure. 
+
 1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢80%
 5. Metadata Privacy 🟢80%
 ''';
+    }
+  }
+
+  static String getGroupModeDescription(GroupType type) {
+    switch (type) {
+      case GroupType.kdf:
+        return '';
+      case GroupType.mls:
+        return getDescriptionByNipType(NIPChatType.mls);
       case GroupType.shareKey:
-        return '''
-1. Members < 30
-2. All members hold the same private key''';
+        return '';
       case GroupType.sendAll:
         return '''
-1. Anti-Forgery ✅ 
-2. End-to-End Encryption ✅
-3. Forward Secrecy ✅ 
-4. Backward Secrecy ✅ 
-5. Metadata Privacy ✅
+${getDescriptionByNipType(NIPChatType.signal)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
+      case GroupType.common:
+        throw UnimplementedError();
     }
   }
 
@@ -713,7 +730,7 @@ Let's start an encrypted chat.''';
   static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
     return MarkdownBlock(
       key: id != null ? ObjectKey('mk:$id') : null,
-      data: data,
+      data: Utils.formartTextToLinkText(data),
       selectable: false,
       config: config,
       generator: MarkdownGenerator(
@@ -958,5 +975,471 @@ track: $content''',
 
 $error ''';
     await MessageService.instance.updateMessageAndRefresh(message);
+  }
+
+  static Widget buildNipChatTypeBadge(
+    Room room,
+    String nipType,
+    BuildContext context,
+  ) {
+    // Don't show badge for common type
+    if (nipType == NIPChatType.common.name) {
+      return const SizedBox.shrink();
+    }
+
+    Color borderColor;
+    Color textColor;
+
+    switch (nipType) {
+      case 'nip04':
+        borderColor = Get.isDarkMode
+            ? const Color(0xFFFFC107)
+            : const Color(0xFFFF9800);
+        textColor = Get.isDarkMode
+            ? const Color(0xFFFFC107)
+            : const Color(0xFFFF9800);
+      case 'nip17':
+        borderColor = Get.isDarkMode
+            ? const Color(0xFF17A2B8)
+            : const Color(0xFF0dcaf0);
+        textColor = Get.isDarkMode
+            ? const Color(0xFF17A2B8)
+            : const Color(0xFF0dcaf0);
+      case 'signal':
+        borderColor = Get.isDarkMode
+            ? const Color(0xFF6F42C1)
+            : const Color(0xFF6610f2);
+        textColor = Get.isDarkMode
+            ? const Color(0xFF6F42C1)
+            : const Color(0xFF6610f2);
+      case 'mls':
+        borderColor = const Color(0xffEC6E0E);
+        textColor = const Color(0xffEC6E0E);
+      default:
+        borderColor = Colors.grey;
+        textColor = Colors.grey;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () async {
+          if (nipType == NIPChatType.nip04.name) {
+            await deprecatedEncryptedDialog(room, NIPChatType.nip04);
+            return;
+          }
+
+          if (nipType == NIPChatType.nip17.name) {
+            await deprecatedEncryptedDialog(room, NIPChatType.nip17);
+            return;
+          }
+          if (nipType == NIPChatType.signal.name) {
+            await Get.dialog<void>(
+              Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Get.isDarkMode
+                              ? const Color(0xFF6F42C1).withValues(alpha: 0.2)
+                              : const Color(0xFF6610f2).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          size: 32,
+                          color: Get.isDarkMode
+                              ? const Color(0xFF6F42C1)
+                              : const Color(0xFF6610f2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Title
+                      Text(
+                        'Signal Protocol',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Description
+                      Text(
+                        RoomUtil.getDescriptionByNipType(NIPChatType.signal),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Get.back<void>(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Close'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () async {
+                                await launchUrl(
+                                  Uri.parse('https://signal.org/docs/'),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Get.isDarkMode
+                                    ? const Color(0xFF6F42C1)
+                                    : const Color(0xFF6610f2),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Learn More'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            return;
+          }
+
+          if (nipType == NIPChatType.mls.name) {
+            await Get.dialog<void>(
+              Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xffEC6E0E,
+                          ).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shield_outlined,
+                          size: 32,
+                          color: Color(0xffEC6E0E),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Title
+                      Text(
+                        'MLS Protocol',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Description
+                      Text(
+                        RoomUtil.getDescriptionByNipType(NIPChatType.mls),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Get.back<void>(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Close'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () async {
+                                await launchUrl(
+                                  Uri.parse(
+                                    'https://messaginglayersecurity.rocks/',
+                                  ),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xffEC6E0E),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Learn More'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            return;
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            nipType.toUpperCase(),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> deprecatedEncryptedDialog(
+    Room room,
+    NIPChatType nipChatType,
+  ) async {
+    final msg =
+        'Your friend is using nostr ${nipChatType.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
+
+    await Get.dialog<void>(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Warning Icon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 36,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              Text(
+                'Weak Encryption',
+                style: Get.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Warning message for NIP04
+              if (nipChatType == NIPChatType.nip04)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.red.shade200,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: Colors.red.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Your friends may not be able to decrypt the messages you reply to.',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade900,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (nipChatType == NIPChatType.nip04) const SizedBox(height: 16),
+              // Description
+              Text(
+                msg,
+                textAlign: TextAlign.center,
+                style: Get.textTheme.bodyMedium?.copyWith(
+                  color: Get.theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Buttons
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () async {
+                        Get.back<void>();
+                        final link = await getOneTimeLink(
+                          room.getIdentity(),
+                        );
+                        await RoomService.instance.sendMessage(room, '''
+Keychat is the super app for Bitcoiners.
+Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
+
+Website: [keychat.io](https://keychat.io)
+
+Chat with me: [One-Time Link]($link)
+''');
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Get.isDarkMode
+                            ? const Color(0xFF6F42C1)
+                            : const Color(0xFF6610f2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Share One-Time Link'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Get.back<void>(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> tapLink(String url) async {
+    Utils.hideKeyboard(Get.context!);
+    Uri? uri;
+    try {
+      uri = Uri.tryParse(url);
+    } catch (e) {}
+    if (uri == null) return;
+
+    if (uri.scheme == 'https' || uri.scheme == 'http') {
+      await Get.find<MultiWebviewController>().launchWebview(
+        initUrl: url,
+      );
+      return;
+    }
+    if (uri.scheme == 'wss' || uri.scheme == 'ws') {
+      await Get.dialog<void>(
+        CupertinoAlertDialog(
+          title: const Text('Add Relay'),
+          content: Text(
+            'Add to your message relay list?\n\n$url',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: Get.back,
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () async {
+                Get.back();
+                final exist = await RelayService.instance.getRelayByUrl(url);
+                if (exist != null) {
+                  EasyLoading.showToast('Relay already exists');
+                  return;
+                }
+                await RelayService.instance.addAndConnect(url);
+                EasyLoading.showToast('Relay added');
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      logger.e('launch url error: $e');
+      await EasyLoading.showError('Error: $e');
+    }
   }
 }

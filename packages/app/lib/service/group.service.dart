@@ -649,6 +649,8 @@ class GroupService extends BaseChatService {
       case GroupType.shareKey:
       case GroupType.kdf:
         break;
+      case GroupType.common:
+        throw UnimplementedError();
     }
 
     RoomService.getController(groupRoom.id)?.resetMembers();
@@ -664,6 +666,8 @@ class GroupService extends BaseChatService {
       case GroupType.shareKey:
       case GroupType.kdf:
         throw Exception('not support');
+      case GroupType.common:
+        throw UnimplementedError();
     }
   }
 

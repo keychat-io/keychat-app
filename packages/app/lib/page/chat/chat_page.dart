@@ -3,12 +3,17 @@ import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
 import 'dart:ui' show ImageFilter;
 
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
@@ -19,13 +24,6 @@ import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-
-import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -56,14 +54,9 @@ class _ChatPage2State extends State<ChatPage> {
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(
       configs: [
-        LinkConfig(
-          onTap: (url) async {
-            Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>().launchWebview(
-              initUrl: url,
-            );
-          },
-          style: const TextStyle(
+        const LinkConfig(
+          onTap: RoomUtil.tapLink,
+          style: TextStyle(
             color: Colors.white,
             decoration: TextDecoration.underline,
             decorationColor: Colors.white,
@@ -78,14 +71,9 @@ class _ChatPage2State extends State<ChatPage> {
     );
     markdownLightConfig = MarkdownConfig.defaultConfig.copy(
       configs: [
-        LinkConfig(
-          onTap: (url) async {
-            Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>().launchWebview(
-              initUrl: url,
-            );
-          },
-          style: const TextStyle(
+        const LinkConfig(
+          onTap: RoomUtil.tapLink,
+          style: TextStyle(
             color: Colors.blue,
             decoration: TextDecoration.none,
           ),
@@ -103,9 +91,7 @@ class _ChatPage2State extends State<ChatPage> {
           appBar: AppBar(
             scrolledUnderElevation: 0,
             elevation: 0,
-            backgroundColor: Get.isDarkMode
-                ? const Color(0xFF000000)
-                : const Color(0xffededed),
+            backgroundColor: _getAppBarBackgroundColor(),
             centerTitle: true,
             title: Obx(
               () => Wrap(
@@ -128,6 +114,13 @@ class _ChatPage2State extends State<ChatPage> {
               ),
             ),
             actions: [
+              Obx(
+                () => RoomUtil.buildNipChatTypeBadge(
+                  controller.roomObs.value,
+                  controller.nipChatType.value,
+                  context,
+                ),
+              ),
               Obx(
                 () => controller.roomObs.value.status != RoomStatus.approving
                     ? IconButton(
@@ -1239,5 +1232,15 @@ class _ChatPage2State extends State<ChatPage> {
         child: const Text('Send Greeting'),
       ),
     );
+  }
+
+  Color _getAppBarBackgroundColor() {
+    final nipType = controller.nipChatType.value;
+    if (nipType == NIPChatType.nip04.name) {
+      return Get.isDarkMode ? const Color(0xFF3D2800) : const Color(0xFFFFF3CD);
+    } else if (nipType == NIPChatType.nip17.name) {
+      return Get.isDarkMode ? const Color(0xFF1A3A52) : const Color(0xFFD1ECF1);
+    }
+    return Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed);
   }
 }

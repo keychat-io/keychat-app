@@ -19,14 +19,12 @@ import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/components.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/room.service.dart';
-import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
@@ -43,6 +41,14 @@ const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
 
+enum NIPChatType {
+  common,
+  nip04,
+  nip17,
+  signal,
+  mls,
+}
+
 class ChatController extends GetxController {
   ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
@@ -52,6 +58,7 @@ class ChatController extends GetxController {
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
+  RxString nipChatType = NIPChatType.common.name.obs; // encrypt type of room
 
   Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
@@ -489,31 +496,10 @@ class ChatController extends GetxController {
       final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        await Get.dialog<void>(
-          CupertinoAlertDialog(
-            title: const Text('Deprecated Encryption'),
-            content: const Text('''
-Your friends uses a deprecated encryption method-NIP04.
-Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
-'''),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('OK'),
-              ),
-              CupertinoDialogAction(
-                child: const Text('Share One-Time Link'),
-                onPressed: () async {
-                  Get.back<void>();
-                  await showMyQrCode(
-                    Get.context!,
-                    roomObs.value.getIdentity(),
-                    true,
-                  );
-                },
-              ),
-            ],
-          ),
+        nipChatType.value = NIPChatType.nip04.name;
+        await RoomUtil.deprecatedEncryptedDialog(
+          roomObs.value,
+          NIPChatType.nip04,
         );
       }
     }
@@ -525,34 +511,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
     if (roomObs.value.type == RoomType.common &&
         roomObs.value.encryptMode != EncryptMode.signal) {
-      final myLastMessage = messages.firstWhereOrNull((msg) => msg.isMeSend);
       final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (myLastMessage == null || hisLastMessage == null) return;
+      if (hisLastMessage == null) return;
       if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
-          myLastMessage.encryptType == MessageEncryptType.nip17) {
-        await Get.dialog<void>(
-          CupertinoAlertDialog(
-            title: const Text('Start a Private Chat'),
-            content: const Text('''
-The current message encryption mode uses the NIP17 protocol. 
-Add as a friend and start the signal protocol chat
-'''),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                child: const Text('Start Private Chat'),
-                onPressed: () async {
-                  Get.back<void>();
-                  await SignalChatService.instance.resetSignalSession(
-                    roomObs.value,
-                  );
-                },
-              ),
-            ],
-          ),
+          !hisLastMessage.isSystem) {
+        nipChatType.value = NIPChatType.nip17.name;
+        await RoomUtil.deprecatedEncryptedDialog(
+          roomObs.value,
+          NIPChatType.nip17,
         );
       }
     }
@@ -708,6 +674,7 @@ Add as a friend and start the signal protocol chat
   }
 
   void setRoom(Room newRoom) {
+    _setRoomChatType();
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
@@ -926,7 +893,28 @@ Add as a friend and start the signal protocol chat
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
+  void _setRoomChatType() {
+    if (roomObs.value.type == RoomType.common ||
+        roomObs.value.type == RoomType.bot) {
+      if (roomObs.value.encryptMode == EncryptMode.signal) {
+        nipChatType.value = NIPChatType.signal.name;
+        return;
+      }
+      return;
+    }
+    if (roomObs.value.isMLSGroup) {
+      nipChatType.value = NIPChatType.mls.name;
+      return;
+    }
+
+    if (roomObs.value.isSendAllGroup) {
+      nipChatType.value = NIPChatType.signal.name;
+      return;
+    }
+  }
+
   Future<void> _initRoom() async {
+    _setRoomChatType();
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {

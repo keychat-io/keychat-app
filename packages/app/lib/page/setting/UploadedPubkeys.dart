@@ -1,12 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/models/models.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/setting/UploadedPubkeysList.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/room.service.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class UploadedPubkeys extends StatefulWidget {

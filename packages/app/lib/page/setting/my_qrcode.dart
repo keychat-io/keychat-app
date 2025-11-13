@@ -1,62 +1,32 @@
-import 'dart:async';
-import 'dart:convert' show jsonDecode;
-import 'package:keychat/global.dart';
-import 'package:keychat/models/models.dart';
-import 'package:keychat/page/components.dart';
-import 'package:keychat/service/signalId.service.dart';
-import 'package:keychat/service/signal_chat_util.dart';
-import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/utils.dart';
 import 'package:share_plus/share_plus.dart';
 
 // ignore: must_be_immutable
-class MyQRCode extends StatefulWidget {
+class MyQRCode extends StatelessWidget {
   MyQRCode({
-    required this.oneTimeKey,
-    required this.identity,
-    required this.signalId,
+    required this.url,
     super.key,
-    this.onTap,
-    this.time,
-    this.title,
+    this.expiredTime,
     this.isOneTime = false,
-    this.showMore = false,
-    this.showAppBar = false,
+    this.title,
   });
-  final Identity identity;
-  final bool showAppBar;
-  final bool showMore;
-  final bool isOneTime;
-  final String oneTimeKey;
-  final SignalId signalId;
-  int? time;
-  final void Function()? onTap;
+  String url;
+  bool isOneTime;
   String? title;
-
-  @override
-  State<StatefulWidget> createState() => _MyQRCodeState();
-}
-
-class _MyQRCodeState extends State<MyQRCode> {
-  late String url;
-
-  @override
-  void initState() {
-    url = '${KeychatGlobal.mainWebsite}/u/?k=${widget.identity.npub}';
-    unawaited(init());
-    super.initState();
-  }
+  int? expiredTime;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.title != null
+      appBar: title != null
           ? AppBar(
               leading: Container(),
-              title: Text(widget.title!),
+              title: Text(title!),
               centerTitle: true,
               actions: [
                 IconButton(
@@ -67,7 +37,7 @@ class _MyQRCodeState extends State<MyQRCode> {
             )
           : null,
       body: GestureDetector(
-        onTap: widget.onTap,
+        onTap: Get.back,
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -90,8 +60,8 @@ class _MyQRCodeState extends State<MyQRCode> {
               const SizedBox(height: 8),
               textSmallGray(
                 context,
-                widget.isOneTime
-                    ? 'Expires In: ${widget.time != null ? formatTime(widget.time!, 'MM-dd HH:mm') : '24 hours'}'
+                isOneTime
+                    ? 'Expires In: ${expiredTime != null ? formatTime(expiredTime!, 'MM-dd HH:mm') : '24 hours'}'
                     : '',
               ),
               const SizedBox(height: 8),
@@ -129,58 +99,5 @@ class _MyQRCodeState extends State<MyQRCode> {
         ),
       ),
     );
-  }
-
-  Future<String> _initQRCodeData(
-    Identity identity,
-    String onetimekey,
-    SignalId signalId, [
-    int time = -1,
-  ]) async {
-    final userInfo = signalId.keys == null
-        ? await SignalIdService.instance.getQRCodeData(signalId, time)
-        : jsonDecode(signalId.keys!) as Map<String, dynamic>;
-
-    final content = SignalChatUtil.getToSignMessage(
-      nostrId: identity.secp256k1PKHex,
-      signalId: signalId.pubkey,
-      time: time,
-    );
-
-    final sig = await SignalChatUtil.signByIdentity(
-      identity: identity,
-      content: content,
-    );
-    if (sig == null) throw Exception('Sign failed or User denied');
-    final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
-
-    final data = <String, dynamic>{
-      'pubkey': identity.secp256k1PKHex,
-      'curve25519PkHex': signalId.pubkey,
-      'name': identity.displayName,
-      'time': time,
-      'relay': '',
-      'avatar': avatarRemoteUrl ?? '',
-      'lightning': identity.lightning ?? '',
-      'onetimekey': onetimekey,
-      'globalSign': sig,
-      ...userInfo.map(MapEntry.new),
-    };
-    logger.i('qrcode, $data');
-    return QRUserModel.fromJson(data).toShortStringForQrcode();
-  }
-
-  Future<void> init() async {
-    final qrString = await _initQRCodeData(
-      widget.identity,
-      widget.oneTimeKey,
-      widget.signalId,
-      widget.time ?? -1,
-    );
-    logger.i('init qrcode: $qrString');
-    setState(() {
-      url =
-          '${KeychatGlobal.mainWebsite}/u/?k=${Uri.encodeComponent(qrString)}';
-    });
   }
 }

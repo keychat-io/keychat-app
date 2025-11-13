@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/utils.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class RelayInfoPage extends GetView<RelayInfoController> {
@@ -21,8 +22,93 @@ class RelayInfoPage extends GetView<RelayInfoController> {
         title: Obx(() => Text(controller.relay.value.url)),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.of(context).restorablePush(_modalBuilder);
+            onPressed: () async {
+              await showCupertinoModalPopup<void>(
+                context: context,
+                builder: (BuildContext context) => CupertinoActionSheet(
+                  title: Text(controller.relay.value.url),
+                  // message: const Text('Message'),
+                  actions: <CupertinoActionSheetAction>[
+                    CupertinoActionSheetAction(
+                      child: const Text('Copy'),
+                      onPressed: () {
+                        // Copy to clipboard
+                        Clipboard.setData(
+                          ClipboardData(text: controller.relay.value.url),
+                        );
+                        EasyLoading.showToast('Copied');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    CupertinoActionSheetAction(
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onPressed: () async {
+                        Get
+                          ..back<void>()
+                          ..dialog(
+                            CupertinoAlertDialog(
+                              title: const Text('Delete this relay?'),
+                              actions: [
+                                CupertinoDialogAction(
+                                  onPressed: Get.back,
+                                  child: const Text(
+                                    'Cancel',
+                                  ),
+                                ),
+                                CupertinoDialogAction(
+                                  onPressed: () async {
+                                    try {
+                                      final ws = Get.find<WebsocketService>();
+                                      if (ws.channels.length == 1) {
+                                        EasyLoading.showToast(
+                                          'No more relays left',
+                                        );
+                                        return;
+                                      }
+
+                                      await RelayService.instance.delete(
+                                        controller.relay.value.id,
+                                      );
+                                      if (Get.isBottomSheetOpen ?? false) {
+                                        Get.back<void>();
+                                      }
+                                      ws
+                                          .channels[controller.relay.value.url]
+                                          ?.channel
+                                          ?.close();
+                                      ws.channels.remove(
+                                        controller.relay.value.url,
+                                      );
+
+                                      Get.back<void>();
+                                      EasyLoading.showSuccess('Relay deleted');
+                                    } catch (e, s) {
+                                      logger.e(
+                                        'Delete relay error: $e',
+                                        stackTrace: s,
+                                      );
+                                      EasyLoading.showError(
+                                        'Delete relay failed: $e',
+                                      );
+                                    }
+                                  },
+                                  isDestructiveAction: true,
+                                  child: const Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                      },
+                    ),
+                  ],
+                ),
+              );
             },
             icon: const Icon(Icons.more_horiz),
           ),
@@ -246,81 +332,6 @@ class RelayInfoPage extends GetView<RelayInfoController> {
     return SettingsSection(
       title: const Text('Fees'),
       tiles: list.isEmpty ? [st] : list,
-    );
-  }
-
-  @pragma('vm:entry-point')
-  static Route<void> _modalBuilder(BuildContext context, Object? arguments) {
-    final controller = Get.find<RelayInfoController>();
-    return CupertinoModalPopupRoute<void>(
-      builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: Text(controller.relay.value.url),
-          // message: const Text('Message'),
-          actions: <CupertinoActionSheetAction>[
-            CupertinoActionSheetAction(
-              child: const Text('Copy'),
-              onPressed: () {
-                // Copy to clipboard
-                Clipboard.setData(
-                  ClipboardData(text: controller.relay.value.url),
-                );
-                Navigator.pop(context);
-              },
-            ),
-            CupertinoActionSheetAction(
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
-              onPressed: () async {
-                Get.back<void>();
-                await showDialog<bool>(
-                  context: context,
-                  builder: (context) {
-                    return CupertinoAlertDialog(
-                      title: const Text('Delete this relay?'),
-                      actions: [
-                        CupertinoDialogAction(
-                          onPressed: Get.back,
-                          child: const Text(
-                            'Cancel',
-                          ),
-                        ),
-                        CupertinoDialogAction(
-                          onPressed: () async {
-                            final ws = Get.find<WebsocketService>();
-                            if (ws.channels.length == 1) {
-                              EasyLoading.showToast('At least one relay');
-                              return;
-                            }
-
-                            await RelayService.instance.delete(
-                              controller.relay.value.id,
-                            );
-
-                            ws.channels[controller.relay.value.url]?.channel
-                                ?.close();
-                            ws.channels.remove(controller.relay.value.url);
-
-                            Get.back<void>();
-                            Get.back<void>();
-                          },
-                          isDestructiveAction: true,
-                          child: const Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }

@@ -1105,9 +1105,10 @@ $error ''';
                           Expanded(
                             child: FilledButton(
                               onPressed: () async {
-                                await launchUrl(
-                                  Uri.parse('https://signal.org/docs/'),
-                                );
+                                const uri = 'https://signal.org/docs/';
+
+                                await Get.find<MultiWebviewController>()
+                                    .launchWebview(initUrl: uri);
                               },
                               style: FilledButton.styleFrom(
                                 backgroundColor: Get.isDarkMode
@@ -1203,11 +1204,11 @@ $error ''';
                           Expanded(
                             child: FilledButton(
                               onPressed: () async {
-                                await launchUrl(
-                                  Uri.parse(
-                                    'https://messaginglayersecurity.rocks/',
-                                  ),
-                                );
+                                const uri =
+                                    'https://messaginglayersecurity.rocks/';
+
+                                await Get.find<MultiWebviewController>()
+                                    .launchWebview(initUrl: uri);
                               },
                               style: FilledButton.styleFrom(
                                 backgroundColor: const Color(0xffEC6E0E),

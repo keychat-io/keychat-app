@@ -621,20 +621,12 @@ class _RecentTransactionsWidget extends GetView<EcashController> {
                   ? EcashUtils.getLNIcon(transaction.status)
                   : EcashUtils.getStatusIcon(transaction.status),
               onTap: () async {
-                if (transaction.status == TransactionStatus.expired) {
-                  EasyLoading.showToast('It is expired');
-                  return;
-                }
-                if (transaction.status == TransactionStatus.failed) {
-                  EasyLoading.showToast('It is failed');
-                  return;
-                }
-
                 if (isLightning) {
                   await Get.to(
                     () => LightningTransactionPage(transaction: transaction),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
                   );
+                  return;
                 } else {
                   await Get.to(
                     () => CashuTransactionPage(transaction: transaction),

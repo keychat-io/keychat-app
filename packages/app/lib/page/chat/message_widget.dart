@@ -463,7 +463,7 @@ class MessageWidget extends StatelessWidget {
       Get.back<void>();
     }
     if (message.eventIds.isEmpty) {
-      EasyLoading.showInfo('Metadata Cleaned');
+      await EasyLoading.showInfo('Metadata Cleaned');
       return;
     }
 
@@ -473,13 +473,28 @@ class MessageWidget extends StatelessWidget {
         message.rawEvents[0],
       );
 
-      // fix message sent status
-      if (message.sent != SendStatusType.success) {
-        final success = ess
-            .where((element) => element.sendStatus == EventSendEnum.success)
+      // fix the message sent status and successRelays
+      // NostrEventStatus may been cleaned
+      if (message.isMeSend) {
+        final sentSuccess = ess
+            .where(
+              (element) =>
+                  !element.isReceive &&
+                  element.sendStatus == EventSendEnum.success,
+            )
             .toList();
-        if (success.isNotEmpty) {
-          message.sent = SendStatusType.success;
+        var needUpdateMessage = false;
+        if (message.successRelays < sentSuccess.length) {
+          message.successRelays = sentSuccess.length;
+          needUpdateMessage = true;
+        }
+        if (message.sent != SendStatusType.success) {
+          if (sentSuccess.isNotEmpty) {
+            message.sent = SendStatusType.success;
+            needUpdateMessage = true;
+          }
+        }
+        if (needUpdateMessage) {
           await MessageService.instance.updateMessageAndRefresh(message);
         }
       }

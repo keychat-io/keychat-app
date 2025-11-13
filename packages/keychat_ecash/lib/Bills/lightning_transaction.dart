@@ -66,7 +66,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
-          if (tx.status == TransactionStatus.pending)
+          if (tx.status != TransactionStatus.success)
             IconButton(
               onPressed: () async {
                 try {

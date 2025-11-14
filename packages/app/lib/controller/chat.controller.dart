@@ -34,7 +34,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_master/permission_master.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 const int maxMessageId = 999999999999;
@@ -814,28 +814,21 @@ class ChatController extends GetxController {
   }
 
   Future<void> _handleSendWithCamera() async {
-    if (GetPlatform.isMacOS) {
-      EasyLoading.showToast('Camera not supported on MacOS');
-      return;
-    }
-
     // Prevent duplicate clicks
     if (_isUploading) {
       EasyLoading.showToast('File uploading, please wait...');
       return;
     }
+    final permissionStatus = await PermissionMaster().requestCameraPermission();
+    final isGranted = permissionStatus == PermissionStatus.granted;
 
-    var isGranted = true;
-    if (GetPlatform.isMobile || GetPlatform.isWindows) {
-      isGranted = await Permission.camera.request().isGranted;
-    }
     if (isGranted) {
       await pickAndUploadImage(ImageSource.camera);
       hideAdd.value = true; // close features section
     } else {
       EasyLoading.showToast('Camera permission not grant');
       await Future.delayed(const Duration(milliseconds: 1000), () => {});
-      openAppSettings();
+      await PermissionMaster().openAppSettings();
     }
   }
 

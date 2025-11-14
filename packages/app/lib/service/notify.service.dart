@@ -15,7 +15,7 @@ import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_master/permission_master.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -59,7 +59,7 @@ class NotifyService {
         },
       );
       logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
-      return (res.data['data'] is bool) ? res.data['data'] as bool : true;
+      return res.data['data'] is! bool || res.data['data'] as bool;
     } on DioException catch (e) {
       logger.e('addPubkeys error: ${e.response?.data}', error: e);
     }
@@ -114,16 +114,10 @@ class NotifyService {
     }
 
     try {
-      if (GetPlatform.isMacOS) {
-        // macOS must use Firebase
-        final s = await FirebaseMessaging.instance.getNotificationSettings();
-        return s.authorizationStatus == AuthorizationStatus.authorized ||
-            s.authorizationStatus == AuthorizationStatus.provisional;
-      } else {
-        // Android and iOS use permission_handler
-        final status = await Permission.notification.status;
-        return status.isGranted || status.isProvisional;
-      }
+      final status = await PermissionMaster().checkPermissionStatus(
+        PermissionType.notifications.value,
+      );
+      return status == PermissionStatus.granted;
     } catch (e) {
       logger.e('hasNotifyPermission error', error: e);
       return false;
@@ -138,29 +132,14 @@ class NotifyService {
       return false;
     }
 
-    try {
-      // Try Firebase first
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        provisional: true,
-      );
-      logger.i('Notification Status: ${settings.authorizationStatus.name}');
+    final permissionMaster = PermissionMaster();
 
-      return settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
-    } catch (e) {
-      // Fallback to permission_handler if Firebase fails
-      logger.w(
-        'Firebase permission request failed, using permission_handler',
-        error: e,
-      );
-      try {
-        final status = await Permission.notification.request();
-        return status.isGranted;
-      } catch (e2) {
-        logger.e('requestNotifyPermission error', error: e2);
-        return false;
-      }
+    final status = await permissionMaster.requestNotificationPermission();
+
+    if (status == PermissionStatus.granted) {
+      return true;
     }
+    return false;
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key

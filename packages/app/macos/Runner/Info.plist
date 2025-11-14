@@ -24,6 +24,8 @@
     <string>public.app-category.social-networking</string>
     <key>NSCameraUsageDescription</key>
     <string>This app needs camera access to scan barcodes.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app needs microphone access for voice and video calls in webpages.</string>
     <key>FirebaseMessagingAutoInitEnabled</key>
     <true/>
     <key>FirebaseAppDelegateProxyEnabled</key>

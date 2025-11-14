@@ -10,12 +10,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:permission_master/permission_master.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class QrScanService {
@@ -25,19 +25,16 @@ class QrScanService {
   static QrScanService get instance => _instance ??= QrScanService._();
 
   Future<String?> handleQRScan({bool autoProcess = true}) async {
-    if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
-      EasyLoading.showToast('Not available on this devices');
+    final permissionStatus = await PermissionMaster().requestCameraPermission();
+    final isGranted = permissionStatus == PermissionStatus.granted;
+
+    if (!isGranted) {
+      await EasyLoading.showToast('Camera permission not grant');
+      await Future.delayed(const Duration(milliseconds: 1000), () => {});
+      await PermissionMaster().openAppSettings();
       return null;
     }
-    if (GetPlatform.isMobile) {
-      final isGranted = await Permission.camera.request().isGranted;
-      if (!isGranted) {
-        EasyLoading.showToast('Camera permission not grant');
-        await Future.delayed(const Duration(milliseconds: 1000), () => {});
-        openAppSettings();
-        return null;
-      }
-    }
+
     final mobileScannerController = MobileScannerController(
       formats: [BarcodeFormat.qrCode],
     );

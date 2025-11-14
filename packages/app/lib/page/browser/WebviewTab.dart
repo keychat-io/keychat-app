@@ -3,6 +3,21 @@ import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:background_downloader/background_downloader.dart'
+    hide PermissionStatus;
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -20,27 +35,13 @@ import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:background_downloader/background_downloader.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path/path.dart' as path;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_master/permission_master.dart' as pm;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -701,12 +702,7 @@ class _WebviewTabState extends State<WebviewTab> {
           await printJobController?.cancel();
           return false;
         },
-        onPermissionRequest: (controller, request) async {
-          return PermissionResponse(
-            resources: request.resources,
-            action: PermissionResponseAction.GRANT,
-          );
-        },
+
         shouldOverrideUrlLoading:
             (controller, NavigationAction navigationAction) async {
               final uri = navigationAction.request.url;
@@ -935,6 +931,7 @@ class _WebviewTabState extends State<WebviewTab> {
           // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
           await onUpdateVisitedHistory(url);
         },
+        onPermissionRequest: onPermissionRequest,
       ),
     );
   }
@@ -1435,10 +1432,31 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future<void> downloadFile(String url, [String? filename]) async {
     EasyThrottle.throttle('downloadFile', const Duration(seconds: 3), () async {
-      final permissionStatus = await Utils.getStoragePermission();
-      final hasStoragePermission = permissionStatus.isGranted;
+      // Request storage permission using permission_master
+      final permissionMaster = pm.PermissionMaster();
+      pm.PermissionStatus storageStatus;
 
-      if (!hasStoragePermission) {
+      try {
+        if (GetPlatform.isMacOS) {
+          // macOS uses photo library permission for storage
+          final status = await permissionMaster
+              .requestPhotoLibraryPermissionMac();
+          storageStatus = status == 'granted'
+              ? pm.PermissionStatus.granted
+              : pm.PermissionStatus.denied;
+        } else if (GetPlatform.isIOS || GetPlatform.isAndroid) {
+          // Mobile platforms
+          storageStatus = await permissionMaster.requestStoragePermission();
+        } else {
+          // Desktop platforms (Windows, Linux) - assume granted
+          storageStatus = pm.PermissionStatus.granted;
+        }
+      } catch (e) {
+        logger.e('Storage permission error: $e', error: e);
+        storageStatus = pm.PermissionStatus.denied;
+      }
+
+      if (storageStatus != pm.PermissionStatus.granted) {
         EasyLoading.showToast('Storage permission not granted');
         return;
       }
@@ -1875,5 +1893,70 @@ img {
       logger.i(e.toString(), error: e);
     }
     return false;
+  }
+
+  Future<PermissionResponse?> onPermissionRequest(
+    InAppWebViewController controller,
+    PermissionRequest request,
+  ) async {
+    final resources = request.resources;
+    final needsPermission = resources.any((resource) {
+      return resource == PermissionResourceType.CAMERA ||
+          resource == PermissionResourceType.MICROPHONE ||
+          resource == PermissionResourceType.CAMERA_AND_MICROPHONE;
+    });
+
+    final grantedResources = <PermissionResourceType>[];
+    if (needsPermission) {
+      final permissionMaster = pm.PermissionMaster();
+
+      // Check and request camera permission if needed
+      if (resources.contains(PermissionResourceType.CAMERA) ||
+          resources.contains(
+            PermissionResourceType.CAMERA_AND_MICROPHONE,
+          )) {
+        try {
+          final status = await permissionMaster.requestCameraPermission();
+
+          logger.d('Camera permission status: $status');
+          if (status == pm.PermissionStatus.granted) {
+            grantedResources.add(PermissionResourceType.CAMERA);
+          } else if (status == pm.PermissionStatus.denied) {
+            await EasyLoading.showError('Camera permission denied');
+          } else if (status == pm.PermissionStatus.openSettings) {
+            await permissionMaster.openAppSettings();
+          }
+        } catch (e) {
+          logger.e('Camera permission error: $e', error: e);
+        }
+      }
+
+      // Check and request microphone permission if needed
+      if (resources.contains(PermissionResourceType.MICROPHONE) ||
+          resources.contains(
+            PermissionResourceType.CAMERA_AND_MICROPHONE,
+          )) {
+        try {
+          final status = await permissionMaster.requestMicrophonePermission();
+
+          logger.d('Microphone permission status: $status');
+          if (status == pm.PermissionStatus.granted) {
+            grantedResources.add(PermissionResourceType.MICROPHONE);
+          } else if (status == pm.PermissionStatus.denied) {
+            await EasyLoading.showError('Microphone permission denied');
+          } else if (status == pm.PermissionStatus.openSettings) {
+            await permissionMaster.openAppSettings();
+          }
+        } catch (e) {
+          logger.e('Microphone permission error: $e', error: e);
+        }
+      }
+    }
+
+    // Grant the permission to the webview
+    return PermissionResponse(
+      resources: grantedResources,
+      action: PermissionResponseAction.GRANT,
+    );
   }
 }

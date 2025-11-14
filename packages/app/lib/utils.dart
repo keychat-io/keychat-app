@@ -35,7 +35,6 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 Logger logger = Logger(
@@ -885,20 +884,6 @@ Init File: $time \n
         key: objectKey,
       );
     }
-  }
-
-  static Future<PermissionStatus> getStoragePermission() async {
-    if (Platform.isIOS) {
-      return await Permission.storage.isGranted
-          ? PermissionStatus.granted
-          : await Permission.storage.request();
-    }
-    if (Platform.isAndroid) {
-      return await Permission.photos.isGranted
-          ? PermissionStatus.granted
-          : await Permission.photos.request();
-    }
-    return Permission.storage.status;
   }
 
   static Future<List<dynamic>> getWebRTCServers() async {

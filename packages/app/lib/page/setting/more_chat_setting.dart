@@ -18,7 +18,7 @@ import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_master/permission_master.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class MoreChatSetting extends StatelessWidget {
@@ -207,8 +207,8 @@ class MoreChatSetting extends StatelessWidget {
                 ),
                 SettingsTile.navigation(
                   title: const Text('Open System Settings'),
-                  onPressed: (context) {
-                    openAppSettings();
+                  onPressed: (context) async {
+                    await PermissionMaster().openAppSettings();
                   },
                 ),
                 SettingsTile.navigation(
@@ -309,7 +309,7 @@ class MoreChatSetting extends StatelessWidget {
                   await EasyLoading.showError(
                     'Please enable notification permission in system settings',
                   );
-                  await openAppSettings();
+                  await PermissionMaster().openAppSettings();
                   Get.back(result: false);
                   return;
                 }

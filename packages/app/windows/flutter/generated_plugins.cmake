@@ -14,6 +14,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   isar_community_flutter_libs
   local_auth_windows
   permission_handler_windows
+  permission_master
   share_plus
   super_native_extensions
   url_launcher_windows

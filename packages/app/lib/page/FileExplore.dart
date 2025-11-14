@@ -1,15 +1,13 @@
-import 'dart:io'
-    show Directory, File, FileStat, FileSystemEntity, FileSystemEntityType;
+import 'dart:io' show Directory, File, FileSystemEntity, FileSystemEntityType;
 
-import 'package:keychat/page/log_viewer.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/page/log_viewer.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as path;
-
 import 'package:share_plus/share_plus.dart';
 
 class FileExplorerPage extends StatefulWidget {

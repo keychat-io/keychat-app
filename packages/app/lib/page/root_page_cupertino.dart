@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:permission_master/permission_master.dart';
 
 class CupertinoRootPage extends StatefulWidget {
   const CupertinoRootPage({super.key});
@@ -32,7 +33,12 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
     pages = [const RoomList(), const BrowserNewTab(), const MinePage()];
     homeController = Get.find<HomeController>();
     super.initState();
-    unawaited(homeController.biometricsAuth(auth: true));
+    try {
+      unawaited(homeController.biometricsAuth(auth: true));
+      PermissionMaster.setContext(context);
+    } catch (e) {
+      logger.e('Error during initState of CupertinoRootPage: $e');
+    }
   }
 
   @override

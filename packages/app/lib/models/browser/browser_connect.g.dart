@@ -64,7 +64,7 @@ const BrowserConnectSchema = CollectionSchema(
   getId: _browserConnectGetId,
   getLinks: _browserConnectGetLinks,
   attach: _browserConnectAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _browserConnectEstimateSize(

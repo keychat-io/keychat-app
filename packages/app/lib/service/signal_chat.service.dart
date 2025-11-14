@@ -47,7 +47,9 @@ class SignalChatService extends BaseChatService {
     final cs = Get.find<ChatxService>();
     final kpa = await cs.getRoomKPA(room);
     if (kpa == null) {
-      throw Exception('signal_session_is_null');
+      throw Exception(
+        "The signal session has not yet been created. Waiting for your friend's approval. Or, you can go to: Security Settings -> reset signal session.",
+      );
     }
     final message0 = message;
     final keypair = await room.getKeyPair();
@@ -94,7 +96,8 @@ class SignalChatService extends BaseChatService {
         since: DateTime.now().subtract(const Duration(seconds: 5)),
         kinds: [EventKinds.nip04],
       );
-      if (!room.isMute) unawaited(NotifyService.addPubkeys(toAddPubkeys));
+      if (!room.isMute)
+        unawaited(NotifyService.instance.addPubkeys(toAddPubkeys));
     }
 
     final senderKey = await rust_nostr.generateSimple();
@@ -415,6 +418,7 @@ class SignalChatService extends BaseChatService {
       km: keychatMessage,
       decodedContent: keychatMessage.toString(),
       realMessage: keychatMessage.msg,
+      isSystem: true,
     );
 
     // auto response
@@ -424,6 +428,7 @@ class SignalChatService extends BaseChatService {
       await SignalChatService.instance.sendMessage(
         room,
         RoomUtil.getHelloMessage(displayName),
+        isSystem: true,
       );
     }
   }
@@ -656,7 +661,10 @@ ${relays.join('\n')}
             room.getIdentity(),
             greeting: 'Reset signal session status',
           );
-
+          final updatedRoom = await RoomService.instance.getRoomByIdOrFail(
+            room.id,
+          );
+          await RoomService.instance.refreshRoom(updatedRoom);
           EasyLoading.showInfo('Request sent successfully.');
         } catch (e) {
           final msg = Utils.getErrorMessage(e);

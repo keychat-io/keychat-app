@@ -25,7 +25,7 @@ class RoomMember extends Equatable {
   RoomMember({
     required this.idPubkey,
     required this.roomId,
-    required this.name,
+    this.name,
     this.status = UserStatusType.invited,
   }) {
     createdAt = DateTime.now();
@@ -45,7 +45,7 @@ class RoomMember extends Equatable {
 
   late int roomId;
 
-  late String name;
+  String? name;
 
   DateTime? createdAt;
   DateTime? updatedAt;
@@ -66,7 +66,7 @@ class RoomMember extends Equatable {
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   Contact? contact;
-  String get displayName => contact?.displayName ?? name;
+  String get displayName => contact?.displayName ?? name ?? idPubkey;
 
   String? msg; // last system message
 

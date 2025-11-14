@@ -221,11 +221,13 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                           },
                         ),
                       SettingsTile(
-                        description:
-                            (cc.roomContact.value.lightning?.isNotEmpty ??
-                                false)
-                            ? Text(cc.roomContact.value.lightning ?? '')
-                            : null,
+                        description: Obx(
+                          () =>
+                              (cc.roomContact.value.lightning?.isNotEmpty ??
+                                  false)
+                              ? Text(cc.roomContact.value.lightning ?? '')
+                              : Container(),
+                        ),
                         leading: SizedBox(
                           width: 24,
                           child: Image.asset(
@@ -234,33 +236,39 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                           ),
                         ),
                         title: const Text('Lightning Address'),
-                        trailing:
-                            (cc.roomContact.value.lightning?.isEmpty ?? true)
-                            ? textSmallGray(context, 'Not set')
-                            : IconButton(
-                                icon: const Icon(
-                                  CupertinoIcons.arrow_right_circle,
-                                  size: 20,
-                                ),
-                                onPressed: () async {
-                                  if (cc.roomContact.value.lightning?.isEmpty ??
-                                      true) {
-                                    return;
-                                  }
-                                  await Get.bottomSheet<void>(
-                                    clipBehavior: Clip.antiAlias,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(4),
+                        trailing: Obx(
+                          () =>
+                              (cc.roomContact.value.lightning?.isEmpty ?? true)
+                              ? textSmallGray(context, 'Not set')
+                              : IconButton(
+                                  icon: const Icon(
+                                    CupertinoIcons.arrow_right_circle,
+                                    size: 20,
+                                  ),
+                                  onPressed: () async {
+                                    if (cc
+                                            .roomContact
+                                            .value
+                                            .lightning
+                                            ?.isEmpty ??
+                                        true) {
+                                      return;
+                                    }
+                                    await Get.bottomSheet<void>(
+                                      clipBehavior: Clip.antiAlias,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(4),
+                                        ),
                                       ),
-                                    ),
-                                    PayInvoicePage(
-                                      invoce: cc.roomContact.value.lightning,
-                                      showScanButton: false,
-                                    ),
-                                  );
-                                },
-                              ),
+                                      PayInvoicePage(
+                                        invoce: cc.roomContact.value.lightning,
+                                        showScanButton: false,
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
                       ),
                       SettingsTile.navigation(
                         title: const Text('Security Settings'),

@@ -2,23 +2,8 @@ import 'dart:async' show Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 
-import 'package:keychat/constants.dart';
-import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/models/keychat/profile_request_model.dart';
-import 'package:keychat/models/models.dart';
-import 'package:keychat/nostr-core/nostr.dart';
-import 'package:keychat/page/chat/RoomDraft.dart';
-import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/components.dart';
-import 'package:keychat/service/chatx.service.dart';
-import 'package:keychat/service/contact.service.dart';
-import 'package:keychat/service/file.service.dart';
-import 'package:keychat/service/message.service.dart';
-import 'package:keychat/service/mls_group.service.dart';
-import 'package:keychat/service/room.service.dart';
-import 'package:keychat/service/signal_chat.service.dart';
-import 'package:keychat/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -27,6 +12,21 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat/constants.dart';
+import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/models/keychat/profile_request_model.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/nostr-core/nostr.dart';
+import 'package:keychat/page/chat/RoomDraft.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/service/chatx.service.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -41,6 +41,14 @@ const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
 
+enum NIPChatType {
+  common,
+  nip04,
+  nip17,
+  signal,
+  mls,
+}
+
 class ChatController extends GetxController {
   ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
@@ -50,6 +58,7 @@ class ChatController extends GetxController {
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
+  RxString nipChatType = NIPChatType.common.name.obs; // encrypt type of room
 
   Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
@@ -272,14 +281,14 @@ class ChatController extends GetxController {
     textEditingController.clear();
     try {
       MsgReply? reply;
-
-      if (inputReplys.isNotEmpty) {
+      final sourceMessage = inputReplys.firstOrNull;
+      if (sourceMessage != null) {
         reply = MsgReply()
-          ..content = inputReplys.first.realMessage ?? inputReplys.first.content
-          ..user = inputReplys.first.fromContact?.name ?? '';
+          ..content = sourceMessage.realMessage ?? sourceMessage.content
+          ..user = sourceMessage.fromContact?.name ?? '';
         // if it is not text, show media type name
-        if (inputReplys.first.mediaType != MessageMediaType.text) {
-          reply.id = inputReplys.first.msgid;
+        if (sourceMessage.mediaType != MessageMediaType.text) {
+          reply.id = sourceMessage.msgid;
         }
       }
       if (GetPlatform.isMobile) {
@@ -487,31 +496,10 @@ class ChatController extends GetxController {
       final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        await Get.dialog<void>(
-          CupertinoAlertDialog(
-            title: const Text('Deprecated Encryption'),
-            content: const Text('''
-Your friends uses a deprecated encryption method-NIP04.
-Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
-'''),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('OK'),
-              ),
-              CupertinoDialogAction(
-                child: const Text('Share One-Time Link'),
-                onPressed: () async {
-                  Get.back<void>();
-                  await showMyQrCode(
-                    Get.context!,
-                    roomObs.value.getIdentity(),
-                    true,
-                  );
-                },
-              ),
-            ],
-          ),
+        nipChatType.value = NIPChatType.nip04.name;
+        await RoomUtil.deprecatedEncryptedDialog(
+          roomObs.value,
+          NIPChatType.nip04,
         );
       }
     }
@@ -523,34 +511,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
     if (roomObs.value.type == RoomType.common &&
         roomObs.value.encryptMode != EncryptMode.signal) {
-      final myLastMessage = messages.firstWhereOrNull((msg) => msg.isMeSend);
       final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (myLastMessage == null || hisLastMessage == null) return;
+      if (hisLastMessage == null) return;
       if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
-          myLastMessage.encryptType == MessageEncryptType.nip17) {
-        await Get.dialog<void>(
-          CupertinoAlertDialog(
-            title: const Text('Start a Private Chat'),
-            content: const Text('''
-The current message encryption mode uses the NIP17 protocol. 
-Add as a friend and start the signal protocol chat
-'''),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                child: const Text('Start Private Chat'),
-                onPressed: () async {
-                  Get.back<void>();
-                  await SignalChatService.instance.resetSignalSession(
-                    roomObs.value,
-                  );
-                },
-              ),
-            ],
-          ),
+          !hisLastMessage.isSystem) {
+        nipChatType.value = NIPChatType.nip17.name;
+        await RoomUtil.deprecatedEncryptedDialog(
+          roomObs.value,
+          NIPChatType.nip17,
         );
       }
     }
@@ -603,7 +571,6 @@ Add as a friend and start the signal protocol chat
                   roomObs.value,
                   xfile!,
                   MessageMediaType.image,
-                  true,
                 );
                 Get.back<void>();
               } finally {
@@ -645,7 +612,7 @@ Add as a friend and start the signal protocol chat
         roomObs.value,
         xfile,
         MessageMediaType.video,
-        true,
+        compress: true,
       );
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
@@ -707,6 +674,7 @@ Add as a friend and start the signal protocol chat
   }
 
   void setRoom(Room newRoom) {
+    _setRoomChatType();
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
@@ -925,7 +893,28 @@ Add as a friend and start the signal protocol chat
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
+  void _setRoomChatType() {
+    if (roomObs.value.type == RoomType.common ||
+        roomObs.value.type == RoomType.bot) {
+      if (roomObs.value.encryptMode == EncryptMode.signal) {
+        nipChatType.value = NIPChatType.signal.name;
+        return;
+      }
+      return;
+    }
+    if (roomObs.value.isMLSGroup) {
+      nipChatType.value = NIPChatType.mls.name;
+      return;
+    }
+
+    if (roomObs.value.isSendAllGroup) {
+      nipChatType.value = NIPChatType.signal.name;
+      return;
+    }
+  }
+
   Future<void> _initRoom() async {
+    _setRoomChatType();
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
@@ -1071,11 +1060,11 @@ Add as a friend and start the signal protocol chat
     }
 
     final fileFormats = [
+      (Formats.gif, MessageMediaType.image),
       (Formats.png, MessageMediaType.image),
       (Formats.jpeg, MessageMediaType.image),
       (Formats.webp, MessageMediaType.image),
       (Formats.svg, MessageMediaType.image),
-      (Formats.gif, MessageMediaType.image),
       (Formats.tiff, MessageMediaType.image),
       (Formats.bmp, MessageMediaType.image),
       (Formats.ico, MessageMediaType.image),
@@ -1126,7 +1115,7 @@ Add as a friend and start the signal protocol chat
         final mediaType = fileFormats[i].$2;
         final canProcess = reader.canProvide(format);
         if (canProcess) {
-          logger.d('Clipboard can provide: $format');
+          logger.d('Clipboard can provide: $format, $mediaType');
           await _readFromStream(
             reader,
             format,
@@ -1271,7 +1260,6 @@ Add as a friend and start the signal protocol chat
               roomObs.value,
               xfile,
               type,
-              compress,
             );
           } finally {
             _isUploading = false;
@@ -1302,7 +1290,6 @@ Add as a friend and start the signal protocol chat
                       roomObs.value,
                       xfile,
                       MessageMediaType.image,
-                      true,
                     );
                     Get.back<void>();
                   } finally {
@@ -1328,5 +1315,162 @@ Add as a friend and start the signal protocol chat
   Future<void> loadFromMessageId(int messageId) async {
     messages.clear();
     await loadAllChat(searchMsgIndex: messageId);
+  }
+
+  Future<void> sendGiphyMessage(String gifUrl) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
+    _isUploading = true;
+    try {
+      EasyLoading.show(status: 'Downloading GIF...');
+      // Download GIF from URL
+      final dio = Dio();
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'giphy_$timestamp.gif';
+      final filePath = '${tempDir.path}/$fileName';
+      // Download the file
+      await dio.download(
+        gifUrl,
+        filePath,
+        options: Options(
+          responseType: ResponseType.bytes,
+        ),
+        onReceiveProgress: (int received, int total) {
+          if (total != -1) {
+            final progress = (received / total * 100).toStringAsFixed(0);
+            EasyLoading.showProgress(
+              received / total * 0.5,
+              status: 'Downloading GIF... $progress%',
+            );
+          }
+        },
+      );
+
+      EasyLoading.showProgress(0.6, status: 'Encrypting and Uploading...');
+
+      // Create XFile from downloaded file
+      final xfile = XFile(
+        filePath,
+        mimeType: 'image/gif',
+        name: fileName,
+      );
+
+      // Use existing upload logic
+      await FileService.instance.handleSendMediaFile(
+        roomObs.value,
+        xfile,
+        MessageMediaType.image,
+      );
+
+      hideAdd.value = true; // close features section
+      EasyLoading.dismiss();
+    } catch (e, s) {
+      EasyLoading.dismiss();
+      final msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg, duration: const Duration(seconds: 3));
+      logger.e('sendGiphyMessage failed', error: e, stackTrace: s);
+    } finally {
+      _isUploading = false;
+    }
+  }
+
+  // emoji
+  Future<Set<String>> getRecentEmojis() async {
+    final list = Storage.getStringList(StorageKeyString.recentEmojis);
+    return Set.from(list.reversed);
+  }
+
+  Future<SendMessageResponse> _sendReply(
+    Message message,
+    String content,
+  ) async {
+    if (message.isMeSend) {
+      message.fromContact = FromContact(
+        roomObs.value.myIdPubkey,
+        roomObs.value.getIdentity().displayName,
+      );
+    } else {
+      var senderName = roomObs.value.getRoomName();
+      if (roomObs.value.isSendAllGroup || roomObs.value.isMLSGroup) {
+        senderName = getContactByPubkey(message.idPubkey).displayName;
+      }
+      message.fromContact = FromContact(message.idPubkey, senderName);
+    }
+    final reply = MsgReply()
+      ..content = message.realMessage ?? message.content
+      ..user = message.fromContact?.name ?? '';
+    // if it is not text, show media type name
+    if (message.mediaType != MessageMediaType.text) {
+      reply.id = message.msgid;
+    }
+    return RoomService.instance.sendMessage(
+      roomObs.value,
+      content,
+      reply: reply,
+    );
+  }
+
+  Future<void> handleEmojiReact(Message message, String emoji) async {
+    // if (roomObs.value.isSendAllGroup) {
+    await _sendReply(message, emoji);
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
+    return;
+    // }
+
+    // try {
+    //   await saveRecentEmoji(emoji);
+    //   final myDisplayName = roomObs.value.type != RoomType.group
+    //       ? roomObs.value.getIdentity().displayName
+    //       : getContactByPubkey(message.idPubkey).displayName;
+    //   final reply = MsgReply()
+    //     ..id = message.msgid
+    //     ..user = myDisplayName
+    //     ..content = emoji;
+    //   final result = await RoomService.instance.sendMessage(
+    //     roomObs.value,
+    //     emoji,
+    //     reply: reply,
+    //     mediaType: MessageMediaType.messageReaction,
+    //   );
+    //   if (result.message == null) {
+    //     throw Exception('Send reaction failed');
+    //   }
+    //   logger.d('new message id: ${result.message?.id}');
+    //   await MessageService.instance.addReactionToMessage(
+    //     sourceMessage: message,
+    //     emoji: emoji,
+    //     replyMessage: result.message!,
+    //     room: roomObs.value,
+    //   );
+    //   if (Get.isBottomSheetOpen ?? false) {
+    //     Get.back<void>();
+    //   }
+    // } catch (e, s) {
+    //   logger.e('emoji react error', error: e, stackTrace: s);
+    //   EasyLoading.showError('Failed to send reaction: $e');
+    //   return;
+    // }
+  }
+
+  Future<void> saveRecentEmoji(String emoji) async {
+    final recentEmojis = await getRecentEmojis();
+    recentEmojis
+      ..remove(emoji)
+      ..add(emoji);
+    final list = recentEmojis.toList();
+    if (list.length > 10) {
+      list.removeAt(0);
+    }
+    await Storage.setStringList(
+      StorageKeyString.recentEmojis,
+      list,
+    );
   }
 }

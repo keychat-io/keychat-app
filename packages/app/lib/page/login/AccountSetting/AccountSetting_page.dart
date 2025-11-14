@@ -251,7 +251,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               await IdentityService.instance.updateIdentity(
                                 controller.identity.value,
                               );
-                              NotifyService.syncPubkeysToServer();
+                              NotifyService.instance.syncPubkeysToServer();
                               Get.find<WebsocketService>().start();
                               controller.identity.refresh();
                               Get.find<HomeController>().loadRoomList(
@@ -266,11 +266,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           leading: const Icon(CupertinoIcons.qrcode),
                           title: const Text('One-Time Link'),
                           onPressed: (context) async {
-                            await showMyQrCode(
-                              context,
-                              controller.identity.value,
-                              true,
-                            );
+                            await showMyQrCode(controller.identity.value);
                           },
                         ),
                         SettingsTile.navigation(

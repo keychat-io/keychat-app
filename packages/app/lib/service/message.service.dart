@@ -1,5 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat/bot/bot_server_message_model.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
@@ -101,11 +102,12 @@ class MessageService {
             Get.closeAllSnackbars();
           } catch (e) {}
         }
+        final roomName = room.getRoomName();
         Get.snackbar(
-          room.getRoomName(),
+          roomName,
           content,
           titleText: Text(
-            room.getRoomName(),
+            roomName,
             style: Theme.of(Get.context!).textTheme.titleMedium,
           ),
           messageText: Text(
@@ -190,7 +192,13 @@ $content'''
       for (var i = 0; i < cc.messages.length; i++) {
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
-          cc.messages.refresh();
+          EasyDebounce.debounce(
+            'refreshMessageInPage${message.id}',
+            const Duration(milliseconds: 100),
+            () {
+              cc.messages.refresh();
+            },
+          );
           break;
         }
       }
@@ -666,5 +674,24 @@ $content'''
       m.sent = SendStatusType.success;
       await updateMessageAndRefresh(m);
     }
+  }
+
+  Future<void> addReactionToMessage({
+    required Message sourceMessage,
+    required String emoji,
+    required Message replyMessage,
+    required Room room,
+  }) async {
+    final message = await MessageService.instance.getMessageById(
+      sourceMessage.id,
+    );
+    if (message == null) return;
+    final react = {
+      'eventId': replyMessage.msgid,
+      'pubkey': replyMessage.idPubkey,
+      'emoji': emoji,
+    };
+    message.reactionMessages = [...message.reactionMessages, jsonEncode(react)];
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 }

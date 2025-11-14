@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode;
 
+import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/models/db_provider.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
@@ -17,14 +20,20 @@ import 'package:keychat/service/message_retry.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/material.dart' hide ConnectionState;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 class WebsocketService extends GetxService {
-  RelayService rs = RelayService.instance;
+  WebsocketService(List<Relay> relays) {
+    logger.i('start init websocket service');
+    mainRelayStatus.value = RelayStatusEnum.connecting.name;
+    unawaited(start(relays));
+    final activeCount = relays.where((element) => element.active).length;
+    if (activeCount == 0) {
+      mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
+    }
+  }
+
   NostrAPI nostrAPI = NostrAPI.instance;
   RxString mainRelayStatus = RelayStatusEnum.init.name.obs;
   RxInt relayConnectedCount = 0.obs;
@@ -235,18 +244,6 @@ class WebsocketService extends GetxService {
       case Disconnecting _:
         return EventSendEnum.relayDisconnected;
     }
-  }
-
-  Future<WebsocketService> init() async {
-    logger.i('start init websocket service');
-    mainRelayStatus.value = RelayStatusEnum.connecting.name;
-    final list = await rs.initRelay();
-    start(list);
-    final activeCount = list.where((element) => element.active).length;
-    if (activeCount == 0) {
-      mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
-    }
-    return this;
   }
 
   void listenPubkey(
@@ -705,6 +702,17 @@ class WebsocketService extends GetxService {
   void updateRelayPong(String relay) {
     if (channels[relay] != null) {
       channels[relay]!.pong = true;
+    }
+  }
+
+  Future<void> reinit() async {
+    final relays = await RelayService.instance.initRelay();
+    logger.i('start init websocket service');
+    mainRelayStatus.value = RelayStatusEnum.connecting.name;
+    unawaited(start(relays));
+    final activeCount = relays.where((element) => element.active).length;
+    if (activeCount == 0) {
+      mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
     }
   }
 }

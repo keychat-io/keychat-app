@@ -2,6 +2,14 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.36.9+6469
+- feat: Send emoji reactions and GIFs.
+- feat: Show encryption type in chat page
+- feat: Make links within the text clickable.
+- fix: eCash proofs pending
+- fix: Notifications cannot be enabled again after being disabled.
+- fix: libisar.so not found on Linux platform
+
 ## 1.36.4+6457
 - Replaced the Cashu SDK with the official implementation.
 - Local profile solution, supporting sending Profiles within chats.

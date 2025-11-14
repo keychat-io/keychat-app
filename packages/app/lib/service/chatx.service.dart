@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show jsonDecode;
 import 'dart:typed_data' show Uint8List;
 
@@ -11,6 +12,7 @@ import 'package:keychat/models/signal_id.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/notify.service.dart';
+import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/signalId.service.dart';
 import 'package:keychat/service/websocket.service.dart';
@@ -52,7 +54,7 @@ class ChatxService extends GetxService {
         needListen,
         kinds: [EventKinds.nip04],
       );
-      NotifyService.addPubkeys(needListen);
+      NotifyService.instance.addPubkeys(needListen);
     }
     return newKeys;
   }
@@ -271,6 +273,8 @@ class ChatxService extends GetxService {
     logger.i(
       'Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms',
     );
+    final relays = await RelayService.instance.initRelay();
+    Get.put(WebsocketService(relays), permanent: true);
     return this;
   }
 

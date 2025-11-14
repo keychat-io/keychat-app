@@ -47,4 +47,5 @@ const _$GroupTypeEnumMap = {
   GroupType.sendAll: 'sendAll',
   GroupType.kdf: 'kdf',
   GroupType.mls: 'mls',
+  GroupType.common: 'common',
 };

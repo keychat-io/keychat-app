@@ -1,3 +1,9 @@
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:badges/badges.dart' as badges;
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/desktop/DesktopController.dart';
@@ -8,12 +14,6 @@ import 'package:keychat/page/new_friends_rooms.dart';
 import 'package:keychat/page/search_page.dart';
 import 'package:keychat/page/widgets/RelayStatus.dart';
 import 'package:keychat/service/websocket.service.dart';
-import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:badges/badges.dart' as badges;
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class RoomList extends GetView<HomeController> {
   const RoomList({super.key});
@@ -197,6 +197,9 @@ class RoomList extends GetView<HomeController> {
                       await RoomService.instance.markAllRead(
                         room,
                       );
+                      if (GetPlatform.isMobile) {
+                        Utils.hideKeyboard(Get.context!);
+                      }
                     },
                     onSecondaryTapDown: (e) {
                       onSecondaryTapDown(e, room, context);

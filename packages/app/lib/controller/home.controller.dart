@@ -194,7 +194,7 @@ class HomeController extends GetxController
           () {
             NostrAPI.instance.okCallback.clear();
             Utils.initLoggger(Utils.appFolder);
-            NotifyService.syncPubkeysToServer(checkUpload: true);
+            NotifyService.instance.syncPubkeysToServer(checkUpload: true);
             Get.find<MultiWebviewController>().checkCurrentControllerAlive();
           },
         );
@@ -526,9 +526,9 @@ class HomeController extends GetxController
     if (mys.isNotEmpty) {
       Get.find<EcashController>().initIdentity(mys[0]);
 
-      // init notify service when identity exists
+      // init notify service when identity exists (without requesting permission on startup)
       Future.delayed(const Duration(seconds: 3)).then((_) {
-        NotifyService.init().catchError((e, s) {
+        NotifyService.instance.init().catchError((Object e, StackTrace s) {
           logger.e('initNotifycation error', error: e, stackTrace: s);
         });
       });

@@ -3,10 +3,17 @@ import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
 import 'dart:ui' show ImageFilter;
 
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:giphy_get/giphy_get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
@@ -17,13 +24,6 @@ import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-
-import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -54,14 +54,9 @@ class _ChatPage2State extends State<ChatPage> {
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(
       configs: [
-        LinkConfig(
-          onTap: (url) async {
-            Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>().launchWebview(
-              initUrl: url,
-            );
-          },
-          style: const TextStyle(
+        const LinkConfig(
+          onTap: RoomUtil.tapLink,
+          style: TextStyle(
             color: Colors.white,
             decoration: TextDecoration.underline,
             decorationColor: Colors.white,
@@ -76,14 +71,9 @@ class _ChatPage2State extends State<ChatPage> {
     );
     markdownLightConfig = MarkdownConfig.defaultConfig.copy(
       configs: [
-        LinkConfig(
-          onTap: (url) async {
-            Utils.hideKeyboard(Get.context!);
-            await Get.find<MultiWebviewController>().launchWebview(
-              initUrl: url,
-            );
-          },
-          style: const TextStyle(
+        const LinkConfig(
+          onTap: RoomUtil.tapLink,
+          style: TextStyle(
             color: Colors.blue,
             decoration: TextDecoration.none,
           ),
@@ -101,9 +91,7 @@ class _ChatPage2State extends State<ChatPage> {
           appBar: AppBar(
             scrolledUnderElevation: 0,
             elevation: 0,
-            backgroundColor: Get.isDarkMode
-                ? const Color(0xFF000000)
-                : const Color(0xffededed),
+            backgroundColor: _getAppBarBackgroundColor(),
             centerTitle: true,
             title: Obx(
               () => Wrap(
@@ -126,6 +114,13 @@ class _ChatPage2State extends State<ChatPage> {
               ),
             ),
             actions: [
+              Obx(
+                () => RoomUtil.buildNipChatTypeBadge(
+                  controller.roomObs.value,
+                  controller.nipChatType.value,
+                  context,
+                ),
+              ),
               Obx(
                 () => controller.roomObs.value.status != RoomStatus.approving
                     ? IconButton(
@@ -316,16 +311,55 @@ class _ChatPage2State extends State<ChatPage> {
           _getReplyWidget(),
           Container(
             padding: EdgeInsets.only(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              top: controller.inputReplys.isNotEmpty ? 0 : 10,
+              bottom: 8,
+              top: controller.inputReplys.isNotEmpty ? 0 : 4,
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
-                if (controller.botCommands.isNotEmpty)
-                  botMenuWidget(controller, context),
+                // if (controller.botCommands.isNotEmpty)
+                //   botMenuWidget(controller, context),
+                IconButton(
+                  iconSize: 28,
+                  padding: EdgeInsets.zero,
+                  onPressed: () async {
+                    Utils.hideKeyboard(context);
+                    final giphy = dotenv.get('GIPHY');
+                    if (giphy.isEmpty) {
+                      await EasyLoading.showInfo(
+                        'GIPHY API key is not configured.',
+                      );
+                      return;
+                    }
+                    try {
+                      final gif = await GiphyGet.getGif(
+                        context: context,
+                        apiKey: giphy,
+                        randomID: Utils.randomString(8),
+                        loadingWidget: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                        failedWidget: ColoredBox(
+                          color: Theme.of(context).cardColor,
+                          child: const Center(
+                            child: Text('Load Failed'),
+                          ),
+                        ),
+                        tabBottomBuilder: (context) => Container(),
+                      );
+                      logger.d('Selected GIF: $gif');
+                      if (gif == null) return;
+
+                      final imageUrl =
+                          gif.images?.fixedWidthDownsampled?.url ??
+                          gif.images?.fixedWidth.url;
+                      if (imageUrl == null) return;
+                      await controller.sendGiphyMessage(imageUrl);
+                    } catch (e) {
+                      logger.e(e);
+                    }
+                  },
+                  icon: const Icon(Icons.emoji_emotions_outlined),
+                ),
                 Expanded(
                   child: KeyboardListener(
                     focusNode: controller.keyboardFocus,
@@ -336,7 +370,7 @@ class _ChatPage2State extends State<ChatPage> {
                             !HardwareKeyboard.instance.isMetaPressed &&
                             !HardwareKeyboard.instance.isShiftPressed &&
                             !HardwareKeyboard.instance.isAltPressed) {
-                          controller.handleSubmitted();
+                          await controller.handleSubmitted();
                           return;
                         }
 
@@ -347,7 +381,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 .contains(LogicalKeyboardKey.metaRight);
                         if (event.logicalKey == LogicalKeyboardKey.keyV &&
                             isCmdPressed) {
-                          controller.handlePasteboardFile();
+                          await controller.handlePasteboardFile();
                           return;
                         }
                         final isShiftPressed =
@@ -496,34 +530,24 @@ class _ChatPage2State extends State<ChatPage> {
                           controller.hideAdd.value = true;
                         },
                         onChanged: handleOnChanged,
-                        onFieldSubmitted: (c) {
-                          controller.handleSubmitted();
+                        onFieldSubmitted: (c) async {
+                          await controller.handleSubmitted();
                         },
                         enabled: true,
                       ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, bottom: 5),
-                  child: GestureDetector(
-                    onTap: handleMessageSend,
-                    child: controller.inputText.value.isNotEmpty
-                        ? const Icon(
-                            weight: 300,
-                            size: 28,
-                            CupertinoIcons.arrow_up_circle_fill,
-                            color: KeychatGlobal.primaryColor,
-                          )
-                        : Icon(
-                            size: 28,
-                            CupertinoIcons.add_circled,
-                            weight: 300,
-                            color: Theme.of(
-                              context,
-                            ).iconTheme.color?.withAlpha(155),
-                          ),
-                  ),
+                IconButton(
+                  iconSize: 28,
+                  padding: EdgeInsets.zero,
+                  onPressed: handleMessageSend,
+                  icon: controller.inputText.value.isNotEmpty
+                      ? const Icon(
+                          CupertinoIcons.arrow_up_circle_fill,
+                          color: KeychatGlobal.primaryColor,
+                        )
+                      : const Icon(CupertinoIcons.add_circled),
                 ),
               ],
             ),
@@ -852,7 +876,7 @@ class _ChatPage2State extends State<ChatPage> {
                       contact: rm.contact,
                     ),
                     title: Text(
-                      rm.name,
+                      rm.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1208,5 +1232,15 @@ class _ChatPage2State extends State<ChatPage> {
         child: const Text('Send Greeting'),
       ),
     );
+  }
+
+  Color _getAppBarBackgroundColor() {
+    final nipType = controller.nipChatType.value;
+    if (nipType == NIPChatType.nip04.name) {
+      return Get.isDarkMode ? const Color(0xFF3D2800) : const Color(0xFFFFF3CD);
+    } else if (nipType == NIPChatType.nip17.name) {
+      return Get.isDarkMode ? const Color(0xFF1A3A52) : const Color(0xFFD1ECF1);
+    }
+    return Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed);
   }
 }

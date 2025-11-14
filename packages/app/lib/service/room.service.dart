@@ -171,7 +171,7 @@ class RoomService extends BaseChatService {
     if (listenPubkey != null) {
       if (roomType == RoomType.group &&
           (groupType == GroupType.shareKey || groupType == GroupType.kdf)) {
-        NotifyService.removePubkeys([listenPubkey]);
+        NotifyService.instance.removePubkeys([listenPubkey]);
         if (websocketInited) {
           Get.find<WebsocketService>().removePubkeyFromSubscription(
             listenPubkey,
@@ -186,7 +186,7 @@ class RoomService extends BaseChatService {
             mlsListenPubkey,
           );
         }
-        NotifyService.removePubkeys([mlsListenPubkey]);
+        NotifyService.instance.removePubkeys([mlsListenPubkey]);
       }
       final identity = await IdentityService.instance.getIdentityById(
         room.identityId,
@@ -811,6 +811,7 @@ class RoomService extends BaseChatService {
     MsgReply? reply,
   }) async {
     await checkRoomStatus(room);
+
     switch (room.groupType) {
       case GroupType.mls:
         return MlsGroupService.instance.sendMessage(
@@ -831,6 +832,9 @@ class RoomService extends BaseChatService {
       case GroupType.shareKey:
       case GroupType.kdf:
         throw Exception('not support');
+      case GroupType.common:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 
@@ -952,9 +956,9 @@ class RoomService extends BaseChatService {
         }
         var res = false;
         if (value) {
-          res = await NotifyService.removePubkeys(pubkeys);
+          res = await NotifyService.instance.removePubkeys(pubkeys);
         } else {
-          res = await NotifyService.addPubkeys(pubkeys);
+          res = await NotifyService.instance.addPubkeys(pubkeys);
         }
         if (!res) {
           EasyLoading.showError('Failed, Please try again');

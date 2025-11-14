@@ -543,7 +543,7 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                   await FirebaseMessaging.instance.deleteToken();
                   // ignore: empty_catches
                 } catch (e) {}
-                NotifyService.clearAll();
+                NotifyService.instance.clearAll();
                 if (kReleaseMode) {
                   EasyLoading.showSuccess('Logout successfully, App will exit');
                   await Future.delayed(const Duration(seconds: 2));

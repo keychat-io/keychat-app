@@ -142,7 +142,7 @@ const ContactSchema = CollectionSchema(
   getId: _contactGetId,
   getLinks: _contactGetLinks,
   attach: _contactAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _contactEstimateSize(

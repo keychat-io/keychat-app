@@ -86,7 +86,7 @@ const RoomMemberSchema = CollectionSchema(
   getId: _roomMemberGetId,
   getLinks: _roomMemberGetLinks,
   attach: _roomMemberAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _roomMemberEstimateSize(
@@ -108,7 +108,12 @@ int _roomMemberEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.name.length * 3;
+  {
+    final value = object.name;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -139,7 +144,7 @@ RoomMember _roomMemberDeserialize(
 ) {
   final object = RoomMember(
     idPubkey: reader.readString(offsets[3]),
-    name: reader.readString(offsets[6]),
+    name: reader.readStringOrNull(offsets[6]),
     roomId: reader.readLong(offsets[7]),
     status:
         _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
@@ -174,7 +179,7 @@ P _roomMemberDeserializeProp<P>(
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
       return (reader.readLong(offset)) as P;
     case 8:
@@ -1240,8 +1245,24 @@ extension RoomMemberQueryFilter
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'name'),
+      );
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'name'),
+      );
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1256,7 +1277,7 @@ extension RoomMemberQueryFilter
   }
 
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1273,7 +1294,7 @@ extension RoomMemberQueryFilter
   }
 
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1290,8 +1311,8 @@ extension RoomMemberQueryFilter
   }
 
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -2023,7 +2044,7 @@ extension RoomMemberQueryProperty
     });
   }
 
-  QueryBuilder<RoomMember, String, QQueryOperations> nameProperty() {
+  QueryBuilder<RoomMember, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
     });
@@ -2062,7 +2083,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) =>
     RoomMember(
         idPubkey: json['idPubkey'] as String,
         roomId: (json['roomId'] as num).toInt(),
-        name: json['name'] as String,
+        name: json['name'] as String?,
         status:
             $enumDecodeNullable(_$UserStatusTypeEnumMap, json['status']) ??
             UserStatusType.invited,
@@ -2080,7 +2101,7 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
     <String, dynamic>{
       'idPubkey': instance.idPubkey,
       'roomId': instance.roomId,
-      'name': instance.name,
+      'name': ?instance.name,
       'createdAt': ?instance.createdAt?.toIso8601String(),
       'updatedAt': ?instance.updatedAt?.toIso8601String(),
       'isAdmin': instance.isAdmin,

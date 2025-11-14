@@ -1,12 +1,10 @@
 // ignore_for_file: depend_on_referenced_packages
-
-import 'package:keychat/page/components.dart';
-import 'package:keychat/utils.dart' show formatTime;
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/utils.dart' show formatTime;
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/Bills/transactions_controller.dart';
@@ -179,15 +177,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return ListTile(
       dense: true,
       onTap: () async {
-        if (transaction.status == TransactionStatus.expired) {
-          EasyLoading.showToast('It is expired');
-          return;
-        }
-        if (transaction.status == TransactionStatus.failed) {
-          EasyLoading.showToast('It is failed');
-          return;
-        }
-
         final originalStatus = transaction.status;
 
         if (isLightning) {

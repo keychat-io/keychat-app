@@ -922,22 +922,27 @@ class FileService {
     }
 
     if (FileService.instance.isImageFile(xfile.path)) {
-      return handleSendMediaFile(room, xfile, MessageMediaType.image, true);
+      return handleSendMediaFile(room, xfile, MessageMediaType.image);
     }
 
     if (FileService.instance.isVideoFile(xfile.path)) {
-      return handleSendMediaFile(room, xfile, MessageMediaType.video, true);
+      return handleSendMediaFile(
+        room,
+        xfile,
+        MessageMediaType.video,
+        compress: true,
+      );
     }
-    handleSendMediaFile(room, xfile, MessageMediaType.file, false);
+    await handleSendMediaFile(room, xfile, MessageMediaType.file);
     return null;
   }
 
   Future<Message?> handleSendMediaFile(
     Room room,
     XFile xfile,
-    MessageMediaType mediaType,
-    bool compress,
-  ) async {
+    MessageMediaType mediaType, {
+    bool compress = false,
+  }) async {
     try {
       final statusMessage = mediaType != MessageMediaType.image
           ? 'Encrypting and Uploading...'

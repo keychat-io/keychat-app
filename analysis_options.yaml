@@ -12,6 +12,7 @@ analyzer:
   errors:
     # invalid_annotation_target: warning
     argument_type_not_assignable: warning
+    unnecessary_statements: error
   exclude: [
       packages/**/*.g.dart
       build/**,

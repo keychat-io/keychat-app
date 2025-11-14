@@ -60,7 +60,7 @@ class LightningUtils {
         return;
       }
       logger.d('Checking status: ${tx.id}');
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 3));
     }
 
     logger.d('Check stopped for transaction: ${tx.id}');

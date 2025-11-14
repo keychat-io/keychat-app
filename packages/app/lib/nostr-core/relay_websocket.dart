@@ -1,4 +1,6 @@
+import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/relay.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
 import 'package:keychat/service/identity.service.dart';
@@ -154,7 +156,12 @@ class RelayWebsocket {
       'connectSuccess:${relay.url}',
       const Duration(seconds: 3),
       () async {
-        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
+        final identities = Get.find<HomeController>().allIdentities.values
+            .toList();
+        await MlsGroupService.instance.uploadKeyPackages(
+          toRelay: relay.url,
+          identities: identities,
+        );
       },
     );
     // nwc reconnect

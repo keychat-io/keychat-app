@@ -24,6 +24,10 @@
     <string>public.app-category.social-networking</string>
     <key>NSCameraUsageDescription</key>
     <string>This app needs camera access to scan barcodes.</string>
+    <key>FirebaseMessagingAutoInitEnabled</key>
+    <true/>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <true/>
     <key>CFBundleURLTypes</key>
     <array>
       <dict>

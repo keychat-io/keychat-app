@@ -112,12 +112,13 @@ class IdentityService {
         await homeController.createAIIdentity([iden], KeychatGlobal.bot);
         homeController.loadAppRemoteConfig();
 
-        // init notifycation
-        NotifyService.init()
+        // init notification (request permission for first account)
+        NotifyService.instance
+            .init(requestPermission: true)
             .then((c) {
-              NotifyService.addPubkeys([account.pubkey]);
+              NotifyService.instance.addPubkeys([account.pubkey]);
             })
-            .catchError((e, s) {
+            .catchError((Object e, StackTrace s) {
               logger.e('initNotifycation error', error: e, stackTrace: s);
             });
         RelayService.instance.initRelay();
@@ -125,7 +126,7 @@ class IdentityService {
         logger.e(e.toString(), error: e, stackTrace: s);
       }
     } else {
-      NotifyService.addPubkeys([account.pubkey]);
+      NotifyService.instance.addPubkeys([account.pubkey]);
     }
     MlsGroupService.instance.initIdentities([iden]).then((_) {
       MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
@@ -162,7 +163,7 @@ class IdentityService {
       }
     });
 
-    NotifyService.addPubkeys([hexPubkey]);
+    NotifyService.instance.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]).then((_) {
       MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
     });
@@ -199,7 +200,7 @@ class IdentityService {
       }
     });
 
-    NotifyService.addPubkeys([hexPubkey]);
+    NotifyService.instance.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]).then((_) {
       MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
     });
@@ -263,7 +264,7 @@ class IdentityService {
       }
     });
     Get.find<HomeController>().loadRoomList(init: true);
-    NotifyService.syncPubkeysToServer();
+    NotifyService.instance.syncPubkeysToServer();
   }
 
   Future<void> deleteMykey(List<int> ids) async {
@@ -552,6 +553,7 @@ class IdentityService {
 
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();
+    Utils.removeAvatarCacheByPubkey(identity.secp256k1PKHex);
     Get.find<HomeController>().tabBodyDatas.refresh();
     return identity;
   }

@@ -54,6 +54,7 @@ class StorageKeyString {
   static const String biometricsAuthTime = 'biometricsAuthTime';
 
   static const String ecashDBVersion = 'ecashDBVersion';
+  static const String recentEmojis = 'recentEmojis';
 }
 
 class Storage {
@@ -95,10 +96,10 @@ class Storage {
 
   static Future<void> _repairPreferences(String appDataPath) async {
     final List<int> contents = await File(appDataPath).readAsBytes();
-    final contentsGrowable = List<int>.from(contents); // Make the list growable
-
-    // Remove any NUL characters
-    contentsGrowable.removeWhere((item) => item == 0);
+    final contentsGrowable =
+        List<int>.from(contents) // Make the list growable
+          // Remove any NUL characters
+          ..removeWhere((item) => item == 0);
 
     await File(appDataPath).writeAsBytes(contentsGrowable);
   }

@@ -74,7 +74,7 @@ const ContactReceiveKeySchema = CollectionSchema(
   getId: _contactReceiveKeyGetId,
   getLinks: _contactReceiveKeyGetLinks,
   attach: _contactReceiveKeyAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _contactReceiveKeyEstimateSize(

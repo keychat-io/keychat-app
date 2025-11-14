@@ -89,7 +89,7 @@ const MykeySchema = CollectionSchema(
   getId: _mykeyGetId,
   getLinks: _mykeyGetLinks,
   attach: _mykeyAttach,
-  version: '3.3.0-dev.3',
+  version: '3.3.0',
 );
 
 int _mykeyEstimateSize(

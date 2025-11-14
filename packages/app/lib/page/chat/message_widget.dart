@@ -1,6 +1,15 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show File;
 
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji_picker;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_json_view/flutter_json_view.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/controller/chat.controller.dart';
@@ -15,23 +24,12 @@ import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/websocket.service.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_json_view/flutter_json_view.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-// ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
-  // late MarkdownStyleSheet markdownStyleSheet;
-
   MessageWidget({
     required this.myAavtar,
     required this.index,
@@ -62,6 +60,9 @@ class MessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // if (message.mediaType == MessageMediaType.messageReaction) {
+    //   return Text('${message.idPubkey} ${message.content}');
+    // }
     return Column(
       children: [
         if (message.isMeSend) _getMessageContainer() else toTextContainer(),
@@ -314,44 +315,6 @@ class MessageWidget extends StatelessWidget {
           ),
         );
         return;
-
-        // // show resend dialog
-        // Get.dialog(
-        //   CupertinoAlertDialog(
-        //     title: const Text('Resend message'),
-        //     actions: [
-        //       CupertinoDialogAction(
-        //         child: const Text('Cancel'),
-        //         onPressed: () {
-        //           Get.back<void>();
-        //         },
-        //       ),
-        //       if (message.mediaType == MessageMediaType.text)
-        //         CupertinoDialogAction(
-        //           child: const Text('Resend'),
-        //           onPressed: () async {
-        //             Get.back<void>();
-
-        //             if (message.reply != null) {
-        //               Identity identity = Get.find<HomeController>()
-        //                   .allIdentities[cc.roomObs.value.identityId]!;
-        //               message.fromContact = FromContact(
-        //                   identity.secp256k1PKHex, identity.displayName);
-        //               var decodeContent = jsonDecode(message.content);
-        //               message.realMessage = message.reply!.content;
-        //               cc.inputReplys.value = [message];
-        //               cc.hideAdd.value = true;
-        //               cc.inputReplys.refresh();
-        //               cc.textEditingController.text = decodeContent['msg'];
-        //             } else {
-        //               cc.textEditingController.text = message.content;
-        //             }
-        //             cc.chatContentFocus.requestFocus();
-        //           },
-        //         ),
-        //     ],
-        //   ),
-        // );
       },
       icon: const SizedBox(
         child: Icon(
@@ -366,8 +329,8 @@ class MessageWidget extends StatelessWidget {
   Widget _getMessageContainer() {
     final widget = GestureDetector(
       onLongPress: _handleTextLongPress,
-      onSecondaryTapDown: (TapDownDetails e) {
-        _onSecondaryTapDown(Get.context!, e);
+      onSecondaryTapDown: (TapDownDetails e) async {
+        await _onSecondaryTapDown(Get.context!, e);
       },
       child: message.reply == null
           ? RoomUtil.getTextViewWidget(
@@ -500,7 +463,7 @@ class MessageWidget extends StatelessWidget {
       Get.back<void>();
     }
     if (message.eventIds.isEmpty) {
-      EasyLoading.showInfo('Metadata Cleaned');
+      await EasyLoading.showInfo('Metadata Cleaned');
       return;
     }
 
@@ -510,13 +473,28 @@ class MessageWidget extends StatelessWidget {
         message.rawEvents[0],
       );
 
-      // fix message sent status
-      if (message.sent != SendStatusType.success) {
-        final success = ess
-            .where((element) => element.sendStatus == EventSendEnum.success)
+      // fix the message sent status and successRelays
+      // NostrEventStatus may been cleaned
+      if (message.isMeSend) {
+        final sentSuccess = ess
+            .where(
+              (element) =>
+                  !element.isReceive &&
+                  element.sendStatus == EventSendEnum.success,
+            )
             .toList();
-        if (success.isNotEmpty) {
-          message.sent = SendStatusType.success;
+        var needUpdateMessage = false;
+        if (message.successRelays < sentSuccess.length) {
+          message.successRelays = sentSuccess.length;
+          needUpdateMessage = true;
+        }
+        if (message.sent != SendStatusType.success) {
+          if (sentSuccess.isNotEmpty) {
+            message.sent = SendStatusType.success;
+            needUpdateMessage = true;
+          }
+        }
+        if (needUpdateMessage) {
           await MessageService.instance.updateMessageAndRefresh(message);
         }
       }
@@ -836,7 +814,7 @@ class MessageWidget extends StatelessWidget {
                         final thumbail = FileService.instance.getVideoThumbPath(
                           filePath,
                         );
-                        final thumbExists = await File(thumbail).exists();
+                        final thumbExists = File(thumbail).existsSync();
                         if (thumbExists) {
                           await File(thumbail).delete();
                         }
@@ -1240,7 +1218,7 @@ class MessageWidget extends StatelessWidget {
       if (cc.roomObs.value.isSendAllGroup || cc.roomObs.value.isMLSGroup) {
         final rm = cc.getMemberByIdPubkey(message.idPubkey);
         if (rm != null) {
-          senderName = rm.name;
+          senderName = rm.displayName;
         }
       }
       message.fromContact = FromContact(message.idPubkey, senderName);
@@ -1331,6 +1309,19 @@ class MessageWidget extends StatelessWidget {
             children: [
               Icon(CupertinoIcons.reply, size: 18),
               SizedBox(width: 8),
+              Text('Emoji Reaction'),
+            ],
+          ),
+          onTap: () async {
+            await _showMoreEmojis();
+          },
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: const Row(
+            children: [
+              Icon(CupertinoIcons.reply, size: 18),
+              SizedBox(width: 8),
               Text('Reply'),
             ],
           ),
@@ -1372,87 +1363,234 @@ class MessageWidget extends StatelessWidget {
               ),
             ],
           ),
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 100), () {
-              _showDeleteDialog(message);
-            });
+          onTap: () async {
+            await _showDeleteDialog(message);
           },
         ),
       ],
     );
   }
 
+  Future<void> _showMoreEmojis() async {
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
+    await Get.bottomSheet<void>(
+      Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: emoji_picker.EmojiPicker(
+          onEmojiSelected:
+              (
+                emoji_picker.Category? category,
+                emoji_picker.Emoji emoji,
+              ) async {
+                Get.back<void>();
+                await cc.handleEmojiReact(message, emoji.emoji);
+              },
+          config: emoji_picker.Config(
+            emojiViewConfig: emoji_picker.EmojiViewConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+            ),
+            categoryViewConfig: emoji_picker.CategoryViewConfig(
+              recentTabBehavior: emoji_picker.RecentTabBehavior.NONE,
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              iconColorSelected: Theme.of(Get.context!).colorScheme.primary,
+              iconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+              indicatorColor: Theme.of(Get.context!).colorScheme.primary,
+              dividerColor: Theme.of(Get.context!).colorScheme.outline,
+            ),
+            bottomActionBarConfig: emoji_picker.BottomActionBarConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonIconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            searchViewConfig: emoji_picker.SearchViewConfig(
+              backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+              buttonIconColor: Theme.of(
+                Get.context!,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiReactionRow(Set<String> recentEmojis) {
+    final commonEmojis = {
+      ...recentEmojis,
+      '👍',
+      '❤️',
+      '😂',
+      '😮',
+      '😢',
+      '🙏',
+    }.toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: commonEmojis.length,
+                itemBuilder: (context, index) {
+                  final emoji = commonEmojis[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index < commonEmojis.length - 1 ? 12 : 0,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => cc.handleEmojiReact(message, emoji),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            Get.context!,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _showMoreEmojis,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  Get.context!,
+                ).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(
+                Icons.add_circle_outline,
+                color: Theme.of(Get.context!).colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleTextLongPress() async {
     await HapticFeedback.lightImpact();
-    Get.bottomSheet(
+    await Get.bottomSheet<void>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      SettingsList(
-        sections: [
-          SettingsSection(
-            title: Text(
-              '「${message.content}」',
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
+      Scaffold(
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FutureBuilder(
+              future: cc.getRecentEmojis(),
+              builder:
+                  (
+                    context,
+                    AsyncSnapshot<Set<String>> snapshot,
+                  ) {
+                    if (snapshot.hasData) {
+                      return _buildEmojiReactionRow(snapshot.data!);
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+                  },
             ),
-            tiles: [
-              SettingsTile.navigation(
-                title: const Text('Copy'),
-                leading: const Icon(Icons.copy),
-                onPressed: (context) async {
-                  var conent = message.content;
-                  if (message.realMessage != null &&
-                      cc.roomObs.value.type == RoomType.bot) {
-                    conent = message.realMessage!;
-                  }
-                  Clipboard.setData(ClipboardData(text: conent));
-                  EasyLoading.showToast('Copied');
-                  Get.back<void>();
-                },
+            Flexible(
+              child: SettingsList(
+                shrinkWrap: true,
+                sections: [
+                  SettingsSection(
+                    title: Text(
+                      '「${message.content}」',
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    tiles: [
+                      SettingsTile.navigation(
+                        title: const Text('Copy'),
+                        leading: const Icon(Icons.copy),
+                        onPressed: (context) async {
+                          var conent = message.content;
+                          if (message.realMessage != null &&
+                              cc.roomObs.value.type == RoomType.bot) {
+                            conent = message.realMessage!;
+                          }
+                          Clipboard.setData(ClipboardData(text: conent));
+                          EasyLoading.showToast('Copied');
+                          Get.back<void>();
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        onPressed: _handleReply,
+                        leading: const Icon(CupertinoIcons.reply),
+                        title: const Text('Reply'),
+                      ),
+                      if (!message.isSystem &&
+                          (message.mediaType == MessageMediaType.text ||
+                              message.mediaType == MessageMediaType.image ||
+                              message.mediaType == MessageMediaType.video ||
+                              message.mediaType == MessageMediaType.file))
+                        SettingsTile.navigation(
+                          onPressed: _handleForward,
+                          leading: const Icon(
+                            CupertinoIcons.arrowshape_turn_up_right,
+                          ),
+                          title: const Text('Forward'),
+                        ),
+                      SettingsTile.navigation(
+                        leading: const Icon(Icons.code),
+                        onPressed: (_) async {
+                          await _handleShowRawdata();
+                        },
+                        title: const Text('Raw Data'),
+                      ),
+                      SettingsTile.navigation(
+                        leading: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                        ),
+                        onPressed: (BuildContext context) {
+                          Get.back<void>();
+                          _showDeleteDialog(message);
+                        },
+                        title: Text(
+                          'Delete',
+                          style: Theme.of(
+                            Get.context!,
+                          ).textTheme.bodyLarge?.copyWith(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SettingsTile.navigation(
-                onPressed: _handleReply,
-                leading: const Icon(CupertinoIcons.reply),
-                title: const Text('Reply'),
-              ),
-              if (!message.isSystem &&
-                  (message.mediaType == MessageMediaType.text ||
-                      message.mediaType == MessageMediaType.image ||
-                      message.mediaType == MessageMediaType.video ||
-                      message.mediaType == MessageMediaType.file))
-                SettingsTile.navigation(
-                  onPressed: _handleForward,
-                  leading: const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                  title: const Text('Forward'),
-                ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.code),
-                onPressed: (_) async {
-                  await _handleShowRawdata();
-                },
-                title: const Text('Raw Data'),
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(
-                  Icons.delete,
-                  color: Colors.red,
-                ),
-                onPressed: (BuildContext context) {
-                  Get.back<void>();
-                  _showDeleteDialog(message);
-                },
-                title: Text(
-                  'Delete',
-                  style: Theme.of(
-                    Get.context!,
-                  ).textTheme.bodyLarge?.copyWith(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -96,7 +96,7 @@ class ContactService {
     final pubkeys = <String>[...model.receiveKeys, ...model.removeReceiveKeys];
     if (model.receiveKeys.isNotEmpty || model.removeReceiveKeys.isNotEmpty) {
       Get.find<WebsocketService>().removePubkeysFromSubscription(pubkeys);
-      NotifyService.removePubkeys(pubkeys);
+      NotifyService.instance.removePubkeys(pubkeys);
     }
   }
 

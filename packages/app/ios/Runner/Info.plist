@@ -57,7 +57,9 @@
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>FirebaseMessagingAutoInitEnabled</key>
-    <false/>
+    <true/>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <true/>
     <key>FlutterDeepLinkingEnabled</key>
     <false/>
     <key>ITSAppUsesNonExemptEncryption</key>

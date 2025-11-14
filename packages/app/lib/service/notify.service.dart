@@ -1,5 +1,12 @@
 import 'dart:async' show TimeoutException;
 
+import 'package:dio/dio.dart' show Dio, DioException;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/firebase_options.dart';
@@ -7,13 +14,8 @@ import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/websocket.service.dart';
-import 'package:dio/dio.dart' show Dio, DioException;
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:permission_handler/permission_handler.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -30,13 +32,19 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotifyService {
-  static String? fcmToken;
-  static Future<bool> addPubkeys(
+  // Avoid self instance
+  // Avoid self instance
+  NotifyService._();
+  static NotifyService? _instance;
+  static NotifyService get instance => _instance ??= NotifyService._();
+
+  String? fcmToken;
+  Future<bool> addPubkeys(
     List<String> toAddPubkeys, [
     List<String> toRemovePubkeys = const [],
   ]) async {
     if (fcmToken == null) return false;
-    final res = await hasNotifyPermission();
+    final res = await checkAllNotifyPermission();
     if (!res) return false;
     final relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
@@ -58,14 +66,14 @@ class NotifyService {
     return false;
   }
 
-  static Future<String> calculateHash(List<String> array) async {
+  Future<String> calculateHash(List<String> array) async {
     final sortedStrings = List<String>.from(array)..sort();
     final joinedArray = sortedStrings.join();
     return rust_nostr.sha256Hash(data: joinedArray);
   }
 
-  static Future<bool> checkAllNotifyPermission() async {
-    final isGrant = await NotifyService.hasNotifyPermission();
+  Future<bool> checkAllNotifyPermission() async {
+    final isGrant = await isNotifyPermissionGrant();
     if (!isGrant) return false;
 
     final enable = Get.find<HomeController>().notificationStatus.value;
@@ -73,7 +81,7 @@ class NotifyService {
     return true;
   }
 
-  static Future<bool> checkHashcode(String playerId, String hashcode) async {
+  Future<bool> checkHashcode(String playerId, String hashcode) async {
     try {
       final res = await Dio().get(
         '${KeychatGlobal.notifycationServer}/hashcode?play_id=$playerId',
@@ -85,9 +93,9 @@ class NotifyService {
     return false;
   }
 
-  static Future<void> clearAll() async {
+  Future<void> clearAll() async {
     if (fcmToken == null) return;
-    fcmToken == null;
+    fcmToken = null;
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/delete',
@@ -99,19 +107,65 @@ class NotifyService {
     }
   }
 
-  static Future<bool> hasNotifyPermission() async {
+  Future<bool> isNotifyPermissionGrant() async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
       logger.i('Notification not working on windows and linux');
       return false;
     }
-    final s = await FirebaseMessaging.instance.getNotificationSettings();
-    if (s.authorizationStatus == AuthorizationStatus.authorized) return true;
-    return false;
+
+    try {
+      if (GetPlatform.isMacOS) {
+        // macOS must use Firebase
+        final s = await FirebaseMessaging.instance.getNotificationSettings();
+        return s.authorizationStatus == AuthorizationStatus.authorized ||
+            s.authorizationStatus == AuthorizationStatus.provisional;
+      } else {
+        // Android and iOS use permission_handler
+        final status = await Permission.notification.status;
+        return status.isGranted || status.isProvisional;
+      }
+    } catch (e) {
+      logger.e('hasNotifyPermission error', error: e);
+      return false;
+    }
+  }
+
+  /// Request notification permission from user
+  /// Returns true if permission is granted
+  Future<bool> requestNotifyPermission() async {
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.i('Notification not working on windows and linux');
+      return false;
+    }
+
+    try {
+      // Try Firebase first
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        provisional: true,
+      );
+      logger.i('Notification Status: ${settings.authorizationStatus.name}');
+
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (e) {
+      // Fallback to permission_handler if Firebase fails
+      logger.w(
+        'Firebase permission request failed, using permission_handler',
+        error: e,
+      );
+      try {
+        final status = await Permission.notification.request();
+        return status.isGranted;
+      } catch (e2) {
+        logger.e('requestNotifyPermission error', error: e2);
+        return false;
+      }
+    }
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
-  static Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
-    final isGrant = await NotifyService.checkAllNotifyPermission();
+  Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
+    final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
     if (toRemovePubkeys.isNotEmpty) {
@@ -120,6 +174,7 @@ class NotifyService {
 
     final enable = Get.find<HomeController>().notificationStatus.value;
     if (!enable) return;
+    fcmToken ??= await _getFCMToken();
     if (fcmToken == null) return;
 
     final idPubkeys = await IdentityService.instance.getListenPubkeys(
@@ -132,11 +187,11 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      final hashcode = await NotifyService.calculateHash([
+      final hashcode = await calculateHash([
         ...idPubkeys,
         ...pubkeys2,
       ]);
-      final hasUploaded = await NotifyService.checkHashcode(
+      final hasUploaded = await checkHashcode(
         fcmToken!,
         hashcode,
       );
@@ -162,112 +217,44 @@ class NotifyService {
     }
   }
 
-  static Future<void> init() async {
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.i('Notification not working on windows and linux');
-      return;
-    }
-    final homeController = Get.find<HomeController>();
-
-    final settingNotifyStatus = Storage.getIntOrZero(
-      StorageKeyString.settingNotifyStatus,
-    );
-    if (settingNotifyStatus == NotifySettingStatus.disable) {
-      homeController.notificationStatus.value = false;
-      return;
-    }
-    // Initialize Firebase
-    if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          name: GetPlatform.isAndroid ? 'keychat' : null,
-          options: DefaultFirebaseOptions.currentPlatform,
-        ).then(
-          (_) {
-            logger.i('Firebase initialized in main');
-            FirebaseMessaging.onBackgroundMessage(
-              _firebaseMessagingBackgroundHandler,
-            );
-          },
-          onError: (error) {
-            logger.e('Firebase initialize failed: $error');
-          },
-        );
-      }
-    }
-
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      provisional: true,
-    );
-    logger.i('Notification Status: ${settings.authorizationStatus.name}');
-    // check notification permission
-    if (settings.authorizationStatus == AuthorizationStatus.denied ||
-        settings.authorizationStatus == AuthorizationStatus.notDetermined) {
-      homeController.notificationStatus.value = false;
+  /// Initialize Firebase if not already initialized
+  Future<void> _initializeFirebase() async {
+    if (dotenv.get('FCM_API_KEY', fallback: '') == '') {
+      logger.w('FCM_API_KEY not configured, skipping Firebase initialization');
       return;
     }
 
-    // get fcm token
-    homeController.notificationStatus.value = true;
-    if (settingNotifyStatus != NotifySettingStatus.enable) {
-      Storage.setInt(
-        StorageKeyString.settingNotifyStatus,
-        NotifySettingStatus.enable,
+    if (Firebase.apps.isNotEmpty) {
+      logger.d('Firebase already initialized');
+      return;
+    }
+
+    try {
+      await Firebase.initializeApp(
+        name: GetPlatform.isAndroid ? 'keychat' : null,
+        options: DefaultFirebaseOptions.currentPlatform,
       );
+      logger.i('Firebase initialized successfully');
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+    } catch (error) {
+      logger.e('Firebase initialize failed: $error');
+      rethrow;
     }
-    fcmToken ??= await FirebaseMessaging.instance
-        .getToken()
-        .timeout(
-          const Duration(seconds: 8),
-          onTimeout: () async {
-            fcmToken = Storage.getString(StorageKeyString.notificationFCMToken);
-            loggerNoLine.d('Load FCMToken from local: $fcmToken');
-            if (fcmToken != null) return fcmToken;
-            Get.showSnackbar(
-              GetSnackBar(
-                snackPosition: SnackPosition.TOP,
-                icon: const Icon(Icons.error, color: Colors.amber, size: 24),
-                duration: const Duration(seconds: 8),
-                onTap: (snack) {
-                  Get.back<void>();
-                },
-                title: 'Notification Init Error',
-                message: '''
-Timeout to call device-provisioning.googleapis.com.
-Fix:
-1. Check your network connection.
-2. Restart the app.
-''',
-              ),
-            );
-            throw TimeoutException('FCMTokenTimeout');
-          },
-        )
-        .catchError((e) {
-          logger.e('getAPNSToken error: $e');
-          fcmToken = null;
-          return null;
-        });
-    // end get fcm timeout
-    if (fcmToken != null) {
-      await Storage.setString(StorageKeyString.notificationFCMToken, fcmToken!);
-      final initialMessage = await FirebaseMessaging.instance
-          .getInitialMessage();
-      if (initialMessage != null) {
-        NotifyService.handleMessage(initialMessage);
-      }
-    }
+  }
 
+  /// Setup FCM message listeners
+  void _setupFCMListeners() {
     // fcm onMessage listen
     FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) {
         logger.i('notification: ${message.data}');
-
         if (message.notification != null) {
           debugPrint('notification: ${message.notification?.body}');
         }
       },
-      onError: (e) {
+      onError: (Object e) {
         logger.e('onMessage', error: e);
       },
       onDone: () {
@@ -276,25 +263,148 @@ Fix:
     );
 
     // fcm onMessageOpenedApp listen
-    FirebaseMessaging.onMessageOpenedApp.listen(NotifyService.handleMessage);
-
-    logger.i('fcmToken: $fcmToken');
+    FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
     // fcm onTokenRefresh listen
     FirebaseMessaging.instance.onTokenRefresh
-        .listen((fcmToken) {
-          logger.i('onTokenRefresh: $fcmToken');
-          NotifyService.fcmToken = fcmToken;
-          Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
-          NotifyService.syncPubkeysToServer();
+        .listen((newToken) {
+          logger.i('onTokenRefresh: $newToken');
+          fcmToken = newToken;
+          Storage.setString(StorageKeyString.notificationFCMToken, newToken);
+          syncPubkeysToServer();
         })
-        .onError((err) {
-          logger.e('onTokenRefresh', error: err);
+        .onError((Object err, StackTrace stackTrace) {
+          logger.e('onTokenRefresh', error: err, stackTrace: stackTrace);
         });
+  }
 
+  /// Get FCM token with timeout handling
+  Future<String?> _getFCMToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () async {
+          final cachedToken = Storage.getString(
+            StorageKeyString.notificationFCMToken,
+          );
+          loggerNoLine.d('Load FCMToken from local: $cachedToken');
+          if (cachedToken != null) return cachedToken;
+
+          Get.showSnackbar(
+            GetSnackBar(
+              snackPosition: SnackPosition.TOP,
+              icon: const Icon(Icons.error, color: Colors.amber, size: 24),
+              duration: const Duration(seconds: 8),
+              onTap: (snack) {
+                Get.back<void>();
+              },
+              title: 'Notification Init Error',
+              message: '''
+Timeout to call device-provisioning.googleapis.com.
+Fix:
+1. Check your network connection.
+2. Restart the app.
+''',
+            ),
+          );
+          throw TimeoutException('FCMTokenTimeout');
+        },
+      );
+
+      if (token != null) {
+        await Storage.setString(StorageKeyString.notificationFCMToken, token);
+      }
+      return token;
+    } catch (e) {
+      logger.e('getAPNSToken error: $e');
+      return null;
+    }
+  }
+
+  /// Initialize notification service
+  /// This should be called:
+  /// 1. On app startup (if user hasn't disabled notifications)
+  /// 2. When user enables notifications in settings
+  Future<void> init({bool requestPermission = false}) async {
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.i('Notification not working on windows and linux');
+      return;
+    }
+
+    logger.i('NotifyService init (requestPermission: $requestPermission)');
+    final homeController = Get.find<HomeController>();
+
+    // Check if user has disabled notifications in app settings
+    final settingNotifyStatus = Storage.getIntOrZero(
+      StorageKeyString.settingNotifyStatus,
+    );
+    if (settingNotifyStatus == NotifySettingStatus.disable) {
+      logger.i('Notification disabled by user setting');
+      homeController.notificationStatus.value = false;
+      return;
+    }
+
+    // Initialize Firebase
+    try {
+      await _initializeFirebase();
+    } catch (e) {
+      logger.e('Failed to initialize Firebase', error: e);
+      homeController.notificationStatus.value = false;
+      return;
+    }
+
+    // Check or request permission
+    var hasPermission = false;
+    if (requestPermission) {
+      hasPermission = await requestNotifyPermission();
+    } else {
+      hasPermission = await isNotifyPermissionGrant();
+    }
+
+    if (!hasPermission) {
+      logger.i('Notification permission not granted');
+      homeController.notificationStatus.value = false;
+      return;
+    }
+
+    // Get FCM token
+    fcmToken ??= await _getFCMToken();
+
+    if (fcmToken == null) {
+      if (GetPlatform.isMobile) {
+        await EasyLoading.showError(
+          'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
+          duration: const Duration(seconds: 4),
+        );
+      }
+      homeController.notificationStatus.value = false;
+      return;
+    }
+
+    // Update status
+    homeController.notificationStatus.value = true;
+    if (settingNotifyStatus != NotifySettingStatus.enable) {
+      await Storage.setInt(
+        StorageKeyString.settingNotifyStatus,
+        NotifySettingStatus.enable,
+      );
+    }
+
+    // Handle initial message if app was opened from notification
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      handleMessage(initialMessage);
+    }
+
+    // Setup FCM listeners
+    _setupFCMListeners();
+
+    logger.i('fcmToken: $fcmToken');
+
+    // Sync pubkeys to server
     await syncPubkeysToServer(checkUpload: true);
   }
 
-  static Future<bool> removePubkeys(List<String> pubkeys) async {
+  Future<bool> removePubkeys(List<String> pubkeys) async {
     if (fcmToken == null) return true;
 
     try {
@@ -310,21 +420,9 @@ Fix:
     return false;
   }
 
-  static Future<void> updateUserSetting(bool status) async {
-    Get.find<HomeController>().notificationStatus.value = status;
-    Get.find<HomeController>().notificationStatus.refresh();
-    final intStatus = status ? 1 : -1;
-    await Storage.setInt(StorageKeyString.settingNotifyStatus, intStatus);
-    if (status) {
-      await NotifyService.syncPubkeysToServer();
-    } else {
-      await NotifyService.clearAll();
-    }
-  }
-
   // Handle message when app is in background or terminated
   // Open chat room if the message contains a pubkey
-  static Future<void> handleMessage(RemoteMessage message) async {
+  Future<void> handleMessage(RemoteMessage message) async {
     if (message.data.isEmpty) return;
     if (message.data['pubkey'] != null) {
       final pubkey = message.data['pubkey'] as String;

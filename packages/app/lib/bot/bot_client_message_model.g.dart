@@ -45,4 +45,5 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
   MessageMediaType.lightningInvoice: 'lightningInvoice',
   MessageMediaType.profileRequest: 'profileRequest',
+  MessageMediaType.messageReaction: 'messageReaction',
 };

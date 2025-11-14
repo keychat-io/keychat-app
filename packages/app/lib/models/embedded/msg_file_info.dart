@@ -1,12 +1,19 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:keychat/service/file.service.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:keychat/service/file.service.dart';
 
 part 'msg_file_info.g.dart';
 
-enum FileStatus { init, downloading, downloaded, decryptSuccess, failed }
+enum FileStatus {
+  init,
+  downloading,
+  @Deprecated('use decryptSuccess instead')
+  downloaded,
+  decryptSuccess,
+  failed,
+}
 
 @JsonSerializable(includeIfNull: false)
 @embedded

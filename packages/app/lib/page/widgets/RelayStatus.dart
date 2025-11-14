@@ -145,7 +145,7 @@ class RelayStatus extends GetView<HomeController> {
           CupertinoDialogAction(
             isDefaultAction: status,
             onPressed: () async {
-              Get.find<WebsocketService>().init();
+              Get.find<WebsocketService>().reinit();
               EasyLoading.showToast('Relays connecting, please wait...');
               Get.back<void>();
             },

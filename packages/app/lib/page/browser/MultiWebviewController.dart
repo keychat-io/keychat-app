@@ -1,5 +1,13 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
+
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart'
+    hide Storage, WebResourceError;
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/desktop/DesktopController.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/browser/browser_favorite.dart';
@@ -9,13 +17,6 @@ import 'package:keychat/page/browser/BrowserTabController.dart';
 import 'package:keychat/page/browser/WebviewTab.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart'
-    hide Storage, WebResourceError;
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebviewTabData {

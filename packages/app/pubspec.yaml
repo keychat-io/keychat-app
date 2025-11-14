@@ -2,7 +2,7 @@ name: keychat
 description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.36.5+6460
+version: 1.36.9+6469
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
@@ -31,8 +31,8 @@ dependencies:
   json_annotation: ^4.9.0
   keychat_rust_ffi_plugin: 1.0.0
   keychat_ecash: 1.0.0
-  isar_community: 3.3.0-dev.3
-  isar_community_flutter_libs: 3.3.0-dev.3
+  isar_community: 3.3.0
+  isar_community_flutter_libs: 3.3.0
   share_plus: ^12.0.0
   flutter_linkify: ^6.0.0
   permission_handler: ^12.0.0+1
@@ -64,13 +64,13 @@ dependencies:
   flutter_secure_storage: ^10.0.0-beta.4
   avatar_plus: ^0.0.5
   intl: ^0.20.2
-  firebase_core: ^4.2.0
-  firebase_messaging: ^16.0.3
+  firebase_core: ^4.2.1
+  firebase_messaging: ^16.0.4
   async_queue: ^2.0.2
   url_launcher: ^6.3.2
   flutter_inappwebview: ^6.2.0-beta.2
   encrypt: ^5.0.3
-  file_picker: ^10.3.1
+  file_picker: ^10.3.6
   image: ^4.5.2
   pub_semver: ^2.1.5
   flutter_new_badger: ^1.1.0
@@ -97,13 +97,15 @@ dependencies:
       url: https://github.com/keychat-io/dart-bip21-uri.git
   flutter_json_view: ^1.1.5
   json_serializable: ^6.9.0
+  giphy_get: ^3.6.1+1
+  emoji_picker_flutter: ^3.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
-  isar_community_generator: 3.3.0-dev.3
+  isar_community_generator: 3.3.0
   flutter_launcher_icons: ^0.14.4
   lints: ^6.0.0
   flutter_lints: ^6.0.0

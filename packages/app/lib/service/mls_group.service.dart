@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:convert'
     show base64Decode, base64Encode, jsonDecode, jsonEncode, utf8;
 
+import 'package:flutter/foundation.dart' show Uint8List;
+import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
-import 'package:keychat/controller/chat.controller.dart';
-import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/close.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
+import 'package:keychat/nostr-core/relay_websocket.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/chat.service.dart';
 import 'package:keychat/service/identity.service.dart';
@@ -19,11 +20,8 @@ import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signal_chat_util.dart';
-import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/foundation.dart' show Uint8List;
-import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_mls/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -351,16 +349,26 @@ class MlsGroupService extends BaseChatService {
     // close req
     Get.find<WebsocketService>().sendReqToRelays(Close(req.reqId).serialize());
 
-    final result = <String, String>{};
+    final filteredMap = <String, NostrEventModel>{};
     for (final event in list) {
-      result[event.pubkey] = event.content;
+      final existing = filteredMap[event.pubkey];
+      if (existing == null || event.createdAt > existing.createdAt) {
+        filteredMap[event.pubkey] = event;
+      }
     }
 
+    final result = <String, String>{};
+    for (final event in filteredMap.values) {
+      result[event.pubkey] = event.content;
+    }
     loggerNoLine.i('PKs: $result');
     return result;
   }
 
-  Future<String?> getKeyPackageFromRelay(String pubkey) async {
+  Future<String?> getKeyPackageFromRelay({
+    required String pubkey,
+    String? toRelay,
+  }) async {
     final ws = Get.find<WebsocketService>();
 
     try {
@@ -369,12 +377,17 @@ class MlsGroupService extends BaseChatService {
         authors: [pubkey],
         kinds: [EventKinds.mlsNipKeypackages],
         limit: 1,
-        since: DateTime.now().subtract(const Duration(days: 365)),
+        since: DateTime.now().subtract(const Duration(days: 90)),
       );
+      RelayWebsocket? websocket;
+      if (toRelay != null) {
+        websocket = ws.channels[toRelay];
+      }
       final list = await ws.fetchInfoFromRelay(
         req.reqId,
         req.toString(),
         waitTimeToFill: true,
+        sockets: websocket != null ? [websocket] : null,
       );
       // close req
 
@@ -886,14 +899,10 @@ class MlsGroupService extends BaseChatService {
     return replaceListenPubkey(room);
   }
 
-  // Queue for pending upload requests
-  static final _uploadQueue = <_KeyPackageUploadRequest>[];
-  static bool _isUploading = false;
-
   Future<void> uploadKeyPackages({
     required List<Identity> identities,
-    String? toRelay,
     bool forceUpload = false,
+    String? toRelay,
   }) async {
     await Utils.waitRelayOnline();
     final onlineRelays = Get.find<WebsocketService>().getOnlineSocketString();
@@ -901,113 +910,73 @@ class MlsGroupService extends BaseChatService {
       throw Exception('No relays available');
     }
 
-    // Create a new upload request and add it to the queue
-    final request = _KeyPackageUploadRequest(
-      identities: identities,
-      toRelay: toRelay,
-      forceUpload: forceUpload,
-      onlineRelays: onlineRelays,
-    );
-
-    _uploadQueue.add(request);
-
-    // If there's no upload in progress, start processing the queue
-    if (!_isUploading) {
-      await _processUploadQueue();
-    }
-  }
-
-  Future<void> _processUploadQueue() async {
-    if (_uploadQueue.isEmpty || _isUploading) return;
-
-    _isUploading = true;
-
-    try {
-      while (_uploadQueue.isNotEmpty) {
-        final request = _uploadQueue.removeAt(0);
-        await _executeUpload(
-          identities: request.identities,
-          toRelay: request.toRelay,
-          forceUpload: request.forceUpload,
-          onlineRelays: request.onlineRelays,
-        );
-      }
-    } finally {
-      _isUploading = false;
-    }
-  }
-
-  Future<void> _executeUpload({
-    required bool forceUpload,
-    required List<String> onlineRelays,
-    required List<Identity> identities,
-    String? toRelay,
-  }) async {
-    // Create a list to track all completers
-    final uploadFutures = <Future<void>>[];
-
     for (final identity in identities) {
-      final stateKey =
-          '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
-      final statePK =
-          '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
-      final timestampKey =
-          '${StorageKeyString.mlsPKTimestamp}:${identity.secp256k1PKHex}';
+      var needsUpload = forceUpload;
 
-      // Check if key package has expired (30 days)
-      final lastUploadTime = Storage.getString(timestampKey);
-      var isExpired = false;
-      final needsInitialUpload = lastUploadTime == null;
-
-      if (lastUploadTime != null) {
-        final timestamp = int.tryParse(lastUploadTime) ?? 0;
-        final lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
-        isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
-      }
-
-      if (forceUpload || isExpired || needsInitialUpload) {
-        await Storage.remove(stateKey);
-        await Storage.remove(statePK);
-        await Storage.remove(timestampKey);
-        loggerNoLine.i(
-          'Key package ${needsInitialUpload ? 'needs initial upload' : 'expired or force upload'} for identity: ${identity.secp256k1PKHex}',
+      if (!forceUpload) {
+        // Check from relay if key package exists and is not expired
+        final existingPK = await getKeyPackageFromRelay(
+          pubkey: identity.secp256k1PKHex,
+          toRelay: toRelay,
         );
-      } else {
-        // Not expired and not forced, check if we need to upload
-        if (toRelay != null) {
-          final mlsStates = Storage.getStringList(stateKey);
-          if (mlsStates.contains(toRelay)) {
-            logger.d(
-              'mls cached, relay: $toRelay, ${identity.secp256k1PKHex}',
-            );
-            continue;
+
+        if (existingPK == null) {
+          // No key package found on relay, need to upload
+          needsUpload = true;
+          loggerNoLine.i(
+            'No key package found on relay for identity: ${identity.secp256k1PKHex}',
+          );
+        } else {
+          // Query the event from relay to check creation time
+          final ws = Get.find<WebsocketService>();
+          final req = NostrReqModel(
+            reqId: generate64RandomHexChars(16),
+            authors: [identity.secp256k1PKHex],
+            kinds: [EventKinds.mlsNipKeypackages],
+            limit: 1,
+            since: DateTime.now().subtract(const Duration(days: 90)),
+          );
+          final list = await ws.fetchInfoFromRelay(
+            req.reqId,
+            req.toString(),
+            waitTimeToFill: true,
+          );
+          ws.sendReqToRelays(Close(req.reqId).serialize());
+          // TODOcheck the kp is used?
+          if (list.isNotEmpty) {
+            final event = list[0];
+            final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final eventAge = now - event.createdAt;
+            const thirtyDays = 30 * 24 * 60 * 60;
+
+            if (eventAge >= thirtyDays) {
+              needsUpload = true;
+              loggerNoLine.i(
+                'Key package expired (>30 days) for identity: ${identity.secp256k1PKHex}',
+              );
+            } else {
+              loggerNoLine.i(
+                'Key package still valid for identity: ${identity.secp256k1PKHex}',
+              );
+              continue;
+            }
+          } else {
+            needsUpload = true;
           }
         }
       }
 
+      if (!needsUpload) {
+        continue;
+      }
+
       loggerNoLine.i(
-        '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}',
+        'Uploading key package for identity: ${identity.secp256k1PKHex}',
       );
-      final event = await _getOrCreateEvent(identity, statePK, onlineRelays);
-
-      // Create a completer to track when this upload is complete
-      final completer = Completer<void>();
-      uploadFutures.add(completer.future);
-
-      // Create a timeout timer
-      final secondsWaited = identity.isFromSigner ? 20 : 5;
-      final timer = Timer(Duration(seconds: secondsWaited), () {
-        if (!completer.isCompleted) {
-          loggerNoLine.w(
-            'Upload timeout for identity: ${identity.secp256k1PKHex}',
-          );
-          completer.complete(); // Complete with timeout
-        }
-      });
+      final event = await _createKeyPackageEvent(identity, onlineRelays);
 
       Get.find<WebsocketService>().sendMessageWithCallback(
         '["EVENT",$event]',
-        relays: toRelay == null ? null : [toRelay],
         callback:
             ({
               required String relay,
@@ -1015,42 +984,21 @@ class MlsGroupService extends BaseChatService {
               required bool status,
               String? errorMessage,
             }) async {
-              final mlsStates = Storage.getStringList(stateKey);
               final isDuplicate =
                   errorMessage?.toLowerCase().startsWith('duplicate') ?? false;
               if (status || isDuplicate) {
                 loggerNoLine.i(
-                  'Key package uploaded successfully: ${identity.secp256k1PKHex}',
+                  'Key package uploaded successfully to $relay: ${identity.secp256k1PKHex}',
                 );
-                final set = Set<String>.from(mlsStates)..add(relay);
-                // cache state
-                await Storage.setStringList(stateKey, List.from(set));
-                await Storage.setString(
-                  timestampKey,
-                  DateTime.now().millisecondsSinceEpoch.toString(),
+              } else {
+                logger.w(
+                  'Key package upload failed to $relay: ${identity.secp256k1PKHex}, error: $errorMessage',
                 );
               }
               NostrAPI.instance.removeOKCallback(eventId);
-              final map = {
-                'relay': relay,
-                'status': status,
-                'errorMessage': errorMessage,
-              };
-              loggerNoLine.i(
-                'mlsNipKeypackages: ${EventKinds.mlsNipKeypackages}, relay: $map',
-              );
-
-              // Cancel the timer and complete the completer
-              timer.cancel();
-              if (!completer.isCompleted) {
-                completer.complete();
-              }
             },
       );
     }
-
-    // Wait for all uploads to complete
-    await Future.wait(uploadFutures);
   }
 
   Future<(Room, String?)> _handleGroupInfo(
@@ -1422,19 +1370,11 @@ class MlsGroupService extends BaseChatService {
     );
   }
 
-  // cache event for 10443
-  Future<String> _getOrCreateEvent(
+  // Generate and sign new key package event for kind 10443
+  Future<String> _createKeyPackageEvent(
     Identity identity,
-    String statePK,
     List<String> onlineRelays,
   ) async {
-    final state = Storage.getString(statePK);
-    if (state != null) {
-      loggerNoLine.i(
-        'Keypackage already exists: ${identity.secp256k1PKHex}, use cached',
-      );
-      return state;
-    }
     final pkRes = await rust_mls.createKeyPackage(
       nostrId: identity.secp256k1PKHex,
     );
@@ -1452,7 +1392,6 @@ class MlsGroupService extends BaseChatService {
         ['relay', ...onlineRelays],
       ],
     );
-    await Storage.setString(statePK, event);
     return event;
   }
 
@@ -1524,18 +1463,4 @@ class MlsGroupService extends BaseChatService {
         .map((entry) => entry.key)
         .toList();
   }
-}
-
-// Helper class to store upload request information
-class _KeyPackageUploadRequest {
-  _KeyPackageUploadRequest({
-    required this.forceUpload,
-    required this.onlineRelays,
-    required this.identities,
-    this.toRelay,
-  });
-  final List<Identity> identities;
-  final String? toRelay;
-  final bool forceUpload;
-  final List<String> onlineRelays;
 }

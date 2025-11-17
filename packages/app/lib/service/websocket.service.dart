@@ -116,13 +116,22 @@ class WebsocketService extends GetxService {
     );
   }
 
-  Future<void> checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
+  Future<void> checkOnlineAndConnect({
+    List<RelayWebsocket>? list,
+    bool forceReconnect = false,
+  }) async {
     initAt = DateTime.now();
     await refreshMainRelayStatus();
     // fix ConcurrentModificationError List.from([list??channels.values])
     await Future.wait(
       (list ?? channels.values).map((rw) async {
+        logger.i('checkOnlineAndConnect: ${rw.relay.url}');
         if (!rw.relay.active) return;
+        if (forceReconnect) {
+          rw.channel?.close();
+          await _startConnectRelay(rw);
+          return;
+        }
         final relayStatus = await rw.checkOnlineStatus();
         if (!relayStatus) {
           rw.channel?.close();

@@ -516,10 +516,6 @@ class ChatController extends GetxController {
       if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
           !hisLastMessage.isSystem) {
         nipChatType.value = NIPChatType.nip17.name;
-        await RoomUtil.deprecatedEncryptedDialog(
-          roomObs.value,
-          NIPChatType.nip17,
-        );
       }
     }
   }

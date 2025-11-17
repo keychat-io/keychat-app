@@ -71,7 +71,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
 
                           for (final entry in toJoinUserMap.entries) {
                             final pk = await MlsGroupService.instance
-                                .getKeyPackageFromRelay(entry.key);
+                                .getKeyPackageFromRelay(pubkey: entry.key);
                             if (pk == null) {
                               pkIsNull.add(entry.value);
                             } else {

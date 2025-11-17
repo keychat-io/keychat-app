@@ -627,7 +627,10 @@ Let's start an encrypted chat.''';
     }
   }
 
-  static String getDescriptionByNipType(NIPChatType type) {
+  static String getDescriptionByNipType(
+    NIPChatType type, {
+    bool showDescription = true,
+  }) {
     switch (type) {
       case NIPChatType.nip04:
         return 'NIP04: Basic end-to-end encryption. No forward secrecy.';
@@ -637,24 +640,18 @@ Let's start an encrypted chat.''';
         throw UnimplementedError();
       case NIPChatType.signal:
         return '''
-The Signal Protocol is an open-source, end-to-end encryption protocol developed by the Signal Foundation that secures instant messaging and voice calls. 
-
-1. Anti-Forgery ✅ 
+${showDescription ? "The Signal Protocol is an open-source, end-to-end encryption protocol developed by the Signal Foundation that secures instant messaging and voice calls.\n" : ""}1. Anti-Forgery ✅ 
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅ 
 4. Backward Secrecy ✅ 
-5. Metadata Privacy ✅
-''';
+5. Metadata Privacy ✅''';
       case NIPChatType.mls:
         return '''
-Messaging Layer Security (MLS) is a security layer for encrypting messages in groups of size two to many. It is being built by the MLS working group and designed to be efficient, practical and secure. 
-
-1. Anti-Forgery ✅
+${showDescription ? "Messaging Layer Security (MLS) is a security layer for encrypting messages in groups of size two to many. It is being built by the MLS working group and designed to be efficient, practical and secure.\n" : ""}1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢80%
-5. Metadata Privacy 🟢80%
-''';
+5. Metadata Privacy 🟢80%''';
     }
   }
 
@@ -663,12 +660,12 @@ Messaging Layer Security (MLS) is a security layer for encrypting messages in gr
       case GroupType.kdf:
         return '';
       case GroupType.mls:
-        return getDescriptionByNipType(NIPChatType.mls);
+        return getDescriptionByNipType(NIPChatType.mls, showDescription: false);
       case GroupType.shareKey:
         return '';
       case GroupType.sendAll:
         return '''
-${getDescriptionByNipType(NIPChatType.signal)}
+${getDescriptionByNipType(NIPChatType.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';

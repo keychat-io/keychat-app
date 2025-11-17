@@ -47,6 +47,7 @@ class Nip4ChatService extends BaseChatService {
   Future<Message> receiveNip4Message(
     NostrEventModel event,
     String content, {
+    required int createdAt,
     NostrEventModel? sourceEvent,
     Room? room,
   }) async {
@@ -67,6 +68,7 @@ class Nip4ChatService extends BaseChatService {
       content: content,
       isMeSend: false,
       sent: SendStatusType.success,
+      createdAt: createdAt,
     );
   }
 

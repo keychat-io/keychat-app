@@ -1103,7 +1103,8 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     final host = (await getCurrentUrl()).host;
-    final identity = await getOrSelectIdentity(host);
+    final skipCache = method == 'getPublicKey';
+    final identity = await getOrSelectIdentity(host, skipCache: skipCache);
     if (identity == null) {
       return null;
     }
@@ -1225,14 +1226,17 @@ class _WebviewTabState extends State<WebviewTab> {
     return 'Error: not implemented';
   }
 
-  Future<Identity?> getOrSelectIdentity(String host) async {
-    final bc = await BrowserConnect.getByHost(host);
-    if (bc != null) {
+  Future<Identity?> getOrSelectIdentity(
+    String host, {
+    bool skipCache = false,
+  }) async {
+    var bc = await BrowserConnect.getByHost(host);
+    if (bc != null && !skipCache) {
       final identity = await IdentityService.instance.getIdentityByNostrPubkey(
         bc.pubkey,
       );
       if (identity == null) {
-        BrowserConnect.delete(bc.id);
+        await BrowserConnect.delete(bc.id);
       } else {
         // exist identity, auto return
         return identity;
@@ -1256,11 +1260,15 @@ class _WebviewTabState extends State<WebviewTab> {
           tabController.inAppWebViewController!,
           host,
         );
-        final bc = BrowserConnect(
+
+        bc ??= BrowserConnect(
           host: host,
           pubkey: selected.secp256k1PKHex,
-          favicon: favicon,
         );
+
+        bc
+          ..pubkey = selected.secp256k1PKHex
+          ..favicon = favicon;
         final id = await BrowserConnect.save(bc);
         bc.id = id;
         tabController.setBrowserConnect(bc);

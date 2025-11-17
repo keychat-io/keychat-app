@@ -423,10 +423,17 @@ P _roomDeserializeProp<P>(
   }
 }
 
-const _RoomencryptModeEnumValueMap = {'nip04': 0, 'signal': 1};
+const _RoomencryptModeEnumValueMap = {
+  'nip04': 0,
+  'signal': 1,
+  'nip17': 2,
+  'mls': 3,
+};
 const _RoomencryptModeValueEnumMap = {
   0: EncryptMode.nip04,
   1: EncryptMode.signal,
+  2: EncryptMode.nip17,
+  3: EncryptMode.mls,
 };
 const _RoomgroupTypeEnumValueMap = {
   'shareKey': 0,

@@ -500,6 +500,7 @@ class MlsGroupService extends BaseChatService {
       subEvent.pubkey,
       myIdPubkey,
       RoomStatus.enabled,
+      encryptMode: EncryptMode.nip17,
     );
     final identity = idRoom.getIdentity();
     if (senderIdPubkey == identity.secp256k1PKHex) {

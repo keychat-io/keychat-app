@@ -12,7 +12,7 @@ enum SendStatusType { sending, success, partialSuccess, failed }
 enum MessageEncryptType {
   signal,
   nip4WrapSignal,
-  nip4,
+  nip04,
   nip4WrapNip4,
   nip17,
   nip4WrapMls,

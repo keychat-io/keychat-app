@@ -628,24 +628,22 @@ Let's start an encrypted chat.''';
   }
 
   static String getDescriptionByNipType(
-    NIPChatType type, {
+    EncryptMode type, {
     bool showDescription = true,
   }) {
     switch (type) {
-      case NIPChatType.nip04:
+      case EncryptMode.nip04:
         return 'NIP04: Basic end-to-end encryption. No forward secrecy.';
-      case NIPChatType.nip17:
+      case EncryptMode.nip17:
         return 'NIP17: Enhanced end-to-end encryption with forward secrecy.';
-      case NIPChatType.common:
-        throw UnimplementedError();
-      case NIPChatType.signal:
+      case EncryptMode.signal:
         return '''
 ${showDescription ? "The Signal Protocol is an open-source, end-to-end encryption protocol developed by the Signal Foundation that secures instant messaging and voice calls.\n" : ""}1. Anti-Forgery ✅ 
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅ 
 4. Backward Secrecy ✅ 
 5. Metadata Privacy ✅''';
-      case NIPChatType.mls:
+      case EncryptMode.mls:
         return '''
 ${showDescription ? "Messaging Layer Security (MLS) is a security layer for encrypting messages in groups of size two to many. It is being built by the MLS working group and designed to be efficient, practical and secure.\n" : ""}1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
@@ -660,12 +658,12 @@ ${showDescription ? "Messaging Layer Security (MLS) is a security layer for encr
       case GroupType.kdf:
         return '';
       case GroupType.mls:
-        return getDescriptionByNipType(NIPChatType.mls, showDescription: false);
+        return getDescriptionByNipType(EncryptMode.mls, showDescription: false);
       case GroupType.shareKey:
         return '';
       case GroupType.sendAll:
         return '''
-${getDescriptionByNipType(NIPChatType.signal, showDescription: false)}
+${getDescriptionByNipType(EncryptMode.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
@@ -683,8 +681,6 @@ ${getDescriptionByNipType(NIPChatType.signal, showDescription: false)}
         sourceEvent.kind == EventKinds.nip17) {
       return MessageEncryptType.nip17;
     }
-    if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
-    if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
 
     return event.encryptType;
   }
@@ -974,274 +970,230 @@ $error ''';
     await MessageService.instance.updateMessageAndRefresh(message);
   }
 
-  static Widget buildNipChatTypeBadge(
-    Room room,
-    String nipType,
-    BuildContext context,
-  ) {
-    // Don't show badge for common type
-    if (nipType == NIPChatType.common.name) {
-      return const SizedBox.shrink();
+  static Color getColorByEncryptType(MessageEncryptType encryptType) {
+    switch (encryptType) {
+      case MessageEncryptType.nip04:
+        return Colors.orange;
+      case MessageEncryptType.nip17:
+        return Colors.cyan;
+      case MessageEncryptType.signal:
+        return Colors.purple;
+      case MessageEncryptType.mls:
+        return const Color(0xffEC6E0E);
+      case MessageEncryptType.nip4WrapSignal:
+        throw UnimplementedError();
+      case MessageEncryptType.nip4WrapNip4:
+        throw UnimplementedError();
+      case MessageEncryptType.nip4WrapMls:
+        throw UnimplementedError();
     }
+  }
 
-    Color borderColor;
-    Color textColor;
-
-    switch (nipType) {
-      case 'nip04':
-        borderColor = Get.isDarkMode
-            ? const Color(0xFFFFC107)
-            : const Color(0xFFFF9800);
-        textColor = Get.isDarkMode
-            ? const Color(0xFFFFC107)
-            : const Color(0xFFFF9800);
-      case 'nip17':
-        borderColor = Get.isDarkMode
-            ? const Color(0xFF17A2B8)
-            : const Color(0xFF0dcaf0);
-        textColor = Get.isDarkMode
-            ? const Color(0xFF17A2B8)
-            : const Color(0xFF0dcaf0);
-      case 'signal':
-        borderColor = Get.isDarkMode
-            ? const Color(0xFF6F42C1)
-            : const Color(0xFF6610f2);
-        textColor = Get.isDarkMode
-            ? const Color(0xFF6F42C1)
-            : const Color(0xFF6610f2);
-      case 'mls':
-        borderColor = const Color(0xffEC6E0E);
-        textColor = const Color(0xffEC6E0E);
-      default:
-        borderColor = Colors.grey;
-        textColor = Colors.grey;
+  static Color getColorByRoomEncryptType(EncryptMode encryptType) {
+    switch (encryptType) {
+      case EncryptMode.nip04:
+        return Colors.orange;
+      case EncryptMode.nip17:
+        return Colors.cyan;
+      case EncryptMode.signal:
+        return Colors.purple;
+      case EncryptMode.mls:
+        return const Color(0xffEC6E0E);
     }
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: () async {
-          if (nipType == NIPChatType.nip04.name) {
-            await deprecatedEncryptedDialog(room, NIPChatType.nip04);
-            return;
-          }
-
-          if (nipType == NIPChatType.nip17.name) {
-            await deprecatedEncryptedDialog(room, NIPChatType.nip17);
-            return;
-          }
-          if (nipType == NIPChatType.signal.name) {
-            await Get.dialog<void>(
-              Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: Get.isDarkMode
-                              ? const Color(0xFF6F42C1).withValues(alpha: 0.2)
-                              : const Color(0xFF6610f2).withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.lock_outline,
-                          size: 32,
-                          color: Get.isDarkMode
-                              ? const Color(0xFF6F42C1)
-                              : const Color(0xFF6610f2),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Title
-                      Text(
-                        'Signal Protocol',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Description
-                      Text(
-                        RoomUtil.getDescriptionByNipType(NIPChatType.signal),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Get.back<void>(),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Close'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () async {
-                                const uri = 'https://signal.org/docs/';
-
-                                await Get.find<MultiWebviewController>()
-                                    .launchWebview(initUrl: uri);
-                              },
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Get.isDarkMode
-                                    ? const Color(0xFF6F42C1)
-                                    : const Color(0xFF6610f2),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Learn More'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            return;
-          }
-
-          if (nipType == NIPChatType.mls.name) {
-            await Get.dialog<void>(
-              Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xffEC6E0E,
-                          ).withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          size: 32,
-                          color: Color(0xffEC6E0E),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Title
-                      Text(
-                        'MLS Protocol',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Description
-                      Text(
-                        RoomUtil.getDescriptionByNipType(NIPChatType.mls),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Get.back<void>(),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Close'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () async {
-                                const uri =
-                                    'https://messaginglayersecurity.rocks/';
-
-                                await Get.find<MultiWebviewController>()
-                                    .launchWebview(initUrl: uri);
-                              },
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xffEC6E0E),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text('Learn More'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-            return;
-          }
-        },
+  static Future<void> mlsChatDialog(BuildContext context) async {
+    await Get.dialog<void>(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: 1.5),
-            borderRadius: BorderRadius.circular(12),
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(
+                    0xffEC6E0E,
+                  ).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.shield_outlined,
+                  size: 32,
+                  color: Color(0xffEC6E0E),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              Text(
+                'MLS Protocol',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Description
+              Text(
+                RoomUtil.getDescriptionByNipType(EncryptMode.mls),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back<void>(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        const uri = 'https://messaginglayersecurity.rocks/';
+
+                        await Get.find<MultiWebviewController>().launchWebview(
+                          initUrl: uri,
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xffEC6E0E),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Learn More'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          child: Text(
-            nipType.toUpperCase(),
-            style: TextStyle(
-              color: textColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> signalChatDialog(BuildContext context) async {
+    await Get.dialog<void>(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Get.isDarkMode
+                      ? const Color(0xFF6F42C1).withValues(alpha: 0.2)
+                      : const Color(0xFF6610f2).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock_outline,
+                  size: 32,
+                  color: Get.isDarkMode
+                      ? const Color(0xFF6F42C1)
+                      : const Color(0xFF6610f2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              Text(
+                'Signal Protocol',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Description
+              Text(
+                RoomUtil.getDescriptionByNipType(EncryptMode.signal),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back<void>(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () async {
+                        const uri = 'https://signal.org/docs/';
+
+                        await Get.find<MultiWebviewController>().launchWebview(
+                          initUrl: uri,
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Get.isDarkMode
+                            ? const Color(0xFF6F42C1)
+                            : const Color(0xFF6610f2),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Learn More'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -1250,10 +1202,10 @@ $error ''';
 
   static Future<void> deprecatedEncryptedDialog(
     Room room,
-    NIPChatType nipChatType,
+    EncryptMode encryptMode,
   ) async {
     final msg =
-        'Your friend is using nostr ${nipChatType.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
+        'Your friend is using nostr ${encryptMode.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
 
     await Get.dialog<void>(
       Dialog(
@@ -1280,7 +1232,7 @@ $error ''';
                   color: Colors.orange.shade700,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               // Title
               Text(
                 'Weak Encryption',
@@ -1289,40 +1241,7 @@ $error ''';
                 ),
               ),
               const SizedBox(height: 16),
-              // Warning message for NIP04
-              if (nipChatType == NIPChatType.nip04)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.red.shade200,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 20,
-                        color: Colors.red.shade700,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Your friends may not be able to decrypt the messages you reply to.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red.shade900,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (nipChatType == NIPChatType.nip04) const SizedBox(height: 16),
+
               // Description
               Text(
                 msg,

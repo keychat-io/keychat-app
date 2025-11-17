@@ -91,7 +91,6 @@ class _ChatPage2State extends State<ChatPage> {
           appBar: AppBar(
             scrolledUnderElevation: 0,
             elevation: 0,
-            backgroundColor: _getAppBarBackgroundColor(),
             centerTitle: true,
             title: Obx(
               () => Wrap(
@@ -114,13 +113,6 @@ class _ChatPage2State extends State<ChatPage> {
               ),
             ),
             actions: [
-              Obx(
-                () => RoomUtil.buildNipChatTypeBadge(
-                  controller.roomObs.value,
-                  controller.nipChatType.value,
-                  context,
-                ),
-              ),
               Obx(
                 () => controller.roomObs.value.status != RoomStatus.approving
                     ? IconButton(
@@ -1232,15 +1224,5 @@ class _ChatPage2State extends State<ChatPage> {
         child: const Text('Send Greeting'),
       ),
     );
-  }
-
-  Color _getAppBarBackgroundColor() {
-    final nipType = controller.nipChatType.value;
-    if (nipType == NIPChatType.nip04.name) {
-      return Get.isDarkMode ? const Color(0xFF3D2800) : const Color(0xFFFFF3CD);
-    } else if (nipType == NIPChatType.nip17.name) {
-      return Get.isDarkMode ? const Color(0xFF1A3A52) : const Color(0xFFD1ECF1);
-    }
-    return Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed);
   }
 }

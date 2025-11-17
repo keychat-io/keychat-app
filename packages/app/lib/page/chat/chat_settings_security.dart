@@ -32,9 +32,7 @@ class ChatSettingSecurity extends StatelessWidget {
                 SettingsTile(
                   title: const Text('Encrypt mode'),
                   leading: const Icon(CupertinoIcons.lock),
-                  value: cc.roomObs.value.encryptMode == EncryptMode.signal
-                      ? textP('Signal procotol', color: Colors.green)
-                      : textP('Nostr nip17', color: Colors.red),
+                  value: Text(cc.roomObs.value.encryptMode.name.toUpperCase()),
                 ),
                 SettingsTile.navigation(
                   title: const Text('Reset Signal Session'),

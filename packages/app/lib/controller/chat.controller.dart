@@ -41,14 +41,6 @@ const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
 
-enum NIPChatType {
-  common,
-  nip04,
-  nip17,
-  signal,
-  mls,
-}
-
 class ChatController extends GetxController {
   ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
@@ -58,7 +50,6 @@ class ChatController extends GetxController {
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
-  RxString nipChatType = NIPChatType.common.name.obs; // encrypt type of room
 
   Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
@@ -163,8 +154,6 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat(searchMsgIndex: searchMessageId);
-    unawaited(isLatestMessageNip04());
-    unawaited(isLatestMessageNip17());
     initChatPageFeatures();
     super.onInit();
   }
@@ -487,39 +476,6 @@ class ChatController extends GetxController {
     super.onClose();
   }
 
-  // check if the latest message is nip04
-  Future<void> isLatestMessageNip04() async {
-    if (messages.isEmpty) return;
-
-    if (roomObs.value.type == RoomType.common &&
-        roomObs.value.encryptMode == EncryptMode.nip04) {
-      final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (lastMessage == null) return;
-      if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        nipChatType.value = NIPChatType.nip04.name;
-        await RoomUtil.deprecatedEncryptedDialog(
-          roomObs.value,
-          NIPChatType.nip04,
-        );
-      }
-    }
-  }
-
-  // check if the latest message is nip04
-  Future<void> isLatestMessageNip17() async {
-    if (messages.isEmpty) return;
-
-    if (roomObs.value.type == RoomType.common &&
-        roomObs.value.encryptMode != EncryptMode.signal) {
-      final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (hisLastMessage == null) return;
-      if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
-          !hisLastMessage.isSystem) {
-        nipChatType.value = NIPChatType.nip17.name;
-      }
-    }
-  }
-
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
     // Prevent duplicate clicks
     if (_isUploading) {
@@ -670,7 +626,6 @@ class ChatController extends GetxController {
   }
 
   void setRoom(Room newRoom) {
-    _setRoomChatType();
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
@@ -889,28 +844,7 @@ class ChatController extends GetxController {
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
-  void _setRoomChatType() {
-    if (roomObs.value.type == RoomType.common ||
-        roomObs.value.type == RoomType.bot) {
-      if (roomObs.value.encryptMode == EncryptMode.signal) {
-        nipChatType.value = NIPChatType.signal.name;
-        return;
-      }
-      return;
-    }
-    if (roomObs.value.isMLSGroup) {
-      nipChatType.value = NIPChatType.mls.name;
-      return;
-    }
-
-    if (roomObs.value.isSendAllGroup) {
-      nipChatType.value = NIPChatType.signal.name;
-      return;
-    }
-  }
-
   Future<void> _initRoom() async {
-    _setRoomChatType();
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {

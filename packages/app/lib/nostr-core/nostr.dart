@@ -577,27 +577,12 @@ class NostrAPI {
       return;
     }
 
-    KeychatMessage? km;
-    try {
-      final decodedContent = jsonDecode(content) as Map<String, dynamic>;
-      km = getKeyChatMessageFromJson(decodedContent);
-    } catch (e) {}
-
-    if (km != null) {
-      await RoomService.instance.processKeychatMessage(
-        km,
-        sourceEvent,
-        relay,
-        room: room,
-      );
-      return;
-    }
-
     await Nip4ChatService.instance.receiveNip4Message(
       sourceEvent,
       content,
       room: room,
       createdAt: sourceEvent.createdAt,
+      encryptMode: EncryptMode.nip04,
     );
   }
 
@@ -677,6 +662,7 @@ class NostrAPI {
         subEvent,
         relay,
         sourceEvent: event,
+        encryptMode: EncryptMode.nip17,
       );
       return;
     }
@@ -685,6 +671,7 @@ class NostrAPI {
       subEvent.content,
       sourceEvent: event,
       createdAt: subEvent.createdAt,
+      encryptMode: EncryptMode.nip17,
     );
   }
 

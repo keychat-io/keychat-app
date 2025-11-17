@@ -60,9 +60,6 @@ class MessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // if (message.mediaType == MessageMediaType.messageReaction) {
-    //   return Text('${message.idPubkey} ${message.content}');
-    // }
     return Column(
       children: [
         if (message.isMeSend) _getMessageContainer() else toTextContainer(),
@@ -378,6 +375,7 @@ class MessageWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   spacing: 8,
                   children: [
+                    _buildMessageEncryptMode() ?? const SizedBox(),
                     Text(
                       Utils.formatTimeForMessage(message.createdAt),
                       style: TextStyle(
@@ -441,19 +439,41 @@ class MessageWidget extends StatelessWidget {
           onTap: _handleShowRawdata,
           child: Padding(
             padding: const EdgeInsets.only(left: 5),
-            child: Text(
-              Utils.formatTimeForMessage(message.createdAt),
-              style: TextStyle(
-                color: Get.isDarkMode
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade400,
-                fontSize: 10,
-              ),
+            child: Row(
+              spacing: 16,
+              children: [
+                Text(
+                  Utils.formatTimeForMessage(message.createdAt),
+                  style: TextStyle(
+                    color: Get.isDarkMode
+                        ? Colors.grey.shade700
+                        : Colors.grey.shade400,
+                    fontSize: 10,
+                  ),
+                ),
+                _buildMessageEncryptMode() ?? const SizedBox(),
+              ],
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget? _buildMessageEncryptMode() {
+    if (message.encryptType == MessageEncryptType.nip04 ||
+        message.encryptType == MessageEncryptType.nip17) {
+      return Text(
+        message.encryptType.name.toUpperCase(),
+        style: TextStyle(
+          color: RoomUtil.getColorByEncryptType(
+            message.encryptType,
+          ),
+          fontSize: 10,
+        ),
+      );
+    }
+    return null;
   }
 
   Future<void> _handleShowRawdata() async {
@@ -832,13 +852,11 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Map encryptText = {
+  final encryptText = {
     'mls': 'MLS Protocol',
     'signal': 'Signal Protocol',
-    'nip4': 'NIP4',
+    'nip04': 'NIP04',
     'nip17': 'NIP17',
-    'nip4WrapNip4': 'NIP4(NIP4(raw message))',
-    'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))',
   };
   Future<void> _showRawData(
     Message message,
@@ -920,6 +938,7 @@ class MessageWidget extends StatelessWidget {
                         ),
                     ],
                     _buildInfoChip(
+                      message.encryptType,
                       'Encrypted by ${encryptText[message.encryptType.name]}',
                       buildContext,
                     ),
@@ -1170,23 +1189,55 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(String text, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(16),
+  Widget _buildInfoChip(
+    MessageEncryptType encryptType,
+    String text,
+    BuildContext context,
+  ) {
+    final color = RoomUtil.getColorByEncryptType(
+      encryptType,
+    );
+    return OutlinedButton(
+      onPressed: () async {
+        switch (encryptType) {
+          case MessageEncryptType.signal:
+            await RoomUtil.signalChatDialog(context);
+            return;
+          case MessageEncryptType.mls:
+            await RoomUtil.mlsChatDialog(context);
+            return;
+          case MessageEncryptType.nip04:
+            await RoomUtil.deprecatedEncryptedDialog(
+              cc.roomObs.value,
+              EncryptMode.nip04,
+            );
+            return;
+          case MessageEncryptType.nip17:
+            await RoomUtil.deprecatedEncryptedDialog(
+              cc.roomObs.value,
+              EncryptMode.nip17,
+            );
+            return;
+          case MessageEncryptType.nip4WrapSignal:
+            throw UnimplementedError();
+          case MessageEncryptType.nip4WrapNip4:
+            throw UnimplementedError();
+          case MessageEncryptType.nip4WrapMls:
+            throw UnimplementedError();
+        }
+      },
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: color),
+        textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w500,
         ),
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.w500,
-          ),
+        foregroundColor: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
+      child: Text(text),
     );
   }
 

@@ -36,6 +36,8 @@ class StorageKeyString {
 
   static const String desktopBrowserTabs = 'desktopBrowserTabs';
 
+  static const String adBlockEnabled = 'adBlockEnabled';
+
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return 'aliceKey:$myPubkey-$bobPubkey';
   }

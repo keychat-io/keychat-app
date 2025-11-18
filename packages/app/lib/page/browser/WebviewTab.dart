@@ -12,6 +12,7 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/browser/BookmarkEdit.dart';
 import 'package:keychat/page/browser/BrowserNewTab.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
+import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/FavoriteEdit.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/browser/SelectIdentityForBrowser.dart';
@@ -492,6 +493,22 @@ class _WebviewTabState extends State<WebviewTab> {
             ),
             Text(
               'Share',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('downloads'),
+        child: Row(
+          spacing: 16,
+          children: [
+            Icon(
+              Icons.file_download,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            Text(
+              'Downloads',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
@@ -1396,6 +1413,8 @@ class _WebviewTabState extends State<WebviewTab> {
         await refreshPage();
       case 'close':
         await closeTab();
+      case 'downloads':
+        await Get.to<void>(() => const DownloadManagerPage());
       case 'zoom':
         Get.bottomSheet(
           clipBehavior: Clip.antiAlias,
@@ -1481,13 +1500,6 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future<bool> downloadFile(DownloadStartRequest request) async {
-    if (GetPlatform.isMobile) {
-      final storagePermission = await Permission.storage.request();
-      if (!storagePermission.isGranted) {
-        await EasyLoading.showToast('Storage permission not granted');
-        return false;
-      }
-    }
     final url = request.url.toString();
     final filename = request.suggestedFilename ?? path.basename(url);
 

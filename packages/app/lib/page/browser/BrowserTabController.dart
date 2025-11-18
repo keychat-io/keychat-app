@@ -2,7 +2,7 @@ import 'dart:math' show Random;
 
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
+    show TargetPlatform, debugPrint, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart' show PageStorageKey;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
@@ -45,6 +45,11 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
+    final blockers = multiWebviewController.contentBlockers;
+    debugPrint(
+      'BrowserTabController: Applying ${blockers.length} content blockers',
+    );
+
     settings = InAppWebViewSettings(
       allowUniversalAccessFromFileURLs: true,
       isInspectable: kDebugMode,
@@ -59,6 +64,7 @@ class WebviewTabController extends GetxController {
       iframeAllow: 'camera; microphone',
       algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true,
+      contentBlockers: blockers,
     );
 
     super.onInit();

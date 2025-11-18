@@ -116,7 +116,19 @@ class _BrowserSettingState extends State<BrowserSetting> {
             SettingsSection(
               tiles: [
                 SettingsTile.switchTile(
-                  initialValue: controller.config['autoSignEvent'] ?? true,
+                  initialValue:
+                      controller.config['adBlockEnabled'] as bool? ?? true,
+                  leading: const Icon(Icons.block),
+                  title: const Text('AdBlock'),
+                  description: const Text('Block ads and trackers'),
+                  onToggle: (value) async {
+                    await controller.setConfig('adBlockEnabled', value);
+                    EasyLoading.showSuccess('Success');
+                  },
+                ),
+                SettingsTile.switchTile(
+                  initialValue:
+                      controller.config['autoSignEvent'] as bool? ?? true,
                   leading: const Icon(Icons.auto_awesome),
                   title: const Text('Auto Sign Event'),
                   onToggle: (value) async {
@@ -125,7 +137,8 @@ class _BrowserSettingState extends State<BrowserSetting> {
                   },
                 ),
                 SettingsTile.switchTile(
-                  initialValue: controller.config['enableHistory'] ?? true,
+                  initialValue:
+                      controller.config['enableHistory'] as bool? ?? true,
                   leading: const Icon(CupertinoIcons.time),
                   title: const Text('Enable History'),
                   onToggle: (value) async {

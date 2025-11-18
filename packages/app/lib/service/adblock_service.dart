@@ -7,12 +7,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Service for managing AdBlock rules for WebView content blocking
-/// Downloads and caches EasyList rules, then converts them to Safari Content Blocker format
+// https://github.com/hagezi/dns-blocklists?tab=readme-ov-file#light
+
 class AdBlockService {
-  static const String _easyListUrl =
-      'https://easylist-downloads.adblockplus.org/v3/full/easylist.txt';
-  static const String _cacheFileName = 'easylist_rules.txt';
+  static const String _blocklistUrl =
+      'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/light.txt';
+  static const String _cacheFileName = 'hagezi_blocklist.txt';
   static const Duration _cacheExpiration = Duration(days: 7);
 
   List<ContentBlocker> _contentBlockers = [];
@@ -73,14 +73,14 @@ class AdBlockService {
     return File('${adblockDir.path}/$_cacheFileName');
   }
 
-  /// Download rules from EasyList and save to cache
+  /// Download rules from HaGeZi blocklist and save to cache
   Future<String> _downloadAndCacheRules(File cacheFile) async {
-    debugPrint('AdBlock: Downloading rules from $_easyListUrl');
+    debugPrint('AdBlock: Downloading rules from $_blocklistUrl');
 
     try {
       final dio = Dio();
       final response = await dio.get<String>(
-        _easyListUrl,
+        _blocklistUrl,
         options: Options(
           responseType: ResponseType.plain,
           receiveTimeout: const Duration(seconds: 30),
@@ -109,59 +109,65 @@ class AdBlockService {
     }
   }
 
-  /// Parse EasyList rules and convert to Safari Content Blocker format
+  /// Parse HaGeZi blocklist rules and convert to Safari Content Blocker format
+  /// Only processes domain blocking rules (||domain^)
   Future<List<ContentBlocker>> _parseRulesToContentBlockers(
     String rulesContent,
   ) async {
     final blockers = <ContentBlocker>[];
     final lines = const LineSplitter().convert(rulesContent);
 
-    // Lists to accumulate different types of rules
-    final urlFilters = <String>[];
-    final cssSelectors = <String>[];
+    final domains = <String>[];
 
     for (var line in lines) {
       line = line.trim();
 
-      // Skip comments and metadata
-      if (line.isEmpty || line.startsWith('!') || line.startsWith('[Adblock')) {
+      // Skip empty lines
+      if (line.isEmpty) {
         continue;
       }
 
-      // Element hiding rules (CSS selectors)
-      if (line.contains('##')) {
-        final selector = _parseElementHidingRule(line);
-        if (selector != null && selector.isNotEmpty) {
-          cssSelectors.add(selector);
-        }
+      // Skip comments (lines starting with !)
+      if (line.startsWith('!')) {
         continue;
       }
 
-      // Element hiding exception rules - skip
-      if (line.contains('#@#')) {
+      // Skip metadata lines (like [Adblock Plus])
+      if (line.startsWith('[')) {
         continue;
       }
 
-      // URL blocking rules
-      final urlFilter = _parseUrlBlockingRule(line);
-      if (urlFilter != null && urlFilter.isNotEmpty) {
-        urlFilters.add(urlFilter);
+      // Only process domain blocking rules: ||domain^
+      // Skip exception rules (@@)
+      if (line.startsWith('@@')) {
+        continue;
+      }
+
+      // Parse domain blocking rule
+      final domain = _parseDomainBlockingRule(line);
+      if (domain != null && domain.isNotEmpty) {
+        domains.add(domain);
       }
     }
 
-    // Create content blockers from URL filters (batch in groups to avoid too many rules)
-    // Note: Too many rules can cause performance issues, so we limit the total
-    const maxTotalUrlFilters = 5000; // Limit total URL filters for performance
-    final limitedUrlFilters = urlFilters.length > maxTotalUrlFilters
-        ? urlFilters.sublist(0, maxTotalUrlFilters)
-        : urlFilters;
+    debugPrint('AdBlock: Parsed ${domains.length} domain rules');
 
-    for (final filter in limitedUrlFilters) {
+    // Create content blockers from domain filters
+    // Limit total domains for performance
+    const maxTotalDomains = 50000;
+    final limitedDomains = domains.length > maxTotalDomains
+        ? domains.sublist(0, maxTotalDomains)
+        : domains;
+
+    for (final domain in limitedDomains) {
       try {
+        // Create URL filter pattern for the domain
+        // Match domain and all subdomains
+        final pattern = '.*.$domain/.*';
         blockers.add(
           ContentBlocker(
             trigger: ContentBlockerTrigger(
-              urlFilter: filter,
+              urlFilter: pattern,
             ),
             action: ContentBlockerAction(
               type: ContentBlockerActionType.BLOCK,
@@ -170,171 +176,67 @@ class AdBlockService {
         );
       } catch (e) {
         debugPrint(
-          'AdBlock: Failed to create blocker for filter: $filter - $e',
+          'AdBlock: Failed to create blocker for domain: $domain - $e',
         );
       }
     }
 
-    if (urlFilters.length > maxTotalUrlFilters) {
+    if (domains.length > maxTotalDomains) {
       debugPrint(
-        'AdBlock: Limited URL filters from ${urlFilters.length} to $maxTotalUrlFilters for performance',
-      );
-    }
-
-    // Create content blockers from CSS selectors (batch in groups)
-    const maxSelectorsPerBlocker = 1000; // Increased from 100
-    const maxTotalSelectors = 3000; // Limit total CSS selectors
-    final limitedSelectors = cssSelectors.length > maxTotalSelectors
-        ? cssSelectors.sublist(0, maxTotalSelectors)
-        : cssSelectors;
-
-    for (var i = 0; i < limitedSelectors.length; i += maxSelectorsPerBlocker) {
-      final end = (i + maxSelectorsPerBlocker < limitedSelectors.length)
-          ? i + maxSelectorsPerBlocker
-          : limitedSelectors.length;
-      final batch = limitedSelectors.sublist(i, end);
-
-      try {
-        blockers.add(
-          ContentBlocker(
-            trigger: ContentBlockerTrigger(
-              urlFilter: '.*',
-            ),
-            action: ContentBlockerAction(
-              type: ContentBlockerActionType.CSS_DISPLAY_NONE,
-              selector: batch.join(', '),
-            ),
-          ),
-        );
-      } catch (e) {
-        debugPrint('AdBlock: Failed to create CSS blocker: $e');
-      }
-    }
-
-    if (cssSelectors.length > maxTotalSelectors) {
-      debugPrint(
-        'AdBlock: Limited CSS selectors from ${cssSelectors.length} to $maxTotalSelectors',
+        'AdBlock: Limited domains from ${domains.length} to $maxTotalDomains for performance',
       );
     }
 
     debugPrint(
-      'AdBlock: Created ${blockers.length} content blockers '
-      '(${limitedUrlFilters.length} URL filters, ${limitedSelectors.length} CSS selectors)',
+      'AdBlock: Created ${blockers.length} content blockers from ${limitedDomains.length} domains',
     );
 
-    // Print first few blockers for debugging
-    if (blockers.isNotEmpty) {
+    // Print first few domains for debugging
+    if (limitedDomains.isNotEmpty) {
       debugPrint(
-        'AdBlock: Sample blocker: ${blockers.first.trigger.urlFilter}',
+        'AdBlock: Sample domains: ${limitedDomains.take(5).join(", ")}',
       );
     }
 
     return blockers;
   }
 
-  /// Parse element hiding rule (##selector)
-  String? _parseElementHidingRule(String rule) {
-    if (!rule.contains('##')) return null;
-
-    final parts = rule.split('##');
-    if (parts.length < 2) return null;
-
-    var selector = parts[1].trim();
-
-    // Skip domain-specific rules for simplicity (we'd need to parse domains)
-    if (parts[0].isNotEmpty && !parts[0].startsWith('~')) {
-      // This is a domain-specific rule, skip for now
+  /// Parse domain blocking rule from HaGeZi format (||domain^)
+  /// Returns the domain name if valid, null otherwise
+  String? _parseDomainBlockingRule(String rule) {
+    // Only process rules in format: ||domain^
+    if (!rule.startsWith('||') || !rule.endsWith('^')) {
       return null;
     }
 
-    // Clean up the selector
-    selector = selector.replaceAll(RegExp(r'[\r\n\t]'), '');
+    // Extract domain between || and ^
+    final domain = rule.substring(2, rule.length - 1).trim();
 
-    // Skip selectors with non-ASCII characters (Safari Content Blocker limitation)
-    if (!_isAscii(selector)) return null;
+    // Skip empty domains
+    if (domain.isEmpty) return null;
 
-    // Skip advanced selectors that Safari doesn't support well
-    if (selector.contains(':-abp-') ||
-        selector.contains(':has(') ||
-        selector.contains(':xpath(')) {
+    // Skip rules with wildcards or paths (we only want pure domains)
+    if (domain.contains('*') || domain.contains('/')) {
       return null;
     }
 
-    // Validate basic CSS selector format
-    if (selector.isEmpty || selector.length > 200) return null;
-
-    return selector;
-  }
-
-  /// Parse URL blocking rule and convert to regex pattern
-  String? _parseUrlBlockingRule(String rule) {
-    // Skip exception rules
-    if (rule.startsWith('@@')) return null;
-
-    // Skip domain-specific options for simplicity
-    if (rule.contains(r'$') && !rule.endsWith(r'$')) {
-      // Has options, parse them
-      final parts = rule.split(r'$');
-      rule = parts[0];
-
-      // Skip if it has complex options we don't handle
-      final options = parts.length > 1 ? parts[1].toLowerCase() : '';
-      if (options.contains('domain=') ||
-          options.contains('script') ||
-          options.contains('stylesheet') ||
-          options.contains('subdocument')) {
-        // We could parse these, but for simplicity skip for now
-        return null;
-      }
+    // Skip rules with special characters that aren't valid in domains
+    if (domain.contains(r'$') || domain.contains('#')) {
+      return null;
     }
 
-    // Clean the rule
-    rule = rule.trim();
-    if (rule.isEmpty) return null;
+    // Basic domain validation: should contain at least one dot and valid characters
+    if (!domain.contains('.')) return null;
 
-    // Skip rules with non-ASCII characters
-    if (!_isAscii(rule)) return null;
-
-    // Convert AdBlock syntax to regex
-    var pattern = rule;
-
-    // Escape special regex characters except * and ^
-    pattern = pattern.replaceAllMapped(
-      RegExp(r'[.+?{}()\[\]\\|]'),
-      (match) => '\\${match[0]}',
-    );
-
-    // Convert AdBlock wildcards to regex
-    pattern = pattern.replaceAll('*', '.*');
-
-    // Convert separator placeholder (^)
-    pattern = pattern.replaceAll('^', '[^a-zA-Z0-9._%-]');
-
-    // Handle start/end anchors
-    if (pattern.startsWith('||')) {
-      // ||example.com means domain start
-      pattern = pattern.substring(2);
-      pattern = '.*://(.*\\.)?$pattern';
-    } else if (pattern.startsWith('|')) {
-      // | means exact start
-      pattern = '^${pattern.substring(1)}';
+    // Check if domain contains only valid characters (alphanumeric, dots, hyphens)
+    if (!RegExp(r'^[a-zA-Z0-9.-]+$').hasMatch(domain)) {
+      return null;
     }
 
-    if (pattern.endsWith('|')) {
-      // | means exact end
-      pattern = '${pattern.substring(0, pattern.length - 1)}\$';
-    }
+    // Skip too short or too long domains
+    if (domain.length < 4 || domain.length > 253) return null;
 
-    // Skip rules that are too generic or too complex
-    if (pattern.length < 5 || pattern.length > 300) return null;
-    if (pattern == '.*' || pattern == '.*:.*') return null;
-
-    return pattern;
-  }
-
-  /// Check if string contains only ASCII characters
-  bool _isAscii(String text) {
-    return text.codeUnits.every((unit) => unit < 128);
+    return domain;
   }
 
   /// Force refresh rules by downloading again

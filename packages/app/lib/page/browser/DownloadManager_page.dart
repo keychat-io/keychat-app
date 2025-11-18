@@ -5,6 +5,7 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DownloadManagerPage extends StatefulWidget {
@@ -27,17 +28,35 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
   }
 
   Future<void> _initializeDownloadManager() async {
-    // Subscribe to task updates
-    _updatesSubscription = FileDownloader().updates.listen((update) {
-      _loadAllTasks();
-    });
+    try {
+      // Cancel existing subscriptions if any
+      await _updatesSubscription?.cancel();
+      await _databaseSubscription?.cancel();
+      try {
+        // Subscribe to task updates
+        _updatesSubscription = FileDownloader().updates.listen((update) {
+          _loadAllTasks();
+        });
 
-    // Subscribe to database updates
-    _databaseSubscription = FileDownloader().database.updates.listen((record) {
-      _loadAllTasks();
-    });
+        // Subscribe to database updates
+        _databaseSubscription = FileDownloader().database.updates.listen((
+          record,
+        ) {
+          _loadAllTasks();
+        });
+      } catch (e) {
+        logger.e('Error initializing download manager subscriptions: $e');
+      }
 
-    await _loadAllTasks();
+      await _loadAllTasks();
+    } catch (e) {
+      logger.e('Error initializing download manager: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadAllTasks() async {
@@ -56,7 +75,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
         _allRecords = records;
         _isLoading = false;
       });
-    } on Exception catch (e) {
+    } catch (e) {
       print('Error loading tasks: $e');
       if (!mounted) return;
 

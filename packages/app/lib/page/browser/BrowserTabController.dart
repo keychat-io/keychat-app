@@ -64,7 +64,6 @@ class WebviewTabController extends GetxController {
       iframeAllow: 'camera; microphone',
       algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true,
-      contentBlockers: blockers,
     );
 
     super.onInit();

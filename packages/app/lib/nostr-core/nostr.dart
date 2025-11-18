@@ -577,6 +577,17 @@ class NostrAPI {
       return;
     }
 
+    final km = tryGetKeyChatMessage(content);
+    if (km != null) {
+      await RoomService.instance.processKeychatMessage(
+        km,
+        sourceEvent,
+        relay,
+        encryptMode: EncryptMode.nip04,
+      );
+      return;
+    }
+
     await Nip4ChatService.instance.receiveNip4Message(
       sourceEvent,
       content,
@@ -586,10 +597,10 @@ class NostrAPI {
     );
   }
 
-  KeychatMessage? getKeyChatMessageFromJson(Map<String, dynamic> str) {
+  KeychatMessage? tryGetKeyChatMessage(String str) {
     try {
-      return KeychatMessage.fromJson(str);
-      // ignore: empty_catches
+      final decodedContent = jsonDecode(str) as Map<String, dynamic>;
+      return KeychatMessage.fromJson(decodedContent);
     } catch (e) {}
     return null;
   }
@@ -649,12 +660,7 @@ class NostrAPI {
       return;
     }
     logger.d('subEvent: $subEvent');
-    KeychatMessage? km;
-    try {
-      final decodedContent =
-          jsonDecode(subEvent.content) as Map<String, dynamic>;
-      km = getKeyChatMessageFromJson(decodedContent);
-    } catch (e) {}
+    final km = tryGetKeyChatMessage(subEvent.content);
 
     if (km != null) {
       await RoomService.instance.processKeychatMessage(

@@ -486,6 +486,9 @@ class Room extends Equatable {
     if (type == RoomType.group) {
       return name ?? getPublicKeyDisplay(npub);
     }
+    if (type == RoomType.bot) {
+      return name ?? getPublicKeyDisplay(npub);
+    }
 
     contact ??= DBProvider.database.contacts
         .filter()

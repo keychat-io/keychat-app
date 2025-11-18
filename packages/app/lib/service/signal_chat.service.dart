@@ -221,13 +221,7 @@ class SignalChatService extends BaseChatService {
       decodeString = 'decrypt failed: $e';
     }
 
-    Map<String, dynamic> decodedContent;
-    KeychatMessage? km;
-    try {
-      decodedContent = jsonDecode(decodeString) as Map<String, dynamic>;
-      km = KeychatMessage.fromJson(decodedContent);
-      // ignore: empty_catches
-    } catch (e) {}
+    final km = NostrAPI.instance.tryGetKeyChatMessage(decodeString);
 
     if (km != null) {
       await km.service.proccessMessage(

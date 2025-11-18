@@ -616,10 +616,10 @@ Let's start an encrypted chat.''';
     switch (type) {
       case GroupType.mls:
         return 'Large Group';
-      case GroupType.kdf:
-        return 'Medium Group';
       case GroupType.sendAll:
         return 'Small Group';
+      case GroupType.kdf:
+        throw UnimplementedError();
       case GroupType.shareKey:
         throw UnimplementedError();
       case GroupType.common:
@@ -627,7 +627,7 @@ Let's start an encrypted chat.''';
     }
   }
 
-  static String getDescriptionByNipType(
+  static String getDescByNipType(
     EncryptMode type, {
     bool showDescription = true,
   }) {
@@ -653,20 +653,18 @@ ${showDescription ? "Messaging Layer Security (MLS) is a security layer for encr
     }
   }
 
-  static String getGroupModeDescription(GroupType type) {
+  static String getDescByGroupType(GroupType type) {
     switch (type) {
-      case GroupType.kdf:
-        return '';
       case GroupType.mls:
-        return getDescriptionByNipType(EncryptMode.mls, showDescription: false);
-      case GroupType.shareKey:
-        return '';
+        return getDescByNipType(EncryptMode.mls, showDescription: false);
       case GroupType.sendAll:
         return '''
-${getDescriptionByNipType(EncryptMode.signal, showDescription: false)}
+${getDescByNipType(EncryptMode.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
+      case GroupType.kdf:
+      case GroupType.shareKey:
       case GroupType.common:
         throw UnimplementedError();
     }
@@ -1002,7 +1000,7 @@ $error ''';
     }
   }
 
-  static Future<void> mlsChatDialog(BuildContext context) async {
+  static Future<void> mlsChatDialog(BuildContext context, String text) async {
     await Get.dialog<void>(
       Dialog(
         shape: RoundedRectangleBorder(
@@ -1041,7 +1039,7 @@ $error ''';
               const SizedBox(height: 12),
               // Description
               Text(
-                RoomUtil.getDescriptionByNipType(EncryptMode.mls),
+                text,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
@@ -1099,7 +1097,10 @@ $error ''';
     );
   }
 
-  static Future<void> signalChatDialog(BuildContext context) async {
+  static Future<void> signalChatDialog(
+    BuildContext context,
+    String text,
+  ) async {
     await Get.dialog<void>(
       Dialog(
         shape: RoundedRectangleBorder(
@@ -1140,7 +1141,7 @@ $error ''';
               const SizedBox(height: 12),
               // Description
               Text(
-                RoomUtil.getDescriptionByNipType(EncryptMode.signal),
+                text,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(

@@ -1042,13 +1042,7 @@ class MlsGroupService extends BaseChatService {
     loggerNoLine.i(
       '[MLS] Sender member found: ${sender?.name ?? 'null'} for event: ${event.id}',
     );
-
-    KeychatMessage? km;
-    try {
-      km = KeychatMessage.fromJson(jsonDecode(decryptedMsg.decryptMsg));
-      // ignore: empty_catches
-    } catch (e) {}
-
+    final km = NostrAPI.instance.tryGetKeyChatMessage(decryptedMsg.decryptMsg);
     await RoomService.instance.receiveDM(
       room,
       event,

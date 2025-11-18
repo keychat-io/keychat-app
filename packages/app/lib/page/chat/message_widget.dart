@@ -1201,10 +1201,16 @@ class MessageWidget extends StatelessWidget {
       onPressed: () async {
         switch (encryptType) {
           case MessageEncryptType.signal:
-            await RoomUtil.signalChatDialog(context);
+            await RoomUtil.signalChatDialog(
+              context,
+              RoomUtil.getDescByNipType(EncryptMode.signal),
+            );
             return;
           case MessageEncryptType.mls:
-            await RoomUtil.mlsChatDialog(context);
+            await RoomUtil.mlsChatDialog(
+              context,
+              RoomUtil.getDescByNipType(EncryptMode.mls),
+            );
             return;
           case MessageEncryptType.nip04:
             await RoomUtil.deprecatedEncryptedDialog(

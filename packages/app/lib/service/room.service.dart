@@ -86,6 +86,7 @@ class RoomService extends BaseChatService {
     if (room.type == RoomType.bot) {
       room.name = name;
     }
+    // chat with myself
     if (toMainPubkey == identity.secp256k1PKHex) {
       room.encryptMode = EncryptMode.nip04;
       name = KeychatGlobal.selfName;

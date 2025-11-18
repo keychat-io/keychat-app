@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection' show UnmodifiableListView;
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show base64, jsonDecode;
+import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:keychat/controller/home.controller.dart';
@@ -16,6 +17,7 @@ import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/browser/SelectIdentityForBrowser.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/SignerService.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
@@ -541,7 +543,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               Text(
-                'ID Logout',
+                'Clear Cache',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],
@@ -702,18 +704,55 @@ class _WebviewTabState extends State<WebviewTab> {
           return false;
         },
         onPermissionRequest: (controller, request) async {
+          if (GetPlatform.isDesktop) {
+            return PermissionResponse(
+              resources: request.resources,
+              action: PermissionResponseAction.GRANT,
+            );
+          }
+          final resources = <PermissionResourceType>[];
+
+          for (final resource in request.resources) {
+            var granted = false;
+
+            // Check if permission is camera or microphone
+            if (resource == PermissionResourceType.CAMERA) {
+              final status = await Permission.camera.request();
+              granted = status.isGranted;
+            } else if (resource == PermissionResourceType.MICROPHONE) {
+              final status = await Permission.microphone.request();
+              granted = status.isGranted;
+            } else {
+              // For other permissions, grant by default
+              granted = true;
+            }
+
+            if (granted) {
+              resources.add(resource);
+            }
+          }
+
           return PermissionResponse(
-            resources: request.resources,
-            action: PermissionResponseAction.GRANT,
+            resources: resources,
+            action: resources.isEmpty
+                ? PermissionResponseAction.DENY
+                : PermissionResponseAction.GRANT,
           );
         },
         shouldOverrideUrlLoading:
             (controller, NavigationAction navigationAction) async {
               final uri = navigationAction.request.url;
-              logger.i(
-                'shouldOverrideUrlLoading: $uri download: ${navigationAction.shouldPerformDownload}',
-              );
+              logger.i('shouldOverrideUrlLoading: $uri');
               if (uri == null) return NavigationActionPolicy.ALLOW;
+              // download file
+
+              if (uri.toString().startsWith('blob:')) {
+                await EasyLoading.showError('Blob files are not supported');
+                return NavigationActionPolicy.CANCEL;
+              }
+              if (navigationAction.shouldPerformDownload ?? false) {
+                return NavigationActionPolicy.DOWNLOAD;
+              }
 
               try {
                 final str = uri.toString();
@@ -736,16 +775,6 @@ class _WebviewTabState extends State<WebviewTab> {
                   return NavigationActionPolicy.CANCEL;
                 }
 
-                // download file
-
-                final shouldPerformDownload =
-                    navigationAction.shouldPerformDownload ?? false;
-                final url = navigationAction.request.url;
-                if ((shouldPerformDownload && url != null) ||
-                    url.toString().startsWith('blob:')) {
-                  await downloadFile(url.toString());
-                  return NavigationActionPolicy.DOWNLOAD;
-                }
                 if ([
                   'http',
                   'https',
@@ -935,6 +964,11 @@ class _WebviewTabState extends State<WebviewTab> {
           // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
           await onUpdateVisitedHistory(url);
         },
+        onDownloadStarting: (controller, request) async {
+          logger.d('onDownloadStart $request');
+          await downloadFile(request);
+          return DownloadStartResponse(handled: true);
+        },
       ),
     );
   }
@@ -1099,6 +1133,11 @@ class _WebviewTabState extends State<WebviewTab> {
 
     if (method == 'pageFailedToRefresh') {
       await refreshPage();
+      return null;
+    }
+
+    if (method == 'blobFileDownload') {
+      _downloadBlob(data[1], data[2]);
       return null;
     }
 
@@ -1441,43 +1480,180 @@ class _WebviewTabState extends State<WebviewTab> {
     tabController.url.value = url0;
   }
 
-  Future<void> downloadFile(String url, [String? filename]) async {
-    EasyThrottle.throttle('downloadFile', const Duration(seconds: 3), () async {
-      final permissionStatus = await Utils.getStoragePermission();
-      final hasStoragePermission = permissionStatus.isGranted;
+  Future<bool> downloadFile(DownloadStartRequest request) async {
+    if (GetPlatform.isMobile) {
+      final storagePermission = await Permission.storage.request();
+      if (!storagePermission.isGranted) {
+        await EasyLoading.showToast('Storage permission not granted');
+        return false;
+      }
+    }
+    final url = request.url.toString();
+    final filename = request.suggestedFilename ?? path.basename(url);
 
-      if (!hasStoragePermission) {
-        EasyLoading.showToast('Storage permission not granted');
-        return;
+    final shouldDownload = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Download File'),
+        content: Text(
+          '$filename\n\nSize: ${FileService.instance.getFileSizeDisplay(request.contentLength)}',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDownload != true) {
+      return false;
+    }
+
+    final selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory == null) {
+      await EasyLoading.showToast('No directory selected');
+      return false;
+    }
+
+    logger.i(
+      'start to download $url, save to: $selectedDirectory filename: $filename ',
+    );
+    await EasyLoading.showToast('Downloading...');
+    final (baseDirectory, directory, filename2) = await Task.split(
+      filePath: '$selectedDirectory/$filename',
+    );
+    final task = DownloadTask(
+      url: url,
+      filename: filename,
+      baseDirectory: baseDirectory,
+      directory: directory,
+    );
+
+    FileDownloader().download(
+      task,
+      onProgress: (progress) {},
+      onStatus: (status) async {
+        logger.i('Status: $status');
+        if (status == TaskStatus.complete) {
+          final shouldOpen = await Get.dialog<bool>(
+            CupertinoAlertDialog(
+              title: const Text('Download Complete'),
+              content: Text('File saved to:\n$selectedDirectory/$filename'),
+              actions: [
+                CupertinoActionSheetAction(
+                  onPressed: () => Get.back(result: false),
+                  child: const Text('Close'),
+                ),
+                CupertinoActionSheetAction(
+                  isDefaultAction: true,
+                  onPressed: () => Get.back(result: true),
+                  child: const Text('Open Folder'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldOpen ?? false) {
+            try {
+              await launchUrl(Uri.file(selectedDirectory));
+            } catch (e) {
+              logger.e('Failed to open directory: $e');
+              await EasyLoading.showError('Failed to open directory');
+            }
+          }
+        }
+      },
+    );
+    return true;
+  }
+
+  Future<void> _saveBlobFile(String base64String, String mimeType) async {
+    try {
+      if (GetPlatform.isMobile) {
+        final storagePermission = await Permission.storage.request();
+        if (!storagePermission.isGranted) {
+          EasyLoading.showError('Storage permission not granted');
+          return;
+        }
       }
 
       final selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) {
-        EasyLoading.showToast('No directory selected');
+        EasyLoading.dismiss();
         return;
       }
-      filename ??= path.basename(url);
-      final task = DownloadTask(
-        url: url,
-        filename: filename,
-        directory: selectedDirectory,
-        updates: Updates.statusAndProgress,
-        retries: 2,
-      );
-      EasyLoading.showToast('Downloading $filename...');
 
-      await FileDownloader().download(
-        task,
-        onProgress: (progress) {
-          if (progress == 1.0) {
-            EasyLoading.showToast('Download completed');
-          }
-        },
-        onStatus: (status) {
-          logger.i('Status: $status');
-        },
+      // Decode base64 to bytes
+      final bytes = base64.decode(base64String);
+
+      // Determine file extension from MIME type
+      final extension = _getExtensionFromMimeType(mimeType);
+      final filename =
+          'download_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+      final filePath = path.join(selectedDirectory, filename);
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      EasyLoading.dismiss();
+
+      final shouldOpen = await Get.dialog<bool>(
+        CupertinoAlertDialog(
+          title: const Text('Download Complete'),
+          content: Text('File saved to:\n$filePath'),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Close'),
+            ),
+            CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Get.back(result: true),
+              child: const Text('Open Folder'),
+            ),
+          ],
+        ),
       );
-    });
+
+      if (shouldOpen ?? false) {
+        try {
+          await launchUrl(Uri.file(selectedDirectory));
+        } catch (e) {
+          logger.e('Failed to open directory: $e');
+        }
+      }
+    } catch (e, s) {
+      logger.e('Failed to save blob file: $e', stackTrace: s);
+      EasyLoading.showError('Failed to save file');
+    }
+  }
+
+  String _getExtensionFromMimeType(String mimeType) {
+    final mimeMap = {
+      'image/png': '.png',
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+      'application/pdf': '.pdf',
+      'application/zip': '.zip',
+      'application/x-zip-compressed': '.zip',
+      'text/plain': '.txt',
+      'text/html': '.html',
+      'application/json': '.json',
+      'video/mp4': '.mp4',
+      'video/webm': '.webm',
+      'audio/mpeg': '.mp3',
+      'audio/wav': '.wav',
+      'application/octet-stream': '.bin',
+    };
+    return mimeMap[mimeType.toLowerCase()] ?? '.bin';
   }
 
   Future<void> renderAssetAsHtml(
@@ -1806,6 +1982,7 @@ img {
       'refreshPage${tabController.hashCode}',
       const Duration(seconds: 2),
       () async {
+        await EasyLoading.dismiss();
         try {
           final uri = await _getCurrentUriTimeOut();
           logger.i('refreshPage-geturi: $uri');
@@ -1883,5 +2060,9 @@ img {
       logger.i(e.toString(), error: e);
     }
     return false;
+  }
+
+  void _downloadBlob(String base64content, String ext) {
+    logger.d('base64content: $base64content, ext $ext');
   }
 }

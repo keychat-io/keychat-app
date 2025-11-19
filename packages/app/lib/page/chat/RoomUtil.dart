@@ -1201,6 +1201,10 @@ $error ''';
     );
   }
 
+  static String getUniversalLink(String npub) {
+    return '${KeychatGlobal.mainWebsite}/u/?k=$npub';
+  }
+
   static Future<void> deprecatedEncryptedDialog(Room room) async {
     const msg = '''
 Your chat partner is using weak encryption, so you’re matching it for now. 
@@ -1259,17 +1263,15 @@ Send them your Keychat link so they can install it and chat with you using stron
                     child: FilledButton(
                       onPressed: () async {
                         Get.back<void>();
-                        final link = await getOneTimeLink(
-                          room.getIdentity(),
+                        final link = RoomUtil.getUniversalLink(
+                          room.getIdentity().npub,
                         );
                         await RoomService.instance.sendMessage(room, '''
 I’m using Keychat to receive and reply to your messages. 
 Since you’re using weak encryption, I’m matching it for compatibility. 
 You can tap my Keychat link to download the app and add me. Let’s switch to strong encryption.
 
-Website: https://keychat.io
-
-Chat with me: $link
+$link
 ''');
                       },
                       style: FilledButton.styleFrom(

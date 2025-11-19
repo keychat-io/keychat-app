@@ -182,7 +182,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     subtitle: Text(
-                      RoomUtil.getGroupModeDescription(GroupType.mls),
+                      RoomUtil.getDescByGroupType(GroupType.mls),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     leading: const Radio<GroupType>(value: GroupType.mls),
@@ -200,7 +200,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     subtitle: Text(
-                      RoomUtil.getGroupModeDescription(
+                      RoomUtil.getDescByGroupType(
                         GroupType.sendAll,
                       ),
                       style: Theme.of(context).textTheme.bodySmall,

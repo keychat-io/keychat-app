@@ -887,20 +887,6 @@ Init File: $time \n
     }
   }
 
-  static Future<PermissionStatus> getStoragePermission() async {
-    if (Platform.isIOS) {
-      return await Permission.storage.isGranted
-          ? PermissionStatus.granted
-          : await Permission.storage.request();
-    }
-    if (Platform.isAndroid) {
-      return await Permission.photos.isGranted
-          ? PermissionStatus.granted
-          : await Permission.photos.request();
-    }
-    return Permission.storage.status;
-  }
-
   static Future<List<dynamic>> getWebRTCServers() async {
     final config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {

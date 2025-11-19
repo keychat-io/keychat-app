@@ -213,7 +213,7 @@ class NostrEventModel {
   bool get isNip4 => kind == EventKinds.nip04 && content.contains('?iv=');
   MessageEncryptType get encryptType => kind == EventKinds.nip17
       ? MessageEncryptType.nip17
-      : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4);
+      : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip04);
 
   /// Serialize an event in JSON
   Map<String, dynamic> toJson() => {

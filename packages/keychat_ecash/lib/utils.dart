@@ -1,14 +1,14 @@
 import 'dart:async' show unawaited;
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -26,6 +26,14 @@ class EcashUtils {
   static String errorSpent = 'Token already spent';
   static String errorInvalid = 'Invalid token';
   static String errorBlindedMessage = 'Blinded Message is already signed';
+  static List<String> errorsUnique = [
+    'UNIQUE constraint failed',
+    'INSERT INTO promises',
+  ];
+  static List<String> errorsDuplicateKey = [
+    'duplicate key value violates unique constraint',
+    'INSERT INTO promises',
+  ];
 
   static final Map<String, bool> _activeChecks = {};
 
@@ -176,13 +184,13 @@ class EcashUtils {
     return null;
   }
 
-  static Future<void> blindedMessageErrorDialog() {
+  static Future<void> dialogToRestore(String msg) {
     return Get.dialog<void>(
       CupertinoAlertDialog(
         title: const Text('Error'),
         content: Text(
           '''
-${EcashUtils.errorBlindedMessage}
+Error: $msg
 Please restore your ecash wallet from mint server to resolve this issue.
 ''',
         ),
@@ -210,21 +218,35 @@ Please restore your ecash wallet from mint server to resolve this issue.
   static Future<String> ecashErrorHandle(Object e, StackTrace s) async {
     await EasyLoading.dismiss();
     final msg = Utils.getErrorMessage(e);
+    final msgLower = msg.toLowerCase();
     logger.e(msg, error: e, stackTrace: s);
-    if (msg.toLowerCase().contains(
-          EcashUtils.errorSpent.toLowerCase(),
-        )) {
+    if (msgLower.contains(
+      EcashUtils.errorSpent.toLowerCase(),
+    )) {
       await EasyLoading.showError(EcashUtils.errorSpent);
       await rust_cashu.checkProofs();
       return msg;
     }
-    if (msg.toLowerCase().contains(
-          EcashUtils.errorBlindedMessage.toLowerCase(),
-        )) {
-      await blindedMessageErrorDialog();
+    var shouldDialogToRestore = false;
+    if (msgLower.contains(
+      EcashUtils.errorBlindedMessage.toLowerCase(),
+    )) {
+      shouldDialogToRestore = true;
+    }
+    if (msgLower.contains(errorsUnique[0].toLowerCase()) ||
+        msgLower.contains(errorsDuplicateKey[0].toLowerCase())) {
+      if (msgLower.contains(errorsUnique[1].toLowerCase())) {
+        shouldDialogToRestore = true;
+      }
+    }
+    if (shouldDialogToRestore) {
+      await dialogToRestore(msg);
       return msg;
     }
-    await EasyLoading.showError('Error: $msg');
+    await EasyLoading.showError(
+      'Error: $msg',
+      duration: const Duration(seconds: 3),
+    );
     return msg;
   }
 
@@ -338,38 +360,27 @@ Please restore your ecash wallet from mint server to resolve this issue.
     );
   }
 
-  static String getCashuAmount(Transaction transaction) {
-    switch (transaction.io) {
+  static String getSymbolFromDirection(TransactionDirection direction) {
+    switch (direction) {
       case TransactionDirection.outgoing:
-        return '-${transaction.amount}';
+        return '-';
       case TransactionDirection.incoming:
-        return '+${transaction.amount}';
+        return '+';
       case TransactionDirection.split:
-        return transaction.amount.toString();
-    }
-  }
-
-  static String getLNAmount(Transaction transaction) {
-    switch (transaction.io) {
-      case TransactionDirection.outgoing:
-        return '-${transaction.amount}';
-      case TransactionDirection.incoming:
-        return '+${transaction.amount}';
-      case TransactionDirection.split:
-        return transaction.amount.toString();
+        return '';
     }
   }
 
   static Future<void> restoreFromMintServer() async {
     try {
-      EasyLoading.show(
+      await EasyLoading.show(
         status: '''
 Please don't close or exit the app.
 Restoring...''',
       );
       final ec = Get.find<EcashController>();
       if (ec.currentIdentity == null) {
-        EasyLoading.showError('No mnemonic');
+        await EasyLoading.showError('No mnemonic');
         return;
       }
       await ec.restore();

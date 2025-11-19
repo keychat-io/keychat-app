@@ -31,13 +31,51 @@ class GroupInviteAction extends StatelessWidget {
           child: const Text('Group Info >'),
         );
       case RequestConfrimEnum.approved:
-        return const Text('  Approved', style: TextStyle(color: Colors.green));
+        return const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 16),
+            SizedBox(width: 4),
+            Text(
+              'Approved',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
       case RequestConfrimEnum.rejected:
-        return const Text('  Rejected', style: TextStyle(color: Colors.red));
+        return const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cancel, color: Colors.red, size: 16),
+            SizedBox(width: 4),
+            Text(
+              'Rejected',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+          ],
+        );
       case RequestConfrimEnum.expired:
-        return const Text('  Expired', style: TextStyle(color: Colors.black54));
-      default:
-        return Text(message.content);
+        return const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.access_time, color: Colors.black54, size: 16),
+            SizedBox(width: 4),
+            Text(
+              'Expired',
+              style: TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
+      case RequestConfrimEnum.none:
+        return const SizedBox();
+      case null:
+        return const SizedBox();
     }
   }
 

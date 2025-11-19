@@ -7,6 +7,7 @@ import 'package:keychat/models/browser/browser_connect.dart';
 import 'package:keychat/models/db_provider.dart';
 import 'package:keychat/models/identity.dart';
 import 'package:keychat/page/browser/BrowserConnectedWebsite.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/contact/contact_list_page.dart';
 import 'package:keychat/page/login/AccountSetting/AccountSetting_controller.dart';
@@ -273,8 +274,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           leading: const Icon(CupertinoIcons.link),
                           title: const Text('Universal Link'),
                           onPressed: (c) {
-                            final link =
-                                '${KeychatGlobal.mainWebsite}/u/?k=${controller.identity.value.npub}';
+                            final link = RoomUtil.getUniversalLink(
+                              controller.identity.value.npub,
+                            );
                             Clipboard.setData(ClipboardData(text: link));
                             EasyLoading.showSuccess('Copied');
                           },

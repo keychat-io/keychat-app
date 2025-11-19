@@ -152,18 +152,6 @@ class RelayWebsocket {
 
     await _startListen();
 
-    EasyDebounce.debounce(
-      'connectSuccess:${relay.url}',
-      const Duration(seconds: 3),
-      () async {
-        final identities = Get.find<HomeController>().allIdentities.values
-            .toList();
-        await MlsGroupService.instance.uploadKeyPackages(
-          toRelay: relay.url,
-          identities: identities,
-        );
-      },
-    );
     // nwc reconnect
     Utils.getGetxController<NostrWalletConnectController>()?.startListening(
       relay.url,

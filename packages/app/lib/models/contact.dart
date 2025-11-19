@@ -89,6 +89,7 @@ class Contact extends Equatable {
     name,
     petname,
     about,
+    avatarFromRelay,
     avatarLocalPath,
   ];
 }

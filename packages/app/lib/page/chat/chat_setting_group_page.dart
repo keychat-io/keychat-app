@@ -188,7 +188,27 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             cc.roomObs.value.groupType,
                           ),
                         ),
-                        onPressed: getGroupInfoBottomSheetWidget,
+                        onPressed: (_) async {
+                          if (cc.roomObs.value.isSendAllGroup) {
+                            await RoomUtil.signalChatDialog(
+                              context,
+                              RoomUtil.getDescByGroupType(
+                                cc.roomObs.value.groupType,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (cc.roomObs.value.isMLSGroup) {
+                            await RoomUtil.mlsChatDialog(
+                              context,
+                              RoomUtil.getDescByGroupType(
+                                cc.roomObs.value.groupType,
+                              ),
+                            );
+                            return;
+                          }
+                        },
                       ),
                       if (isAdmin)
                         SettingsTile.navigation(

@@ -112,81 +112,93 @@ class _ContactsPageState extends State<ContactsPage> {
         centerTitle: true,
         title: const Text('Contacts'),
       ),
-      body: _listDatas.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.people_outline,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No contacts yet',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add contacts to start chatting',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Get.bottomSheet(
-                        clipBehavior: Clip.antiAlias,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(4),
-                          ),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 800),
+          padding: GetPlatform.isDesktop
+              ? const EdgeInsets.all(8)
+              : EdgeInsets.zero,
+          child: _listDatas.isEmpty
+              ? Center(
+                  widthFactor: 1,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.people_outline,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No contacts yet',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add contacts to start chatting',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
                         ),
-                        const AddtoContactsPage(''),
-                        isScrollControlled: true,
-                        ignoreSafeArea: false,
-                      );
-                    },
-                    icon: const Icon(CupertinoIcons.person_add),
-                    label: const Text('Add Contact'),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Get.bottomSheet(
+                            clipBehavior: Clip.antiAlias,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                            const AddtoContactsPage(''),
+                            isScrollControlled: true,
+                            ignoreSafeArea: false,
+                          );
+                        },
+                        icon: const Icon(CupertinoIcons.person_add),
+                        label: const Text('Add Contact'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              shrinkWrap: true,
-              physics: const ClampingScrollPhysics(),
-              itemCount: _headerData.length + _listDatas.length,
-              controller: _scrollController,
-              itemBuilder: (BuildContext context, int index) {
-                if (index < _headerData.length) {
-                  return _FriendCell(
-                    contact: _headerData[index],
-                    imageAssets: _headerData[index].imageAssets,
-                    updateList: _getData,
-                  );
-                } else {
-                  String? groupTitle = _listDatas[index].indexLetter;
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: _headerData.length + _listDatas.length,
+                  controller: _scrollController,
+                  itemBuilder: (BuildContext context, int index) {
+                    if (index < _headerData.length) {
+                      return _FriendCell(
+                        contact: _headerData[index],
+                        imageAssets: _headerData[index].imageAssets,
+                        updateList: _getData,
+                      );
+                    } else {
+                      String? groupTitle = _listDatas[index].indexLetter;
 
-                  if (index - _headerData.length > 0) {
-                    final isShowT =
-                        _listDatas[index - _headerData.length].indexLetter ==
-                        _listDatas[index - _headerData.length - 1].indexLetter;
+                      if (index - _headerData.length > 0) {
+                        final isShowT =
+                            _listDatas[index - _headerData.length]
+                                .indexLetter ==
+                            _listDatas[index - _headerData.length - 1]
+                                .indexLetter;
 
-                    if (isShowT) {
-                      groupTitle = null;
+                        if (isShowT) {
+                          groupTitle = null;
+                        }
+                      }
+                      return _FriendCell(
+                        contact: _listDatas[index - _headerData.length],
+                        groupTitle: groupTitle,
+                        updateList: _getData,
+                      );
                     }
-                  }
-                  return _FriendCell(
-                    contact: _listDatas[index - _headerData.length],
-                    groupTitle: groupTitle,
-                    updateList: _getData,
-                  );
-                }
-              },
-            ),
+                  },
+                ),
+        ),
+      ),
     );
   }
 }

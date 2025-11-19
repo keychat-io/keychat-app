@@ -265,40 +265,6 @@ void showFitSheetWidget(
   );
 }
 
-void getGroupInfoBottomSheetWidget(BuildContext context) {
-  Get.bottomSheet(
-    ignoreSafeArea: false,
-    clipBehavior: Clip.antiAlias,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-    ),
-    SafeArea(
-      child: Scaffold(
-        body: ListView(
-          children: [
-            ListTile(
-              title: Text(
-                'Large Group - MLS Protocol',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
-            ),
-            ListTile(
-              title: Text(
-                'Small Group - Signal Protocol',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              subtitle: Text(
-                RoomUtil.getGroupModeDescription(GroupType.sendAll),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 Widget codeSnippet(String text) {
   return Text(
     text,

@@ -558,7 +558,7 @@ class NostrAPI {
           await _processNip17Message(event, relay, failedCallback);
         } catch (e, s) {
           final msg = Utils.getErrorMessage(e);
-          ess.setError('nip17 $msg $s');
+          await ess.setError('nip17 $msg $s');
           logger.e('nip17 decrypt error: $msg', error: e, stackTrace: s);
         }
     }
@@ -577,48 +577,13 @@ class NostrAPI {
       return;
     }
 
-    Map<String, dynamic> decodedContent;
-    try {
-      decodedContent = jsonDecode(content) as Map<String, dynamic>;
-    } catch (e) {
-      await Nip4ChatService.instance.receiveNip4Message(sourceEvent, content);
-      return;
-    }
-
-    final km = getKeyChatMessageFromJson(decodedContent);
+    final km = tryGetKeyChatMessage(content);
     if (km != null) {
       await RoomService.instance.processKeychatMessage(
         km,
         sourceEvent,
         relay,
-        room: room,
-      );
-      return;
-    }
-
-    // nip4(nip4/signal) message for old version
-    NostrEventModel? subEvent;
-    try {
-      subEvent = NostrEventModel.deserialize(decodedContent);
-      // ignore: empty_catches
-    } catch (e) {}
-    if (subEvent != null) {
-      await _processSubEvent(
-        sourceEvent,
-        subEvent,
-        relay,
-        (String msg) async {
-          failedCallback(msg);
-          if (room != null) {
-            await RoomUtil.appendMessageOrCreate(
-              msg,
-              room,
-              'decrypt failed',
-              sourceEvent,
-            );
-          }
-        },
-        room: room,
+        encryptMode: EncryptMode.nip04,
       );
       return;
     }
@@ -627,83 +592,15 @@ class NostrAPI {
       sourceEvent,
       content,
       room: room,
+      createdAt: sourceEvent.createdAt,
+      encryptMode: EncryptMode.nip04,
     );
   }
 
-  Future<void> _processSubEvent(
-    NostrEventModel event,
-    NostrEventModel subEvent,
-    Relay relay,
-    void Function(String error) failedCallback, {
-    Room? room,
-  }) async {
-    // nip4(nip4)
-    if (subEvent.isNip4) {
-      final subContent = await decryptNip4Content(subEvent);
-      if (subContent == null) {
-        await Nip4ChatService.instance.receiveNip4Message(
-          event,
-          subEvent.serialize(),
-          room: room,
-        );
-        return;
-      }
-
-      Map<String, dynamic> subDecodedContent;
-      try {
-        subDecodedContent = jsonDecode(subContent) as Map<String, dynamic>;
-      } catch (e) {
-        logger.d('try decode error');
-        await Nip4ChatService.instance.receiveNip4Message(
-          subEvent,
-          subContent,
-          sourceEvent: event,
-        );
-        return;
-      }
-
-      final km = getKeyChatMessageFromJson(subDecodedContent);
-      if (km != null) {
-        return RoomService.instance.processKeychatMessage(
-          km,
-          subEvent,
-          relay,
-          sourceEvent: event,
-        );
-      }
-      await Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
-      return;
-    }
-
-    // nip4(signal)
-    room ??= await RoomService.instance.getOrCreateRoom(
-      subEvent.pubkey,
-      subEvent.tags[0][1],
-      RoomStatus.init,
-    );
-    await SignalChatService.instance.decryptMessage(
-      room,
-      subEvent,
-      relay,
-      sourceEvent: event,
-      failedCallback: (String msg) async {
-        failedCallback(msg);
-        if (room != null) {
-          await RoomUtil.appendMessageOrCreate(
-            msg,
-            room,
-            'decrypt failed',
-            event,
-          );
-        }
-      },
-    );
-  }
-
-  KeychatMessage? getKeyChatMessageFromJson(Map<String, dynamic> str) {
+  KeychatMessage? tryGetKeyChatMessage(String str) {
     try {
-      return KeychatMessage.fromJson(str);
-      // ignore: empty_catches
+      final decodedContent = jsonDecode(str) as Map<String, dynamic>;
+      return KeychatMessage.fromJson(decodedContent);
     } catch (e) {}
     return null;
   }
@@ -762,19 +659,8 @@ class NostrAPI {
       );
       return;
     }
-    Map<String, dynamic> decodedContent;
     logger.d('subEvent: $subEvent');
-    try {
-      decodedContent = jsonDecode(subEvent.content) as Map<String, dynamic>;
-    } catch (e) {
-      await Nip4ChatService.instance.receiveNip4Message(
-        subEvent,
-        subEvent.content,
-        sourceEvent: event,
-      );
-      return;
-    }
-    final km = getKeyChatMessageFromJson(decodedContent);
+    final km = tryGetKeyChatMessage(subEvent.content);
 
     if (km != null) {
       await RoomService.instance.processKeychatMessage(
@@ -782,14 +668,16 @@ class NostrAPI {
         subEvent,
         relay,
         sourceEvent: event,
+        encryptMode: EncryptMode.nip17,
       );
       return;
     }
-
     await Nip4ChatService.instance.receiveNip4Message(
       subEvent,
       subEvent.content,
       sourceEvent: event,
+      createdAt: subEvent.createdAt,
+      encryptMode: EncryptMode.nip17,
     );
   }
 

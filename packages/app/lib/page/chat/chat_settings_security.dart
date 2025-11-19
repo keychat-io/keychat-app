@@ -1,13 +1,12 @@
-import 'package:keychat/models/room.dart';
-import 'package:keychat/page/chat/SelectRoomRelay.dart';
-import 'package:keychat/page/components.dart';
-import 'package:keychat/service/contact.service.dart';
-import 'package:keychat/service/room.service.dart';
-import 'package:keychat/service/signal_chat.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/models/room.dart';
+import 'package:keychat/page/chat/SelectRoomRelay.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatSettingSecurity extends StatelessWidget {
@@ -32,9 +31,7 @@ class ChatSettingSecurity extends StatelessWidget {
                 SettingsTile(
                   title: const Text('Encrypt mode'),
                   leading: const Icon(CupertinoIcons.lock),
-                  value: cc.roomObs.value.encryptMode == EncryptMode.signal
-                      ? textP('Signal procotol', color: Colors.green)
-                      : textP('Nostr nip17', color: Colors.red),
+                  value: Text(cc.roomObs.value.encryptMode.name.toUpperCase()),
                 ),
                 SettingsTile.navigation(
                   title: const Text('Reset Signal Session'),

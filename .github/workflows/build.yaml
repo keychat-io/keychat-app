@@ -30,7 +30,7 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
-  FLUTTER_VERSION: "3.38.0"
+  FLUTTER_VERSION: "3.38.2"
 
 jobs:
   get-version:

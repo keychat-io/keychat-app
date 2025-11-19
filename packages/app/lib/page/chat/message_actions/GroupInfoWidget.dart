@@ -1,5 +1,7 @@
+import 'package:keychat/app.dart';
 import 'package:keychat/models/room_member.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +45,9 @@ class GroupInfoWidget extends StatelessWidget {
                       SettingsTile(
                         title: const Text('Mode'),
                         value: const Text('MLS Large Group'),
+                        description: Text(
+                          RoomUtil.getDescByGroupType(GroupType.mls),
+                        ),
                       ),
                     ],
                   ),

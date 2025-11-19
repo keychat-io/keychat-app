@@ -114,6 +114,28 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             actions: [
               Obx(
+                () => controller.nipChatType.value.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () async {
+                            await RoomUtil.deprecatedEncryptedDialog(
+                              controller.roomObs.value,
+                            );
+                          },
+                          child: Text(
+                            '⚠️',
+                            style: TextStyle(
+                              color: Colors.red.withAlpha(200),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(),
+              ),
+              Obx(
                 () => controller.roomObs.value.status != RoomStatus.approving
                     ? IconButton(
                         onPressed: goToSetting,

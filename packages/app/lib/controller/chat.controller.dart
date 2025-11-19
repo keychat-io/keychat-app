@@ -154,6 +154,7 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat(searchMsgIndex: searchMessageId);
+    nipChatType.value = loadWeakEncryptionTips();
     initChatPageFeatures();
     super.onInit();
   }
@@ -476,6 +477,27 @@ class ChatController extends GetxController {
     super.onClose();
   }
 
+  RxString nipChatType = ''.obs;
+  // check if the latest message is nip04 or nip17
+  String loadWeakEncryptionTips() {
+    if (roomObs.value.type != RoomType.common ||
+        roomObs.value.encryptMode == EncryptMode.signal ||
+        messages.isEmpty) {
+      return '';
+    }
+
+    final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
+    if (lastMessage == null) {
+      return '';
+    }
+    if (lastMessage.isSystem ||
+        (lastMessage.encryptType != MessageEncryptType.nip04 &&
+            lastMessage.encryptType != MessageEncryptType.nip17)) {
+      return '';
+    }
+    return lastMessage.encryptType.name;
+  }
+
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
     // Prevent duplicate clicks
     if (_isUploading) {
@@ -632,6 +654,8 @@ class ChatController extends GetxController {
     }
     roomObs(newRoom);
     roomObs.refresh();
+
+    nipChatType.value = loadWeakEncryptionTips();
   }
 
   List<Message> sortMessageById(List<Message> list) {
@@ -933,77 +957,76 @@ class ChatController extends GetxController {
       final description =
           (metadata['description'] ?? metadata['about'] ?? metadata['bio'])
               as String?;
-      for (final contact in contacts) {
-        if (contact.versionFromRelay >= res.createdAt) {
-          continue;
-        }
+      final contact = contacts.first;
+      if (contact.versionFromRelay >= res.createdAt) {
+        return contact;
+      }
 
-        // Handle avatar download if URL changed
-        if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
-          if (avatarFromRelay.startsWith('http') ||
-              avatarFromRelay.startsWith('https')) {
-            // Download avatar if URL changed
-            logger.d('${contact.avatarFromRelay}  ,$avatarFromRelay');
-            if (contact.avatarFromRelay != avatarFromRelay) {
-              try {
-                // Show confirmation dialog before downloading avatar
-                final shouldDownload = await Get.dialog<bool>(
-                  CupertinoAlertDialog(
-                    title: const Text('Download Avatar'),
-                    content: Text(
-                      'Do you want to download the avatar for ${contact.displayName}? \n\nURL: $avatarFromRelay',
-                    ),
-                    actions: [
-                      CupertinoDialogAction(
-                        onPressed: () => Get.back(result: false),
-                        child: const Text('Cancel'),
-                      ),
-                      CupertinoDialogAction(
-                        isDefaultAction: true,
-                        onPressed: () => Get.back(result: true),
-                        child: const Text('Download'),
-                      ),
-                    ],
+      // Handle avatar download if URL changed
+      if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
+        if (avatarFromRelay.startsWith('http') ||
+            avatarFromRelay.startsWith('https')) {
+          // Download avatar if URL changed
+          logger.d('${contact.avatarFromRelay}  ,$avatarFromRelay');
+          if (contact.avatarFromRelay != avatarFromRelay) {
+            try {
+              // Show confirmation dialog before downloading avatar
+              final shouldDownload = await Get.dialog<bool>(
+                CupertinoAlertDialog(
+                  title: const Text('Download Avatar'),
+                  content: Text(
+                    'Do you want to download the avatar for ${contact.displayName}? \n\nURL: $avatarFromRelay',
                   ),
-                );
+                  actions: [
+                    CupertinoDialogAction(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('Cancel'),
+                    ),
+                    CupertinoDialogAction(
+                      isDefaultAction: true,
+                      onPressed: () => Get.back(result: true),
+                      child: const Text('Download'),
+                    ),
+                  ],
+                ),
+              );
 
-                if (shouldDownload != true) {
-                  continue;
-                }
-                final localPath = await FileService.instance
-                    .downloadAndSaveAvatar(avatarFromRelay, pubkey);
-                if (localPath != null) {
-                  contact
-                    ..avatarFromRelay = avatarFromRelay
-                    ..avatarFromRelayLocalPath = localPath;
-                }
-              } catch (e, s) {
-                logger.e(
-                  'Failed to download avatar: $e',
-                  error: e,
-                  stackTrace: s,
-                );
+              if (shouldDownload != true) {
+                return contact;
               }
+              final localPath = await FileService.instance
+                  .downloadAndSaveAvatar(avatarFromRelay, pubkey);
+              if (localPath != null) {
+                contact
+                  ..avatarFromRelay = avatarFromRelay
+                  ..avatarFromRelayLocalPath = localPath;
+              }
+            } catch (e, s) {
+              logger.e(
+                'Failed to download avatar: $e',
+                error: e,
+                stackTrace: s,
+              );
             }
           }
         }
-
-        contact
-          ..nameFromRelay = nameFromRelay
-          ..aboutFromRelay = description
-          ..metadataFromRelay = res.content
-          ..fetchFromRelayAt = DateTime.now()
-          ..versionFromRelay = res.createdAt;
-        loggerNoLine.i(
-          'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
-        );
-        await ContactService.instance.saveContact(contact);
       }
+
+      contact
+        ..nameFromRelay = nameFromRelay
+        ..aboutFromRelay = description
+        ..metadataFromRelay = res.content
+        ..fetchFromRelayAt = DateTime.now()
+        ..versionFromRelay = res.createdAt;
+      loggerNoLine.i(
+        'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
+      );
+      await ContactService.instance.saveContact(contact);
+      return contact;
     } catch (e) {
       logger.e('fetchUserMetadata: $e', error: e);
     }
-    return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
-        contacts.first;
+    return contacts.first;
   }
 
   Future<bool> handlePasteboardFile() async {

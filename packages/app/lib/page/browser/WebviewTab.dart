@@ -554,7 +554,7 @@ class _WebviewTabState extends State<WebviewTab> {
       const Divider(height: 1),
       if (tabController.browserConnect.value.host != '')
         MenuItemButton(
-          onPressed: () => _handleMenuSelection('disconnect'),
+          onPressed: () => _handleMenuSelection('clear'),
           child: Row(
             spacing: 12,
             children: [
@@ -1405,19 +1405,30 @@ class _WebviewTabState extends State<WebviewTab> {
         Clipboard.setData(ClipboardData(text: currentUri.toString()));
         EasyLoading.showToast('Copied');
       case 'clear':
-        if (tabController.inAppWebViewController == null) return;
-        tabController.inAppWebViewController?.webStorage.localStorage.clear();
-        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
-        EasyLoading.showToast('Clear Success');
-        logger.i('Cache cleared, refreshing page');
-        await refreshPage();
-      case 'disconnect':
         final res = await BrowserConnect.getByHost(currentUri.host);
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
-        tabController.inAppWebViewController?.webStorage.localStorage.clear();
-        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
+        await tabController.inAppWebViewController?.webStorage.localStorage
+            .clear();
+        await tabController.inAppWebViewController?.webStorage.sessionStorage
+            .clear();
+        var domain = currentUri.host;
+        // Extract main domain (remove subdomain)
+        if (domain.split('.').length > 2) {
+          domain = domain.split('.').sublist(1).join('.');
+        }
+        logger.d('currentUri: $domain');
+        await CookieManager.instance().deleteCookies(
+          url: WebUri(currentUri.toString()),
+          domain: currentUri.host,
+          webViewController: tabController.inAppWebViewController,
+        );
+        await CookieManager.instance().deleteCookies(
+          url: WebUri(currentUri.toString()),
+          domain: '.$domain',
+          webViewController: tabController.inAppWebViewController,
+        );
         EasyLoading.showToast('Logout Success');
 
         tabController.setBrowserConnect(null);

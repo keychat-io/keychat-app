@@ -1201,12 +1201,10 @@ $error ''';
     );
   }
 
-  static Future<void> deprecatedEncryptedDialog(
-    Room room,
-    EncryptMode encryptMode,
-  ) async {
-    final msg =
-        'This message is encrypted by nostr ${encryptMode.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
+  static Future<void> deprecatedEncryptedDialog(Room room) async {
+    const msg = '''
+Your chat partner is using weak encryption, so you’re matching it for now. 
+Send them your Keychat link so they can install it and chat with you using strong encryption.''';
 
     await Get.dialog<void>(
       Dialog(
@@ -1265,12 +1263,13 @@ $error ''';
                           room.getIdentity(),
                         );
                         await RoomService.instance.sendMessage(room, '''
-Keychat is the super app for Bitcoiners.
-Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
+I’m using Keychat to receive and reply to your messages. 
+Since you’re using weak encryption, I’m matching it for compatibility. 
+You can tap my Keychat link to download the app and add me. Let’s switch to strong encryption.
 
-Website: [keychat.io](https://keychat.io)
+Website: https://keychat.io
 
-Chat with me: [One-Time Link]($link)
+Chat with me: $link
 ''');
                       },
                       style: FilledButton.styleFrom(
@@ -1282,7 +1281,10 @@ Chat with me: [One-Time Link]($link)
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Share One-Time Link'),
+                      child: const Text(
+                        'Share Keychat Link',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1339,22 +1341,8 @@ Chat with me: [One-Time Link]($link)
             );
             return;
           case MessageEncryptType.nip04:
-            await deprecatedEncryptedDialog(
-              room,
-              EncryptMode.nip04,
-            );
             return;
           case MessageEncryptType.nip17:
-            if (message.isSystem) {
-              await EasyLoading.showInfo(
-                'It is a keychat system message, encrypted with NIP17.',
-              );
-              return;
-            }
-            await deprecatedEncryptedDialog(
-              room,
-              EncryptMode.nip17,
-            );
             return;
           case MessageEncryptType.nip4WrapSignal:
             throw UnimplementedError();

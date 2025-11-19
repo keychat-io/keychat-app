@@ -46,7 +46,7 @@ dependencies:
   photo_view: ^0.15.0
   image_picker: ^1.2.1 # select image
   flutter_dotenv: ^6.0.0
-  logger: ^2.6.1
+  logger: ^2.6.2
   cached_network_image: ^3.4.1
   queue: ^3.1.0+2
   mutex: ^3.0.1
@@ -85,7 +85,7 @@ dependencies:
   super_clipboard: ^0.9.1
   responsive_grid_list: ^1.4.1
   mime: ^2.0.0
-  app_links: ^6.4.1
+  app_links: ^7.0.0
   receive_sharing_intent:
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent

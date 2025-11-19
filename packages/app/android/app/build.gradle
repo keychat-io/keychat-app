@@ -31,11 +31,13 @@ android {
     namespace "com.keychat.io"
     ndkVersion flutterNDKVersion
     compileOptions {
+        // Ensures Java 21 compatibility.
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
 
     kotlinOptions {
+        // Align Kotlin with Java 21 bytecode.
         jvmTarget = '21'
     }
 

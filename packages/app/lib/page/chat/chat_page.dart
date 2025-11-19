@@ -231,20 +231,13 @@ class _ChatPage2State extends State<ChatPage> {
                               roomMember: rm,
                               cc: controller,
                               screenWidth: Get.width,
-                              toDisplayNameColor: Get.isDarkMode
-                                  ? Colors.white54
-                                  : Colors.black54,
                               backgroundColor: message.isMeSend
                                   ? KeychatGlobal.secondaryColor
                                   : Get.isDarkMode
                                   ? const Color(0xFF2c2c2c)
                                   : const Color(0xFFFFFFFF),
-                              fontColor: Get.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                              markdownConfig: Get.isDarkMode || message.isMeSend
-                                  ? markdownDarkConfig
-                                  : markdownLightConfig,
+                              markdownLightConfig: markdownLightConfig,
+                              markdownDarkConfig: markdownDarkConfig,
                             );
                           },
                         ),

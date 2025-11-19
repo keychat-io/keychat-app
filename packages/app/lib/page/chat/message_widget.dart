@@ -35,11 +35,10 @@ class MessageWidget extends StatelessWidget {
     required this.index,
     required this.isGroup,
     required this.cc,
-    required this.fontColor,
     required this.backgroundColor,
     required this.screenWidth,
-    required this.toDisplayNameColor,
-    required this.markdownConfig,
+    required this.markdownLightConfig,
+    required this.markdownDarkConfig,
     super.key,
     this.roomMember,
   }) {
@@ -47,7 +46,6 @@ class MessageWidget extends StatelessWidget {
   }
   late Message message;
   late Widget myAavtar;
-  final Color fontColor;
   final Color backgroundColor;
   late int index;
   late ChatController cc;
@@ -55,8 +53,8 @@ class MessageWidget extends StatelessWidget {
   RoomMember? roomMember;
   late double screenWidth;
   late bool isGroup;
-  late Color toDisplayNameColor;
-  late MarkdownConfig markdownConfig;
+  late MarkdownConfig markdownLightConfig;
+  late MarkdownConfig markdownDarkConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +321,21 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
+  bool get isDarkMode {
+    if (message.isMeSend) {
+      if (message.isSystem ||
+          message.encryptType == MessageEncryptType.signal ||
+          message.encryptType == MessageEncryptType.mls) {
+        return true;
+      }
+    }
+    return Get.isDarkMode;
+  }
+
+  MarkdownConfig get markdownConfig {
+    return isDarkMode ? markdownDarkConfig : markdownLightConfig;
+  }
+
   Widget _getMessageContainer() {
     final widget = GestureDetector(
       onLongPress: _handleTextLongPress,
@@ -334,7 +347,7 @@ class MessageWidget extends StatelessWidget {
               message,
               cc,
               markdownConfig,
-              _textCallback,
+              _chatBubbleContainer,
             )
           : _getReplyWidget(),
     );
@@ -375,7 +388,14 @@ class MessageWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   spacing: 8,
                   children: [
-                    _buildMessageEncryptMode() ?? const SizedBox(),
+                    if (isWeakMessage)
+                      Text(
+                        'Weak Encryption',
+                        style: TextStyle(
+                          color: Colors.red.withAlpha(100),
+                          fontSize: 10,
+                        ),
+                      ),
                     Text(
                       Utils.formatTimeForMessage(message.createdAt),
                       style: TextStyle(
@@ -431,7 +451,10 @@ class MessageWidget extends StatelessWidget {
             child: Text(
               cc.getContactByPubkey(message.idPubkey).displayName,
               maxLines: 1,
-              style: TextStyle(fontSize: 14, color: toDisplayNameColor),
+              style: TextStyle(
+                fontSize: 14,
+                color: Get.isDarkMode ? Colors.white54 : Colors.black54,
+              ),
             ),
           ),
         widget,
@@ -451,7 +474,14 @@ class MessageWidget extends StatelessWidget {
                     fontSize: 10,
                   ),
                 ),
-                _buildMessageEncryptMode() ?? const SizedBox(),
+                if (isWeakMessage)
+                  Text(
+                    'Weak Encryption',
+                    style: TextStyle(
+                      color: Colors.red.withAlpha(100),
+                      fontSize: 10,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -460,22 +490,14 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Widget? _buildMessageEncryptMode() {
-    if (cc.roomObs.value.type == RoomType.group) return null;
-    if (message.isSystem) return null;
+  bool get isWeakMessage {
+    if (cc.roomObs.value.type == RoomType.group) return false;
+    if (message.isSystem) return false;
     if (message.encryptType == MessageEncryptType.nip04 ||
         message.encryptType == MessageEncryptType.nip17) {
-      return Text(
-        'Weak Encryption',
-        style: TextStyle(
-          color: RoomUtil.getColorByEncryptType(
-            message.encryptType,
-          ),
-          fontSize: 10,
-        ),
-      );
+      return true;
     }
-    return null;
+    return false;
   }
 
   Future<void> _handleShowRawdata() async {
@@ -702,7 +724,9 @@ class MessageWidget extends StatelessWidget {
         child: Text(
           message.reply!.content,
           style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-            color: fontColor.withValues(alpha: 0.7),
+            color: (isDarkMode ? Colors.white : Colors.black87).withValues(
+              alpha: 0.7,
+            ),
             height: 1.1,
           ),
           maxLines: 5,
@@ -719,7 +743,7 @@ class MessageWidget extends StatelessWidget {
             msg,
             cc,
             mfi,
-            _textCallback,
+            _chatBubbleContainer,
           );
         } else {
           final content = msg.mediaType == MessageMediaType.text
@@ -727,16 +751,20 @@ class MessageWidget extends StatelessWidget {
               : msg.mediaType.name;
           subTitleChild = Text(
             content,
-            style: Theme.of(
-              Get.context!,
-            ).textTheme.bodyMedium?.copyWith(color: fontColor, height: 1.2),
+            style:
+                Theme.of(
+                  Get.context!,
+                ).textTheme.bodyMedium?.copyWith(
+                  color: (isDarkMode ? Colors.white : Colors.black87),
+                  height: 1.2,
+                ),
             maxLines: 5,
           );
         }
       }
     }
 
-    return _textCallback(
+    return _chatBubbleContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -767,7 +795,10 @@ class MessageWidget extends StatelessWidget {
                     Text(
                       message.reply!.content,
                       style: Theme.of(Get.context!).textTheme.bodyLarge
-                          ?.copyWith(color: fontColor, height: 1),
+                          ?.copyWith(
+                            color: (isDarkMode ? Colors.white : Colors.black87),
+                            height: 1,
+                          ),
                     ),
               ],
             ),
@@ -783,26 +814,18 @@ class MessageWidget extends StatelessWidget {
   }
 
   Color getBackgroupColorByEncrypteMode(Color color) {
-    if (cc.roomObs.value.type == RoomType.group ||
-        message.isMeSend ||
-        message.isSystem) {
+    if (cc.roomObs.value.type == RoomType.group || message.isSystem) {
       return color;
     }
-    switch (message.encryptType) {
-      case MessageEncryptType.nip04:
-        return RoomUtil.getColorByEncryptType(
-          MessageEncryptType.nip04,
-        ).withAlpha(100);
-      case MessageEncryptType.nip17:
-        return RoomUtil.getColorByEncryptType(
-          MessageEncryptType.nip17,
-        ).withAlpha(100);
-      default:
-        return color;
+    if (message.encryptType == MessageEncryptType.nip04 ||
+        message.encryptType == MessageEncryptType.nip17) {
+      return Colors.red.withAlpha(100);
     }
+
+    return color;
   }
 
-  Widget _textCallback({String? text, Widget? child, int? id}) {
+  Widget _chatBubbleContainer({String? text, Widget? child, int? id}) {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
@@ -818,7 +841,7 @@ class MessageWidget extends StatelessWidget {
               : Alignment.centerLeft,
           backGroundColor: getBackgroupColorByEncrypteMode(backgroundColor),
           child: child ??= RoomUtil.getMarkdownView(
-            text ?? 'null',
+            text ?? message.realMessage ?? message.content,
             markdownConfig,
             id,
           ),

@@ -822,10 +822,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     }
   }
 
-  /// Returns a Widget for displaying text based on the specified parameters.
-  ///
-  /// This method creates and configures a text display widget with appropriate
-  /// styling and formatting options.
   static Widget getTextViewWidget(
     Message message,
     ChatController cc,
@@ -910,19 +906,14 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
             errorCallback,
           );
         case MessageMediaType.contact:
-          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.pdf:
-          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botText:
-          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botSelectionRequest:
-          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.messageReaction:
-          // TODO: Handle this case.
           throw UnimplementedError();
       }
     } catch (e, s) {
@@ -966,25 +957,6 @@ track: $content''',
 
 $error ''';
     await MessageService.instance.updateMessageAndRefresh(message);
-  }
-
-  static Color getColorByEncryptType(MessageEncryptType encryptType) {
-    switch (encryptType) {
-      case MessageEncryptType.nip04:
-        return Colors.red; // danger
-      case MessageEncryptType.nip17:
-        return Colors.orange; // warning
-      case MessageEncryptType.signal:
-        return Colors.green;
-      case MessageEncryptType.mls:
-        return Colors.green;
-      case MessageEncryptType.nip4WrapSignal:
-        throw UnimplementedError();
-      case MessageEncryptType.nip4WrapNip4:
-        throw UnimplementedError();
-      case MessageEncryptType.nip4WrapMls:
-        throw UnimplementedError();
-    }
   }
 
   static Color getColorByRoomEncryptType(EncryptMode encryptType) {
@@ -1324,9 +1296,11 @@ $link
     Message message,
     BuildContext context,
   ) {
-    final color = getColorByEncryptType(
-      message.encryptType,
-    );
+    final color =
+        message.encryptType == MessageEncryptType.nip04 ||
+            message.encryptType == MessageEncryptType.nip17
+        ? Colors.red
+        : Colors.green;
     return OutlinedButton(
       onPressed: () async {
         switch (message.encryptType) {
@@ -1342,16 +1316,8 @@ $link
               getDescByNipType(EncryptMode.mls),
             );
             return;
-          case MessageEncryptType.nip04:
+          default:
             return;
-          case MessageEncryptType.nip17:
-            return;
-          case MessageEncryptType.nip4WrapSignal:
-            throw UnimplementedError();
-          case MessageEncryptType.nip4WrapNip4:
-            throw UnimplementedError();
-          case MessageEncryptType.nip4WrapMls:
-            throw UnimplementedError();
         }
       },
       style: OutlinedButton.styleFrom(

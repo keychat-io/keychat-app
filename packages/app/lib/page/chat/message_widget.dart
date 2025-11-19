@@ -461,6 +461,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget? _buildMessageEncryptMode() {
+    if (cc.roomObs.value.type == RoomType.group) return null;
+    if (message.isSystem) return null;
     if (message.encryptType == MessageEncryptType.nip04 ||
         message.encryptType == MessageEncryptType.nip17) {
       return Text(

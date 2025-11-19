@@ -545,7 +545,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               Text(
-                'Clear Cache',
+                'ID Logout',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],
@@ -563,7 +563,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               Text(
-                'Clear Cache',
+                'ID Logout',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],
@@ -1306,12 +1306,10 @@ class _WebviewTabState extends State<WebviewTab> {
       final identity = await IdentityService.instance.getIdentityByNostrPubkey(
         bc.pubkey,
       );
-      if (identity == null) {
-        await BrowserConnect.delete(bc.id);
-      } else {
-        // exist identity, auto return
+      if (identity != null) {
         return identity;
       }
+      await BrowserConnect.delete(bc.id);
     }
     if (Get.isBottomSheetOpen ?? false) {
       return null;
@@ -1343,10 +1341,10 @@ class _WebviewTabState extends State<WebviewTab> {
         final id = await BrowserConnect.save(bc);
         bc.id = id;
         tabController.setBrowserConnect(bc);
-        EasyLoading.dismiss();
+        await EasyLoading.dismiss();
       } catch (e, s) {
         logger.e(e.toString(), stackTrace: s);
-        EasyLoading.showError(e.toString());
+        await EasyLoading.showError(e.toString());
       }
     }
     return selected;

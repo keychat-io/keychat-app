@@ -372,7 +372,7 @@ class MultiWebviewController extends GetxController {
       complete: const TaskNotification('Download finished', 'file: {filename}'),
       progressBar: true,
     );
-    await initADFilter();
+    // await initADFilter();
     Future.delayed(const Duration(seconds: 1)).then((value) async {
       await loadDesktopTabs();
       if (tabs.isEmpty && GetPlatform.isDesktop) {

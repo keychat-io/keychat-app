@@ -971,13 +971,13 @@ $error ''';
   static Color getColorByEncryptType(MessageEncryptType encryptType) {
     switch (encryptType) {
       case MessageEncryptType.nip04:
-        return Colors.orange;
+        return Colors.red; // danger
       case MessageEncryptType.nip17:
-        return Colors.cyan;
+        return Colors.orange; // warning
       case MessageEncryptType.signal:
-        return Colors.purple;
+        return Colors.green;
       case MessageEncryptType.mls:
-        return const Color(0xffEC6E0E);
+        return Colors.green;
       case MessageEncryptType.nip4WrapSignal:
         throw UnimplementedError();
       case MessageEncryptType.nip4WrapNip4:
@@ -990,9 +990,9 @@ $error ''';
   static Color getColorByRoomEncryptType(EncryptMode encryptType) {
     switch (encryptType) {
       case EncryptMode.nip04:
-        return Colors.orange;
+        return Colors.red; // danger
       case EncryptMode.nip17:
-        return Colors.cyan;
+        return Colors.orange; // warning
       case EncryptMode.signal:
         return Colors.purple;
       case EncryptMode.mls:
@@ -1206,7 +1206,7 @@ $error ''';
     EncryptMode encryptMode,
   ) async {
     final msg =
-        'Your friend is using nostr ${encryptMode.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
+        'This message is encrypted by nostr ${encryptMode.name.toUpperCase()} encryption.\n\nKeychat uses Signal Protocol (double ratchet encryption) to keep your private messages safe.';
 
     await Get.dialog<void>(
       Dialog(
@@ -1305,6 +1305,77 @@ Chat with me: [One-Time Link]($link)
           ),
         ),
       ),
+    );
+  }
+
+  static final encryptText = {
+    'mls': 'MLS Protocol',
+    'signal': 'Signal Protocol',
+    'nip04': 'NIP04',
+    'nip17': 'NIP17',
+  };
+
+  static Widget getEncryptModeChip(
+    Room room,
+    Message message,
+    BuildContext context,
+  ) {
+    final color = getColorByEncryptType(
+      message.encryptType,
+    );
+    return OutlinedButton(
+      onPressed: () async {
+        switch (message.encryptType) {
+          case MessageEncryptType.signal:
+            await signalChatDialog(
+              context,
+              getDescByNipType(EncryptMode.signal),
+            );
+            return;
+          case MessageEncryptType.mls:
+            await mlsChatDialog(
+              context,
+              getDescByNipType(EncryptMode.mls),
+            );
+            return;
+          case MessageEncryptType.nip04:
+            await deprecatedEncryptedDialog(
+              room,
+              EncryptMode.nip04,
+            );
+            return;
+          case MessageEncryptType.nip17:
+            if (message.isSystem) {
+              await EasyLoading.showInfo(
+                'It is a keychat system message, encrypted with NIP17.',
+              );
+              return;
+            }
+            await deprecatedEncryptedDialog(
+              room,
+              EncryptMode.nip17,
+            );
+            return;
+          case MessageEncryptType.nip4WrapSignal:
+            throw UnimplementedError();
+          case MessageEncryptType.nip4WrapNip4:
+            throw UnimplementedError();
+          case MessageEncryptType.nip4WrapMls:
+            throw UnimplementedError();
+        }
+      },
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: color),
+        textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+        foregroundColor: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      child: Text('Encrypted by ${encryptText[message.encryptType.name]}'),
     );
   }
 

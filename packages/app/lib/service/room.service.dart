@@ -101,18 +101,9 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future<void> deleteRoomHandler(String pubkey, int identityId) async {
-    Room? room;
-    await ContactService.instance.deleteContactByPubkey(pubkey, identityId);
-    room = await RoomService.instance.getRoomByIdentity(pubkey, identityId);
-    if (room != null) {
-      await RoomService.instance.deleteRoom(room);
-      Get.find<HomeController>().loadIdentityRoomList(identityId);
-    }
-  }
-
   Future<void> deleteRoom(Room room, {bool websocketInited = true}) async {
     final database = DBProvider.database;
+    final identityId = room.identityId;
     final roomMykeyId = room.mykey.value?.id;
     final listenPubkey = room.mykey.value?.pubkey;
     final groupType = room.groupType;
@@ -205,6 +196,7 @@ class RoomService extends BaseChatService {
         }
       }
     }
+    Get.find<HomeController>().loadIdentityRoomList(identityId);
   }
 
   Future<void> deleteRoomMessage(Room room) async {

@@ -314,27 +314,6 @@ class GroupService extends BaseChatService {
     );
 
     if (groupRoom == null) {
-      if (roomProfile.groupType == GroupType.shareKey ||
-          roomProfile.groupType == GroupType.kdf ||
-          roomProfile.groupType == GroupType.mls) {
-        await MessageService.instance.saveMessageToDB(
-          from: event.pubkey,
-          to: event.tags[0][1],
-          senderPubkey: idRoom.toMainPubkey,
-          events: [event],
-          room: idRoom,
-          isMeSend: false,
-          isSystem: true,
-          encryptType: RoomUtil.getEncryptMode(event),
-          sent: SendStatusType.success,
-          mediaType: MessageMediaType.groupInvite,
-          requestConfrim: RequestConfrimEnum.request,
-          content: roomProfile.toString(),
-          realMessage: groupInviteMsg[0],
-        );
-        return;
-      }
-
       if (roomProfile.groupType == GroupType.sendAll) {
         await DBProvider.database.writeTxn(() async {
           try {

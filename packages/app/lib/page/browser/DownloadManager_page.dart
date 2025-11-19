@@ -456,15 +456,16 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                   ],
                 ),
               ],
-              const SizedBox(height: 8),
-              Text(
-                status.name.toUpperCase(),
-                style: TextStyle(
-                  color: _getStatusColor(status),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              if (status != TaskStatus.complete) const SizedBox(height: 8),
+              if (status != TaskStatus.complete)
+                Text(
+                  status.name.toUpperCase(),
+                  style: TextStyle(
+                    color: _getStatusColor(status),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
             ],
           ),
         ),

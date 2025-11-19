@@ -375,13 +375,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
             onPressed: () async {
               try {
                 Get.back<void>();
-                await RoomService.instance.deleteRoomHandler(
-                  room.toMainPubkey,
-                  room.identityId,
-                );
-                Get.find<HomeController>().loadIdentityRoomList(
-                  room.identityId,
-                );
+                await RoomService.instance.deleteRoom(room);
                 await Utils.offAllNamedRoom(Routes.root);
               } catch (e) {
                 final msg = Utils.getErrorMessage(e);

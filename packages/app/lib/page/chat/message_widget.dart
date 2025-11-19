@@ -464,7 +464,7 @@ class MessageWidget extends StatelessWidget {
     if (message.encryptType == MessageEncryptType.nip04 ||
         message.encryptType == MessageEncryptType.nip17) {
       return Text(
-        message.encryptType.name.toUpperCase(),
+        'Weak Encryption',
         style: TextStyle(
           color: RoomUtil.getColorByEncryptType(
             message.encryptType,
@@ -780,8 +780,27 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
+  Color getBackgroupColorByEncrypteMode(Color color) {
+    if (cc.roomObs.value.type == RoomType.group ||
+        message.isMeSend ||
+        message.isSystem) {
+      return color;
+    }
+    switch (message.encryptType) {
+      case MessageEncryptType.nip04:
+        return RoomUtil.getColorByEncryptType(
+          MessageEncryptType.nip04,
+        ).withAlpha(100);
+      case MessageEncryptType.nip17:
+        return RoomUtil.getColorByEncryptType(
+          MessageEncryptType.nip17,
+        ).withAlpha(100);
+      default:
+        return color;
+    }
+  }
+
   Widget _textCallback({String? text, Widget? child, int? id}) {
-    child ??= RoomUtil.getMarkdownView(text ?? 'null', markdownConfig, id);
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
@@ -795,8 +814,12 @@ class MessageWidget extends StatelessWidget {
           alignment: message.isMeSend
               ? Alignment.centerRight
               : Alignment.centerLeft,
-          backGroundColor: backgroundColor,
-          child: child,
+          backGroundColor: getBackgroupColorByEncrypteMode(backgroundColor),
+          child: child ??= RoomUtil.getMarkdownView(
+            text ?? 'null',
+            markdownConfig,
+            id,
+          ),
         ),
       ),
     );
@@ -852,12 +875,6 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  final encryptText = {
-    'mls': 'MLS Protocol',
-    'signal': 'Signal Protocol',
-    'nip04': 'NIP04',
-    'nip17': 'NIP17',
-  };
   Future<void> _showRawData(
     Message message,
     List<NostrEventStatus> ess,
@@ -937,9 +954,9 @@ class MessageWidget extends StatelessWidget {
                           buildContext,
                         ),
                     ],
-                    _buildInfoChip(
-                      message.encryptType,
-                      'Encrypted by ${encryptText[message.encryptType.name]}',
+                    RoomUtil.getEncryptModeChip(
+                      cc.roomObs.value,
+                      message,
                       buildContext,
                     ),
                   ],
@@ -1186,64 +1203,6 @@ class MessageWidget extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildInfoChip(
-    MessageEncryptType encryptType,
-    String text,
-    BuildContext context,
-  ) {
-    final color = RoomUtil.getColorByEncryptType(
-      encryptType,
-    );
-    return OutlinedButton(
-      onPressed: () async {
-        switch (encryptType) {
-          case MessageEncryptType.signal:
-            await RoomUtil.signalChatDialog(
-              context,
-              RoomUtil.getDescByNipType(EncryptMode.signal),
-            );
-            return;
-          case MessageEncryptType.mls:
-            await RoomUtil.mlsChatDialog(
-              context,
-              RoomUtil.getDescByNipType(EncryptMode.mls),
-            );
-            return;
-          case MessageEncryptType.nip04:
-            await RoomUtil.deprecatedEncryptedDialog(
-              cc.roomObs.value,
-              EncryptMode.nip04,
-            );
-            return;
-          case MessageEncryptType.nip17:
-            await RoomUtil.deprecatedEncryptedDialog(
-              cc.roomObs.value,
-              EncryptMode.nip17,
-            );
-            return;
-          case MessageEncryptType.nip4WrapSignal:
-            throw UnimplementedError();
-          case MessageEncryptType.nip4WrapNip4:
-            throw UnimplementedError();
-          case MessageEncryptType.nip4WrapMls:
-            throw UnimplementedError();
-        }
-      },
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: color),
-        textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-        foregroundColor: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      child: Text(text),
     );
   }
 

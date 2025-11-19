@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:keychat/global.dart';
 import 'package:keychat/models/identity.dart';
 import 'package:keychat/page/browser/BrowserConnectedWebsite.dart';
+import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/KeepAliveHosts.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/service/identity.service.dart';
@@ -110,6 +111,13 @@ class _BrowserSettingState extends State<BrowserSetting> {
                         );
                       },
                     );
+                  },
+                ),
+                SettingsTile.navigation(
+                  title: const Text('Downloads'),
+                  leading: const Icon(Icons.file_download),
+                  onPressed: (_) async {
+                    await Get.to<void>(() => const DownloadManagerPage());
                   },
                 ),
               ],

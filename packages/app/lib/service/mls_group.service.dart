@@ -524,7 +524,7 @@ class MlsGroupService extends BaseChatService {
       sent: SendStatusType.success,
       mediaType: MessageMediaType.groupInvite,
       requestConfrim: RequestConfrimEnum.request,
-      content: subEvent.toString(),
+      content: subEvent.content,
       realMessage: 'Invite you to join group',
     );
   }

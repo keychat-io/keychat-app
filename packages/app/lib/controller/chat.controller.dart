@@ -912,7 +912,7 @@ class ChatController extends GetxController {
     // ignore fetch in a hour in kReleaseMode
     if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(const Duration(days: 1))
+          .add(const Duration(hours: 1))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }
@@ -942,15 +942,40 @@ class ChatController extends GetxController {
         if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
           if (avatarFromRelay.startsWith('http') ||
               avatarFromRelay.startsWith('https')) {
-            contact.avatarFromRelay = avatarFromRelay;
-
             // Download avatar if URL changed
-            if (contact.avatarFromRelay != contact.avatarFromRelayLocalPath) {
+            logger.d('${contact.avatarFromRelay}  ,$avatarFromRelay');
+            if (contact.avatarFromRelay != avatarFromRelay) {
               try {
+                // Show confirmation dialog before downloading avatar
+                final shouldDownload = await Get.dialog<bool>(
+                  CupertinoAlertDialog(
+                    title: const Text('Download Avatar'),
+                    content: Text(
+                      'Do you want to download the avatar for ${contact.displayName}? \n\nURL: $avatarFromRelay',
+                    ),
+                    actions: [
+                      CupertinoDialogAction(
+                        onPressed: () => Get.back(result: false),
+                        child: const Text('Cancel'),
+                      ),
+                      CupertinoDialogAction(
+                        isDefaultAction: true,
+                        onPressed: () => Get.back(result: true),
+                        child: const Text('Download'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (shouldDownload != true) {
+                  continue;
+                }
                 final localPath = await FileService.instance
                     .downloadAndSaveAvatar(avatarFromRelay, pubkey);
                 if (localPath != null) {
-                  contact.avatarFromRelayLocalPath = localPath;
+                  contact
+                    ..avatarFromRelay = avatarFromRelay
+                    ..avatarFromRelayLocalPath = localPath;
                 }
               } catch (e, s) {
                 logger.e(

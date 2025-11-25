@@ -29,6 +29,15 @@ window.nostr.getPublicKey = async function () {
   return res;
 };
 
+window.nostr.onAccountChanged = async function (newPublicKey) {
+  var res = await window.flutter_inappwebview.callHandler(
+    'keychat-nostr',
+    'onAccountChanged',
+    newPublicKey
+  );
+  return res;
+};
+
 window.nostr.signEvent = async function (event) {
   var res = await window.flutter_inappwebview.callHandler(
     'keychat-nostr',

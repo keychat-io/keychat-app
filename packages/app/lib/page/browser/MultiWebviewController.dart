@@ -16,7 +16,6 @@ import 'package:keychat/models/browser/browser_history.dart';
 import 'package:keychat/models/db_provider.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
 import 'package:keychat/page/browser/WebviewTab.dart';
-import 'package:keychat/service/adblock_service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -372,7 +371,6 @@ class MultiWebviewController extends GetxController {
       complete: const TaskNotification('Download finished', 'file: {filename}'),
       progressBar: true,
     );
-    // await initADFilter();
     Future.delayed(const Duration(seconds: 1)).then((value) async {
       await loadDesktopTabs();
       if (tabs.isEmpty && GetPlatform.isDesktop) {
@@ -749,40 +747,6 @@ window.addEventListener('DOMContentLoaded', function(event) {
 
   bool showFAB() {
     return config['showFAB'] as bool? ?? true;
-  }
-
-  final AdBlockService _adBlockService = AdBlockService();
-  List<ContentBlocker> get contentBlockers {
-    final enabled = config['adBlockEnabled'] as bool? ?? true;
-    return enabled ? _adBlockService.contentBlockers : [];
-  }
-
-  // https://developer.apple.com/documentation/safariservices/creating-a-content-blocker
-  Future<void> initADFilter() async {
-    try {
-      // Initialize AdBlock service (downloads rules if needed, uses cache if available)
-      await _adBlockService.initialize();
-
-      // Log cache info
-      final cacheInfo = await _adBlockService.getCacheInfo();
-      logger.i(
-        'AdBlock initialized: ${cacheInfo['blockerCount']} blockers, '
-        'cache exists: ${cacheInfo['exists']}, '
-        'age: ${cacheInfo['age']}h',
-      );
-    } catch (e) {
-      logger.e('Failed to initialize AdBlock: $e');
-    }
-  }
-
-  /// Force refresh AdBlock rules from server
-  Future<void> refreshAdBlockRules() async {
-    await _adBlockService.refreshRules();
-  }
-
-  /// Get AdBlock cache information
-  Future<Map<String, dynamic>> getAdBlockCacheInfo() async {
-    return _adBlockService.getCacheInfo();
   }
 }
 

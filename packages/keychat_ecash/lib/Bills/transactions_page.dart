@@ -72,6 +72,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         'Lightning',
                         TransactionFilter.lightning,
                       ),
+                      const SizedBox(width: 12),
+                      _buildFilterButton(
+                        context,
+                        'Failed',
+                        TransactionFilter.failed,
+                      ),
                     ],
                   ),
                 ),

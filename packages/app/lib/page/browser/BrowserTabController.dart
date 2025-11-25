@@ -45,11 +45,6 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
-    final blockers = multiWebviewController.contentBlockers;
-    debugPrint(
-      'BrowserTabController: Applying ${blockers.length} content blockers',
-    );
-
     settings = InAppWebViewSettings(
       allowUniversalAccessFromFileURLs: true,
       isInspectable: kDebugMode,

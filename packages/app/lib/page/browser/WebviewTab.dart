@@ -1184,6 +1184,9 @@ class _WebviewTabState extends State<WebviewTab> {
     switch (method) {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
+      case 'onAccountChanged':
+        await switchAccountFromMiniApp(host, data[1] as String);
+        return null;
       case 'signEvent':
         final event = data[1] as Map<String, dynamic>;
 
@@ -1295,6 +1298,32 @@ class _WebviewTabState extends State<WebviewTab> {
     }
     // return data to the JavaScript side!
     return 'Error: not implemented';
+  }
+
+  Future<void> switchAccountFromMiniApp(String host, String publicKey) async {
+    final identity = await IdentityService.instance.getIdentityByNostrPubkey(
+      publicKey,
+    );
+    if (identity == null) {
+      await EasyLoading.showError('Identity not found for pubkey: $publicKey');
+      return;
+    }
+    final bc = await BrowserConnect.getByHost(host);
+    if (bc != null) {
+      await BrowserConnect.delete(bc.id);
+    }
+
+    final favicon = await multiWebviewController.getFavicon(
+      tabController.inAppWebViewController!,
+      host,
+    );
+
+    final model = BrowserConnect(
+      host: host,
+      pubkey: publicKey,
+    )..favicon = favicon;
+    await BrowserConnect.save(model);
+    tabController.setBrowserConnect(model);
   }
 
   Future<Identity?> getOrSelectIdentity(

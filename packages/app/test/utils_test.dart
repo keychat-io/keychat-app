@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:keychat/Utils.dart';
+import 'package:keychat/utils.dart';
 
 void main() {
   group('Utils', () {

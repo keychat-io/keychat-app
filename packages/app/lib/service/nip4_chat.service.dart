@@ -1,4 +1,6 @@
+import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
@@ -33,36 +35,6 @@ class Nip4ChatService extends BaseChatService {
         );
       default:
     }
-  }
-
-  Future<Message> receiveNip4Message(
-    NostrEventModel event,
-    String content, {
-    required int createdAt,
-    required EncryptMode encryptMode,
-    NostrEventModel? sourceEvent,
-    Room? room,
-  }) async {
-    final to = (sourceEvent ?? event).tags[0][1];
-    room ??= await RoomService.instance.getOrCreateRoom(
-      event.pubkey,
-      to,
-      RoomStatus.init,
-      encryptMode: encryptMode,
-    );
-
-    return MessageService.instance.saveMessageToDB(
-      room: room,
-      events: [sourceEvent ?? event],
-      senderPubkey: room.toMainPubkey,
-      from: event.pubkey,
-      encryptType: (sourceEvent ?? event).encryptType,
-      to: to,
-      content: content,
-      isMeSend: false,
-      sent: SendStatusType.success,
-      createdAt: createdAt,
-    );
   }
 
   Future<void> saveSystemMessage({

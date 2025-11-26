@@ -24,6 +24,7 @@ class StorageKeyString {
   static String relayFileFeeConfig = 'relayFileFeeConfig';
 
   static String tipsAddFriends = 'tipsAddFriends';
+  static String enableDMFromNostrApp = 'enableDMFromNostrApp';
   static String taskCreateIdentity = 'taskCreateAIIdentity';
   static String taskCreateRoom = 'taskCreateRoom';
 

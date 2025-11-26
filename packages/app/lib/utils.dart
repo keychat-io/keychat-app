@@ -35,7 +35,6 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 Logger logger = Logger(
@@ -94,7 +93,8 @@ String getPublicKeyDisplay(String publicKey, [int size = 6]) {
 }
 
 // https://isar.dev/recipes/string_ids.html
-Id fastHash(String pubkey) {
+// FNV-1a 64bit hash algorithm optimized for Dart Strings
+int fastHash(String pubkey) {
   var hash = 0xcbf29ce484222325;
 
   var i = 0;

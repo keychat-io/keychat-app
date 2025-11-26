@@ -60,6 +60,7 @@ class HomeController extends GetxController
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;
+  RxBool enableDMFromNostrApp = true.obs;
 
   //debug mode
   RxBool debugModel = false.obs;
@@ -545,7 +546,8 @@ class HomeController extends GetxController
     WidgetsBinding.instance.addObserver(this);
 
     // show dot on add friends menu
-    initTips(StorageKeyString.tipsAddFriends, addFriendTips);
+    await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
+    await initEnableDMFromNostrApp();
 
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription = Connectivity().onConnectivityChanged.listen(
@@ -904,6 +906,11 @@ ${file.message}
         }
         await RoomUtil.forwardTextMessage(identity, toSendText);
     }
+  }
+
+  Future<void> initEnableDMFromNostrApp() async {
+    final res = Storage.getBool(StorageKeyString.enableDMFromNostrApp) ?? true;
+    enableDMFromNostrApp.value = res;
   }
 }
 

@@ -81,7 +81,7 @@ class MoreChatSetting extends GetView<HomeController> {
                   leading: const Icon(Icons.message),
                   title: const Text('Direct Messages'),
                   description: const Text(
-                    'Allow receiving DMs from other Nostr apps, encrypted by nostr Nip04 and Nip17',
+                    'Receiving DMs from other Nostr apps, encrypted by nostr Nip04 and Nip17',
                   ),
                   onPressed: (context) async {},
                   initialValue: controller.enableDMFromNostrApp.value,

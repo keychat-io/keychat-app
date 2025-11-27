@@ -32,6 +32,62 @@ class ChatSettingSecurity extends StatelessWidget {
                   title: const Text('Encrypt mode'),
                   leading: const Icon(CupertinoIcons.lock),
                   value: Text(cc.roomObs.value.encryptMode.name.toUpperCase()),
+                  onPressed: (context) {
+                    Get.dialog(
+                      CupertinoAlertDialog(
+                        title: const Text('Select Encrypt Mode'),
+                        content: Text(
+                          'Current mode: ${cc.roomObs.value.encryptMode.name.toUpperCase()}',
+                        ),
+                        actions: [
+                          CupertinoDialogAction(
+                            child: const Text('NIP04'),
+                            onPressed: () async {
+                              Get.back<void>();
+                              if (cc.roomObs.value.encryptMode ==
+                                  EncryptMode.nip04) {
+                                return;
+                              }
+                              cc.roomObs.value.encryptMode = EncryptMode.nip04;
+                              await RoomService.instance.updateRoomAndRefresh(
+                                cc.roomObs.value,
+                              );
+                              EasyLoading.showToast('Switched to NIP04');
+                            },
+                          ),
+                          CupertinoDialogAction(
+                            child: const Text('NIP17'),
+                            onPressed: () async {
+                              Get.back<void>();
+                              if (cc.roomObs.value.encryptMode ==
+                                  EncryptMode.nip17) {
+                                return;
+                              }
+                              cc.roomObs.value.encryptMode = EncryptMode.nip17;
+                              await RoomService.instance.updateRoomAndRefresh(
+                                cc.roomObs.value,
+                              );
+                              EasyLoading.showToast('Switched to NIP17');
+                            },
+                          ),
+                          CupertinoDialogAction(
+                            child: const Text('Signal'),
+                            onPressed: () async {
+                              Get.back<void>();
+                              await SignalChatService.instance
+                                  .resetSignalSession(cc.roomObs.value);
+                            },
+                          ),
+                          CupertinoDialogAction(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Get.back<void>();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 SettingsTile.navigation(
                   title: const Text('Reset Signal Session'),
@@ -39,7 +95,7 @@ class ChatSettingSecurity extends StatelessWidget {
                   onPressed: (value) async {
                     Get.dialog(
                       CupertinoAlertDialog(
-                        title: const Text('Send request '),
+                        title: const Text('Send request'),
                         content: const Text(
                           'Waiting for your friend comes online and approve',
                         ),

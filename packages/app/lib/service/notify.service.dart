@@ -266,15 +266,22 @@ class NotifyService {
     FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
     // fcm onTokenRefresh listen
     FirebaseMessaging.instance.onTokenRefresh
-        .listen((newToken) {
+        .listen((newToken) async {
           logger.i('onTokenRefresh: $newToken');
           fcmToken = newToken;
-          Storage.setString(StorageKeyString.notificationFCMToken, newToken);
-          syncPubkeysToServer();
+          await Storage.setString(
+            StorageKeyString.notificationFCMToken,
+            newToken,
+          );
+          await syncPubkeysToServer();
         })
         .onError((Object err, StackTrace stackTrace) {
           logger.e('onTokenRefresh', error: err, stackTrace: stackTrace);
         });
+  }
+
+  String? _getFCMTokenFromCache() {
+    return Storage.getString(StorageKeyString.notificationFCMToken);
   }
 
   /// Get FCM token with timeout handling
@@ -283,9 +290,7 @@ class NotifyService {
       final apnsToken = await FirebaseMessaging.instance.getToken().timeout(
         const Duration(seconds: 8),
         onTimeout: () async {
-          final cachedToken = Storage.getString(
-            StorageKeyString.notificationFCMToken,
-          );
+          final cachedToken = _getFCMTokenFromCache();
           loggerNoLine.d('Load FCMToken from local: $cachedToken');
           if (cachedToken != null) return cachedToken;
           throw TimeoutException('FCMTokenTimeout');
@@ -301,7 +306,7 @@ class NotifyService {
       return apnsToken;
     } catch (e) {
       logger.e('getAPNSToken error: $e');
-      return null;
+      return _getFCMTokenFromCache();
     }
   }
 

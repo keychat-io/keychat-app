@@ -437,18 +437,6 @@ class GroupService extends BaseChatService {
           realMessage,
           failedCallback: failedCallback,
         );
-      case KeyChatEventKinds.groupSharedKeyMessage:
-        final subEvent = NostrEventModel.fromJson(jsonDecode(km.msg!));
-        var content = await NostrAPI.instance.decryptNip4Content(subEvent);
-        content ??= '[GroupMessage decoded failed]';
-        final gm = GroupMessage.fromJson(jsonDecode(content));
-        return processGroupMessage(
-          room,
-          subEvent,
-          gm,
-          sourceEvent: event,
-          msgKeyHash: msgKeyHash,
-        );
       case KeyChatEventKinds.groupRemoveSingleMember:
         return _processGroupRemoveSingleMember(room, km, event);
       case KeyChatEventKinds.groupSendToAllMessage:

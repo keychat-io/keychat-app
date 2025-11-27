@@ -81,22 +81,24 @@ class GroupInviteAction extends StatelessWidget {
 
   Future<void> handlRequest() async {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
-      final subEvent = NostrEventModel.fromJson(jsonDecode(message.content));
+      final subEvent = NostrEventModel.fromJson(
+        jsonDecode(message.subEvent ?? message.content) as Map<String, dynamic>,
+      );
       final groupId = subEvent.getTagByKey(EventKindTags.pubkey);
       if (groupId == null) {
-        EasyLoading.showError('Group ID is missing');
+        await EasyLoading.showError('Group ID is missing');
         return;
       }
-      final accept = await Get.bottomSheet(
+      final accept = await Get.bottomSheet<bool>(
         GroupInfoWidget(subEvent, identity.secp256k1PKHex, groupId),
       );
       if (accept == null) return;
-      message.requestConfrim = accept == true
+      message.requestConfrim = accept
           ? RequestConfrimEnum.approved
           : RequestConfrimEnum.rejected;
 
       message.isRead = true;
-      if (accept == false) {
+      if (!accept) {
         await MessageService.instance.updateMessageAndRefresh(message);
         return;
       }

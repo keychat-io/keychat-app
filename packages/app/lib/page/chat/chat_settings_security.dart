@@ -33,6 +33,10 @@ class ChatSettingSecurity extends StatelessWidget {
                   leading: const Icon(CupertinoIcons.lock),
                   value: Text(cc.roomObs.value.encryptMode.name.toUpperCase()),
                   onPressed: (context) {
+                    if (!(cc.roomObs.value.encryptMode == EncryptMode.nip04 ||
+                        cc.roomObs.value.encryptMode == EncryptMode.nip17)) {
+                      return;
+                    }
                     Get.dialog(
                       CupertinoAlertDialog(
                         title: const Text('Select Encrypt Mode'),

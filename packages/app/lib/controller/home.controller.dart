@@ -12,6 +12,7 @@ import 'package:keychat/page/chat/create_contact_page.dart';
 import 'package:keychat/page/setting/BiometricAuthScreen.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/room.service.dart';
@@ -59,6 +60,7 @@ class HomeController extends GetxController
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;
+  RxBool enableDMFromNostrApp = true.obs;
 
   //debug mode
   RxBool debugModel = false.obs;
@@ -170,10 +172,12 @@ class HomeController extends GetxController
         isBlurred.value = false;
 
         // if app running background > 10s
-        var wasAppBackgroundedTooLong = false;
+        var tryConnect = false;
+        var forceReconnect = false;
         if (pausedTime != null) {
-          wasAppBackgroundedTooLong =
-              DateTime.now().difference(pausedTime!).inSeconds > 10;
+          final pauseDiff = DateTime.now().difference(pausedTime!).inSeconds;
+          tryConnect = pauseDiff > 10;
+          forceReconnect = pauseDiff > 60;
         }
 
         unawaited(removeBadge());
@@ -182,20 +186,25 @@ class HomeController extends GetxController
         final shouldConnect =
             Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
             GetPlatform.isDesktop ||
-            wasAppBackgroundedTooLong;
+            tryConnect;
         if (shouldConnect) {
-          unawaited(Get.find<WebsocketService>().checkOnlineAndConnect());
+          unawaited(
+            Get.find<WebsocketService>().checkOnlineAndConnect(
+              forceReconnect: forceReconnect,
+            ),
+          );
         }
 
         // app status
         EasyThrottle.throttle(
           'AppLifecycleState.resumed',
-          const Duration(seconds: 2),
+          const Duration(seconds: 3),
           () {
             NostrAPI.instance.okCallback.clear();
             Utils.initLoggger(Utils.appFolder);
             NotifyService.instance.syncPubkeysToServer(checkUpload: true);
             Get.find<MultiWebviewController>().checkCurrentControllerAlive();
+            _uploadMLSKP();
           },
         );
 
@@ -334,7 +343,7 @@ class HomeController extends GetxController
 
   Future<void> initTips(String name, RxBool toSetValue) async {
     final res = Storage.getIntOrZero(name);
-    toSetValue.value = res == 0 ? true : false;
+    toSetValue.value = (res == 0);
   }
 
   Future<List<Identity>> loadIdentity() async {
@@ -537,7 +546,8 @@ class HomeController extends GetxController
     WidgetsBinding.instance.addObserver(this);
 
     // show dot on add friends menu
-    initTips(StorageKeyString.tipsAddFriends, addFriendTips);
+    await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
+    await initEnableDMFromNostrApp();
 
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription = Connectivity().onConnectivityChanged.listen(
@@ -558,14 +568,27 @@ class HomeController extends GetxController
     removeBadge();
 
     // start to create ai identity
-    Future.delayed(const Duration(seconds: 1), () async {
+    Future.delayed(const Duration(seconds: 2), () async {
       initAppLinks();
       _initShareIntent();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
-      // List<Room> rooms = await RoomService.instance.getMlsRooms();
-      // MlsGroupService.instance.fixMlsOnetimeKey(rooms);
+      _uploadMLSKP();
     });
+  }
+
+  Future<void> _uploadMLSKP() async {
+    EasyThrottle.throttle(
+      '_uploadMLSKP',
+      const Duration(minutes: 10),
+      () async {
+        final identities = Get.find<HomeController>().allIdentities.values
+            .toList();
+        await MlsGroupService.instance.uploadKeyPackages(
+          identities: identities,
+        );
+      },
+    );
   }
 
   List<Room> getRoomsByIdentity(int identityId) {
@@ -883,6 +906,11 @@ ${file.message}
         }
         await RoomUtil.forwardTextMessage(identity, toSendText);
     }
+  }
+
+  Future<void> initEnableDMFromNostrApp() async {
+    final res = Storage.getBool(StorageKeyString.enableDMFromNostrApp) ?? true;
+    enableDMFromNostrApp.value = res;
   }
 }
 

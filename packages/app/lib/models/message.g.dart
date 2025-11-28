@@ -473,7 +473,7 @@ P _messageDeserializeProp<P>(
 const _MessageencryptTypeEnumValueMap = {
   'signal': 0,
   'nip4WrapSignal': 1,
-  'nip4': 2,
+  'nip04': 2,
   'nip4WrapNip4': 3,
   'nip17': 4,
   'nip4WrapMls': 5,
@@ -482,7 +482,7 @@ const _MessageencryptTypeEnumValueMap = {
 const _MessageencryptTypeValueEnumMap = {
   0: MessageEncryptType.signal,
   1: MessageEncryptType.nip4WrapSignal,
-  2: MessageEncryptType.nip4,
+  2: MessageEncryptType.nip04,
   3: MessageEncryptType.nip4WrapNip4,
   4: MessageEncryptType.nip17,
   5: MessageEncryptType.nip4WrapMls,

@@ -1,26 +1,19 @@
+import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/service/chat.service.dart';
-import 'package:keychat/service/contact.service.dart';
-import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class Nip4ChatService extends BaseChatService {
   // Avoid self instance
   Nip4ChatService._();
   static Nip4ChatService? _instance;
   static Nip4ChatService get instance => _instance ??= Nip4ChatService._();
-
-  static final DBProvider dbProvider = DBProvider.instance;
-  static final NostrAPI nostrAPI = NostrAPI.instance;
-  RoomService roomService = RoomService.instance;
-  ContactService contactService = ContactService.instance;
-  IdentityService identityService = IdentityService.instance;
 
   @override
   Future<void> proccessMessage({
@@ -44,32 +37,6 @@ class Nip4ChatService extends BaseChatService {
     }
   }
 
-  Future<Message> receiveNip4Message(
-    NostrEventModel event,
-    String content, {
-    NostrEventModel? sourceEvent,
-    Room? room,
-  }) async {
-    final to = (sourceEvent ?? event).tags[0][1];
-    room ??= await roomService.getOrCreateRoom(
-      event.pubkey,
-      to,
-      RoomStatus.init,
-    );
-
-    return MessageService.instance.saveMessageToDB(
-      room: room,
-      events: [sourceEvent ?? event],
-      senderPubkey: room.toMainPubkey,
-      from: event.pubkey,
-      encryptType: (sourceEvent ?? event).encryptType,
-      to: to,
-      content: content,
-      isMeSend: false,
-      sent: SendStatusType.success,
-    );
-  }
-
   Future<void> saveSystemMessage({
     required Room room,
     required NostrEventModel event,
@@ -91,7 +58,7 @@ class Nip4ChatService extends BaseChatService {
       to: to ?? event.tags[0][1],
       encryptType: event.isSignal
           ? MessageEncryptType.signal
-          : MessageEncryptType.nip4,
+          : MessageEncryptType.nip17,
       isMeSend: isMeSend,
       sent: sent,
       isSystem: isSystem,
@@ -100,39 +67,6 @@ class Nip4ChatService extends BaseChatService {
       rawEvents: [event.toString()],
     );
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
-  }
-
-  // Send pseudonymous messages. The messages are nested in two layers, the first layer is pseudonymous messages, and the second layer is real messages.
-  Future<SendMessageResponse> sendIncognitoNip4Message(
-    Room room,
-    String message, {
-    bool isSystem = false,
-    bool save = true,
-    String? realMessage,
-    String? toAddress,
-  }) async {
-    final identity = room.getIdentity();
-
-    var mainSign = await rust_nostr.getEncryptEvent(
-      senderKeys: await identity.getSecp256k1SKHex(),
-      receiverPubkey: room.toMainPubkey,
-      content: message,
-    );
-
-    mainSign = '["EVENT",$mainSign]';
-
-    final secp256K1Account = await rust_nostr.generateSimple();
-    return nostrAPI.sendEventMessage(
-      toAddress ?? room.toMainPubkey,
-      mainSign,
-      prikey: secp256K1Account.prikey,
-      from: secp256K1Account.pubkey,
-      room: room,
-      isSystem: isSystem,
-      encryptType: MessageEncryptType.nip4WrapNip4,
-      save: save,
-      realMessage: realMessage,
-    );
   }
 
   @override
@@ -145,12 +79,12 @@ class Nip4ChatService extends BaseChatService {
     MessageMediaType? mediaType,
   }) async {
     final identity = room.getIdentity();
-    return nostrAPI.sendEventMessage(
+    return NostrAPI.instance.sendEventMessage(
       room.toMainPubkey,
       message,
       room: room,
       save: save,
-      encryptType: MessageEncryptType.nip4,
+      encryptType: MessageEncryptType.nip04,
       prikey: await identity.getSecp256k1SKHex(),
       from: identity.secp256k1PKHex,
       realMessage: realMessage,

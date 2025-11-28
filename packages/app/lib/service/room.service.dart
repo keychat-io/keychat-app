@@ -18,6 +18,7 @@ import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
+import 'package:keychat/service/nip4_chat.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/signalId.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
@@ -55,7 +56,7 @@ class RoomService extends BaseChatService {
     required String toMainPubkey,
     required Identity identity,
     required RoomStatus status,
-    required EncryptMode encryptMode,
+    EncryptMode? encryptMode,
     String? name,
     Contact? contact,
     String? curve25519PkHex,
@@ -78,13 +79,14 @@ class RoomService extends BaseChatService {
           ..onetimekey = onetimekey
           ..status = status
           ..type = type ?? RoomType.common
-          ..encryptMode = encryptMode
+          ..encryptMode = encryptMode ?? EncryptMode.nip17
           ..curve25519PkHex = curve25519PkHex
           ..signalIdPubkey = signalId.pubkey;
     // set bot room's name
     if (room.type == RoomType.bot) {
       room.name = name;
     }
+    // chat with myself
     if (toMainPubkey == identity.secp256k1PKHex) {
       room.encryptMode = EncryptMode.nip04;
       name = KeychatGlobal.selfName;
@@ -99,18 +101,9 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future<void> deleteRoomHandler(String pubkey, int identityId) async {
-    Room? room;
-    await ContactService.instance.deleteContactByPubkey(pubkey, identityId);
-    room = await RoomService.instance.getRoomByIdentity(pubkey, identityId);
-    if (room != null) {
-      await RoomService.instance.deleteRoom(room);
-      Get.find<HomeController>().loadIdentityRoomList(identityId);
-    }
-  }
-
   Future<void> deleteRoom(Room room, {bool websocketInited = true}) async {
     final database = DBProvider.database;
+    final identityId = room.identityId;
     final roomMykeyId = room.mykey.value?.id;
     final listenPubkey = room.mykey.value?.pubkey;
     final groupType = room.groupType;
@@ -203,6 +196,7 @@ class RoomService extends BaseChatService {
         }
       }
     }
+    Get.find<HomeController>().loadIdentityRoomList(identityId);
   }
 
   Future<void> deleteRoomMessage(Room room) async {
@@ -255,6 +249,7 @@ class RoomService extends BaseChatService {
     String? contactName,
     Identity? identity,
     RoomType? type,
+    EncryptMode? encryptMode,
   }) async {
     final room = await getRoom(from, to, identity);
     if (room != null && room.type == RoomType.common && contactName != null) {
@@ -270,7 +265,7 @@ class RoomService extends BaseChatService {
       toMainPubkey: from,
       identity: identity,
       status: initStatus,
-      encryptMode: EncryptMode.nip04,
+      encryptMode: encryptMode,
       type: type,
       name: contactName,
     );
@@ -279,13 +274,14 @@ class RoomService extends BaseChatService {
   Future<Room> getOrCreateRoomByIdentity(
     String toMainPubkey,
     Identity identity,
-    RoomStatus status,
-  ) async {
+    RoomStatus status, {
+    EncryptMode? encryptMode,
+  }) async {
     final room = await getRoomByIdentity(toMainPubkey, identity.id);
     if (room != null) return room;
 
     return createPrivateRoom(
-      encryptMode: EncryptMode.nip04,
+      encryptMode: encryptMode ?? EncryptMode.nip17,
       toMainPubkey: toMainPubkey,
       identity: identity,
       status: status,
@@ -450,13 +446,13 @@ class RoomService extends BaseChatService {
     KeychatMessage km,
     NostrEventModel event, // as subEvent
     Relay relay, {
-    NostrEventModel? sourceEvent, // parent event
     Room? room,
+    EncryptMode? encryptMode,
+    NostrEventModel? sourceEvent, // parent event
   }) async {
     final toAddress = event.tags[0][1];
     // group room message
     room ??= await _getGroupRoom(toAddress);
-    if (room == null) {}
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
@@ -481,6 +477,7 @@ class RoomService extends BaseChatService {
         event.pubkey,
         identity,
         RoomStatus.init,
+        encryptMode: encryptMode,
       );
     }
 
@@ -618,6 +615,7 @@ class RoomService extends BaseChatService {
         mediaType: mediaType,
       );
     }
+    // bot room
     if (room.type == RoomType.bot && !content.startsWith('cashu')) {
       return sendMessageToBot(
         room,
@@ -627,31 +625,12 @@ class RoomService extends BaseChatService {
       );
     }
 
-    SendMessageResponse map;
-    encryptMode ??= room.encryptMode;
-    if (encryptMode == EncryptMode.nip04) {
-      final identity = room.getIdentity();
-
-      final sm = KeychatMessage.getTextMessage(
-        MessageType.nip04,
-        content,
-        reply,
-      );
-      map = await NostrAPI.instance.sendNip17Message(
-        room,
-        sm,
-        identity,
-        toPubkey: toAddress ?? room.toMainPubkey,
-        save: save,
-        realMessage: realMessageContent,
-        reply: reply,
-        mediaType: mediaType,
-      );
-    } else {
+    // signal chat
+    if (room.encryptMode == EncryptMode.signal) {
       final sm = realMessage == null
           ? KeychatMessage.getTextMessage(MessageType.signal, content, reply)
           : content;
-      map = await SignalChatService.instance.sendMessage(
+      return SignalChatService.instance.sendMessage(
         room,
         sm,
         realMessage: realMessageContent,
@@ -661,7 +640,38 @@ class RoomService extends BaseChatService {
         save: save,
       );
     }
-    return map;
+
+    // nip04 private chat
+    final identity = room.getIdentity();
+
+    final sm = KeychatMessage.getTextMessage(
+      MessageType.nip04,
+      content,
+      reply,
+    );
+    if (room.encryptMode == EncryptMode.nip17) {
+      return NostrAPI.instance.sendNip17Message(
+        room,
+        sm,
+        identity,
+        toPubkey: toAddress ?? room.toMainPubkey,
+        save: save,
+        realMessage: realMessageContent,
+        reply: reply,
+        mediaType: mediaType,
+      );
+    }
+    if (room.encryptMode == EncryptMode.nip04) {
+      return Nip4ChatService.instance.sendMessage(
+        room,
+        sm,
+        save: save,
+        realMessage: realMessageContent,
+        reply: reply,
+        mediaType: mediaType,
+      );
+    }
+    throw Exception('not support encrypt mode');
   }
 
   Future<SendMessageResponse> sendMessageToBot(

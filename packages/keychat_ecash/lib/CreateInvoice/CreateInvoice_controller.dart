@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,6 +43,33 @@ class CreateInvoiceController extends GetxController {
     if (amount == 0) {
       EasyLoading.showToast('Amount should > 0');
       return;
+    }
+
+    if (amount > 1000) {
+      final result = await Get.dialog<bool>(
+        CupertinoAlertDialog(
+          title: const Text('Warning'),
+          content: const Text(
+            '''
+Amounts over 1000 sats carry higher risk. 
+If payment fails, please contact the mint server.''',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () => Get.back(result: true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != true) {
+        return;
+      }
     }
 
     try {

@@ -72,6 +72,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         'Lightning',
                         TransactionFilter.lightning,
                       ),
+                      const SizedBox(width: 12),
+                      _buildFilterButton(
+                        context,
+                        'Failed',
+                        TransactionFilter.failed,
+                      ),
                     ],
                   ),
                 ),
@@ -195,9 +201,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       },
       leading: EcashUtils.getTransactionIcon(transaction.io),
       title: Text(
-        isLightning
-            ? EcashUtils.getLNAmount(transaction)
-            : EcashUtils.getCashuAmount(transaction),
+        '${EcashUtils.getSymbolFromDirection(transaction.io)} ${transaction.amount}',
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       subtitle: Row(

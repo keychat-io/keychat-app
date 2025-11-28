@@ -29,6 +29,15 @@ window.nostr.getPublicKey = async function () {
   return res;
 };
 
+window.nostr.onAccountChanged = async function (newPublicKey) {
+  var res = await window.flutter_inappwebview.callHandler(
+    'keychat-nostr',
+    'onAccountChanged',
+    newPublicKey
+  );
+  return res;
+};
+
 window.nostr.signEvent = async function (event) {
   var res = await window.flutter_inappwebview.callHandler(
     'keychat-nostr',
@@ -114,3 +123,37 @@ window.nostr.test = async function () {
   // console.log('getRelays:', JSON.stringify(res));
 };
 // window.nostr.test();
+
+// download
+window.nostr.fetchBlob = async function (blobUrl) {
+  console.log('fetchBlob called with:', blobUrl);
+  try {
+    // Use fetch API - more modern and cleaner
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    
+    // Convert blob to base64
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      const base64data = reader.result;
+      const base64ContentArray = base64data.split(",");
+      const mimeType = base64ContentArray[0].match(/[^:\s*]\w+\/[\w-+\d.]+(?=[;| ])/)[0];
+      const decodedFile = base64ContentArray[1];
+      console.log('Blob MIME type:', mimeType);
+      window.flutter_inappwebview.callHandler(
+        'keychat-nostr',
+        'blobFileDownload',
+        decodedFile,
+        mimeType
+      );
+    };
+    
+    reader.onerror = function(error) {
+      console.error('Error reading blob:', error);
+    };
+    
+    reader.readAsDataURL(blob);
+  } catch (error) {
+    console.error('Error fetching blob:', error);
+  }
+}

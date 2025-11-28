@@ -91,7 +91,6 @@ class _ChatPage2State extends State<ChatPage> {
           appBar: AppBar(
             scrolledUnderElevation: 0,
             elevation: 0,
-            backgroundColor: _getAppBarBackgroundColor(),
             centerTitle: true,
             title: Obx(
               () => Wrap(
@@ -115,11 +114,26 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             actions: [
               Obx(
-                () => RoomUtil.buildNipChatTypeBadge(
-                  controller.roomObs.value,
-                  controller.nipChatType.value,
-                  context,
-                ),
+                () => controller.nipChatType.value.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () async {
+                            await RoomUtil.deprecatedEncryptedDialog(
+                              controller.roomObs.value,
+                            );
+                          },
+                          child: Text(
+                            '⚠️',
+                            style: TextStyle(
+                              color: Colors.red.withAlpha(200),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(),
               ),
               Obx(
                 () => controller.roomObs.value.status != RoomStatus.approving
@@ -217,20 +231,13 @@ class _ChatPage2State extends State<ChatPage> {
                               roomMember: rm,
                               cc: controller,
                               screenWidth: Get.width,
-                              toDisplayNameColor: Get.isDarkMode
-                                  ? Colors.white54
-                                  : Colors.black54,
                               backgroundColor: message.isMeSend
                                   ? KeychatGlobal.secondaryColor
                                   : Get.isDarkMode
                                   ? const Color(0xFF2c2c2c)
                                   : const Color(0xFFFFFFFF),
-                              fontColor: Get.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                              markdownConfig: Get.isDarkMode || message.isMeSend
-                                  ? markdownDarkConfig
-                                  : markdownLightConfig,
+                              markdownLightConfig: markdownLightConfig,
+                              markdownDarkConfig: markdownDarkConfig,
                             );
                           },
                         ),
@@ -1232,15 +1239,5 @@ class _ChatPage2State extends State<ChatPage> {
         child: const Text('Send Greeting'),
       ),
     );
-  }
-
-  Color _getAppBarBackgroundColor() {
-    final nipType = controller.nipChatType.value;
-    if (nipType == NIPChatType.nip04.name) {
-      return Get.isDarkMode ? const Color(0xFF3D2800) : const Color(0xFFFFF3CD);
-    } else if (nipType == NIPChatType.nip17.name) {
-      return Get.isDarkMode ? const Color(0xFF1A3A52) : const Color(0xFFD1ECF1);
-    }
-    return Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed);
   }
 }

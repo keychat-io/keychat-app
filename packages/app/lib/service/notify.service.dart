@@ -59,7 +59,7 @@ class NotifyService {
         },
       );
       logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
-      return (res.data['data'] is bool) ? res.data['data'] as bool : true;
+      return res.data['data'] is! bool || res.data['data'] as bool;
     } on DioException catch (e) {
       logger.e('addPubkeys error: ${e.response?.data}', error: e);
     }
@@ -266,57 +266,47 @@ class NotifyService {
     FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
     // fcm onTokenRefresh listen
     FirebaseMessaging.instance.onTokenRefresh
-        .listen((newToken) {
+        .listen((newToken) async {
           logger.i('onTokenRefresh: $newToken');
           fcmToken = newToken;
-          Storage.setString(StorageKeyString.notificationFCMToken, newToken);
-          syncPubkeysToServer();
+          await Storage.setString(
+            StorageKeyString.notificationFCMToken,
+            newToken,
+          );
+          await syncPubkeysToServer();
         })
         .onError((Object err, StackTrace stackTrace) {
           logger.e('onTokenRefresh', error: err, stackTrace: stackTrace);
         });
   }
 
+  String? _getFCMTokenFromCache() {
+    return Storage.getString(StorageKeyString.notificationFCMToken);
+  }
+
   /// Get FCM token with timeout handling
   Future<String?> _getFCMToken() async {
     try {
-      final token = await FirebaseMessaging.instance.getToken().timeout(
+      final apnsToken = await FirebaseMessaging.instance.getToken().timeout(
         const Duration(seconds: 8),
         onTimeout: () async {
-          final cachedToken = Storage.getString(
-            StorageKeyString.notificationFCMToken,
-          );
+          final cachedToken = _getFCMTokenFromCache();
           loggerNoLine.d('Load FCMToken from local: $cachedToken');
           if (cachedToken != null) return cachedToken;
-
-          Get.showSnackbar(
-            GetSnackBar(
-              snackPosition: SnackPosition.TOP,
-              icon: const Icon(Icons.error, color: Colors.amber, size: 24),
-              duration: const Duration(seconds: 8),
-              onTap: (snack) {
-                Get.back<void>();
-              },
-              title: 'Notification Init Error',
-              message: '''
-Timeout to call device-provisioning.googleapis.com.
-Fix:
-1. Check your network connection.
-2. Restart the app.
-''',
-            ),
-          );
           throw TimeoutException('FCMTokenTimeout');
         },
       );
 
-      if (token != null) {
-        await Storage.setString(StorageKeyString.notificationFCMToken, token);
+      if (apnsToken != null) {
+        await Storage.setString(
+          StorageKeyString.notificationFCMToken,
+          apnsToken,
+        );
       }
-      return token;
+      return apnsToken;
     } catch (e) {
       logger.e('getAPNSToken error: $e');
-      return null;
+      return _getFCMTokenFromCache();
     }
   }
 
@@ -367,18 +357,18 @@ Fix:
     }
 
     // Get FCM token
-    fcmToken ??= await _getFCMToken();
-
+    fcmToken = await _getFCMToken();
     if (fcmToken == null) {
       if (GetPlatform.isMobile) {
         await EasyLoading.showError(
-          'Failed to initialize notifications: Unable to obtain fcm token. Please check your network connection and try again.',
+          'Failed to initialize notifications: Unable to obtain fcm token from device-provisioning.googleapis.com. Please check your network connection and try again.',
           duration: const Duration(seconds: 4),
         );
       }
       homeController.notificationStatus.value = false;
       return;
     }
+    logger.i('Setup FcmToken: $fcmToken');
 
     // Update status
     homeController.notificationStatus.value = true;
@@ -397,8 +387,6 @@ Fix:
 
     // Setup FCM listeners
     _setupFCMListeners();
-
-    logger.i('fcmToken: $fcmToken');
 
     // Sync pubkeys to server
     await syncPubkeysToServer(checkUpload: true);

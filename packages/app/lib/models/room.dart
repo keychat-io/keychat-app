@@ -32,7 +32,7 @@ enum GroupType {
   common,
 }
 
-enum EncryptMode { nip04, signal }
+enum EncryptMode { nip04, signal, nip17, mls }
 
 enum RoomStatus {
   init, // create success  not show in room list
@@ -93,7 +93,7 @@ class Room extends Equatable {
   late RoomType type;
 
   @Enumerated(EnumType.ordinal32)
-  late EncryptMode encryptMode = EncryptMode.nip04;
+  late EncryptMode encryptMode = EncryptMode.nip17;
 
   @Enumerated(EnumType.ordinal32)
   GroupType groupType = GroupType.common;
@@ -484,6 +484,9 @@ class Room extends Equatable {
 
   String getRoomName() {
     if (type == RoomType.group) {
+      return name ?? getPublicKeyDisplay(npub);
+    }
+    if (type == RoomType.bot) {
       return name ?? getPublicKeyDisplay(npub);
     }
 

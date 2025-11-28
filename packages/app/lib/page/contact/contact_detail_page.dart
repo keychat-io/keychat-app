@@ -1,6 +1,7 @@
 import 'package:keychat/models/contact.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -153,11 +154,18 @@ class ContactDetailPage extends StatelessWidget {
             child: const Text('Delete'),
             onPressed: () async {
               try {
-                await RoomService.instance.deleteRoomHandler(
+                await ContactService.instance.deleteContactByPubkey(
                   contact.pubkey,
                   contact.identityId,
                 );
-                EasyLoading.showSuccess('Deleted');
+                final room = await RoomService.instance.getRoomByIdentity(
+                  contact.pubkey,
+                  contact.identityId,
+                );
+                if (room != null) {
+                  await RoomService.instance.deleteRoom(room);
+                }
+                await EasyLoading.showSuccess('Deleted');
                 Get
                   ..back<void>()
                   ..back<bool>(result: true);

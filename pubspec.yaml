@@ -9,7 +9,7 @@ workspace:
   - packages/keychat_rust_ffi_plugin
 
 dev_dependencies:
-  melos: 7.1.1
+  melos: 7.3.0
   very_good_analysis: ^10.0.0
 
 melos:

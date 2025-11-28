@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:keychat/global.dart';
 import 'package:keychat/models/identity.dart';
 import 'package:keychat/page/browser/BrowserConnectedWebsite.dart';
+import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/KeepAliveHosts.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/service/identity.service.dart';
@@ -111,12 +113,32 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     );
                   },
                 ),
+                SettingsTile.navigation(
+                  title: const Text('Downloads'),
+                  leading: const Icon(Icons.file_download),
+                  onPressed: (_) async {
+                    await Get.to<void>(() => const DownloadManagerPage());
+                  },
+                ),
               ],
             ),
             SettingsSection(
               tiles: [
+                if (kDebugMode)
+                  SettingsTile.switchTile(
+                    initialValue:
+                        controller.config['adBlockEnabled'] as bool? ?? true,
+                    leading: const Icon(Icons.block),
+                    title: const Text('AdBlock'),
+                    description: const Text('Block ads and trackers by DNS'),
+                    onToggle: (value) async {
+                      await controller.setConfig('adBlockEnabled', value);
+                      EasyLoading.showSuccess('Success');
+                    },
+                  ),
                 SettingsTile.switchTile(
-                  initialValue: controller.config['autoSignEvent'] ?? true,
+                  initialValue:
+                      controller.config['autoSignEvent'] as bool? ?? true,
                   leading: const Icon(Icons.auto_awesome),
                   title: const Text('Auto Sign Event'),
                   onToggle: (value) async {
@@ -125,7 +147,8 @@ class _BrowserSettingState extends State<BrowserSetting> {
                   },
                 ),
                 SettingsTile.switchTile(
-                  initialValue: controller.config['enableHistory'] ?? true,
+                  initialValue:
+                      controller.config['enableHistory'] as bool? ?? true,
                   leading: const Icon(CupertinoIcons.time),
                   title: const Text('Enable History'),
                   onToggle: (value) async {

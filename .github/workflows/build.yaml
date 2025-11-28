@@ -116,7 +116,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.1.1
+          dart pub global activate melos 7.3.0
           dart pub global activate fastforge
           melos bootstrap
       - name: Configure .env
@@ -169,7 +169,7 @@ jobs:
           channel: master
           flutter-version: 3.38.1
           cache: true
-      - run: flutter --version
+      - run: flutter --version && flutter doctor -v
       - name: setup rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -188,7 +188,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.1.1
+          dart pub global activate melos 7.3.0
           dart pub global activate fastforge
           melos bootstrap
       - name: Configure .env
@@ -248,7 +248,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.1.1
+          dart pub global activate melos 7.3.0
           dart pub global activate fastforge
           melos bootstrap
       - name: Configure .env
@@ -322,7 +322,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.1.1
+          dart pub global activate melos 7.3.0
           dart pub global activate fastforge
           melos bootstrap
       - name: Configure .env
@@ -389,7 +389,7 @@ jobs:
           cache: true
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.1.1
+          dart pub global activate melos 7.3.0
           dart pub global activate fastforge
           melos bootstrap
       - name: Flutter doctor -v

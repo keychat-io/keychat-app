@@ -248,8 +248,8 @@ jobs:
 
           echo "app=Keychat" >> local.properties
           echo "flutter.minSdkVersion=31" >> local.properties
-          echo "flutter.targetSdkVersion=35" >> local.properties
-          echo "flutter.compileSdkVersion=35" >> local.properties
+          echo "flutter.targetSdkVersion=36" >> local.properties
+          echo "flutter.compileSdkVersion=36" >> local.properties
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |

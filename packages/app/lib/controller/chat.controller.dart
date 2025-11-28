@@ -41,14 +41,6 @@ const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
 
-enum NIPChatType {
-  common,
-  nip04,
-  nip17,
-  signal,
-  mls,
-}
-
 class ChatController extends GetxController {
   ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
@@ -58,7 +50,6 @@ class ChatController extends GetxController {
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
-  RxString nipChatType = NIPChatType.common.name.obs; // encrypt type of room
 
   Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
@@ -163,8 +154,7 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat(searchMsgIndex: searchMessageId);
-    unawaited(isLatestMessageNip04());
-    unawaited(isLatestMessageNip17());
+    nipChatType.value = loadWeakEncryptionTips();
     initChatPageFeatures();
     super.onInit();
   }
@@ -487,41 +477,25 @@ class ChatController extends GetxController {
     super.onClose();
   }
 
-  // check if the latest message is nip04
-  Future<void> isLatestMessageNip04() async {
-    if (messages.isEmpty) return;
-
-    if (roomObs.value.type == RoomType.common &&
-        roomObs.value.encryptMode == EncryptMode.nip04) {
-      final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (lastMessage == null) return;
-      if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        nipChatType.value = NIPChatType.nip04.name;
-        await RoomUtil.deprecatedEncryptedDialog(
-          roomObs.value,
-          NIPChatType.nip04,
-        );
-      }
+  RxString nipChatType = ''.obs;
+  // check if the latest message is nip04 or nip17
+  String loadWeakEncryptionTips() {
+    if (roomObs.value.type != RoomType.common ||
+        roomObs.value.encryptMode == EncryptMode.signal ||
+        messages.isEmpty) {
+      return '';
     }
-  }
 
-  // check if the latest message is nip04
-  Future<void> isLatestMessageNip17() async {
-    if (messages.isEmpty) return;
-
-    if (roomObs.value.type == RoomType.common &&
-        roomObs.value.encryptMode != EncryptMode.signal) {
-      final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
-      if (hisLastMessage == null) return;
-      if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
-          !hisLastMessage.isSystem) {
-        nipChatType.value = NIPChatType.nip17.name;
-        await RoomUtil.deprecatedEncryptedDialog(
-          roomObs.value,
-          NIPChatType.nip17,
-        );
-      }
+    final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
+    if (lastMessage == null) {
+      return '';
     }
+    if (lastMessage.isSystem ||
+        (lastMessage.encryptType != MessageEncryptType.nip04 &&
+            lastMessage.encryptType != MessageEncryptType.nip17)) {
+      return '';
+    }
+    return lastMessage.encryptType.name;
   }
 
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
@@ -674,13 +648,14 @@ class ChatController extends GetxController {
   }
 
   void setRoom(Room newRoom) {
-    _setRoomChatType();
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
     }
     roomObs(newRoom);
     roomObs.refresh();
+
+    nipChatType.value = loadWeakEncryptionTips();
   }
 
   List<Message> sortMessageById(List<Message> list) {
@@ -893,28 +868,7 @@ class ChatController extends GetxController {
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
-  void _setRoomChatType() {
-    if (roomObs.value.type == RoomType.common ||
-        roomObs.value.type == RoomType.bot) {
-      if (roomObs.value.encryptMode == EncryptMode.signal) {
-        nipChatType.value = NIPChatType.signal.name;
-        return;
-      }
-      return;
-    }
-    if (roomObs.value.isMLSGroup) {
-      nipChatType.value = NIPChatType.mls.name;
-      return;
-    }
-
-    if (roomObs.value.isSendAllGroup) {
-      nipChatType.value = NIPChatType.signal.name;
-      return;
-    }
-  }
-
   Future<void> _initRoom() async {
-    _setRoomChatType();
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
@@ -982,7 +936,7 @@ class ChatController extends GetxController {
     // ignore fetch in a hour in kReleaseMode
     if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(const Duration(days: 1))
+          .add(const Duration(hours: 1))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }
@@ -1003,52 +957,76 @@ class ChatController extends GetxController {
       final description =
           (metadata['description'] ?? metadata['about'] ?? metadata['bio'])
               as String?;
-      for (final contact in contacts) {
-        if (contact.versionFromRelay >= res.createdAt) {
-          continue;
-        }
+      final contact = contacts.first;
+      if (contact.versionFromRelay >= res.createdAt) {
+        return contact;
+      }
 
-        // Handle avatar download if URL changed
-        if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
-          if (avatarFromRelay.startsWith('http') ||
-              avatarFromRelay.startsWith('https')) {
-            contact.avatarFromRelay = avatarFromRelay;
+      // Handle avatar download if URL changed
+      if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
+        if (avatarFromRelay.startsWith('http') ||
+            avatarFromRelay.startsWith('https')) {
+          // Download avatar if URL changed
+          logger.d('${contact.avatarFromRelay}  ,$avatarFromRelay');
+          if (contact.avatarFromRelay != avatarFromRelay) {
+            try {
+              // Show confirmation dialog before downloading avatar
+              final shouldDownload = await Get.dialog<bool>(
+                CupertinoAlertDialog(
+                  title: const Text('Download Avatar'),
+                  content: Text(
+                    'Do you want to download the avatar for ${contact.displayName}? \n\nURL: $avatarFromRelay',
+                  ),
+                  actions: [
+                    CupertinoDialogAction(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('Cancel'),
+                    ),
+                    CupertinoDialogAction(
+                      isDefaultAction: true,
+                      onPressed: () => Get.back(result: true),
+                      child: const Text('Download'),
+                    ),
+                  ],
+                ),
+              );
 
-            // Download avatar if URL changed
-            if (contact.avatarFromRelay != contact.avatarFromRelayLocalPath) {
-              try {
-                final localPath = await FileService.instance
-                    .downloadAndSaveAvatar(avatarFromRelay, pubkey);
-                if (localPath != null) {
-                  contact.avatarFromRelayLocalPath = localPath;
-                }
-              } catch (e, s) {
-                logger.e(
-                  'Failed to download avatar: $e',
-                  error: e,
-                  stackTrace: s,
-                );
+              if (shouldDownload != true) {
+                return contact;
               }
+              final localPath = await FileService.instance
+                  .downloadAndSaveAvatar(avatarFromRelay, pubkey);
+              if (localPath != null) {
+                contact
+                  ..avatarFromRelay = avatarFromRelay
+                  ..avatarFromRelayLocalPath = localPath;
+              }
+            } catch (e, s) {
+              logger.e(
+                'Failed to download avatar: $e',
+                error: e,
+                stackTrace: s,
+              );
             }
           }
         }
-
-        contact
-          ..nameFromRelay = nameFromRelay
-          ..aboutFromRelay = description
-          ..metadataFromRelay = res.content
-          ..fetchFromRelayAt = DateTime.now()
-          ..versionFromRelay = res.createdAt;
-        loggerNoLine.i(
-          'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
-        );
-        await ContactService.instance.saveContact(contact);
       }
+
+      contact
+        ..nameFromRelay = nameFromRelay
+        ..aboutFromRelay = description
+        ..metadataFromRelay = res.content
+        ..fetchFromRelayAt = DateTime.now()
+        ..versionFromRelay = res.createdAt;
+      loggerNoLine.i(
+        'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
+      );
+      await ContactService.instance.saveContact(contact);
+      return contact;
     } catch (e) {
       logger.e('fetchUserMetadata: $e', error: e);
     }
-    return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
-        contacts.first;
+    return contacts.first;
   }
 
   Future<bool> handlePasteboardFile() async {

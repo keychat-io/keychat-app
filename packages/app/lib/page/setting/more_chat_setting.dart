@@ -21,7 +21,7 @@ import 'package:keychat/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-class MoreChatSetting extends StatelessWidget {
+class MoreChatSetting extends GetView<HomeController> {
   const MoreChatSetting({super.key});
 
   @override
@@ -32,114 +32,142 @@ class MoreChatSetting extends StatelessWidget {
         centerTitle: true,
         title: const Text('Chat Settings'),
       ),
-      body: SettingsList(
-        platform: DevicePlatform.iOS,
-        sections: [
-          SettingsSection(
-            tiles: [
-              SettingsTile.navigation(
-                leading: const Icon(CupertinoIcons.globe),
-                value: Obx(
-                  () => ws.relayConnectedCount.value == 0
-                      ? const Text('Connecting')
-                      : Text(ws.relayConnectedCount.value.toString()),
-                ),
-                onPressed: (c) {
-                  Get.to(
-                    () => const RelaySetting(),
-                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
-                  );
-                },
-                title: const Text('Message Relay'),
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.storage_outlined),
-                title: const Text('Media Relay'),
-                onPressed: (context) {
-                  Get.to(
-                    () => const MediaRelaySettings(),
-                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
-                  );
-                },
-              ),
-              if (GetPlatform.isIOS ||
-                  GetPlatform.isAndroid ||
-                  GetPlatform.isMacOS)
+      body: Obx(
+        () => SettingsList(
+          platform: DevicePlatform.iOS,
+          sections: [
+            SettingsSection(
+              tiles: [
                 SettingsTile.navigation(
-                  leading: const Icon(Icons.notifications_outlined),
-                  onPressed: (x) async {
-                    await handleNotificationSetting();
+                  leading: const Icon(CupertinoIcons.globe),
+                  value: ws.relayConnectedCount.value == 0
+                      ? const Text('Connecting')
+                      : Text(
+                          ws.relayConnectedCount.value.toString(),
+                        ),
+                  onPressed: (c) async {
+                    await Get.to(
+                      () => const RelaySetting(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
                   },
-                  title: const Text('Notifications'),
+                  title: const Text('Message Relay'),
                 ),
-            ],
-          ),
-          SettingsSection(
-            title: const Text('MLS Group Settings'),
-            tiles: [
-              SettingsTile(
-                leading: const Icon(CupertinoIcons.cloud_upload),
-                title: const Text('Upload KeyPackage'),
-                onPressed: (context) async {
-                  try {
-                    final identities = Get.find<HomeController>()
-                        .allIdentities
-                        .values
-                        .toList();
-                    await MlsGroupService.instance.uploadKeyPackages(
-                      forceUpload: true,
-                      identities: identities,
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.storage_outlined),
+                  title: const Text('Media Relay'),
+                  onPressed: (context) {
+                    Get.to(
+                      () => const MediaRelaySettings(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
                     );
-                    EasyLoading.showSuccess('Upload Success');
-                  } catch (e, s) {
-                    final msg = Utils.getErrorMessage(e);
-                    logger.e(
-                      'Failed to upload KeyPackages: $msg',
-                      stackTrace: s,
+                  },
+                ),
+                if (GetPlatform.isIOS ||
+                    GetPlatform.isAndroid ||
+                    GetPlatform.isMacOS)
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.notifications_outlined),
+                    onPressed: (x) async {
+                      await handleNotificationSetting();
+                    },
+                    title: const Text('Notifications'),
+                  ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.switchTile(
+                  leading: const Icon(Icons.message),
+                  title: const Text('Direct Messages'),
+                  description: const Text(
+                    'Receiving DMs from other Nostr apps, encrypted by nostr Nip04 and Nip17',
+                  ),
+                  onPressed: (context) async {},
+                  initialValue: controller.enableDMFromNostrApp.value,
+                  onToggle: (bool value) async {
+                    await Storage.setBool(
+                      StorageKeyString.enableDMFromNostrApp,
+                      value,
                     );
-                    EasyLoading.showError('Failed to upload KeyPackages: $msg');
-                  }
-                },
-              ),
-            ],
-          ),
-          SettingsSection(
-            title: const Text('Debug Zone'),
-            tiles: [
-              SettingsTile.navigation(
-                leading: const Icon(Icons.event),
-                title: const Text('Failed Events'),
-                onPressed: (context) async {
-                  Get.to(
-                    () => const NostrEventsPage(),
-                    binding: NostrEventsBindings(),
-                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
-                  );
-                },
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.event),
-                title: const Text('Query Received Event'),
-                onPressed: (context) async {
-                  Get.to(
-                    () => const QueryReceivedEvent(),
-                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
-                  );
-                },
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.copy),
-                title: const Text('Unread Messages'),
-                onPressed: (context) async {
-                  Get.to(
-                    () => const UnreadMessages(),
-                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
+                    controller.enableDMFromNostrApp.value = value;
+                    final tips = value
+                        ? 'Enabled. Your will receive DMs from other Nostr apps.'
+                        : 'Disabled. You will not receive DMs from other Nostr apps.';
+                    await EasyLoading.showSuccess(tips);
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('MLS Group Settings'),
+              tiles: [
+                SettingsTile(
+                  leading: const Icon(CupertinoIcons.cloud_upload),
+                  title: const Text('Upload KeyPackage'),
+                  onPressed: (context) async {
+                    try {
+                      final identities = Get.find<HomeController>()
+                          .allIdentities
+                          .values
+                          .toList();
+                      await MlsGroupService.instance.uploadKeyPackages(
+                        forceUpload: true,
+                        identities: identities,
+                      );
+                      EasyLoading.showSuccess('Upload Success');
+                    } catch (e, s) {
+                      final msg = Utils.getErrorMessage(e);
+                      logger.e(
+                        'Failed to upload KeyPackages: $msg',
+                        stackTrace: s,
+                      );
+                      EasyLoading.showError(
+                        'Failed to upload KeyPackages: $msg',
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('Debug Zone'),
+              tiles: [
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.event),
+                  title: const Text('Failed Events'),
+                  onPressed: (context) async {
+                    Get.to(
+                      () => const NostrEventsPage(),
+                      binding: NostrEventsBindings(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.event),
+                  title: const Text('Query Received Event'),
+                  onPressed: (context) async {
+                    Get.to(
+                      () => const QueryReceivedEvent(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.copy),
+                  title: const Text('Unread Messages'),
+                  onPressed: (context) async {
+                    Get.to(
+                      () => const UnreadMessages(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

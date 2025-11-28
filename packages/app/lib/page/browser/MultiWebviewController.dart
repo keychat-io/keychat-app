@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:background_downloader/background_downloader.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -285,6 +286,7 @@ class MultiWebviewController extends GetxController {
         'autoSignEvent': true,
         'showFAB': true,
         'fabPosition': 'right',
+        'adBlockEnabled': true,
       });
       await Storage.setString('browserConfig', localConfig);
     }
@@ -359,13 +361,22 @@ class MultiWebviewController extends GetxController {
     unawaited(loadFavorite());
     unawaited(initWebview());
     unawaited(deleteOldHistories());
-    await loadDesktopTabs();
-    if (tabs.isEmpty && GetPlatform.isDesktop) {
-      addNewTab();
-    }
+
     if (GetPlatform.isMobile) {
       _loadTooltipPreference();
     }
+    await FileDownloader().trackTasks();
+    FileDownloader().configureNotification(
+      running: const TaskNotification('Downloading', 'file: {filename}'),
+      complete: const TaskNotification('Download finished', 'file: {filename}'),
+      progressBar: true,
+    );
+    Future.delayed(const Duration(seconds: 1)).then((value) async {
+      await loadDesktopTabs();
+      if (tabs.isEmpty && GetPlatform.isDesktop) {
+        addNewTab();
+      }
+    });
     super.onInit();
   }
 

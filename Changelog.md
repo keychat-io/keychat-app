@@ -2,6 +2,14 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.37.1+6471
+- fix: NIP-17 message sorting
+- fix: allow switching logged-in identity in the browser
+- feat: support downloads file in the browser
+- feat: NIP-04 and NIP-17 messages display special badges
+- feat: support replying to NIP-04 messages
+- feat: request device microphone permissions
+
 ## 1.36.9+6469
 - feat: Send emoji reactions and GIFs.
 - feat: Show encryption type in chat page

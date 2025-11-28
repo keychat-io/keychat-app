@@ -189,64 +189,6 @@ class GroupService extends BaseChatService {
     }
   }
 
-  Future<void> processChangeSignKey(
-    Room idRoom,
-    NostrEventModel event,
-    RoomProfile roomProfile,
-  ) async {
-    final newPrikey = roomProfile.prikey;
-    if (newPrikey == null) throw Exception('newPrikey is null');
-    final oldToRoomPubKey = roomProfile.oldToRoomPubKey!;
-    final users = roomProfile.users;
-    final newPubkey = rust_nostr.getHexPubkeyByPrikey(prikey: newPrikey);
-
-    var room = await roomService.getRoomByIdentity(
-      oldToRoomPubKey,
-      idRoom.identityId,
-    );
-    if (room == null) return;
-    final roomMemberAdmin = await room.getAdmin();
-    if (roomMemberAdmin == null) throw Exception('not found admin');
-    if (roomMemberAdmin != event.pubkey) {
-      throw Exception('not admin');
-    }
-
-    late Mykey newkey;
-    await DBProvider.database.writeTxn(() async {
-      newkey = await GroupTx.instance.importMykeyTx(
-        room!.identityId,
-        await rust_nostr.importKey(senderKeys: newPrikey),
-      );
-      room.mykey.value = newkey;
-    });
-    Get.find<WebsocketService>().listenPubkey(
-      [newPubkey],
-      limit: 1000,
-      kinds: [EventKinds.nip04],
-    );
-    room = await RoomService.instance.updateRoom(room, updateMykey: true);
-
-    await room.updateAllMember(users);
-
-    await MessageService.instance.saveMessageToDB(
-      events: [event],
-      room: room,
-      sent: SendStatusType.success,
-      encryptType: room.isSendAllGroup
-          ? MessageEncryptType.signal
-          : MessageEncryptType.nip4,
-      content: event.content,
-      realMessage: '🤖 Admin changed the SharedPrivate Key. ${roomProfile.ext}',
-      from: room.myIdPubkey,
-      senderPubkey: idRoom.toMainPubkey,
-      to: room.toMainPubkey,
-      isMeSend: false,
-      isSystem: true,
-      isRead: false,
-    );
-    updateChatControllerMembers(room.id);
-  }
-
   Future<void> processGroupMessage(
     Room room,
     NostrEventModel event,
@@ -272,7 +214,7 @@ class GroupService extends BaseChatService {
       to: room.toMainPubkey,
       encryptType: room.isSendAllGroup
           ? MessageEncryptType.signal
-          : MessageEncryptType.nip4WrapNip4,
+          : MessageEncryptType.mls,
       isMeSend: signPubkey == room.myIdPubkey,
       sent: SendStatusType.success,
       content: groupMessage.message,
@@ -372,27 +314,6 @@ class GroupService extends BaseChatService {
     );
 
     if (groupRoom == null) {
-      if (roomProfile.groupType == GroupType.shareKey ||
-          roomProfile.groupType == GroupType.kdf ||
-          roomProfile.groupType == GroupType.mls) {
-        await MessageService.instance.saveMessageToDB(
-          from: event.pubkey,
-          to: event.tags[0][1],
-          senderPubkey: idRoom.toMainPubkey,
-          events: [event],
-          room: idRoom,
-          isMeSend: false,
-          isSystem: true,
-          encryptType: RoomUtil.getEncryptMode(event),
-          sent: SendStatusType.success,
-          mediaType: MessageMediaType.groupInvite,
-          requestConfrim: RequestConfrimEnum.request,
-          content: roomProfile.toString(),
-          realMessage: groupInviteMsg[0],
-        );
-        return;
-      }
-
       if (roomProfile.groupType == GroupType.sendAll) {
         await DBProvider.database.writeTxn(() async {
           try {
@@ -406,7 +327,7 @@ class GroupService extends BaseChatService {
               room: groupRoom!,
               isMeSend: false,
               isSystem: true,
-              encryptType: MessageEncryptType.nip4WrapNip4,
+              encryptType: MessageEncryptType.nip17,
               sent: SendStatusType.success,
               content: roomProfile.toString(),
               realMessage: groupInviteMsg[0],
@@ -485,7 +406,7 @@ class GroupService extends BaseChatService {
       sent: SendStatusType.success,
       encryptType: groupRoom.isSendAllGroup
           ? MessageEncryptType.signal
-          : MessageEncryptType.nip4,
+          : MessageEncryptType.nip17,
       isSystem: true,
       content: groupInviteMsg[0],
       createdAt: timestampToDateTime(event.createdAt),
@@ -516,21 +437,6 @@ class GroupService extends BaseChatService {
           realMessage,
           failedCallback: failedCallback,
         );
-      case KeyChatEventKinds.groupSharedKeyMessage:
-        final subEvent = NostrEventModel.fromJson(jsonDecode(km.msg!));
-        var content = await NostrAPI.instance.decryptNip4Content(subEvent);
-        content ??= '[GroupMessage decoded failed]';
-        final gm = GroupMessage.fromJson(jsonDecode(content));
-        return processGroupMessage(
-          room,
-          subEvent,
-          gm,
-          sourceEvent: event,
-          msgKeyHash: msgKeyHash,
-        );
-      case KeyChatEventKinds.groupChangeSignKey:
-        final roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
-        return processChangeSignKey(room, event, roomProfile);
       case KeyChatEventKinds.groupRemoveSingleMember:
         return _processGroupRemoveSingleMember(room, km, event);
       case KeyChatEventKinds.groupSendToAllMessage:
@@ -916,7 +822,7 @@ class GroupService extends BaseChatService {
       to: groupRoom.toMainPubkey,
       encryptType: groupRoom.isSendAllGroup
           ? MessageEncryptType.signal
-          : MessageEncryptType.nip4,
+          : MessageEncryptType.nip17,
       sent: SendStatusType.success,
       isSystem: true,
       isMeSend: true,
@@ -1031,7 +937,7 @@ class GroupService extends BaseChatService {
       room: groupRoom,
       isMeSend: false,
       isSystem: true,
-      encryptType: MessageEncryptType.nip4,
+      encryptType: MessageEncryptType.nip17,
       sent: SendStatusType.success,
       mediaType: MessageMediaType.text,
       content: event.content,

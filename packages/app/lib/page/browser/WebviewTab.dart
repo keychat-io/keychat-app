@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection' show UnmodifiableListView;
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show base64, jsonDecode;
+import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:keychat/controller/home.controller.dart';
@@ -11,11 +12,13 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/browser/BookmarkEdit.dart';
 import 'package:keychat/page/browser/BrowserNewTab.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
+import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/FavoriteEdit.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/browser/SelectIdentityForBrowser.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/SignerService.dart';
+import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
@@ -75,6 +78,9 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
+
+  // Track last successfully committed main-frame URL to detect downgrade loops
+  WebUri? _lastCommittedMainFrameUrl;
 
   // Add tooltip key
   final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
@@ -496,6 +502,22 @@ class _WebviewTabState extends State<WebviewTab> {
         ),
       ),
       MenuItemButton(
+        onPressed: () => _handleMenuSelection('downloads'),
+        child: Row(
+          spacing: 16,
+          children: [
+            Icon(
+              Icons.file_download,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            Text(
+              'Downloads',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      MenuItemButton(
         onPressed: () => _handleMenuSelection('zoom'),
         child: Row(
           spacing: 16,
@@ -523,7 +545,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               Text(
-                'Clear Cache',
+                'ID Logout',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ],
@@ -532,7 +554,7 @@ class _WebviewTabState extends State<WebviewTab> {
       const Divider(height: 1),
       if (tabController.browserConnect.value.host != '')
         MenuItemButton(
-          onPressed: () => _handleMenuSelection('disconnect'),
+          onPressed: () => _handleMenuSelection('clear'),
           child: Row(
             spacing: 12,
             children: [
@@ -702,79 +724,118 @@ class _WebviewTabState extends State<WebviewTab> {
           return false;
         },
         onPermissionRequest: (controller, request) async {
+          if (GetPlatform.isDesktop) {
+            return PermissionResponse(
+              resources: request.resources,
+              action: PermissionResponseAction.GRANT,
+            );
+          }
+          final resources = <PermissionResourceType>[];
+
+          for (final resource in request.resources) {
+            var granted = false;
+
+            // Check if permission is camera or microphone
+            if (resource == PermissionResourceType.CAMERA) {
+              final status = await Permission.camera.request();
+              granted = status.isGranted;
+            } else if (resource == PermissionResourceType.MICROPHONE) {
+              final status = await Permission.microphone.request();
+              granted = status.isGranted;
+            } else {
+              // For other permissions, grant by default
+              granted = true;
+            }
+
+            if (granted) {
+              resources.add(resource);
+            }
+          }
+
           return PermissionResponse(
-            resources: request.resources,
-            action: PermissionResponseAction.GRANT,
+            resources: resources,
+            action: resources.isEmpty
+                ? PermissionResponseAction.DENY
+                : PermissionResponseAction.GRANT,
           );
         },
-        shouldOverrideUrlLoading:
-            (controller, NavigationAction navigationAction) async {
-              final uri = navigationAction.request.url;
-              logger.i(
-                'shouldOverrideUrlLoading: $uri download: ${navigationAction.shouldPerformDownload}',
-              );
-              if (uri == null) return NavigationActionPolicy.ALLOW;
+        shouldOverrideUrlLoading: (controller, NavigationAction navigationAction) async {
+          final uri = navigationAction.request.url;
+          logger.i('shouldOverrideUrlLoading: $uri');
+          if (uri == null) return NavigationActionPolicy.ALLOW;
+          // Detect https->http downgrade loop for same host (main frame only)
+          if (navigationAction.isForMainFrame &&
+              _lastCommittedMainFrameUrl != null &&
+              _lastCommittedMainFrameUrl!.scheme == 'https' &&
+              uri.scheme == 'http' &&
+              uri.host == _lastCommittedMainFrameUrl!.host) {
+            logger.w(
+              'Blocked downgrade navigation (https -> http) for host ${uri.host}',
+            );
+            return NavigationActionPolicy.CANCEL;
+          }
+          // download file
 
-              try {
-                final str = uri.toString();
+          if (uri.toString().startsWith('blob:')) {
+            await EasyLoading.showError('Blob files are not supported');
+            return NavigationActionPolicy.CANCEL;
+          }
+          if (navigationAction.shouldPerformDownload ?? false) {
+            return NavigationActionPolicy.DOWNLOAD;
+          }
 
-                // Handle special URLs
-                if (await handleSpecialUrls(str)) {
-                  return NavigationActionPolicy.CANCEL;
-                }
+          try {
+            final str = uri.toString();
 
-                if (isPdfUrl(str) &&
-                    !str.startsWith('https://docs.google.com/gview')) {
-                  final googleDocsUrl =
-                      'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-                  logger.i('load pdf: $googleDocsUrl');
-                  await controller.loadUrl(
-                    urlRequest: URLRequest(
-                      url: WebUri.uri(Uri.parse(googleDocsUrl)),
-                    ),
-                  );
-                  return NavigationActionPolicy.CANCEL;
-                }
-
-                // download file
-
-                final shouldPerformDownload =
-                    navigationAction.shouldPerformDownload ?? false;
-                final url = navigationAction.request.url;
-                if ((shouldPerformDownload && url != null) ||
-                    url.toString().startsWith('blob:')) {
-                  await downloadFile(url.toString());
-                  return NavigationActionPolicy.DOWNLOAD;
-                }
-                if ([
-                  'http',
-                  'https',
-                  'data',
-                  'javascript',
-                  'about',
-                ].contains(uri.scheme)) {
-                  return NavigationActionPolicy.ALLOW;
-                }
-                try {
-                  await launchUrl(uri);
-                } catch (e) {
-                  if (e is PlatformException) {
-                    await EasyLoading.showError(
-                      'Failed to open link: ${e.message}',
-                    );
-                    return NavigationActionPolicy.CANCEL;
-                  }
-                  logger.i(e.toString(), error: e);
-                  await EasyLoading.showError('Failed to open link: $e');
-                }
-              } catch (e) {
-                logger.i(e.toString(), error: e);
-              }
+            // Handle special URLs
+            if (await handleSpecialUrls(str)) {
               return NavigationActionPolicy.CANCEL;
-            },
+            }
+
+            if (isPdfUrl(str) &&
+                !str.startsWith('https://docs.google.com/gview')) {
+              final googleDocsUrl =
+                  'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+              logger.i('load pdf: $googleDocsUrl');
+              await controller.loadUrl(
+                urlRequest: URLRequest(
+                  url: WebUri.uri(Uri.parse(googleDocsUrl)),
+                ),
+              );
+              return NavigationActionPolicy.CANCEL;
+            }
+
+            if ([
+              'http',
+              'https',
+              'data',
+              'javascript',
+              'about',
+            ].contains(uri.scheme)) {
+              return NavigationActionPolicy.ALLOW;
+            }
+            try {
+              await launchUrl(uri);
+            } catch (e) {
+              if (e is PlatformException) {
+                await EasyLoading.showError(
+                  'Failed to open link: ${e.message}',
+                );
+                return NavigationActionPolicy.CANCEL;
+              }
+              logger.i(e.toString(), error: e);
+              await EasyLoading.showError('Failed to open link: $e');
+            }
+          } catch (e) {
+            logger.i(e.toString(), error: e);
+          }
+          return NavigationActionPolicy.CANCEL;
+        },
         onLoadStop: (controller, url) async {
           if (url == null) return;
           logger.d('onLoadStop: $url');
+          // Store last committed main-frame URL (used for downgrade loop detection)
+          _lastCommittedMainFrameUrl = url;
           await _checkGoBackState(url.toString());
           await controller.injectJavascriptFileFromAsset(
             assetFilePath: 'assets/js/nostr.js',
@@ -793,7 +854,7 @@ class _WebviewTabState extends State<WebviewTab> {
           }
         },
         onPageCommitVisible: (controller, url) {
-          logger.i('onPageCommitVisible:$url');
+          logger.i('onPageCommitVisible: $url');
         },
         onRenderProcessGone: (controller, detail) {
           logger.i('onRenderProcessGone: $detail');
@@ -934,6 +995,11 @@ class _WebviewTabState extends State<WebviewTab> {
         onUpdateVisitedHistory: (controller, url, androidIsReload) async {
           // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
           await onUpdateVisitedHistory(url);
+        },
+        onDownloadStarting: (controller, request) async {
+          logger.d('onDownloadStart $request');
+          await downloadFile(request);
+          return DownloadStartResponse(handled: true);
         },
       ),
     );
@@ -1102,8 +1168,14 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
+    if (method == 'blobFileDownload') {
+      _downloadBlob(data[1], data[2]);
+      return null;
+    }
+
     final host = (await getCurrentUrl()).host;
-    final identity = await getOrSelectIdentity(host);
+    final skipCache = method == 'getPublicKey';
+    final identity = await getOrSelectIdentity(host, skipCache: skipCache);
     if (identity == null) {
       return null;
     }
@@ -1112,6 +1184,9 @@ class _WebviewTabState extends State<WebviewTab> {
     switch (method) {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
+      case 'onAccountChanged':
+        await switchAccountFromMiniApp(host, data[1] as String);
+        return null;
       case 'signEvent':
         final event = data[1] as Map<String, dynamic>;
 
@@ -1225,18 +1300,45 @@ class _WebviewTabState extends State<WebviewTab> {
     return 'Error: not implemented';
   }
 
-  Future<Identity?> getOrSelectIdentity(String host) async {
+  Future<void> switchAccountFromMiniApp(String host, String publicKey) async {
+    final identity = await IdentityService.instance.getIdentityByNostrPubkey(
+      publicKey,
+    );
+    if (identity == null) {
+      await EasyLoading.showError('Identity not found for pubkey: $publicKey');
+      return;
+    }
     final bc = await BrowserConnect.getByHost(host);
     if (bc != null) {
+      await BrowserConnect.delete(bc.id);
+    }
+
+    final favicon = await multiWebviewController.getFavicon(
+      tabController.inAppWebViewController!,
+      host,
+    );
+
+    final model = BrowserConnect(
+      host: host,
+      pubkey: publicKey,
+    )..favicon = favicon;
+    await BrowserConnect.save(model);
+    tabController.setBrowserConnect(model);
+  }
+
+  Future<Identity?> getOrSelectIdentity(
+    String host, {
+    bool skipCache = false,
+  }) async {
+    var bc = await BrowserConnect.getByHost(host);
+    if (bc != null && !skipCache) {
       final identity = await IdentityService.instance.getIdentityByNostrPubkey(
         bc.pubkey,
       );
-      if (identity == null) {
-        BrowserConnect.delete(bc.id);
-      } else {
-        // exist identity, auto return
+      if (identity != null) {
         return identity;
       }
+      await BrowserConnect.delete(bc.id);
     }
     if (Get.isBottomSheetOpen ?? false) {
       return null;
@@ -1256,18 +1358,22 @@ class _WebviewTabState extends State<WebviewTab> {
           tabController.inAppWebViewController!,
           host,
         );
-        final bc = BrowserConnect(
+
+        bc ??= BrowserConnect(
           host: host,
           pubkey: selected.secp256k1PKHex,
-          favicon: favicon,
         );
+
+        bc
+          ..pubkey = selected.secp256k1PKHex
+          ..favicon = favicon;
         final id = await BrowserConnect.save(bc);
         bc.id = id;
         tabController.setBrowserConnect(bc);
-        EasyLoading.dismiss();
+        await EasyLoading.dismiss();
       } catch (e, s) {
         logger.e(e.toString(), stackTrace: s);
-        EasyLoading.showError(e.toString());
+        await EasyLoading.showError(e.toString());
       }
     }
     return selected;
@@ -1328,19 +1434,30 @@ class _WebviewTabState extends State<WebviewTab> {
         Clipboard.setData(ClipboardData(text: currentUri.toString()));
         EasyLoading.showToast('Copied');
       case 'clear':
-        if (tabController.inAppWebViewController == null) return;
-        tabController.inAppWebViewController?.webStorage.localStorage.clear();
-        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
-        EasyLoading.showToast('Clear Success');
-        logger.i('Cache cleared, refreshing page');
-        await refreshPage();
-      case 'disconnect':
         final res = await BrowserConnect.getByHost(currentUri.host);
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
-        tabController.inAppWebViewController?.webStorage.localStorage.clear();
-        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
+        await tabController.inAppWebViewController?.webStorage.localStorage
+            .clear();
+        await tabController.inAppWebViewController?.webStorage.sessionStorage
+            .clear();
+        var domain = currentUri.host;
+        // Extract main domain (remove subdomain)
+        if (domain.split('.').length > 2) {
+          domain = domain.split('.').sublist(1).join('.');
+        }
+        logger.d('currentUri: $domain');
+        await CookieManager.instance().deleteCookies(
+          url: WebUri(currentUri.toString()),
+          domain: currentUri.host,
+          webViewController: tabController.inAppWebViewController,
+        );
+        await CookieManager.instance().deleteCookies(
+          url: WebUri(currentUri.toString()),
+          domain: '.$domain',
+          webViewController: tabController.inAppWebViewController,
+        );
         EasyLoading.showToast('Logout Success');
 
         tabController.setBrowserConnect(null);
@@ -1349,6 +1466,8 @@ class _WebviewTabState extends State<WebviewTab> {
         await refreshPage();
       case 'close':
         await closeTab();
+      case 'downloads':
+        await Get.to<void>(() => const DownloadManagerPage());
       case 'zoom':
         Get.bottomSheet(
           clipBehavior: Clip.antiAlias,
@@ -1433,43 +1552,173 @@ class _WebviewTabState extends State<WebviewTab> {
     tabController.url.value = url0;
   }
 
-  Future<void> downloadFile(String url, [String? filename]) async {
-    EasyThrottle.throttle('downloadFile', const Duration(seconds: 3), () async {
-      final permissionStatus = await Utils.getStoragePermission();
-      final hasStoragePermission = permissionStatus.isGranted;
+  Future<bool> downloadFile(DownloadStartRequest request) async {
+    final url = request.url.toString();
+    final filename = request.suggestedFilename ?? path.basename(url);
 
-      if (!hasStoragePermission) {
-        EasyLoading.showToast('Storage permission not granted');
-        return;
+    final shouldDownload = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Download File'),
+        content: Text(
+          '$filename\n\nSize: ${FileService.instance.getFileSizeDisplay(request.contentLength)}',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDownload != true) {
+      return false;
+    }
+
+    final selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory == null) {
+      await EasyLoading.showToast('No directory selected');
+      return false;
+    }
+
+    logger.i(
+      'start to download $url, save to: $selectedDirectory filename: $filename ',
+    );
+    await EasyLoading.showToast('Downloading...');
+    final (baseDirectory, directory, filename2) = await Task.split(
+      filePath: '$selectedDirectory/$filename',
+    );
+    final task = DownloadTask(
+      url: url,
+      filename: filename,
+      baseDirectory: baseDirectory,
+      directory: directory,
+    );
+
+    FileDownloader().download(
+      task,
+      onProgress: (progress) {},
+      onStatus: (status) async {
+        logger.i('Status: $status');
+        if (status == TaskStatus.complete) {
+          final shouldOpen = await Get.dialog<bool>(
+            CupertinoAlertDialog(
+              title: const Text('Download Complete'),
+              content: Text('File saved to:\n$selectedDirectory/$filename'),
+              actions: [
+                CupertinoActionSheetAction(
+                  onPressed: () => Get.back(result: false),
+                  child: const Text('Close'),
+                ),
+                CupertinoActionSheetAction(
+                  isDefaultAction: true,
+                  onPressed: () => Get.back(result: true),
+                  child: const Text('Open Folder'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldOpen ?? false) {
+            try {
+              await launchUrl(Uri.file(selectedDirectory));
+            } catch (e) {
+              logger.e('Failed to open directory: $e');
+              await EasyLoading.showError('Failed to open directory');
+            }
+          }
+        }
+      },
+    );
+    return true;
+  }
+
+  Future<void> _saveBlobFile(String base64String, String mimeType) async {
+    try {
+      if (GetPlatform.isMobile) {
+        final storagePermission = await Permission.storage.request();
+        if (!storagePermission.isGranted) {
+          EasyLoading.showError('Storage permission not granted');
+          return;
+        }
       }
 
       final selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) {
-        EasyLoading.showToast('No directory selected');
+        EasyLoading.dismiss();
         return;
       }
-      filename ??= path.basename(url);
-      final task = DownloadTask(
-        url: url,
-        filename: filename,
-        directory: selectedDirectory,
-        updates: Updates.statusAndProgress,
-        retries: 2,
-      );
-      EasyLoading.showToast('Downloading $filename...');
 
-      await FileDownloader().download(
-        task,
-        onProgress: (progress) {
-          if (progress == 1.0) {
-            EasyLoading.showToast('Download completed');
-          }
-        },
-        onStatus: (status) {
-          logger.i('Status: $status');
-        },
+      // Decode base64 to bytes
+      final bytes = base64.decode(base64String);
+
+      // Determine file extension from MIME type
+      final extension = _getExtensionFromMimeType(mimeType);
+      final filename =
+          'download_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+      final filePath = path.join(selectedDirectory, filename);
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      EasyLoading.dismiss();
+
+      final shouldOpen = await Get.dialog<bool>(
+        CupertinoAlertDialog(
+          title: const Text('Download Complete'),
+          content: Text('File saved to:\n$filePath'),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Close'),
+            ),
+            CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Get.back(result: true),
+              child: const Text('Open Folder'),
+            ),
+          ],
+        ),
       );
-    });
+
+      if (shouldOpen ?? false) {
+        try {
+          await launchUrl(Uri.file(selectedDirectory));
+        } catch (e) {
+          logger.e('Failed to open directory: $e');
+        }
+      }
+    } catch (e, s) {
+      logger.e('Failed to save blob file: $e', stackTrace: s);
+      EasyLoading.showError('Failed to save file');
+    }
+  }
+
+  String _getExtensionFromMimeType(String mimeType) {
+    final mimeMap = {
+      'image/png': '.png',
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+      'application/pdf': '.pdf',
+      'application/zip': '.zip',
+      'application/x-zip-compressed': '.zip',
+      'text/plain': '.txt',
+      'text/html': '.html',
+      'application/json': '.json',
+      'video/mp4': '.mp4',
+      'video/webm': '.webm',
+      'audio/mpeg': '.mp3',
+      'audio/wav': '.wav',
+      'application/octet-stream': '.bin',
+    };
+    return mimeMap[mimeType.toLowerCase()] ?? '.bin';
   }
 
   Future<void> renderAssetAsHtml(
@@ -1798,6 +2047,7 @@ img {
       'refreshPage${tabController.hashCode}',
       const Duration(seconds: 2),
       () async {
+        await EasyLoading.dismiss();
         try {
           final uri = await _getCurrentUriTimeOut();
           logger.i('refreshPage-geturi: $uri');
@@ -1875,5 +2125,9 @@ img {
       logger.i(e.toString(), error: e);
     }
     return false;
+  }
+
+  void _downloadBlob(String base64content, String ext) {
+    logger.d('base64content: $base64content, ext $ext');
   }
 }

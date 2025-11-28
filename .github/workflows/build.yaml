@@ -30,7 +30,7 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
-  FLUTTER_VERSION: "3.38.0"
+  FLUTTER_VERSION: "3.38.3"
 
 jobs:
   get-version:
@@ -248,8 +248,8 @@ jobs:
 
           echo "app=Keychat" >> local.properties
           echo "flutter.minSdkVersion=31" >> local.properties
-          echo "flutter.targetSdkVersion=35" >> local.properties
-          echo "flutter.compileSdkVersion=35" >> local.properties
+          echo "flutter.targetSdkVersion=36" >> local.properties
+          echo "flutter.compileSdkVersion=36" >> local.properties
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |

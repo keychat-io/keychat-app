@@ -313,6 +313,7 @@ class ContactService {
     await database.writeTxn(() async {
       id = await database.contacts.put(contact);
     });
+    logger.d('Saving contact: $contact');
     return id;
   }
 

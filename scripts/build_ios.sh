@@ -1,4 +1,5 @@
 #!/bin/sh
+start_ts=$(date +%s)
 current_path=$(pwd)
 # Script Name: iOS build
 # echo "Update keychat_rust_ffi_plugin start..."
@@ -30,3 +31,7 @@ flutter build ipa --dart-define=dart.vm.product=true --release --analyze-size # 
 ipa="$current_path/packages/app/build/ios/ipa/keychat.ipa"
 xcrun altool --validate-app --type ios -f "$ipa" --apiKey 8Y6J352PMA --apiIssuer 31ce5c4a-e7c2-4a70-9155-51c83b639243
 xcrun -v altool --upload-app --type ios -f "$ipa" --apiKey 8Y6J352PMA --apiIssuer 31ce5c4a-e7c2-4a70-9155-51c83b639243
+
+end_ts=$(date +%s)
+elapsed=$(( end_ts - start_ts ))
+echo "🚀🚀🚀🚀Success: ${elapsed} seconds🚀🚀🚀🚀"

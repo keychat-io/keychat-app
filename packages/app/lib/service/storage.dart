@@ -24,6 +24,7 @@ class StorageKeyString {
   static String relayFileFeeConfig = 'relayFileFeeConfig';
 
   static String tipsAddFriends = 'tipsAddFriends';
+  static String enableDMFromNostrApp = 'enableDMFromNostrApp';
   static String taskCreateIdentity = 'taskCreateAIIdentity';
   static String taskCreateRoom = 'taskCreateRoom';
 
@@ -35,6 +36,8 @@ class StorageKeyString {
       'desktop_browser_sidebar_width';
 
   static const String desktopBrowserTabs = 'desktopBrowserTabs';
+
+  static const String adBlockEnabled = 'adBlockEnabled';
 
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return 'aliceKey:$myPubkey-$bobPubkey';

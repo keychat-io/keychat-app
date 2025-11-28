@@ -5,7 +5,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
-enum TransactionFilter { all, cashu, lightning }
+enum TransactionFilter { all, cashu, lightning, failed }
 
 class TransactionsController extends GetxController {
   RxList<Transaction> transactions = <Transaction>[].obs;
@@ -64,6 +64,8 @@ class TransactionsController extends GetxController {
           offset: BigInt.from(offset),
           limit: BigInt.from(limit),
         );
+      case TransactionFilter.failed:
+        return rust_cashu.getFailedTransactions();
     }
 
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));

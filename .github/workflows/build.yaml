@@ -210,7 +210,7 @@ jobs:
           fastforge package \
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
-            --targets deb,rpm,appimage \
+            --targets deb,rpm \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64.{{ext}}'
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}

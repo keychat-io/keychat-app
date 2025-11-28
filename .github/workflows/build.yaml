@@ -138,7 +138,7 @@ jobs:
           fastforge package \
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
-            --targets deb,rpm \
+            --targets deb,rpm,appimage \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
@@ -155,7 +155,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
   build-linux-aarch64:
     if: ${{ inputs.build_linux_aarch64 }}
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-24.04-arm
     needs: get-version
     steps:
       - name: Checkout

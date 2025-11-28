@@ -59,7 +59,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    if: false
+    # if: false
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -130,7 +130,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: windows-2022
     needs: get-version
     steps:

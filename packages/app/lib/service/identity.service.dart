@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
@@ -15,8 +17,6 @@ import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
@@ -237,24 +237,27 @@ class IdentityService {
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
-        final signalIdPubkey = element.signalIdPubkey;
-        late rust_signal.KeychatIdentityKeyPair keyPair;
-        final chatxService = Get.find<ChatxService>();
-
-        if (signalIdPubkey != null) {
-          keyPair = await chatxService.setupSignalStoreBySignalId(
-            signalIdPubkey,
+        try {
+          final signalIdPubkey = element.signalIdPubkey;
+          rust_signal.KeychatIdentityKeyPair? keyPair;
+          final chatxService = Get.find<ChatxService>();
+          if (signalIdPubkey != null) {
+            keyPair = await chatxService.setupSignalStoreBySignalId(
+              signalIdPubkey,
+            );
+          } else {
+            keyPair = await chatxService.getKeyPairByIdentity(identity);
+          }
+          // delete signal session by remote address
+          await chatxService.deleteSignalSessionKPA(element);
+          // delete signal session by identity id
+          await rust_signal.deleteSessionByDeviceId(
+            keyPair: keyPair,
+            deviceId: id,
           );
-        } else {
-          keyPair = await chatxService.getKeyPairByIdentity(identity);
+        } catch (e, s) {
+          logger.e('delete signal session error: $e', stackTrace: s);
         }
-        // delete signal session by remote address
-        await chatxService.deleteSignalSessionKPA(element);
-        // delete signal session by identity id
-        await rust_signal.deleteSessionByDeviceId(
-          keyPair: keyPair,
-          deviceId: id,
-        );
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await FileService.instance.deleteAllByIdentity(id);
@@ -263,8 +266,8 @@ class IdentityService {
         await SecureStorage.instance.deletePrikey(curve25519PkHex);
       }
     });
-    Get.find<HomeController>().loadRoomList(init: true);
-    NotifyService.instance.syncPubkeysToServer();
+    await Get.find<HomeController>().loadRoomList(init: true);
+    await NotifyService.instance.syncPubkeysToServer();
   }
 
   Future<void> deleteMykey(List<int> ids) async {

@@ -124,18 +124,6 @@ class _BrowserSettingState extends State<BrowserSetting> {
             ),
             SettingsSection(
               tiles: [
-                if (kDebugMode)
-                  SettingsTile.switchTile(
-                    initialValue:
-                        controller.config['adBlockEnabled'] as bool? ?? true,
-                    leading: const Icon(Icons.block),
-                    title: const Text('AdBlock'),
-                    description: const Text('Block ads and trackers by DNS'),
-                    onToggle: (value) async {
-                      await controller.setConfig('adBlockEnabled', value);
-                      EasyLoading.showSuccess('Success');
-                    },
-                  ),
                 SettingsTile.switchTile(
                   initialValue:
                       controller.config['autoSignEvent'] as bool? ?? true,

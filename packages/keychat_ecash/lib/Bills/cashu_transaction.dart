@@ -1,14 +1,15 @@
-import 'package:keychat/page/components.dart';
-import 'package:keychat/rust_api.dart';
-import 'package:keychat/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/status_enum.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class CashuTransactionPage extends StatefulWidget {
@@ -123,21 +124,41 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                   direction: Axis.vertical,
                   spacing: 16,
                   children: [
-                    FilledButton.icon(
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(text: tx.token),
-                        );
-                        EasyLoading.showToast('Copied');
-                      },
-                      style: ButtonStyle(
-                        minimumSize: WidgetStateProperty.all(
-                          Size(maxWidth, 48),
+                    if (tx.status != TransactionStatus.success)
+                      OutlinedButton(
+                        style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all(
+                            Size(maxWidth, 48),
+                          ),
                         ),
+                        onPressed: () async {
+                          try {
+                            await EasyLoading.show(status: 'Checking...');
+                            final checkedTx =
+                                await rust_cashu.checkTransaction(id: tx.id);
+                            setState(() {
+                              tx = checkedTx;
+                            });
+                            EasyLoading.showSuccess('Checked');
+                          } catch (e) {
+                            final msg = Utils.getErrorMessage(e);
+                            await EasyLoading.dismiss();
+                            await Get.dialog<void>(
+                              AlertDialog(
+                                title: const Text('Error'),
+                                content: Text(msg),
+                                actions: [
+                                  TextButton(
+                                    onPressed: Get.back,
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Check Status'),
                       ),
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy Token'),
-                    ),
                     if (tx.status == TransactionStatus.pending)
                       OutlinedButton.icon(
                         icon: const Icon(CupertinoIcons.arrow_down),

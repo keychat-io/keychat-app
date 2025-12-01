@@ -1,16 +1,15 @@
-import 'package:get/get.dart';
-import 'package:keychat/utils.dart';
-
-import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
-import 'package:keychat_ecash/status_enum.dart';
-import 'package:keychat/page/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:get/get.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
+import 'package:keychat_ecash/status_enum.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LightningTransactionPage extends StatefulWidget {
   const LightningTransactionPage({required this.transaction, super.key});
@@ -65,42 +64,6 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
               : 'Send to Lightning Wallet',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-        actions: [
-          if (tx.status != TransactionStatus.success)
-            IconButton(
-              onPressed: () async {
-                try {
-                  EasyLoading.show(status: 'Checking...');
-                  await rust_cashu.checkSinglePending(
-                    txId: tx.id,
-                    mintUrl: tx.mintUrl,
-                  );
-                  final checkedTx =
-                      await rust_cashu.checkTransaction(id: tx.id);
-                  setState(() {
-                    tx = checkedTx;
-                  });
-                  EasyLoading.showSuccess('Checked');
-                } catch (e) {
-                  final msg = Utils.getErrorMessage(e);
-                  await EasyLoading.dismiss();
-                  await Get.dialog<void>(
-                    AlertDialog(
-                      title: const Text('Error'),
-                      content: Text(msg),
-                      actions: [
-                        TextButton(
-                          onPressed: Get.back,
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.refresh),
-            ),
-        ],
       ),
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -164,6 +127,41 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
               direction: Axis.vertical,
               spacing: 16,
               children: [
+                if (tx.status != TransactionStatus.success)
+                  OutlinedButton(
+                    style: ButtonStyle(
+                      minimumSize: WidgetStateProperty.all(
+                        Size(maxWidth, 48),
+                      ),
+                    ),
+                    onPressed: () async {
+                      try {
+                        await EasyLoading.show(status: 'Checking...');
+                        final checkedTx =
+                            await rust_cashu.checkTransaction(id: tx.id);
+                        setState(() {
+                          tx = checkedTx;
+                        });
+                        await EasyLoading.showSuccess('Checked');
+                      } catch (e) {
+                        final msg = Utils.getErrorMessage(e);
+                        await EasyLoading.dismiss();
+                        await Get.dialog<void>(
+                          AlertDialog(
+                            title: const Text('Error'),
+                            content: Text(msg),
+                            actions: [
+                              TextButton(
+                                onPressed: Get.back,
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Check Status'),
+                  ),
                 if (tx.io == TransactionDirection.incoming &&
                     tx.status == TransactionStatus.pending)
                   OutlinedButton(

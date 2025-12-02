@@ -103,9 +103,9 @@ class _WebviewTabState extends State<WebviewTab> {
     initPullToRefreshController();
 
     // Show tooltip after widget is built
-    if (GetPlatform.isMobile && multiWebviewController.showFAB()) {
+    if (GetPlatform.isMobile && multiWebviewController.browserConfig.showFAB) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (multiWebviewController.showMiniAppTooltip.value) {
+        if (multiWebviewController.browserConfig.showMiniAppTooltip) {
           _tooltipKey.currentState?.ensureTooltipVisible();
         }
       });
@@ -144,7 +144,9 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
-          appBar: GetPlatform.isDesktop || !multiWebviewController.showFAB()
+          appBar:
+              GetPlatform.isDesktop ||
+                  !multiWebviewController.browserConfig.showFAB
               ? AppBar(
                   titleSpacing: 0,
                   leadingWidth: 16,
@@ -244,10 +246,14 @@ class _WebviewTabState extends State<WebviewTab> {
                 )
               : null,
           floatingActionButton:
-              GetPlatform.isMobile && multiWebviewController.showFAB()
+              GetPlatform.isMobile &&
+                  multiWebviewController.browserConfig.showFAB
               ? Padding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).size.height / 3,
+                    bottom:
+                        MediaQuery.of(context).size.height *
+                            multiWebviewController.browserConfig.fabHeight -
+                        kToolbarHeight,
                   ),
                   child: Tooltip(
                     key: _tooltipKey,
@@ -263,15 +269,9 @@ class _WebviewTabState extends State<WebviewTab> {
                       fontSize: 14,
                     ),
                     child: GestureDetector(
-                      onTap: () async {
-                        if (multiWebviewController.showMiniAppTooltip.value) {
-                          await multiWebviewController.hideTooltipPermanently();
-                        }
-                      },
                       onLongPress: () async {
-                        if (multiWebviewController.showMiniAppTooltip.value) {
-                          await multiWebviewController.hideTooltipPermanently();
-                        }
+                        await multiWebviewController.browserConfig
+                            .hideTooltipPermanently();
                         await HapticFeedback.mediumImpact();
                         await closeTab();
                       },
@@ -320,7 +320,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 )
               : null,
           floatingActionButtonLocation:
-              multiWebviewController.config['fabPosition'] == 'left'
+              multiWebviewController.browserConfig.fabPosition == 'left'
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
@@ -361,6 +361,9 @@ class _WebviewTabState extends State<WebviewTab> {
       return IconButton(
         tooltip: tooltip,
         onPressed: () async {
+          unawaited(
+            multiWebviewController.browserConfig.hideTooltipPermanently(),
+          );
           await menuOpened();
           await _showMobileBottomSheet();
         },
@@ -1321,8 +1324,7 @@ class _WebviewTabState extends State<WebviewTab> {
         final event = data[1] as Map<String, dynamic>;
 
         // Confirm signing event
-        if (!(multiWebviewController.config['autoSignEvent'] as bool? ??
-            true)) {
+        if (!multiWebviewController.browserConfig.autoSignEvent) {
           try {
             final confirm = await Get.bottomSheet<bool>(
               signEventConfirm(

@@ -125,7 +125,9 @@ class WebsocketService extends GetxService {
     // fix ConcurrentModificationError List.from([list??channels.values])
     await Future.wait(
       (list ?? channels.values).map((rw) async {
-        logger.i('checkOnlineAndConnect: ${rw.relay.url}');
+        logger.i(
+          'checkOnlineAndConnect: ${rw.relay.url}, forceReconnect: $forceReconnect',
+        );
         if (!rw.relay.active) return;
         if (forceReconnect) {
           rw.channel?.close();

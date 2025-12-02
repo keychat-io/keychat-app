@@ -563,11 +563,13 @@ class HomeController extends GetxController
 
     // Start periodic connection check timer (every minute)
     if (GetPlatform.isDesktop) {
-      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 1), (
+      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 2), (
         timer,
       ) {
         if (isConnectedNetwork.value) {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
+          Get.find<WebsocketService>().checkOnlineAndConnect(
+            forceReconnect: true,
+          );
         }
       });
     }

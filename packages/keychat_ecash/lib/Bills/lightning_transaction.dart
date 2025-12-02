@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -22,6 +23,8 @@ class LightningTransactionPage extends StatefulWidget {
 class _CashuTransactionPageState extends State<LightningTransactionPage> {
   late Transaction tx;
   int expiryTs = 0;
+  bool _isChecking = false;
+
   @override
   void initState() {
     tx = widget.transaction;
@@ -134,32 +137,42 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                         Size(maxWidth, 48),
                       ),
                     ),
-                    onPressed: () async {
-                      try {
-                        await EasyLoading.show(status: 'Checking...');
-                        final checkedTx =
-                            await rust_cashu.checkTransaction(id: tx.id);
-                        setState(() {
-                          tx = checkedTx;
-                        });
-                        await EasyLoading.showSuccess('Checked');
-                      } catch (e) {
-                        final msg = Utils.getErrorMessage(e);
-                        await EasyLoading.dismiss();
-                        await Get.dialog<void>(
-                          AlertDialog(
-                            title: const Text('Error'),
-                            content: Text(msg),
-                            actions: [
-                              TextButton(
-                                onPressed: Get.back,
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: _isChecking
+                        ? null
+                        : () async {
+                            if (_isChecking) return;
+                            setState(() {
+                              _isChecking = true;
+                            });
+                            try {
+                              await EasyLoading.show(status: 'Checking...');
+                              final checkedTx =
+                                  await rust_cashu.checkTransaction(id: tx.id);
+                              setState(() {
+                                tx = checkedTx;
+                              });
+                              await EasyLoading.showSuccess('Checked');
+                            } catch (e) {
+                              final msg = Utils.getErrorMessage(e);
+                              await EasyLoading.dismiss();
+                              await Get.dialog<void>(
+                                CupertinoAlertDialog(
+                                  title: const Text('Error'),
+                                  content: Text(msg),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      onPressed: Get.back,
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } finally {
+                              setState(() {
+                                _isChecking = false;
+                              });
+                            }
+                          },
                     child: const Text('Check Status'),
                   ),
                 if (tx.io == TransactionDirection.incoming &&

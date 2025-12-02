@@ -134,9 +134,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
               onTap: () {
                 Get.to(() => LogViewer(path: file.path));
               },
-              onLongPress: () {
-                showClickDialog(file);
-              },
             );
           }
           final isDirectory = stat.type == FileSystemEntityType.directory;
@@ -173,7 +170,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 }
               }
 
-              showClickDialog(file);
+              // showClickDialog(file);
             },
             leading: isDirectory
                 ? SizedBox(

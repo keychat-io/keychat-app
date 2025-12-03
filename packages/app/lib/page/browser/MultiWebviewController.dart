@@ -16,6 +16,7 @@ import 'package:keychat/models/browser/browser_history.dart';
 import 'package:keychat/models/db_provider.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
 import 'package:keychat/page/browser/WebviewTab.dart';
+import 'package:keychat/page/browser/browser_config.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -38,23 +39,25 @@ class MultiWebviewController extends GetxController {
 
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
-  RxString defaultSearchEngineObx = 'google'.obs;
+  RxString defaultSearchEngineObx = 'searXNG'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
   int currentIndex = 0;
 
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
-  RxMap<String, dynamic> config = <String, dynamic>{}.obs;
+
+  /// Browser configuration instance
+  BrowserConfig get browserConfig => BrowserConfig.instance;
+
+  /// Legacy config access (for backward compatibility with Obx)
+  RxMap<String, dynamic> get config => browserConfig.rawConfig;
+
   Map<String, InAppWebViewKeepAlive?> mobileKeepAlive = {};
   Set<String> bottomSafeHosts = {'chachi.chat'};
   late void Function(String url) urlChangeCallBack;
 
   WebViewEnvironment? webViewEnvironment;
-
-  // Add tooltip state
-  final RxBool showMiniAppTooltip = true.obs;
-  static const String _miniAppTooltipKey = 'miniapp_tooltip_shown';
 
   void addNewTab() {
     final uniqueId = generate64RandomHexChars(8);
@@ -276,21 +279,10 @@ class MultiWebviewController extends GetxController {
   }
 
   Future<void> loadConfig() async {
-    var localConfig = Storage.getString(KeychatGlobal.browserConfig);
-    if (localConfig == null) {
-      localConfig = jsonEncode({
-        'enableHistory': true,
-        'enableBookmark': true,
-        'enableRecommend': true,
-        'historyRetentionDays': 30,
-        'autoSignEvent': true,
-        'showFAB': true,
-        'fabPosition': 'right',
-        'adBlockEnabled': true,
-      });
-      await Storage.setString('browserConfig', localConfig);
-    }
-    config.value = jsonDecode(localConfig) as Map<String, dynamic>;
+    await browserConfig.init();
+
+    // sync search engine
+    defaultSearchEngineObx.value = browserConfig.searchEngine;
 
     // text zoom
     final textSize = Storage.getInt(KeychatGlobal.browserTextSize);
@@ -299,15 +291,20 @@ class MultiWebviewController extends GetxController {
     }
   }
 
+  /// Set config value (delegates to BrowserConfig)
   Future<void> setConfig(String key, dynamic value) async {
-    config[key] = value;
-    await Storage.setString('browserConfig', jsonEncode(config));
-    config.refresh();
+    await browserConfig.set(key, value);
+  }
+
+  /// Set search engine and sync reactive variable
+  Future<void> setSearchEngine(String value) async {
+    await browserConfig.setSearchEngine(value);
+    defaultSearchEngineObx.value = value;
   }
 
   BrowserHistory? lastHistory;
   Future<void> addHistory(String url, String title, [String? favicon]) async {
-    if (!(config['enableHistory'] as bool)) return;
+    if (!browserConfig.enableHistory) return;
 
     if (lastHistory != null) {
       if (lastHistory!.url == url) {
@@ -352,19 +349,12 @@ class MultiWebviewController extends GetxController {
       input.value = textController.text.trim();
     });
 
-    // load search engine
-    defaultSearchEngineObx.value =
-        Storage.getString('defaultSearchEngine') ?? defaultSearchEngine;
-
     await loadConfig();
     await loadKeepAlive(isInit: true);
     unawaited(loadFavorite());
     unawaited(initWebview());
     unawaited(deleteOldHistories());
 
-    if (GetPlatform.isMobile) {
-      _loadTooltipPreference();
-    }
     await FileDownloader().trackTasks();
     FileDownloader().configureNotification(
       running: const TaskNotification('Downloading', 'file: {filename}'),
@@ -380,20 +370,10 @@ class MultiWebviewController extends GetxController {
     super.onInit();
   }
 
-  void _loadTooltipPreference() {
-    final shown = Storage.getBool(_miniAppTooltipKey) ?? false;
-    showMiniAppTooltip.value = !shown;
-  }
-
-  Future<void> hideTooltipPermanently() async {
-    await Storage.setBool(_miniAppTooltipKey, true);
-    showMiniAppTooltip.value = false;
-  }
-
   Future<void> deleteOldHistories() async {
-    if (!(config['enableHistory'] as bool)) return;
+    if (!browserConfig.enableHistory) return;
 
-    final retentionDays = config['historyRetentionDays'] as int? ?? 30;
+    final retentionDays = browserConfig.historyRetentionDays;
     final thresholdDate = DateTime.now().subtract(
       Duration(days: retentionDays),
     );
@@ -744,12 +724,6 @@ window.addEventListener('DOMContentLoaded', function(event) {
       // logger.w('error: $e');
     }
   }
-
-  bool showFAB() {
-    return config['showFAB'] as bool? ?? true;
-  }
 }
-
-const String defaultSearchEngine = 'searXNG';
 
 enum BrowserEngine { google, brave, searXNG, startpage }

@@ -207,35 +207,6 @@ class ChatxService extends GetxService {
     return null;
   }
 
-  Future<KeychatProtocolAddress> getRoomKPAOrFailed(Room room) async {
-    if (room.curve25519PkHex == null) {
-      throw Exception('curve25519PkHex_is_null');
-    }
-    final key = '${room.identityId}:${room.curve25519PkHex}';
-    if (roomKPA[key] != null) {
-      return roomKPA[key]!;
-    }
-
-    final remoteAddress = KeychatProtocolAddress(
-      name: room.curve25519PkHex!,
-      deviceId: room.identityId,
-    );
-    final keyPair = await _initRoomSignalStore(room);
-    if (keyPair == null) {
-      throw Exception('keyPair_is_null');
-    }
-    final contains = await rust_signal.containsSession(
-      keyPair: keyPair,
-      address: remoteAddress,
-    );
-
-    if (contains) {
-      roomKPA[key] = remoteAddress;
-      return remoteAddress;
-    }
-    throw Exception('signal_session_is_null');
-  }
-
   Future<KeychatProtocolAddress?> getSignalSession({
     required int sharedSignalRoomId,
     required String toCurve25519PkHex,

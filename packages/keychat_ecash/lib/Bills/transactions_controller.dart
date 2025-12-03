@@ -65,12 +65,14 @@ class TransactionsController extends GetxController {
           limit: BigInt.from(limit),
         );
       case TransactionFilter.failed:
-        return rust_cashu.getFailedTransactions();
+        list = await rust_cashu.getFailedTransactions();
     }
 
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    final res = offset == 0 ? <Transaction>[] : transactions.toList()
+    final res = (currentFilter.value == TransactionFilter.failed || offset == 0)
+        ? <Transaction>[]
+        : transactions.toList()
       ..addAll(list);
     transactions.value = res;
     transactions.refresh();

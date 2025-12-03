@@ -41,49 +41,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       appBar: AppBar(
         centerTitle: true,
         title: Obx(() => Text(controller.identity.value.displayName)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () async {
-              await showModalBottomSheet<void>(
-                context: context,
-                builder: (context) {
-                  return SafeArea(
-                    child: Column(
-                      children: <Widget>[
-                        const SizedBox(height: 30),
-                        ListTile(
-                          leading: const Icon(Icons.copy),
-                          title: const Text('Copy Public Key'),
-                          onTap: () async {
-                            await Clipboard.setData(
-                              ClipboardData(
-                                text: controller.identity.value.secp256k1PKHex,
-                              ),
-                            );
-                            await EasyLoading.showSuccess('Public Key Copied');
-                            Get.back<void>();
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.delete, color: Colors.red),
-                          title: const Text(
-                            'Delete ID',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          onTap: () {
-                            Get.back<void>();
-                            dialogToDeleteId();
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -545,6 +502,19 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           ),
                       ],
                     ),
+
+                  SettingsSection(
+                    title: const Text('Danger Zone'),
+                    tiles: [
+                      SettingsTile.navigation(
+                        leading: const Icon(Icons.delete, color: Colors.red),
+                        title: const Text('Delete ID'),
+                        onPressed: (context) {
+                          dialogToDeleteId();
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -762,7 +732,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 await IdentityService.instance.delete(
                   controller.identity.value,
                 );
-                hc.loadRoomList(init: true);
+                await hc.loadRoomList(init: true);
 
                 EasyLoading.showSuccess('ID deleted');
                 if (Get.isDialogOpen ?? false) {

@@ -103,9 +103,9 @@ class _WebviewTabState extends State<WebviewTab> {
     initPullToRefreshController();
 
     // Show tooltip after widget is built
-    if (GetPlatform.isMobile && multiWebviewController.showFAB()) {
+    if (GetPlatform.isMobile && multiWebviewController.browserConfig.showFAB) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (multiWebviewController.showMiniAppTooltip.value) {
+        if (multiWebviewController.browserConfig.showMiniAppTooltip) {
           _tooltipKey.currentState?.ensureTooltipVisible();
         }
       });
@@ -144,7 +144,9 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
-          appBar: GetPlatform.isDesktop || !multiWebviewController.showFAB()
+          appBar:
+              GetPlatform.isDesktop ||
+                  !multiWebviewController.browserConfig.showFAB
               ? AppBar(
                   titleSpacing: 0,
                   leadingWidth: 16,
@@ -244,10 +246,14 @@ class _WebviewTabState extends State<WebviewTab> {
                 )
               : null,
           floatingActionButton:
-              GetPlatform.isMobile && multiWebviewController.showFAB()
+              GetPlatform.isMobile &&
+                  multiWebviewController.browserConfig.showFAB
               ? Padding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).size.height / 3,
+                    bottom:
+                        MediaQuery.of(context).size.height *
+                            multiWebviewController.browserConfig.fabHeight -
+                        kToolbarHeight,
                   ),
                   child: Tooltip(
                     key: _tooltipKey,
@@ -263,15 +269,9 @@ class _WebviewTabState extends State<WebviewTab> {
                       fontSize: 14,
                     ),
                     child: GestureDetector(
-                      onTap: () async {
-                        if (multiWebviewController.showMiniAppTooltip.value) {
-                          await multiWebviewController.hideTooltipPermanently();
-                        }
-                      },
                       onLongPress: () async {
-                        if (multiWebviewController.showMiniAppTooltip.value) {
-                          await multiWebviewController.hideTooltipPermanently();
-                        }
+                        await multiWebviewController.browserConfig
+                            .hideTooltipPermanently();
                         await HapticFeedback.mediumImpact();
                         await closeTab();
                       },
@@ -320,7 +320,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 )
               : null,
           floatingActionButtonLocation:
-              multiWebviewController.config['fabPosition'] == 'left'
+              multiWebviewController.browserConfig.fabPosition == 'left'
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
@@ -356,6 +356,22 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Widget popMenu({required Widget child, String? tooltip}) {
+    // Mobile: use bottomSheet
+    if (GetPlatform.isMobile) {
+      return IconButton(
+        tooltip: tooltip,
+        onPressed: () async {
+          unawaited(
+            multiWebviewController.browserConfig.hideTooltipPermanently(),
+          );
+          await menuOpened();
+          await _showMobileBottomSheet();
+        },
+        icon: child,
+      );
+    }
+
+    // Desktop: use MenuAnchor
     return MenuAnchor(
       controller: _menuController,
       alignmentOffset: const Offset(0, 8),
@@ -365,7 +381,7 @@ class _WebviewTabState extends State<WebviewTab> {
           Theme.of(context).colorScheme.surface,
         ),
       ),
-      menuChildren: _buildMenuItems(),
+      menuChildren: _buildDesktopMenuItems(),
       onOpen: () async {
         await menuOpened();
       },
@@ -389,29 +405,56 @@ class _WebviewTabState extends State<WebviewTab> {
     );
   }
 
-  List<Widget> _buildMenuItems() {
-    return [
-      MenuItemButton(
-        onPressed: () => _handleMenuSelection('tools'),
-        child: getPopTools(),
+  Future<void> _showMobileBottomSheet() async {
+    await Get.bottomSheet<void>(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      if (GetPlatform.isMobile)
-        MenuItemButton(
-          onPressed: () => _handleMenuSelection('refresh'),
-          child: Row(
-            spacing: 16,
-            children: [
-              Icon(
-                Icons.refresh,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+      Scaffold(
+        body: SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Tools section
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: getPopTools(isBottomSheet: true),
+                  ),
+                  const Divider(height: 1),
+                  // Menu items
+                  ..._buildMobileMenuItems(),
+                  const SizedBox(height: 16),
+                ],
               ),
-              Text(
-                'Refresh',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDesktopMenuItems() {
+    return [
+      SizedBox(
+        width: 280,
+        child: getPopTools(),
+      ),
       MenuItemButton(
         onPressed: () => _handleMenuSelection('bookmark'),
         child: Row(
@@ -485,38 +528,7 @@ class _WebviewTabState extends State<WebviewTab> {
           ],
         ),
       ),
-      MenuItemButton(
-        onPressed: () => _handleMenuSelection('share'),
-        child: Row(
-          spacing: 16,
-          children: [
-            Icon(
-              CupertinoIcons.share,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-            Text(
-              'Share',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ],
-        ),
-      ),
-      MenuItemButton(
-        onPressed: () => _handleMenuSelection('downloads'),
-        child: Row(
-          spacing: 16,
-          children: [
-            Icon(
-              Icons.file_download,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-            Text(
-              'Downloads',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ],
-        ),
-      ),
+
       MenuItemButton(
         onPressed: () => _handleMenuSelection('zoom'),
         child: Row(
@@ -533,7 +545,6 @@ class _WebviewTabState extends State<WebviewTab> {
           ],
         ),
       ),
-      if (GetPlatform.isMobile) _buildKeepAliveMenuItem(),
       if (tabController.browserConnect.value.host == '')
         MenuItemButton(
           onPressed: () => _handleMenuSelection('clear'),
@@ -569,74 +580,113 @@ class _WebviewTabState extends State<WebviewTab> {
             ],
           ),
         ),
-      if (GetPlatform.isMobile)
-        MenuItemButton(
-          onPressed: () => _handleMenuSelection('close'),
-          child: Row(
-            spacing: 12,
-            children: [
-              Icon(
-                Icons.exit_to_app,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-              Text(
-                'Close',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
-          ),
-        ),
     ];
   }
 
-  Widget _buildKeepAliveMenuItem() {
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: Row(
-        children: [
-          Transform.scale(
-            scale: 0.6,
-            child: FutureBuilder(
-              future: (() async {
-                await multiWebviewController.loadKeepAlive();
-              })(),
+  List<Widget> _buildMobileMenuItems() {
+    return [
+      _buildMobileMenuItem(
+        icon: CupertinoIcons.bookmark,
+        activeIcon: CupertinoIcons.bookmark_fill,
+        label: 'Bookmark',
+        onTap: () => _handleMobileMenuSelection('bookmark'),
+        checkActive: () async {
+          final url = await tabController.inAppWebViewController?.getUrl();
+          if (url == null) return false;
+          final exist = await DBProvider.database.browserBookmarks
+              .filter()
+              .urlEqualTo(url.toString())
+              .findFirst();
+          return exist != null;
+        },
+      ),
+      _buildMobileMenuItem(
+        icon: Icons.add_circle_outline,
+        label: 'Add to Favorites',
+        onTap: () => _handleMobileMenuSelection('favorite'),
+      ),
+      _buildMobileMenuItem(
+        icon: CupertinoIcons.chat_bubble,
+        label: 'Share to Room',
+        onTap: () => _handleMobileMenuSelection('shareToRooms'),
+      ),
+      _buildMobileMenuItem(
+        icon: CupertinoIcons.zoom_in,
+        label: 'Zoom Text',
+        onTap: () => _handleMobileMenuSelection('zoom'),
+      ),
+      _buildKeepAliveMenuItemMobile(),
+      _buildMobileMenuItem(
+        icon: Icons.storage,
+        label: 'ID Logout',
+        onTap: () => _handleMobileMenuSelection('clear'),
+      ),
+    ];
+  }
+
+  Widget _buildMobileMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    IconData? activeIcon,
+    Future<bool> Function()? checkActive,
+  }) {
+    return ListTile(
+      leading: checkActive != null
+          ? FutureBuilder<bool>(
+              future: checkActive(),
               builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Icon(
-                    Icons.check_circle,
-                    color: Theme.of(context).primaryColor,
-                  );
+                if ((snapshot.data ?? false) && activeIcon != null) {
+                  return Icon(activeIcon, color: Colors.orange);
                 }
-                return Switch(
-                  value: multiWebviewController.mobileKeepAlive.keys.contains(
-                    initDomain,
-                  ),
-                  onChanged: (value) async {
-                    _menuController.close();
-                    if (value) {
-                      await multiWebviewController.enableKeepAlive(initDomain);
-                      EasyLoading.showSuccess(
-                        'KeepAlive Enabled. Take effect after restarting the page.',
-                      );
-                      return;
-                    }
-                    await multiWebviewController.disableKeepAlive(initDomain);
-                    EasyLoading.showSuccess(
-                      'KeepAlive Disabled.',
-                    );
-                  },
+                return Icon(icon);
+              },
+            )
+          : Icon(icon),
+      title: Text(label),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildKeepAliveMenuItemMobile() {
+    return ListTile(
+      leading: const Icon(Icons.autorenew),
+      title: const Text('Keep Alive'),
+      trailing: Transform.scale(
+        scale: 0.8,
+        child: FutureBuilder(
+          future: (() async {
+            await multiWebviewController.loadKeepAlive();
+          })(),
+          builder: (context, snapshot) {
+            return Switch(
+              value: multiWebviewController.mobileKeepAlive.keys.contains(
+                initDomain,
+              ),
+              onChanged: (value) async {
+                Get.back<void>();
+                if (value) {
+                  await multiWebviewController.enableKeepAlive(initDomain);
+                  EasyLoading.showSuccess(
+                    'KeepAlive Enabled. Take effect after restarting the page.',
+                  );
+                  return;
+                }
+                await multiWebviewController.disableKeepAlive(initDomain);
+                EasyLoading.showSuccess(
+                  'KeepAlive Disabled.',
                 );
               },
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Keep Alive',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
+  }
+
+  Future<void> _handleMobileMenuSelection(String value) async {
+    Get.back<void>();
+    await popupMenuSelected(value);
   }
 
   Future<void> _handleMenuSelection(String value) async {
@@ -1101,34 +1151,117 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
-  Widget getPopTools() {
+  Widget getPopTools({bool isBottomSheet = false}) {
+    void closeMenu() {
+      if (isBottomSheet) {
+        Get.back<void>();
+      } else {
+        _menuController.close();
+      }
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      constraints: const BoxConstraints(maxWidth: 200),
-      child: Row(
-        spacing: 4,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      constraints: BoxConstraints(
+        maxWidth: isBottomSheet ? double.infinity : 280,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Text(
-              lastViewUri?.toString() ?? tabController.url.value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
+          Text(
+            lastViewUri?.toString() ?? tabController.url.value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildToolButton(
+                icon: Icons.refresh,
+                label: 'Refresh',
+                color: Colors.blue,
+                onPressed: () async {
+                  closeMenu();
+                  await refreshPage();
+                },
+              ),
+              _buildToolButton(
+                icon: Icons.copy,
+                label: 'Copy',
+                color: Colors.green,
+                onPressed: () async {
+                  final uri = await getCurrentUrl();
+                  await Clipboard.setData(ClipboardData(text: uri.toString()));
+                  await EasyLoading.showToast('URL Copied');
+                },
+              ),
+              _buildToolButton(
+                icon: Icons.share,
+                label: 'Share',
+                color: Colors.orange,
+                onPressed: () async {
+                  closeMenu();
+                  final uri = await getCurrentUrl();
+                  await SharePlus.instance.share(ShareParams(uri: uri));
+                },
+              ),
+              _buildToolButton(
+                icon: Icons.file_download,
+                label: 'Download',
+                color: Colors.purple,
+                onPressed: () async {
+                  closeMenu();
+                  await Get.to<void>(() => const DownloadManagerPage());
+                },
+              ),
+              if (GetPlatform.isMobile)
+                _buildToolButton(
+                  icon: Icons.exit_to_app,
+                  label: 'Exit',
+                  color: Colors.redAccent,
+                  onPressed: () async {
+                    await _handleMobileMenuSelection('close');
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: color,
             ),
           ),
-          IconButton(
-            icon: Icon(
-              Icons.copy,
-              size: 16,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
             ),
-            padding: EdgeInsets.zero,
-            onPressed: () async {
-              final uri = await getCurrentUrl();
-              await Clipboard.setData(ClipboardData(text: uri.toString()));
-              await EasyLoading.showToast('URL Copied');
-            },
           ),
         ],
       ),
@@ -1191,8 +1324,7 @@ class _WebviewTabState extends State<WebviewTab> {
         final event = data[1] as Map<String, dynamic>;
 
         // Confirm signing event
-        if (!(multiWebviewController.config['autoSignEvent'] as bool? ??
-            true)) {
+        if (!multiWebviewController.browserConfig.autoSignEvent) {
           try {
             final confirm = await Get.bottomSheet<bool>(
               signEventConfirm(

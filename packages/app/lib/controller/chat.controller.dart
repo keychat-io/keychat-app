@@ -653,6 +653,7 @@ class ChatController extends GetxController {
       roomContact.refresh();
     }
     roomObs(newRoom);
+    roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();

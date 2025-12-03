@@ -1,17 +1,16 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/page/browser/SelectIdentityForward.dart';
+import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:keychat/models/models.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:share_plus/share_plus.dart';
 
@@ -248,10 +247,13 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         return;
       }
 
-      final rooms = await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+      final exitRoom = await RoomService.instance.getRoomByIdentity(
+        hexPubkey,
+        selectedIdentity.id,
+      );
 
       // not exist rooms
-      if (rooms.isEmpty) {
+      if (exitRoom == null) {
         await RoomService.instance.createRoomAndsendInvite(
           input,
           greeting: _helloController.text.trim(),
@@ -260,29 +262,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         return;
       }
 
-      // found a room
-      if (rooms.length == 1) {
-        return Utils.offAndToNamedRoom(rooms[0]);
-      }
-
-      // found multiple rooms, dialog to select room
-      await Get.dialog(
-        SimpleDialog(
-          title: const Text('Multi Rooms Found'),
-          children: rooms.map((room) {
-            return ListTile(
-              title: Text(room.getRoomName()),
-              subtitle: Text(
-                homeController.allIdentities[room.identityId]?.name ?? '',
-              ),
-              onTap: () {
-                Get.back<void>();
-                Utils.offAndToNamedRoom(room);
-              },
-            );
-          }).toList(),
-        ),
-      );
+      return Utils.offAndToNamedRoom(exitRoom);
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, stackTrace: s);

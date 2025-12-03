@@ -104,12 +104,18 @@ class HomeController extends GetxController
       selectedTabIndex = res;
       return;
     }
-    // use the last opened tab
+    //  defaultSelectedTab == -1, then use the last opened tab
     final res2 = Storage.getInt(StorageKeyString.selectedTabIndex);
     if (res2 != null) {
       selectedTabIndex = res2;
+      // ecash tab only show on the desktop version
+      if (selectedTabIndex >= 3) {
+        selectedTabIndex = 0;
+      }
       return;
     }
+
+    // first time open app
     if (GetPlatform.isMobile) {
       selectedTabIndex = KeychatGlobal.defaultOpenTabIndex;
     } else {
@@ -322,9 +328,10 @@ class HomeController extends GetxController
     return null;
   }
 
-  void initTabController([int initialIndex = 0]) {
+  void initTabController([int index = 0]) {
     tabController.dispose();
-    if (initialIndex >= chatIdentities.length) {
+    var initialIndex = index;
+    if (initialIndex > tabBodyDatas.length) {
       initialIndex = 0;
     }
     tabController = TabController(
@@ -523,8 +530,8 @@ class HomeController extends GetxController
     cupertinoTabController = CupertinoTabController(
       initialIndex: selectedTabIndex,
     );
-    cupertinoTabController.addListener(() {
-      setSelectedTab(cupertinoTabController.index);
+    cupertinoTabController.addListener(() async {
+      await setSelectedTab(cupertinoTabController.index);
     });
     super.onInit();
 
@@ -556,11 +563,13 @@ class HomeController extends GetxController
 
     // Start periodic connection check timer (every minute)
     if (GetPlatform.isDesktop) {
-      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 1), (
+      _connectionCheckTimer = Timer.periodic(const Duration(minutes: 2), (
         timer,
       ) {
         if (isConnectedNetwork.value) {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
+          Get.find<WebsocketService>().checkOnlineAndConnect(
+            forceReconnect: true,
+          );
         }
       });
     }

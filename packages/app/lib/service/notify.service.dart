@@ -1,3 +1,5 @@
+// ignore_for_file: unreachable_from_main
+
 import 'dart:async' show TimeoutException;
 
 import 'package:dio/dio.dart' show Dio, DioException;
@@ -411,6 +413,7 @@ class NotifyService {
   // Handle message when app is in background or terminated
   // Open chat room if the message contains a pubkey
   Future<void> handleMessage(RemoteMessage message) async {
+    logger.i('RemoteMessage: ${message.data}');
     if (message.data.isEmpty) return;
     if (message.data['pubkey'] != null) {
       final pubkey = message.data['pubkey'] as String;

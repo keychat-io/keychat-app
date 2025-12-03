@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/status_enum.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -151,6 +152,10 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                               setState(() {
                                 tx = checkedTx;
                               });
+                              if (checkedTx.status ==
+                                  TransactionStatus.success) {
+                                Get.find<EcashController>().getBalance();
+                              }
                               await EasyLoading.showSuccess('Checked');
                             } catch (e) {
                               final msg = Utils.getErrorMessage(e);

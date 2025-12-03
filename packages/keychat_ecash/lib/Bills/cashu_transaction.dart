@@ -147,6 +147,10 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                                   setState(() {
                                     tx = checkedTx;
                                   });
+                                  if (checkedTx.status ==
+                                      TransactionStatus.success) {
+                                    Get.find<EcashController>().getBalance();
+                                  }
                                   EasyLoading.showSuccess('Checked');
                                 } catch (e) {
                                   final msg = Utils.getErrorMessage(e);

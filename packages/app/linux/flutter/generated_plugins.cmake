@@ -7,9 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_linux
   flutter_secure_storage_linux
   gtk
-  irondash_engine_context
   isar_community_flutter_libs
-  super_native_extensions
   url_launcher_linux
 )
 

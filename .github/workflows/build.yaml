@@ -151,15 +151,10 @@ jobs:
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
       - name: GPG Sign
         run: |
-          for file in ./dist/*.{deb,rpm,AppImage}; do
-            if [ -f "$file" ]; then
-              gpg --batch --yes --pinentry-mode loopback \
-                --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-                --detach-sign --armor "$file"
-              echo "Signed: $file"
-            fi
-          done
-          ls -la ./dist/
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "deb rpm AppImage"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -168,10 +163,8 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
-          gpg --batch --yes --delete-secret-keys "${{ steps.import_gpg.outputs.fingerprint }}"
-          gpg --batch --yes --delete-keys "${{ steps.import_gpg.outputs.fingerprint }}"
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
   build-linux-aarch64:
     if: ${{ inputs.build_linux_aarch64 }}
     runs-on: ubuntu-24.04-arm
@@ -182,6 +175,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -215,13 +214,13 @@ jobs:
         run: echo "$ENV_KEY" | base64 --decode > .env
         env:
           ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
-      - name: Install appimage
-        run: |
-          sudo apt install locate
-          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
-          chmod +x appimagetool
-          mv appimagetool /usr/local/bin/
-          ldd --version
+      # - name: Install appimage
+      #   run: |
+      #     sudo apt install locate
+      #     wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
+      #     chmod +x appimagetool
+      #     mv appimagetool /usr/local/bin/
+      #     ldd --version
       - name: Build-Linux-APP
         working-directory: ./packages/app/
         run: |
@@ -234,6 +233,12 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: GPG Sign
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "deb rpm"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -242,8 +247,8 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-windows-x86_64:
     if: ${{ inputs.build_windows_x86_64 }}
@@ -255,6 +260,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -284,18 +295,36 @@ jobs:
         working-directory: ./packages/app/
         run: |
           fastforge package --platform windows --targets exe --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64-setup.{{ext}}'
+      - name: GPG Sign
+        shell: bash
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "exe"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: artifact-windows-x86
           path: ./dist
           overwrite: true
+      - name: Clean up
+        shell: bash
+        run: |
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-android:
     if: ${{ inputs.build_android }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
@@ -374,6 +403,12 @@ jobs:
           mkdir -p ../../dist
           find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
           rm -rf build/
+      - name: GPG Sign
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "apk"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -382,11 +417,10 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
           rm -f android/app/keystore.jks
           rm -f android/key.properties
-          rm -f .env
   build-macos:
     if: ${{ inputs.build_macos }}
     runs-on: macos-latest

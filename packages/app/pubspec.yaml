@@ -65,7 +65,11 @@ dependencies:
   avatar_plus: ^0.0.5
   intl: ^0.20.2
   firebase_core: ^4.2.1
-  firebase_messaging: ^16.0.4
+  firebase_messaging:
+    git:
+      url: https://github.com/firebase/flutterfire.git
+      ref: messaging_17859
+      path: packages/firebase_messaging/firebase_messaging
   async_queue: ^2.0.2
   url_launcher: ^6.3.2
   flutter_inappwebview: ^6.2.0-beta.2

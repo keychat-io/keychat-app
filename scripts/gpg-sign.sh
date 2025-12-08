@@ -5,8 +5,6 @@
 # Example: ./gpg-sign.sh ./dist "exe"
 # Example: ./gpg-sign.sh ./dist "apk"
 
-set -e
-
 DIST_DIR="${1:-./dist}"
 EXTENSIONS="${2:-deb rpm AppImage}"
 
@@ -16,21 +14,33 @@ if [ -z "$GPG_PASSPHRASE" ]; then
 fi
 
 echo "Signing files in $DIST_DIR with extensions: $EXTENSIONS"
+echo "Files in dist directory:"
+ls -la "$DIST_DIR"/ || echo "Directory not found or empty"
+
+SIGNED_COUNT=0
 
 for ext in $EXTENSIONS; do
-    for file in "$DIST_DIR"/*."$ext"; do
+    echo "Looking for *.$ext files..."
+    # Use find to avoid glob issues when no files match
+    while IFS= read -r -d '' file; do
         if [ -f "$file" ]; then
             echo "Signing: $file"
-            gpg --batch --yes --pinentry-mode loopback \
+            if gpg --batch --yes --pinentry-mode loopback \
                 --passphrase "$GPG_PASSPHRASE" \
-                --detach-sign --armor "$file"
-            echo "Created: ${file}.asc"
+                --detach-sign --armor "$file"; then
+                echo "Created: ${file}.asc"
+                SIGNED_COUNT=$((SIGNED_COUNT + 1))
+            else
+                echo "Warning: Failed to sign $file"
+            fi
         fi
-    done
+    done < <(find "$DIST_DIR" -maxdepth 1 -name "*.$ext" -print0 2>/dev/null)
 done
 
 echo ""
-echo "Signed files:"
+echo "Total files signed: $SIGNED_COUNT"
+echo ""
+echo "Signed files (.asc):"
 ls -la "$DIST_DIR"/*.asc 2>/dev/null || echo "No .asc files found"
 echo ""
 echo "All files in $DIST_DIR:"

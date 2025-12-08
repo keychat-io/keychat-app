@@ -82,7 +82,7 @@ dependencies:
   path: ^1.9.0
   sidebarx: ^0.17.2
   background_downloader: ^9.4.0
-  # super_clipboard: ^0.9.1
+  super_clipboard: ^0.9.1
   responsive_grid_list: ^1.4.1
   mime: ^2.0.0
   app_links: ^7.0.0

@@ -35,7 +35,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'package:super_clipboard/super_clipboard.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 const int maxMessageId = 999999999999;
 
@@ -1031,112 +1031,111 @@ class ChatController extends GetxController {
   }
 
   Future<bool> handlePasteboardFile() async {
+    // Clipboard API is not supported on this platform.
+    if (SystemClipboard.instance == null) return false;
+    final reader = await SystemClipboard.instance!.read();
+    if (reader.items.isEmpty) {
+      return false;
+    }
+
+    final fileFormats = [
+      (Formats.gif, MessageMediaType.image),
+      (Formats.png, MessageMediaType.image),
+      (Formats.jpeg, MessageMediaType.image),
+      (Formats.webp, MessageMediaType.image),
+      (Formats.svg, MessageMediaType.image),
+      (Formats.tiff, MessageMediaType.image),
+      (Formats.bmp, MessageMediaType.image),
+      (Formats.ico, MessageMediaType.image),
+      (Formats.heic, MessageMediaType.image),
+      (Formats.heif, MessageMediaType.image),
+      (Formats.mp4, MessageMediaType.video),
+      (Formats.pdf, MessageMediaType.file),
+      (Formats.mov, MessageMediaType.video),
+      (Formats.m4v, MessageMediaType.video),
+      (Formats.avi, MessageMediaType.video),
+      (Formats.mpeg, MessageMediaType.video),
+      (Formats.webm, MessageMediaType.video),
+      (Formats.ogg, MessageMediaType.video),
+      (Formats.wmv, MessageMediaType.video),
+      (Formats.flv, MessageMediaType.video),
+      (Formats.mkv, MessageMediaType.video),
+      (Formats.mp3, MessageMediaType.file),
+      (Formats.oga, MessageMediaType.file),
+      (Formats.aac, MessageMediaType.file),
+      (Formats.wav, MessageMediaType.file),
+      (Formats.doc, MessageMediaType.file),
+      (Formats.docx, MessageMediaType.file),
+      (Formats.csv, MessageMediaType.file),
+      (Formats.xls, MessageMediaType.file),
+      (Formats.xlsx, MessageMediaType.file),
+      (Formats.ppt, MessageMediaType.file),
+      (Formats.pptx, MessageMediaType.file),
+      (Formats.json, MessageMediaType.file),
+      (Formats.zip, MessageMediaType.file),
+      (Formats.tar, MessageMediaType.file),
+      (Formats.gzip, MessageMediaType.file),
+      (Formats.bzip2, MessageMediaType.file),
+      (Formats.rar, MessageMediaType.file),
+      (Formats.dmg, MessageMediaType.file),
+      (Formats.iso, MessageMediaType.file),
+      (Formats.deb, MessageMediaType.file),
+      (Formats.rpm, MessageMediaType.file),
+      (Formats.apk, MessageMediaType.file),
+      (Formats.exe, MessageMediaType.file),
+      (Formats.msi, MessageMediaType.file),
+      (Formats.plainTextFile, MessageMediaType.file),
+      (Formats.htmlFile, MessageMediaType.file),
+      (Formats.webUnknown, MessageMediaType.file),
+    ];
+    if (reader.canProvide(Formats.fileUri)) {
+      for (var i = 0; i < fileFormats.length; i++) {
+        final format = fileFormats[i].$1;
+        final mediaType = fileFormats[i].$2;
+        final canProcess = reader.canProvide(format);
+        if (canProcess) {
+          logger.d('Clipboard can provide: $format, $mediaType');
+          await _readFromStream(
+            reader,
+            format,
+            mediaType,
+            mediaType == MessageMediaType.video,
+          );
+          return true;
+        }
+      }
+    }
+
+    // _pasteFallinImage
+    for (final format in fileFormats) {
+      // skip plain text
+      if (format.$1 == Formats.plainTextFile) continue;
+      if (format.$1 == Formats.htmlFile) continue;
+      final canProcess = reader.canProvide(format.$1);
+      if (canProcess) {
+        logger.d('_pasteFallinImage Clipboard can provide: $format');
+        await _readFromStream(reader, format.$1, format.$2, false);
+        return true;
+      }
+    }
     return false;
-    // // Clipboard API is not supported on this platform.
-    // if (SystemClipboard.instance == null) return false;
-    // final reader = await SystemClipboard.instance!.read();
-    // if (reader.items.isEmpty) {
-    //   return false;
-    // }
-
-    // final fileFormats = [
-    //   (Formats.gif, MessageMediaType.image),
-    //   (Formats.png, MessageMediaType.image),
-    //   (Formats.jpeg, MessageMediaType.image),
-    //   (Formats.webp, MessageMediaType.image),
-    //   (Formats.svg, MessageMediaType.image),
-    //   (Formats.tiff, MessageMediaType.image),
-    //   (Formats.bmp, MessageMediaType.image),
-    //   (Formats.ico, MessageMediaType.image),
-    //   (Formats.heic, MessageMediaType.image),
-    //   (Formats.heif, MessageMediaType.image),
-    //   (Formats.mp4, MessageMediaType.video),
-    //   (Formats.pdf, MessageMediaType.file),
-    //   (Formats.mov, MessageMediaType.video),
-    //   (Formats.m4v, MessageMediaType.video),
-    //   (Formats.avi, MessageMediaType.video),
-    //   (Formats.mpeg, MessageMediaType.video),
-    //   (Formats.webm, MessageMediaType.video),
-    //   (Formats.ogg, MessageMediaType.video),
-    //   (Formats.wmv, MessageMediaType.video),
-    //   (Formats.flv, MessageMediaType.video),
-    //   (Formats.mkv, MessageMediaType.video),
-    //   (Formats.mp3, MessageMediaType.file),
-    //   (Formats.oga, MessageMediaType.file),
-    //   (Formats.aac, MessageMediaType.file),
-    //   (Formats.wav, MessageMediaType.file),
-    //   (Formats.doc, MessageMediaType.file),
-    //   (Formats.docx, MessageMediaType.file),
-    //   (Formats.csv, MessageMediaType.file),
-    //   (Formats.xls, MessageMediaType.file),
-    //   (Formats.xlsx, MessageMediaType.file),
-    //   (Formats.ppt, MessageMediaType.file),
-    //   (Formats.pptx, MessageMediaType.file),
-    //   (Formats.json, MessageMediaType.file),
-    //   (Formats.zip, MessageMediaType.file),
-    //   (Formats.tar, MessageMediaType.file),
-    //   (Formats.gzip, MessageMediaType.file),
-    //   (Formats.bzip2, MessageMediaType.file),
-    //   (Formats.rar, MessageMediaType.file),
-    //   (Formats.dmg, MessageMediaType.file),
-    //   (Formats.iso, MessageMediaType.file),
-    //   (Formats.deb, MessageMediaType.file),
-    //   (Formats.rpm, MessageMediaType.file),
-    //   (Formats.apk, MessageMediaType.file),
-    //   (Formats.exe, MessageMediaType.file),
-    //   (Formats.msi, MessageMediaType.file),
-    //   (Formats.plainTextFile, MessageMediaType.file),
-    //   (Formats.htmlFile, MessageMediaType.file),
-    //   (Formats.webUnknown, MessageMediaType.file),
-    // ];
-    // if (reader.canProvide(Formats.fileUri)) {
-    //   for (var i = 0; i < fileFormats.length; i++) {
-    //     final format = fileFormats[i].$1;
-    //     final mediaType = fileFormats[i].$2;
-    //     final canProcess = reader.canProvide(format);
-    //     if (canProcess) {
-    //       logger.d('Clipboard can provide: $format, $mediaType');
-    //       await _readFromStream(
-    //         reader,
-    //         format,
-    //         mediaType,
-    //         mediaType == MessageMediaType.video,
-    //       );
-    //       return true;
-    //     }
-    //   }
-    // }
-
-    // // _pasteFallinImage
-    // for (final format in fileFormats) {
-    //   // skip plain text
-    //   if (format.$1 == Formats.plainTextFile) continue;
-    //   if (format.$1 == Formats.htmlFile) continue;
-    //   final canProcess = reader.canProvide(format.$1);
-    //   if (canProcess) {
-    //     logger.d('_pasteFallinImage Clipboard can provide: $format');
-    //     await _readFromStream(reader, format.$1, format.$2, false);
-    //     return true;
-    //   }
-    // }
-    // return false;
   }
 
   Future<void> handlePasteboard() async {
     // Clipboard API is not supported on this platform.
-    // if (SystemClipboard.instance == null) return;
+    if (SystemClipboard.instance == null) return;
 
-    // final reader = await SystemClipboard.instance!.read();
-    // if (reader.items.isEmpty) {
-    //   return;
-    // }
+    final reader = await SystemClipboard.instance!.read();
+    if (reader.items.isEmpty) {
+      return;
+    }
 
-    // final isFile = reader.canProvide(Formats.fileUri);
-    // loggerNoLine.i('Clipboard can provide file: $isFile');
-    // if (isFile) {
-    //   await handlePasteboardFile();
-    //   return;
-    // }
+    final isFile = reader.canProvide(Formats.fileUri);
+    loggerNoLine.i('Clipboard can provide file: $isFile');
+    if (isFile) {
+      await handlePasteboardFile();
+      return;
+    }
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clipboardData?.text;
     if (text == null || text.isEmpty) {
@@ -1186,110 +1185,110 @@ class ChatController extends GetxController {
     );
   }
 
-  // Future<void> _readFromStream(
-  //   ClipboardReader reader,
-  //   SimpleFileFormat format,
-  //   MessageMediaType type, [
-  //   bool compress = true,
-  // ]) async {
-  //   /// Binary formats need to be read as streams
-  //   reader.getFile(format, (DataReaderFile file) async {
-  //     var suggestedName = await reader.getSuggestedName();
-  //     final mimeType = format.mimeTypes?.first;
+  Future<void> _readFromStream(
+    ClipboardReader reader,
+    SimpleFileFormat format,
+    MessageMediaType type, [
+    bool compress = true,
+  ]) async {
+    /// Binary formats need to be read as streams
+    reader.getFile(format, (DataReaderFile file) async {
+      var suggestedName = await reader.getSuggestedName();
+      final mimeType = format.mimeTypes?.first;
 
-  //     try {
-  //       final imageBytes = await file.readAll();
-  //       final sourceFileName = textEditingController.text.trim();
-  //       final tempDir = await getTemporaryDirectory();
-  //       final timestamp = DateTime.now().millisecondsSinceEpoch;
-  //       if (suggestedName == null) {
-  //         String? suffix;
-  //         if (mimeType != null) {
-  //           suffix = extensionFromMime(mimeType);
-  //         }
-  //         if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
-  //           final inputName = sourceFileName.split('.').first;
-  //           final inputSuffix = sourceFileName.split('.').last;
-  //           suggestedName = '$inputName.${suffix ?? inputSuffix}';
-  //           textEditingController.clear();
-  //         }
-  //         suffix ??= 'bin';
-  //         suggestedName ??= 'pasteboard_$timestamp.$suffix';
-  //       } else if (textEditingController.text.trim() == sourceFileName) {
-  //         textEditingController.clear();
-  //       }
-  //       final path = '${tempDir.path}/$suggestedName';
-  //       final teampFile = File(path);
-  //       await teampFile.writeAsBytes(imageBytes);
+      try {
+        final imageBytes = await file.readAll();
+        final sourceFileName = textEditingController.text.trim();
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        if (suggestedName == null) {
+          String? suffix;
+          if (mimeType != null) {
+            suffix = extensionFromMime(mimeType);
+          }
+          if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
+            final inputName = sourceFileName.split('.').first;
+            final inputSuffix = sourceFileName.split('.').last;
+            suggestedName = '$inputName.${suffix ?? inputSuffix}';
+            textEditingController.clear();
+          }
+          suffix ??= 'bin';
+          suggestedName ??= 'pasteboard_$timestamp.$suffix';
+        } else if (textEditingController.text.trim() == sourceFileName) {
+          textEditingController.clear();
+        }
+        final path = '${tempDir.path}/$suggestedName';
+        final teampFile = File(path);
+        await teampFile.writeAsBytes(imageBytes);
 
-  //       final xfile = XFile(
-  //         path,
-  //         bytes: imageBytes,
-  //         mimeType: mimeType,
-  //         name: suggestedName,
-  //       );
-  //       final isImage = FileService.instance.isImageFile(xfile.path);
-  //       if (!isImage) {
-  //         if (_isUploading) {
-  //           EasyLoading.showToast('File uploading, please wait...');
-  //           return;
-  //         }
-  //         _isUploading = true;
-  //         try {
-  //           await FileService.instance.handleSendMediaFile(
-  //             roomObs.value,
-  //             xfile,
-  //             type,
-  //           );
-  //         } finally {
-  //           _isUploading = false;
-  //         }
-  //         return;
-  //       }
-  //       await Get.dialog(
-  //         CupertinoAlertDialog(
-  //           content: SizedBox(
-  //             width: 300,
-  //             child: FileService.instance.getImageView(File(xfile.path)),
-  //           ),
-  //           actions: [
-  //             CupertinoDialogAction(
-  //               onPressed: Get.back,
-  //               child: const Text('Cancel'),
-  //             ),
-  //             CupertinoDialogAction(
-  //               isDefaultAction: true,
-  //               onPressed: () async {
-  //                 if (_isUploading) {
-  //                   EasyLoading.showToast('File uploading, please wait...');
-  //                   return;
-  //                 }
-  //                 _isUploading = true;
-  //                 try {
-  //                   await FileService.instance.handleSendMediaFile(
-  //                     roomObs.value,
-  //                     xfile,
-  //                     MessageMediaType.image,
-  //                   );
-  //                   Get.back<void>();
-  //                 } finally {
-  //                   _isUploading = false;
-  //                 }
-  //               },
-  //               child: const Text('Send'),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     } catch (e, s) {
-  //       logger.e('_readFromStream: $e', stackTrace: s);
-  //     } finally {
-  //       Future.delayed(const Duration(seconds: 3)).then((_) {
-  //         EasyLoading.dismiss();
-  //       });
-  //     }
-  //   });
-  // }
+        final xfile = XFile(
+          path,
+          bytes: imageBytes,
+          mimeType: mimeType,
+          name: suggestedName,
+        );
+        final isImage = FileService.instance.isImageFile(xfile.path);
+        if (!isImage) {
+          if (_isUploading) {
+            EasyLoading.showToast('File uploading, please wait...');
+            return;
+          }
+          _isUploading = true;
+          try {
+            await FileService.instance.handleSendMediaFile(
+              roomObs.value,
+              xfile,
+              type,
+            );
+          } finally {
+            _isUploading = false;
+          }
+          return;
+        }
+        await Get.dialog(
+          CupertinoAlertDialog(
+            content: SizedBox(
+              width: 300,
+              child: FileService.instance.getImageView(File(xfile.path)),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  if (_isUploading) {
+                    EasyLoading.showToast('File uploading, please wait...');
+                    return;
+                  }
+                  _isUploading = true;
+                  try {
+                    await FileService.instance.handleSendMediaFile(
+                      roomObs.value,
+                      xfile,
+                      MessageMediaType.image,
+                    );
+                    Get.back<void>();
+                  } finally {
+                    _isUploading = false;
+                  }
+                },
+                child: const Text('Send'),
+              ),
+            ],
+          ),
+        );
+      } catch (e, s) {
+        logger.e('_readFromStream: $e', stackTrace: s);
+      } finally {
+        Future.delayed(const Duration(seconds: 3)).then((_) {
+          EasyLoading.dismiss();
+        });
+      }
+    });
+  }
 
   // from search page
   Future<void> loadFromMessageId(int messageId) async {

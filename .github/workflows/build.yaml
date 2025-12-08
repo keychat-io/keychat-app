@@ -23,17 +23,17 @@ on:
       build_linux_aarch64:
         description: "Build Linux aarch64"
         required: true
-        default: true
+        default: false
         type: boolean
       build_windows_x86_64:
         description: "Build Windows x86_64"
         required: false
-        default: true
+        default: false
         type: boolean
       build_android:
         description: "Build Android"
         required: false
-        default: true
+        default: false
         type: boolean
       build_macos:
         description: "Build macOS"
@@ -93,6 +93,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: setup rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -143,6 +149,17 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: GPG Sign
+        run: |
+          for file in ./dist/*.{deb,rpm,AppImage}; do
+            if [ -f "$file" ]; then
+              gpg --batch --yes --pinentry-mode loopback \
+                --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+                --detach-sign --armor "$file"
+              echo "Signed: $file"
+            fi
+          done
+          ls -la ./dist/
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -153,6 +170,8 @@ jobs:
         run: |
           rm -f .env
           cd ./packages/app/ && rm -f .env
+          gpg --batch --yes --delete-secret-keys "${{ steps.import_gpg.outputs.fingerprint }}"
+          gpg --batch --yes --delete-keys "${{ steps.import_gpg.outputs.fingerprint }}"
   build-linux-aarch64:
     if: ${{ inputs.build_linux_aarch64 }}
     runs-on: ubuntu-24.04-arm

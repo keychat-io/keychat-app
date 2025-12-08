@@ -22,18 +22,18 @@ on:
         type: boolean
       build_linux_aarch64:
         description: "Build Linux aarch64"
-        required: true
-        default: false
+        required: false
+        default: true
         type: boolean
       build_windows_x86_64:
         description: "Build Windows x86_64"
         required: false
-        default: false
+        default: true
         type: boolean
       build_android:
         description: "Build Android"
         required: false
-        default: false
+        default: true
         type: boolean
       build_macos:
         description: "Build macOS"

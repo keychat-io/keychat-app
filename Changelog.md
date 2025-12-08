@@ -2,6 +2,12 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.37.3+6478
+- Redesigned the browser menu style.
+- Refactored the browser's user-customizable configuration items.
+- Multiple identities can add the same account as a friend.
+- Added a "Check Status" button for failed and pending bills/transactions
+
 ## 1.37.1+6471
 - fix: NIP-17 message sorting
 - fix: allow switching logged-in identity in the browser

@@ -18,22 +18,22 @@ on:
       build_linux_x86_64:
         description: "Build Linux x86_64"
         required: false
-        default: false
+        default: true
         type: boolean
       build_linux_aarch64:
         description: "Build Linux aarch64"
         required: true
-        default: false
+        default: true
         type: boolean
       build_windows_x86_64:
         description: "Build Windows x86_64"
         required: false
-        default: false
+        default: true
         type: boolean
       build_android:
         description: "Build Android"
         required: false
-        default: false
+        default: true
         type: boolean
       build_macos:
         description: "Build macOS"
@@ -167,7 +167,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: master
-          flutter-version: 3.38.1
+          flutter-version: 3.38.4
           cache: true
       - run: flutter --version && flutter doctor -v
       - name: setup rust

@@ -84,7 +84,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux-x86_64:
-    if: ${{ inputs.build_linux_x86_64 }}
+    if: ${{ github.event_name == 'push' || inputs.build_linux_x86_64 }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -166,7 +166,7 @@ jobs:
           chmod +x ./scripts/cleanup.sh
           ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
   build-linux-aarch64:
-    if: ${{ inputs.build_linux_aarch64 }}
+    if: ${{ github.event_name == 'push' || inputs.build_linux_aarch64 }}
     runs-on: ubuntu-24.04-arm
     needs: get-version
     steps:
@@ -251,7 +251,7 @@ jobs:
           ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-windows-x86_64:
-    if: ${{ inputs.build_windows_x86_64 }}
+    if: ${{ github.event_name == 'push' || inputs.build_windows_x86_64 }}
     runs-on: windows-2022
     needs: get-version
     steps:
@@ -315,7 +315,7 @@ jobs:
           ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-android:
-    if: ${{ inputs.build_android }}
+    if: ${{ github.event_name == 'push' || inputs.build_android }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -422,7 +422,7 @@ jobs:
           rm -f android/app/keystore.jks
           rm -f android/key.properties
   build-macos:
-    if: ${{ inputs.build_macos }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_macos }}
     runs-on: macos-latest
     needs: get-version
     steps:

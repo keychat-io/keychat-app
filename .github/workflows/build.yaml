@@ -235,6 +235,7 @@ jobs:
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
             --targets deb,rpm \
+            --build-target-platform linux-arm64 \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64.{{ext}}'
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
@@ -364,7 +365,7 @@ jobs:
       - name: Build-Windows-APP
         working-directory: ./packages/app/
         run: |
-          fastforge package --platform windows --targets exe --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64-setup.{{ext}}'
+          fastforge package --platform windows --targets exe --build-target-platform windows-arm64 --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64-setup.{{ext}}'
       - name: GPG Sign
         shell: bash
         run: |

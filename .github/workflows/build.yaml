@@ -60,7 +60,8 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
-  FLUTTER_VERSION: "3.38.3"
+  FLUTTER_VERSION_x86_64: "3.38.4"
+  FLUTTER_VERSION_ARM: "3.38.4"
 
 jobs:
   get-version:
@@ -118,7 +119,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -190,7 +191,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: master
-          flutter-version: 3.38.4
+          flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
       - run: flutter --version && flutter doctor -v
       - name: setup rust
@@ -274,7 +275,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -338,7 +339,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -428,7 +429,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Flutter doctor -v
         run: flutter doctor -v
@@ -507,7 +508,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install melos-fastforge
         run: |

@@ -6,7 +6,7 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 - Redesigned the browser menu style.
 - Refactored the browser's user-customizable configuration items.
 - Multiple identities can add the same account as a friend.
-- Added a "Check Status" button for failed and pending bills/transactions
+- Added a "Check Status" button for failed and pending transactions
 
 ## 1.37.1+6471
 - fix: NIP-17 message sorting

@@ -18,27 +18,27 @@ on:
       build_linux_x86_64:
         description: "Build Linux x86_64"
         required: false
-        default: true
+        default: false
         type: boolean
       build_linux_arm64:
         description: "Build Linux arm64"
         required: false
-        default: true
+        default: false
         type: boolean
       build_windows_x86_64:
         description: "Build Windows x86_64"
         required: false
-        default: true
+        default: false
         type: boolean
       build_windows_arm64:
         description: "Build Windows arm64"
         required: false
-        default: true
+        default: false
         type: boolean
       build_android:
         description: "Build Android"
         required: false
-        default: true
+        default: false
         type: boolean
       build_macos:
         description: "Build macOS"

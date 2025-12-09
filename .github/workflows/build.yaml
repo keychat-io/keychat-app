@@ -343,16 +343,17 @@ jobs:
           channel: main
           flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
+      - name: Install melos-fastforge
+        run: |
+          flutter doctor -v
+          dart pub global activate melos 7.3.0
+          dart pub global activate fastforge
+          melos bootstrap
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
           version: "29.3"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install melos-fastforge
-        run: |
-          dart pub global activate melos 7.3.0
-          dart pub global activate fastforge
-          melos bootstrap
       - name: Configure .env
         working-directory: ./packages/app/
         shell: pwsh

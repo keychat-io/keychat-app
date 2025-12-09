@@ -20,13 +20,18 @@ on:
         required: false
         default: false
         type: boolean
-      build_linux_aarch64:
-        description: "Build Linux aarch64"
-        required: true
+      build_linux_arm64:
+        description: "Build Linux arm64"
+        required: false
         default: false
         type: boolean
       build_windows_x86_64:
         description: "Build Windows x86_64"
+        required: false
+        default: false
+        type: boolean
+      build_windows_arm64:
+        description: "Build Windows arm64"
         required: false
         default: false
         type: boolean
@@ -55,7 +60,8 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
-  FLUTTER_VERSION: "3.38.3"
+  FLUTTER_VERSION_x86_64: "3.38.4"
+  FLUTTER_VERSION_ARM: "3.38.4"
 
 jobs:
   get-version:
@@ -84,7 +90,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux-x86_64:
-    if: ${{ inputs.build_linux_x86_64 }}
+    if: ${{ github.event_name == 'push' || inputs.build_linux_x86_64 }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -93,6 +99,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: setup rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -107,7 +119,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -143,6 +155,12 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: GPG Sign
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "deb rpm AppImage"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -151,10 +169,10 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
-  build-linux-aarch64:
-    if: ${{ inputs.build_linux_aarch64 }}
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
+  build-linux-arm64:
+    if: ${{ github.event_name == 'push' || inputs.build_linux_arm64 }}
     runs-on: ubuntu-24.04-arm
     needs: get-version
     steps:
@@ -163,11 +181,17 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
-          flutter-version: 3.38.1
+          channel: main
+          flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
       - run: flutter --version && flutter doctor -v
       - name: setup rust
@@ -196,13 +220,13 @@ jobs:
         run: echo "$ENV_KEY" | base64 --decode > .env
         env:
           ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
-      - name: Install appimage
-        run: |
-          sudo apt install locate
-          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
-          chmod +x appimagetool
-          mv appimagetool /usr/local/bin/
-          ldd --version
+      # - name: Install appimage
+      #   run: |
+      #     sudo apt install locate
+      #     wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
+      #     chmod +x appimagetool
+      #     mv appimagetool /usr/local/bin/
+      #     ldd --version
       - name: Build-Linux-APP
         working-directory: ./packages/app/
         run: |
@@ -211,10 +235,17 @@ jobs:
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
             --targets deb,rpm \
+            --build-target-platform linux-arm64 \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64.{{ext}}'
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: GPG Sign
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "deb rpm"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -223,11 +254,11 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-windows-x86_64:
-    if: ${{ inputs.build_windows_x86_64 }}
+    if: ${{ github.event_name == 'push' || inputs.build_windows_x86_64 }}
     runs-on: windows-2022
     needs: get-version
     steps:
@@ -236,10 +267,16 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -265,18 +302,102 @@ jobs:
         working-directory: ./packages/app/
         run: |
           fastforge package --platform windows --targets exe --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64-setup.{{ext}}'
+      - name: GPG Sign
+        shell: bash
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "exe"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: artifact-windows-x86
           path: ./dist
           overwrite: true
+      - name: Clean up
+        shell: bash
+        run: |
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
+
+  build-windows-arm64:
+    if: false # ${{ github.event_name == 'push' || inputs.build_windows_arm64 }}
+    runs-on: windows-11-arm
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: main
+          flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
+          cache: true
+      - name: Install melos-fastforge
+        run: |
+          flutter doctor -v
+          dart pub global activate melos 7.3.0
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure .env
+        working-directory: ./packages/app/
+        shell: pwsh
+        run: |
+          $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:ENV_KEY))
+          $decoded | Out-File -FilePath .env -Encoding utf8
+        env:
+          ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - name: Build-Windows-APP
+        working-directory: ./packages/app/
+        run: |
+          fastforge package --platform windows --targets exe --build-target-platform windows-arm64 --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64-setup.{{ext}}'
+      - name: GPG Sign
+        shell: bash
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "exe"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-windows-arm64
+          path: ./dist
+          overwrite: true
+      - name: Clean up
+        shell: bash
+        run: |
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
 
   build-android:
-    if: ${{ inputs.build_android }}
+    if: ${{ github.event_name == 'push' || inputs.build_android }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
@@ -311,7 +432,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Flutter doctor -v
         run: flutter doctor -v
@@ -355,6 +476,12 @@ jobs:
           mkdir -p ../../dist
           find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
           rm -rf build/
+      - name: GPG Sign
+        run: |
+          chmod +x ./scripts/gpg-sign.sh
+          ./scripts/gpg-sign.sh ./dist "apk"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -363,13 +490,12 @@ jobs:
           overwrite: true
       - name: Clean up
         run: |
-          rm -f .env
-          cd ./packages/app/ && rm -f .env
+          chmod +x ./scripts/cleanup.sh
+          ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
           rm -f android/app/keystore.jks
           rm -f android/key.properties
-          rm -f .env
   build-macos:
-    if: ${{ inputs.build_macos }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_macos }}
     runs-on: macos-latest
     needs: get-version
     steps:
@@ -385,7 +511,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION_x86_64 }}
           cache: true
       - name: Install melos-fastforge
         run: |
@@ -517,12 +643,12 @@ jobs:
   upload:
     if: ${{ always() }}
     permissions: write-all
-    needs:
-      [
+    needs: [
         get-version,
         build-linux-x86_64,
-        build-linux-aarch64,
+        build-linux-arm64,
         build-windows-x86_64,
+        # build-windows-arm64,
         build-android,
       ]
     runs-on: ubuntu-22.04

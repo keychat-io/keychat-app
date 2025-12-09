@@ -459,28 +459,30 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         ),
                     ],
                   ),
-                  if (kDebugMode ||
-                      (controller.identity.value.index == -1 &&
-                          !controller.identity.value.isFromSigner) ||
-                      controller.identity.value.index > -1)
+                  if (controller.identity.value.index == -1 &&
+                      !controller.identity.value.isFromSigner)
+                    SettingsSection(
+                      title: const Text('Security'),
+                      tiles: [_getNsec(true)],
+                    ),
+                  if (kDebugMode || Get.find<HomeController>().debugModel.value)
                     SettingsSection(
                       title: const Text('Security'),
                       tiles: [
-                        if (kDebugMode)
-                          SettingsTile(
-                            leading: const Icon(CupertinoIcons.person),
-                            title: const Text('Hex'),
-                            onPressed: (c) {
-                              debugPrint(
-                                controller.identity.value.secp256k1PKHex,
-                              );
-                            },
-                            value: Text(
-                              getPublicKeyDisplay(
-                                controller.identity.value.secp256k1PKHex,
-                              ),
+                        SettingsTile(
+                          leading: const Icon(CupertinoIcons.person),
+                          title: const Text('Hex'),
+                          onPressed: (c) {
+                            debugPrint(
+                              controller.identity.value.secp256k1PKHex,
+                            );
+                          },
+                          value: Text(
+                            getPublicKeyDisplay(
+                              controller.identity.value.secp256k1PKHex,
                             ),
                           ),
+                        ),
                         if (controller.identity.value.index == -1 &&
                             !controller.identity.value.isFromSigner)
                           _getNsec(true),
@@ -496,7 +498,88 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                     top: Radius.circular(4),
                                   ),
                                 ),
-                                _idKeysWidget(),
+                                SettingsList(
+                                  platform: DevicePlatform.iOS,
+                                  sections: [
+                                    SettingsSection(
+                                      tiles: [
+                                        SettingsTile(
+                                          title: const Text('Secp256k1 Pubkey'),
+                                          description: Obx(
+                                            () => Text(
+                                              controller
+                                                  .identity
+                                                  .value
+                                                  .secp256k1PKHex,
+                                            ),
+                                          ),
+                                        ),
+                                        if (controller
+                                                .identity
+                                                .value
+                                                .curve25519PkHex !=
+                                            null)
+                                          SettingsTile(
+                                            title: const Text(
+                                              'Curve25519 Pubkey',
+                                            ),
+                                            description: Text(
+                                              controller
+                                                      .identity
+                                                      .value
+                                                      .curve25519PkHex ??
+                                                  '',
+                                            ),
+                                          ),
+                                        _getNsec(false),
+                                        SettingsTile.navigation(
+                                          title: const Text('Seed Phrase'),
+                                          onPressed: (context) async {
+                                            var mnemonic = controller
+                                                .identity
+                                                .value
+                                                .mnemonic;
+                                            if (mnemonic == null ||
+                                                mnemonic.isEmpty) {
+                                              mnemonic = await SecureStorage
+                                                  .instance
+                                                  .getPhraseWords();
+                                            }
+                                            Get.dialog(
+                                              CupertinoAlertDialog(
+                                                title: const Text(
+                                                  'Seed Phrase',
+                                                ),
+                                                content: Text(mnemonic ?? ''),
+                                                actions: <Widget>[
+                                                  CupertinoDialogAction(
+                                                    isDefaultAction: true,
+                                                    onPressed: () {
+                                                      Clipboard.setData(
+                                                        ClipboardData(
+                                                          text: mnemonic ?? '',
+                                                        ),
+                                                      );
+                                                      EasyLoading.showSuccess(
+                                                        'Copied',
+                                                      );
+                                                      Get.back<void>();
+                                                    },
+                                                    child: const Text('Copy'),
+                                                  ),
+                                                  CupertinoDialogAction(
+                                                    onPressed: Get.back,
+                                                    child: const Text('Close'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               );
                             },
                           ),
@@ -560,65 +643,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           ),
         );
       },
-    );
-  }
-
-  SettingsList _idKeysWidget() {
-    return SettingsList(
-      platform: DevicePlatform.iOS,
-      sections: [
-        SettingsSection(
-          tiles: [
-            if (kDebugMode)
-              SettingsTile(
-                title: const Text('Secp256k1 Pubkey'),
-                description: Obx(
-                  () => Text(controller.identity.value.secp256k1PKHex),
-                ),
-              ),
-            if (kDebugMode && controller.identity.value.curve25519PkHex != null)
-              SettingsTile(
-                title: const Text('Curve25519 Pubkey'),
-                description: Text(
-                  controller.identity.value.curve25519PkHex ?? '',
-                ),
-              ),
-            _getNsec(false),
-            SettingsTile.navigation(
-              title: const Text('Seed Phrase'),
-              onPressed: (context) async {
-                var mnemonic = controller.identity.value.mnemonic;
-                if (mnemonic == null || mnemonic.isEmpty) {
-                  mnemonic = await SecureStorage.instance.getPhraseWords();
-                }
-                Get.dialog(
-                  CupertinoAlertDialog(
-                    title: const Text('Seed Phrase'),
-                    content: Text(mnemonic ?? ''),
-                    actions: <Widget>[
-                      CupertinoDialogAction(
-                        isDefaultAction: true,
-                        onPressed: () {
-                          Clipboard.setData(
-                            ClipboardData(text: mnemonic ?? ''),
-                          );
-                          EasyLoading.showSuccess('Copied');
-                          Get.back<void>();
-                        },
-                        child: const Text('Copy'),
-                      ),
-                      CupertinoDialogAction(
-                        onPressed: Get.back,
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
     );
   }
 

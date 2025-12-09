@@ -97,13 +97,13 @@ class NotifyService {
 
   Future<void> clearAll() async {
     if (fcmToken == null) return;
-    fcmToken = null;
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/delete',
         data: {'deviceId': fcmToken},
       );
       logger.i('clearAll success: ${res.data}');
+      fcmToken = null;
     } catch (e, s) {
       logger.e('clearAll', error: e, stackTrace: s);
     }
@@ -290,7 +290,7 @@ class NotifyService {
   Future<String?> _getFCMToken() async {
     try {
       final apnsToken = await FirebaseMessaging.instance.getToken().timeout(
-        const Duration(seconds: 8),
+        const Duration(seconds: 4),
         onTimeout: () async {
           final cachedToken = _getFCMTokenFromCache();
           loggerNoLine.d('Load FCMToken from local: $cachedToken');
@@ -300,6 +300,7 @@ class NotifyService {
       );
 
       if (apnsToken != null) {
+        logger.i('Fetched FCMToken: $apnsToken');
         await Storage.setString(
           StorageKeyString.notificationFCMToken,
           apnsToken,
@@ -382,10 +383,12 @@ class NotifyService {
     }
 
     // Handle initial message if app was opened from notification
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      handleMessage(initialMessage);
-    }
+    FirebaseMessaging.instance.getInitialMessage().then(
+      (initialMessage) async {
+        if (initialMessage == null) return;
+        await handleMessage(initialMessage);
+      },
+    );
 
     // Setup FCM listeners
     _setupFCMListeners();

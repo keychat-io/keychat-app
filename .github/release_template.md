@@ -20,7 +20,7 @@
             </td>
         </tr>
         <tr>
-            <td>Windows</td>
+            <td>Windows-x86_64</td>
             <td>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-windows-x86_64-setup.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
             </td>
@@ -32,13 +32,21 @@
             </td>
         </tr>
         <tr>
-            <td>Linux</td>
+            <td>Linux-x86_64</td>
             <td>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-linux-amd64.AppImage"><img src="https://img.shields.io/badge/AppImage-x64-f84e29.svg?logo=linux"> </a><br>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-linux-amd64.deb"><img src="https://img.shields.io/badge/DebPackage-x64-FF9966.svg?logo=debian"> </a><br>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-linux-amd64.deb"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"> </a>
             </td>
         </tr>
+        <tr>
+            <td>Linux-arm64</td>
+            <td>
+                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-linux-arm64.deb"><img src="https://img.shields.io/badge/DebPackage-x64-FF9966.svg?logo=debian"> </a><br>
+                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-linux-arm64.deb"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"> </a>
+            </td>
+        </tr>        
+       </tr> 
     </tbody>
 </table>
 

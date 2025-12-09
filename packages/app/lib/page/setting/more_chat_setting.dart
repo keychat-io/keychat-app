@@ -319,7 +319,7 @@ class MoreChatSetting extends GetView<HomeController> {
             child: const Text('Confirm'),
             onPressed: () async {
               try {
-                EasyLoading.show(status: 'Initializing...');
+                await EasyLoading.show(status: 'Initializing...');
 
                 // Initialize notification service with permission request
                 Get.find<HomeController>().notificationStatus.value = true;
@@ -349,6 +349,9 @@ class MoreChatSetting extends GetView<HomeController> {
                 logger.e(e.toString(), error: e, stackTrace: s);
                 await EasyLoading.showError(e.toString());
                 Get.back(result: false);
+              } finally {
+                await Future.delayed(const Duration(seconds: 2));
+                await EasyLoading.dismiss();
               }
             },
           ),

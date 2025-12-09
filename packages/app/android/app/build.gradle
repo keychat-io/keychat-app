@@ -61,7 +61,8 @@ android {
     }
     splits {
         abi {
-            enable true //enables the ABIs split mechanism
+            // Disable ABI splits when building AAB (App Bundle handles this automatically)
+            enable gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") } ? false : true
             reset()
             include 'arm64-v8a', 'x86_64', 'x86'
             // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'

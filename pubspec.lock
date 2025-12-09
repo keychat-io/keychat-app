@@ -646,10 +646,11 @@ packages:
   firebase_messaging:
     dependency: transitive
     description:
-      name: firebase_messaging
-      sha256: "22086f857d2340f5d973776cfd542d3fb30cf98e1c643c3aa4a7520bb12745bb"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/firebase_messaging/firebase_messaging"
+      ref: messaging_17859
+      resolved-ref: "882ed0dfc0d6f5a40b57209500a5710ab1c4a83b"
+      url: "https://github.com/firebase/flutterfire.git"
+    source: git
     version: "16.0.4"
   firebase_messaging_platform_interface:
     dependency: transitive

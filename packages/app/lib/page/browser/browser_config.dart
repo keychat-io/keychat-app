@@ -22,7 +22,7 @@ class BrowserConfig {
   static const bool _defaultAutoSignEvent = true;
   static const bool _defaultShowFAB = true;
   static const String _defaultFabPosition = 'right';
-  static const double _defaultFabHeight = 0.33;
+  static const double _defaultFabHeight = 0.4;
   static const bool _defaultAdBlockEnabled = true;
   static const bool _defaultMiniAppTooltipShown = false;
   static const String _defaultSearchEngine = 'brave';

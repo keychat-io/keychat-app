@@ -190,7 +190,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
+          channel: main
           flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
       - run: flutter --version && flutter doctor -v
@@ -340,7 +340,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: master
+          channel: main
           flutter-version: ${{ env.FLUTTER_VERSION_ARM }}
           cache: true
       - name: Install Protoc

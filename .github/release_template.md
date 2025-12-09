@@ -20,11 +20,17 @@
             </td>
         </tr>
         <tr>
-            <td>Windows</td>
+            <td>Windows-x86_64</td>
             <td>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-windows-x86_64-setup.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
             </td>
         </tr>
+        <tr>
+            <td>Windows-arm64</td>
+            <td>
+                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-windows-arm64-setup.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
+            </td>
+        </tr>        
         <tr>
             <td>macOS</td>
             <td>

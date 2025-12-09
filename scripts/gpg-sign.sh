@@ -14,14 +14,14 @@ if [ -z "$GPG_PASSPHRASE" ]; then
 fi
 
 echo "Signing files in $DIST_DIR with extensions: $EXTENSIONS"
-echo "Files in dist directory:"
-ls -la "$DIST_DIR"/ || echo "Directory not found or empty"
+echo "Files in dist directory (recursive):"
+find "$DIST_DIR" -type f 2>/dev/null || echo "Directory not found or empty"
 
 SIGNED_COUNT=0
 
 for ext in $EXTENSIONS; do
-    echo "Looking for *.$ext files..."
-    # Use find to avoid glob issues when no files match
+    echo "Looking for *.$ext files (recursive)..."
+    # Use find recursively to search in all subdirectories
     while IFS= read -r -d '' file; do
         if [ -f "$file" ]; then
             echo "Signing: $file"
@@ -34,14 +34,14 @@ for ext in $EXTENSIONS; do
                 echo "Warning: Failed to sign $file"
             fi
         fi
-    done < <(find "$DIST_DIR" -maxdepth 1 -name "*.$ext" -print0 2>/dev/null)
+    done < <(find "$DIST_DIR" -type f -name "*.$ext" -print0 2>/dev/null)
 done
 
 echo ""
 echo "Total files signed: $SIGNED_COUNT"
 echo ""
 echo "Signed files (.asc):"
-ls -la "$DIST_DIR"/*.asc 2>/dev/null || echo "No .asc files found"
+find "$DIST_DIR" -name "*.asc" -type f 2>/dev/null || echo "No .asc files found"
 echo ""
 echo "All files in $DIST_DIR:"
-ls -la "$DIST_DIR"/
+find "$DIST_DIR" -type f 2>/dev/null

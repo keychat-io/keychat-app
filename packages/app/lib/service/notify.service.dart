@@ -167,6 +167,7 @@ class NotifyService {
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
+    if (fcmToken == null) return;
     final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();

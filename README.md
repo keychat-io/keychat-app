@@ -26,7 +26,7 @@ Like the postal system, Keychat requires no registration. Users just generate No
 <img src="./docs/images/inspiration.png" width="90%" height="auto"/>
 </p>
 
-### Design Philosoph
+### Design Philosophy
 Offline Me needs self-controlled IDs and wallets to live in the physical world.
 
 Online Me also first needs self-controlled IDs and wallets to live in the digital world.

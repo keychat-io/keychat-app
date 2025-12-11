@@ -1,6 +1,6 @@
-import 'package:keychat/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat/utils/config.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -11,7 +11,6 @@ class SecureStorage {
   static SecureStorage get instance => _instance ??= SecureStorage._();
   static const FlutterSecureStorage storage = FlutterSecureStorage(
     mOptions: MacOsOptions(
-      synchronizable: true,
       accessibility: KeychainAccessibility.first_unlock,
     ),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),

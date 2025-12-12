@@ -23,10 +23,11 @@ static void my_application_activate(GApplication* application) {
   // Try to set icon from installed location
   gchar *icon_path = NULL;
   const gchar *appdir = g_getenv("APPDIR");
+  const gchar *flatpak_id = g_getenv("FLATPAK_ID");
   if (appdir) {
     // AppImage environment
     icon_path = g_strdup_printf("%s/share/icons/keychat.png", appdir);
-  } else if (g_file_test("/.flatpak-info", G_FILE_TEST_EXISTS)) {
+  } else if (flatpak_id != NULL) {
     // Flatpak environment - resources are under /app
     icon_path = g_strdup("/app/share/icons/keychat.png");
   } else {

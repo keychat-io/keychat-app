@@ -57,7 +57,6 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   late Timer _connectionCheckTimer;
-  RxBool notificationStatus = false.obs;
   RxBool checkRunStatus = true.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
@@ -936,6 +935,34 @@ ${file.message}
   Future<void> initEnableDMFromNostrApp() async {
     final res = Storage.getBool(StorageKeyString.enableDMFromNostrApp) ?? true;
     enableDMFromNostrApp.value = res;
+  }
+
+  int notificationState = NotifySettingStatus.enable;
+  Future<void> disableNotification() async {
+    await Storage.setInt(
+      StorageKeyString.settingNotifyStatus,
+      NotifySettingStatus.disable,
+    );
+    notificationState = NotifySettingStatus.disable;
+  }
+
+  bool get isNotificationEnabled {
+    return notificationState == NotifySettingStatus.enable;
+  }
+
+  Future<void> enableNotification() async {
+    await Storage.setInt(
+      StorageKeyString.settingNotifyStatus,
+      NotifySettingStatus.enable,
+    );
+    notificationState = NotifySettingStatus.enable;
+  }
+
+  Future<int> loadNotification() async {
+    final status = Storage.getIntOrZero(
+      StorageKeyString.settingNotifyStatus,
+    );
+    return status;
   }
 }
 

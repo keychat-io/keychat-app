@@ -115,7 +115,7 @@ class NotifyService {
     final isGrant = await isNotifyPermissionGrant();
     if (!isGrant) return false;
 
-    final enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().isNotificationEnabled;
     if (!enable) return false;
     return true;
   }
@@ -242,7 +242,7 @@ class NotifyService {
       await ContactService.instance.removeAllToRemoveKeys();
     }
 
-    final enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().isNotificationEnabled;
     if (!enable) return;
 
     final idPubkeys = await IdentityService.instance.getListenPubkeys(
@@ -396,30 +396,13 @@ class NotifyService {
 
     // Skip FCM initialization if user has chosen UnifiedPush
     if (currentPushType == PushType.unifiedpush) {
-      logger.i(
-        'NotifyService init: UnifiedPush is selected, skipping FCM init',
-      );
-      // For UnifiedPush, just check permission and update status
-      final homeController = Get.find<HomeController>();
-      final hasPermission = requestPermission
-          ? await requestNotifyPermission()
-          : await isNotifyPermissionGrant();
-      if (hasPermission) {
-        homeController.notificationStatus.value = true;
-      }
       return;
     }
 
     logger.i('NotifyService init (requestPermission: $requestPermission)');
     final homeController = Get.find<HomeController>();
-
-    // Check if user has disabled notifications in app settings
-    final settingNotifyStatus = Storage.getIntOrZero(
-      StorageKeyString.settingNotifyStatus,
-    );
-    if (settingNotifyStatus == NotifySettingStatus.disable) {
+    if (homeController.notificationState == NotifySettingStatus.disable) {
       logger.i('Notification disabled by user setting');
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -428,7 +411,6 @@ class NotifyService {
       await _initializeFirebase();
     } catch (e) {
       logger.e('Failed to initialize Firebase', error: e);
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -442,7 +424,6 @@ class NotifyService {
 
     if (!hasPermission) {
       logger.i('Notification permission not granted');
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -455,20 +436,11 @@ class NotifyService {
           duration: const Duration(seconds: 4),
         );
       }
-      homeController.notificationStatus.value = false;
+
       return;
     }
     logger.i('Setup FcmToken: $fcmToken');
-
-    // Update status
-    homeController.notificationStatus.value = true;
-    if (settingNotifyStatus != NotifySettingStatus.enable) {
-      await Storage.setInt(
-        StorageKeyString.settingNotifyStatus,
-        NotifySettingStatus.enable,
-      );
-    }
-
+    await Get.find<HomeController>().enableNotification();
     // Handle initial message if app was opened from notification
     FirebaseMessaging.instance.getInitialMessage().then(
       (initialMessage) async {
@@ -538,4 +510,5 @@ class NotifyService {
 class NotifySettingStatus {
   static const int enable = 1;
   static const int disable = -1;
+  static const int notConfirm = 0;
 }

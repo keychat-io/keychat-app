@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/utils.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import 'package:unifiedpush_platform_interface/unifiedpush_platform_interface.dart'
     show LinuxOptions;
@@ -26,7 +27,8 @@ class UnifiedPushService {
 
   static const pushInstance = 'default';
 
-  /// DBus name for Linux (should match your application ID)
+  /// Storage key for persisting endpoint
+  static const _endpointStorageKey = 'unifiedpush_endpoint';
 
   /// Current push endpoint URL (received from distributor)
   String? _currentEndpoint;
@@ -39,6 +41,54 @@ class UnifiedPushService {
   /// Whether we are registered with a distributor
   bool _isRegistered = false;
   bool get isRegistered => _isRegistered;
+
+  /// Completer for waiting on endpoint callback
+  Completer<String?>? _endpointCompleter;
+
+  /// Load saved endpoint from storage
+  Future<String?> _loadSavedEndpoint() async {
+    try {
+      final endpoint = Storage.getString(_endpointStorageKey);
+      if (endpoint != null && endpoint.isNotEmpty) {
+        logger.i('[UnifiedPush] Loaded saved endpoint: $endpoint');
+        return endpoint;
+      }
+    } catch (e) {
+      logger.e('[UnifiedPush] Failed to load saved endpoint', error: e);
+    }
+    return null;
+  }
+
+  /// Save endpoint to storage
+  Future<void> _saveEndpoint(String? endpoint) async {
+    try {
+      if (endpoint != null && endpoint.isNotEmpty) {
+        await Storage.setString(_endpointStorageKey, endpoint);
+        logger.i('[UnifiedPush] Saved endpoint to storage');
+      } else {
+        await Storage.remove(_endpointStorageKey);
+        logger.i('[UnifiedPush] Cleared endpoint from storage');
+      }
+    } catch (e) {
+      logger.e('[UnifiedPush] Failed to save endpoint', error: e);
+    }
+  }
+
+  /// Wait for new endpoint after registration
+  /// Returns the endpoint URL or null if timeout/failed
+  Future<String?> waitForEndpoint({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    _endpointCompleter = Completer<String?>();
+    try {
+      return await _endpointCompleter!.future.timeout(timeout);
+    } on TimeoutException {
+      logger.w('[UnifiedPush] Timeout waiting for endpoint');
+      return null;
+    } finally {
+      _endpointCompleter = null;
+    }
+  }
 
   /// Get the currently saved distributor
   Future<String?> getCurrentDistributor() async {
@@ -57,9 +107,6 @@ class UnifiedPushService {
   Future<void> init([List<String> args = const []]) async {
     // UnifiedPush only supports Android and Linux
     if (!GetPlatform.isAndroid && !GetPlatform.isLinux) {
-      logger.i(
-        '[UnifiedPush] Only supported on Android/Linux platforms, skipping',
-      );
       return;
     }
 
@@ -99,12 +146,13 @@ class UnifiedPushService {
     logger.i(
       '[UnifiedPush] Initialized. Already registered: $alreadyRegistered',
     );
-
     if (alreadyRegistered) {
-      // Already registered, just refresh the registration
+      // Already registered, load saved endpoint first
       _isRegistered = true;
-      logger.i('[UnifiedPush] Refreshing existing registration...');
-      await UnifiedPush.register();
+      _currentEndpoint = await _loadSavedEndpoint();
+      // Sync to server
+      _syncEndpointToServer();
+
       return;
     }
 
@@ -151,7 +199,7 @@ class UnifiedPushService {
     // Save the distributor choice
     await UnifiedPush.saveDistributor(distributor);
 
-    // Register with the selected distributor
+    // Register with the selected distributor and wait for endpoint
     logger.i('[UnifiedPush] Registering with selected distributor...');
     await UnifiedPush.register();
   }
@@ -161,12 +209,53 @@ class UnifiedPushService {
     await _promptUserForDistributor();
   }
 
+  /// Switch to a different distributor
+  /// Returns the new endpoint URL or null if failed
+  Future<String?> switchDistributor(String newDistributor) async {
+    final currentDistributor = await getCurrentDistributor();
+
+    logger.i(
+      '[UnifiedPush] Switching distributor: $currentDistributor -> $newDistributor',
+    );
+
+    // If switching to same distributor and already have endpoint, return it
+    if (currentDistributor == newDistributor && _currentEndpoint != null) {
+      logger.i(
+        '[UnifiedPush] Already registered with this distributor, returning existing endpoint',
+      );
+      return _currentEndpoint;
+    }
+
+    // Unregister from current distributor if switching to a different one
+    if (_isRegistered && currentDistributor != newDistributor) {
+      logger.i('[UnifiedPush] Unregistering from current distributor...');
+      await UnifiedPush.unregister();
+      _isRegistered = false;
+      _currentEndpoint = null;
+      // Wait a bit for unregister to propagate
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+
+    // Save and register with new distributor
+    logger.i('[UnifiedPush] Saving distributor: $newDistributor');
+    await UnifiedPush.saveDistributor(newDistributor);
+
+    logger.i('[UnifiedPush] Registering with new distributor...');
+    await UnifiedPush.register();
+    await Future.delayed(const Duration(seconds: 1));
+    return _currentEndpoint;
+  }
+
   /// Unregister from the current distributor
-  Future<void> unregister() async {
+  /// [waitForCallback] - if true, wait for _onUnregistered callback
+  Future<void> unregister({bool waitForCallback = false}) async {
     logger.i('[UnifiedPush] Unregistering...');
+
     await UnifiedPush.unregister();
+
     _isRegistered = false;
     _currentEndpoint = null;
+    await _saveEndpoint(null);
   }
 
   /// Show a dialog for user to pick a UnifiedPush distributor
@@ -244,6 +333,14 @@ class UnifiedPushService {
       logger.i('[UnifiedPush]   Public Key Set available');
     }
 
+    // Save endpoint to storage for persistence
+    _saveEndpoint(endpoint.url);
+
+    // Complete the completer if waiting
+    if (_endpointCompleter != null && !_endpointCompleter!.isCompleted) {
+      _endpointCompleter!.complete(endpoint.url);
+    }
+
     // Sync pubkeys to notification server with the new endpoint
     _syncEndpointToServer();
   }
@@ -299,6 +396,9 @@ class UnifiedPushService {
     _currentEndpoint = null;
 
     logger.i('[UnifiedPush] Unregistered from instance: $instance');
+
+    // Clear saved endpoint
+    _saveEndpoint(null);
 
     // Clear registration from notification server
     if (oldEndpoint != null) {

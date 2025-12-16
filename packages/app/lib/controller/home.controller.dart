@@ -187,18 +187,22 @@ class HomeController extends GetxController
         }
 
         unawaited(removeBadge());
-
-        // websocket status
-        final shouldConnect =
-            Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
-            GetPlatform.isDesktop ||
-            tryConnect;
-        if (shouldConnect) {
-          unawaited(
-            Get.find<WebsocketService>().checkOnlineAndConnect(
-              forceReconnect: forceReconnect,
-            ),
-          );
+        try {
+          // websocket status
+          final shouldConnect =
+              Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
+              GetPlatform.isDesktop ||
+              tryConnect;
+          if (shouldConnect) {
+            unawaited(
+              Get.find<WebsocketService>().checkOnlineAndConnect(
+                forceReconnect: forceReconnect,
+              ),
+            );
+          }
+        } catch (e) {
+          // WebsocketService maybe not initialized
+          logger.e('error: $e');
         }
 
         // app status

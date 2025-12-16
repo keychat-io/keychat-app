@@ -130,6 +130,17 @@ class MoreChatSetting extends GetView<HomeController> {
                 ),
               ],
             ),
+            if (controller.debugModel.value)
+              SettingsSection(
+                title: const Text('Flatpak debug Zone'),
+                tiles: [
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.event),
+                    title: const Text('Flatpak ENV'),
+                    value: Text(Utils.isRunningInFlatpak() ? 'Yes' : 'No'),
+                  ),
+                ],
+              ),
             SettingsSection(
               title: const Text('Debug Zone'),
               tiles: [

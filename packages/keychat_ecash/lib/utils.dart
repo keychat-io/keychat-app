@@ -388,7 +388,18 @@ Restoring...''',
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(e.toString(), error: e, stackTrace: s);
-      await EasyLoading.showError(msg);
+      await Get.dialog(
+        CupertinoAlertDialog(
+          title: const Text('Error'),
+          content: Text(msg),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: Get.back,
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }

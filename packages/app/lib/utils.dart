@@ -384,6 +384,24 @@ Init File: $time \n
   }
 
   static Directory appFolder = Directory('/');
+
+  static bool isRunningInFlatpak() {
+    final flatpakId = Platform.environment['FLATPAK_ID'];
+
+    if (flatpakId != null && flatpakId.isNotEmpty) {
+      logger.i('Running in Flatpak, ID: $flatpakId');
+      return true;
+    }
+
+    final containerEnv = Platform.environment['container'];
+    if (containerEnv != null && containerEnv == 'flatpak') {
+      logger.i('Running in Flatpak container (via container variable)');
+      return true;
+    }
+
+    return false;
+  }
+
   static Future<Directory> getAppFolder() async {
     Directory? directory;
 
@@ -399,13 +417,19 @@ Init File: $time \n
           directory.createSync(recursive: true);
         }
       case 'linux':
-        // Linux: ~/.config/<appName>
-        final home = Platform.environment['HOME']!;
-        directory = Directory(
-          path.join(home, '.config', KeychatGlobal.appPackageName),
-        );
-        if (!directory.existsSync()) {
-          directory.createSync(recursive: true);
+        final isFlatpak = isRunningInFlatpak();
+        if (isFlatpak) {
+          // Flatpak: $XDG_CONFIG_HOME ~/.var/app/<appName>/config or ~/.config/<appName>
+          directory = await getApplicationSupportDirectory();
+        } else {
+          // Linux: ~/.config/<appName>
+          final home = Platform.environment['HOME']!;
+          directory = Directory(
+            path.join(home, '.config', KeychatGlobal.appPackageName),
+          );
+          if (!directory.existsSync()) {
+            directory.createSync(recursive: true);
+          }
         }
       default:
         // For iOS, Android and other platforms

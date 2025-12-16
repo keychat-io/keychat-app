@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/secure_storage.dart';
@@ -87,40 +88,41 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                   }
                 },
               ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.lock),
-                title: const Text('Ecash Seed Phrase'),
-                onPressed: (context) async {
-                  final words = await SecureStorage.instance.getPhraseWords();
-                  Get.dialog(
-                    CupertinoAlertDialog(
-                      title: const Text('Ecash Seed Phrase'),
-                      content: Text(
-                        words ??
-                            'The seed phrase for the first ID is also the seed phrase for ecash.',
-                      ),
-                      actions: [
-                        CupertinoDialogAction(
-                          onPressed: Get.back,
-                          child: const Text('OK'),
+              if (kDebugMode)
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.lock),
+                  title: const Text('Ecash Seed Phrase'),
+                  onPressed: (context) async {
+                    final words = await SecureStorage.instance.getPhraseWords();
+                    Get.dialog(
+                      CupertinoAlertDialog(
+                        title: const Text('Ecash Seed Phrase'),
+                        content: Text(
+                          words ??
+                              'The seed phrase for the first ID is also the seed phrase for ecash.',
                         ),
-                        if (words != null)
+                        actions: [
                           CupertinoDialogAction(
-                            isDefaultAction: true,
-                            onPressed: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: words),
-                              );
-                              EasyLoading.showSuccess('Copied');
-                              Get.back<void>();
-                            },
-                            child: const Text('Copy'),
+                            onPressed: Get.back,
+                            child: const Text('OK'),
                           ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          if (words != null)
+                            CupertinoDialogAction(
+                              isDefaultAction: true,
+                              onPressed: () async {
+                                await Clipboard.setData(
+                                  ClipboardData(text: words),
+                                );
+                                EasyLoading.showSuccess('Copied');
+                                Get.back<void>();
+                              },
+                              child: const Text('Copy'),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.restore),
                 title: const Text('Restore From Mint Server'),

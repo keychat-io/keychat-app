@@ -23,11 +23,23 @@ static void my_application_activate(GApplication* application) {
   // Try to set icon from installed location
   gchar *icon_path = NULL;
   const gchar *appdir = g_getenv("APPDIR");
+  const gchar *flatpak_id = g_getenv("FLATPAK_ID");
   if (appdir) {
+    // AppImage environment
     icon_path = g_strdup_printf("%s/share/icons/keychat.png", appdir);
+  } else if (flatpak_id != NULL) {
+    // Flatpak environment - resources are under /app
+    icon_path = g_strdup("/app/share/icons/keychat.png");
   } else {
-    // fallback to current directory or build directory
-    icon_path = g_strdup("share/icons/keychat.png");
+    // Get the executable's directory for regular builds
+    g_autofree gchar *exe_path = g_file_read_link("/proc/self/exe", NULL);
+    if (exe_path) {
+      g_autofree gchar *exe_dir = g_path_get_dirname(exe_path);
+      icon_path = g_strdup_printf("%s/share/icons/keychat.png", exe_dir);
+    } else {
+      // fallback to current directory
+      icon_path = g_strdup("share/icons/keychat.png");
+    }
   }
   gtk_window_set_icon_from_file(GTK_WINDOW(window), icon_path, NULL);
   g_free(icon_path);

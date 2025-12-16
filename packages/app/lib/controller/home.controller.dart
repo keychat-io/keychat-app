@@ -1,8 +1,21 @@
 import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 
+import 'package:app_links/app_links.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTabController;
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_new_badger/flutter_new_badger.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
+import 'package:keychat/main.dart' show appLaunchArgs;
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
@@ -18,21 +31,10 @@ import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/remote_config.dart' as remote_config;
-import 'package:app_links/app_links.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dio/dio.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/cupertino.dart' show CupertinoTabController;
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter_new_badger/flutter_new_badger.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -547,10 +549,20 @@ class HomeController extends GetxController
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists (without requesting permission on startup)
-      Future.delayed(const Duration(seconds: 3)).then((_) {
-        NotifyService.instance.init().catchError((Object e, StackTrace s) {
-          logger.e('initNotifycation error', error: e, stackTrace: s);
-        });
+      Future.delayed(const Duration(seconds: 3)).then((_) async {
+        // Initialize based on user's push type preference
+        final pushType =
+            Storage.getString(StorageKeyString.pushNotificationType) ?? 'fcm';
+        if (pushType == 'unifiedpush' &&
+            (GetPlatform.isAndroid || GetPlatform.isLinux)) {
+          // User chose UnifiedPush - initialize it with launch args for Linux support
+          await UnifiedPushService.instance.init(appLaunchArgs);
+        } else {
+          // User chose FCM or platform doesn't support UnifiedPush
+          NotifyService.instance.init().catchError((Object e, StackTrace s) {
+            logger.e('initNotifycation error', error: e, stackTrace: s);
+          });
+        }
       });
     }
     FlutterNativeSplash.remove(); // close splash page

@@ -16,6 +16,7 @@ import 'package:keychat/page/widgets/notice_text_widget.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -192,6 +193,18 @@ class MoreChatSetting extends GetView<HomeController> {
   Future<void> handleNotificationSetting() async {
     final homeController = Get.find<HomeController>();
     final permission = await NotifyService.instance.isNotifyPermissionGrant();
+
+    // Get current push type (default to 'fcm')
+    final pushType = RxString(
+      Storage.getString(StorageKeyString.pushNotificationType) ?? 'fcm',
+    );
+    // Get current UnifiedPush distributor
+    final currentDistributor = RxnString();
+    if (GetPlatform.isAndroid || GetPlatform.isLinux) {
+      currentDistributor.value = await UnifiedPushService.instance
+          .getCurrentDistributor();
+    }
+
     await Get.bottomSheet<void>(
       Obx(
         () => SettingsList(
@@ -217,33 +230,97 @@ class MoreChatSetting extends GetView<HomeController> {
                   },
                   title: const Text('Notification status'),
                 ),
-                SettingsTile.navigation(
-                  title: const Text('FCMToken'),
-                  onPressed: (context) {
-                    if (NotifyService.instance.fcmToken == null) {
-                      EasyLoading.showError(
-                        'FCM Token not available! Please check your network and re-open the notification status.',
-                      );
-                      return;
-                    }
-                    Clipboard.setData(
-                      ClipboardData(
-                        text: NotifyService.instance.fcmToken ?? '',
-                      ),
-                    );
-                    logger.i('FCMToken: ${NotifyService.instance.fcmToken}');
-                    EasyLoading.showSuccess('Copied');
-                  },
-                  value: Text(
-                    homeController.notificationStatus.value && permission
-                        ? NotifyService.instance.fcmToken == null
-                              ? 'Fetch Failed'
-                              : NotifyService.instance.fcmToken!.substring(0, 5)
-                        : '',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                // Push type selection - only for Android and Linux
+                if (GetPlatform.isAndroid || GetPlatform.isLinux)
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.swap_horiz),
+                    title: const Text('Push Service'),
+                    description: const Text(
+                      'Choose between FCM (Google) or UnifiedPush (privacy-friendly)',
+                    ),
+                    value: Text(
+                      pushType.value == 'fcm' ? 'FCM' : 'UnifiedPush',
+                    ),
+                    onPressed: (context) async {
+                      await _showPushTypeSelector(pushType);
+                    },
                   ),
-                ),
+                // UnifiedPush distributor selection - only when UnifiedPush is selected
+                if ((GetPlatform.isAndroid || GetPlatform.isLinux) &&
+                    pushType.value == 'unifiedpush')
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.apps),
+                    title: const Text('UnifiedPush Distributor'),
+                    description: const Text(
+                      'Select the app that will handle push notifications',
+                    ),
+                    value: Text(
+                      currentDistributor.value != null
+                          ? _formatDistributorName(currentDistributor.value!)
+                          : 'Not selected',
+                    ),
+                    onPressed: (context) async {
+                      await _showDistributorSelector(currentDistributor);
+                    },
+                  ),
+                // FCM Token - only show when FCM is selected
+                if (pushType.value == 'fcm')
+                  SettingsTile.navigation(
+                    title: const Text('FCMToken'),
+                    onPressed: (context) {
+                      if (NotifyService.instance.fcmToken == null) {
+                        EasyLoading.showError(
+                          'FCM Token not available! Please check your network and re-open the notification status.',
+                        );
+                        return;
+                      }
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: NotifyService.instance.fcmToken ?? '',
+                        ),
+                      );
+                      logger.i('FCMToken: ${NotifyService.instance.fcmToken}');
+                      EasyLoading.showSuccess('Copied');
+                    },
+                    value: Text(
+                      homeController.notificationStatus.value && permission
+                          ? NotifyService.instance.fcmToken == null
+                                ? 'Fetch Failed'
+                                : NotifyService.instance.fcmToken!.substring(
+                                    0,
+                                    5,
+                                  )
+                          : '',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                // UnifiedPush Endpoint - only show when UnifiedPush is selected
+                if ((GetPlatform.isAndroid || GetPlatform.isLinux) &&
+                    pushType.value == 'unifiedpush')
+                  SettingsTile.navigation(
+                    title: const Text('Push Endpoint'),
+                    onPressed: (context) {
+                      final endpoint =
+                          UnifiedPushService.instance.currentEndpoint;
+                      if (endpoint == null) {
+                        EasyLoading.showError(
+                          'Push endpoint not available! Please select a distributor first.',
+                        );
+                        return;
+                      }
+                      Clipboard.setData(ClipboardData(text: endpoint));
+                      logger.i('UnifiedPush Endpoint: $endpoint');
+                      EasyLoading.showSuccess('Copied');
+                    },
+                    value: Text(
+                      UnifiedPushService.instance.currentEndpoint != null
+                          ? '${UnifiedPushService.instance.currentEndpoint!.substring(0, 20)}...'
+                          : 'Not registered',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
                 SettingsTile.navigation(
                   title: const Text('Open System Settings'),
                   onPressed: (context) {
@@ -262,6 +339,199 @@ class MoreChatSetting extends GetView<HomeController> {
         ),
       ),
     );
+  }
+
+  /// Show push type selector dialog (FCM vs UnifiedPush)
+  Future<void> _showPushTypeSelector(RxString pushType) async {
+    final result = await showDialog<String>(
+      context: Get.context!,
+      builder: (BuildContext context) {
+        return SimpleDialog(
+          title: const Text('Select Push Service'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop('fcm'),
+              child: ListTile(
+                leading: Icon(
+                  Icons.cloud,
+                  color: pushType.value == 'fcm'
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                title: const Text('FCM (Firebase Cloud Messaging)'),
+                subtitle: const Text('Google push service, requires GMS'),
+                trailing: pushType.value == 'fcm'
+                    ? Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop('unifiedpush'),
+              child: ListTile(
+                leading: Icon(
+                  Icons.security,
+                  color: pushType.value == 'unifiedpush'
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                title: const Text('UnifiedPush'),
+                subtitle: const Text(
+                  'Privacy-friendly, requires distributor app (e.g., ntfy)',
+                ),
+                trailing: pushType.value == 'unifiedpush'
+                    ? Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result != pushType.value) {
+      final oldPushType = pushType.value;
+
+      await EasyLoading.show(status: 'Switching push service...');
+
+      try {
+        // Step 1: Clear old registration from server
+        if (oldPushType == 'unifiedpush' &&
+            UnifiedPushService.instance.isRegistered) {
+          // Unregister from UnifiedPush (this also clears from server)
+          await UnifiedPushService.instance.unregister();
+        } else if (oldPushType == 'fcm' &&
+            NotifyService.instance.fcmToken != null) {
+          // Clear FCM registration from server
+          await NotifyService.instance.clearAll();
+        }
+
+        // Step 2: Update storage with new push type
+        pushType.value = result;
+        await Storage.setString(StorageKeyString.pushNotificationType, result);
+
+        // Step 3: Initialize new push service
+        if (result == 'unifiedpush') {
+          // Initialize UnifiedPush
+          await UnifiedPushService.instance.init();
+          await EasyLoading.showSuccess('Switched to UnifiedPush');
+        } else {
+          // Initialize FCM
+          await NotifyService.instance.init();
+          await EasyLoading.showSuccess('Switched to FCM');
+        }
+      } catch (e) {
+        logger.e('Failed to switch push service', error: e);
+        // Rollback on failure
+        pushType.value = oldPushType;
+        await Storage.setString(
+          StorageKeyString.pushNotificationType,
+          oldPushType,
+        );
+        await EasyLoading.showError('Failed to switch push service');
+      }
+    }
+  }
+
+  /// Show UnifiedPush distributor selector dialog
+  Future<void> _showDistributorSelector(RxnString currentDistributor) async {
+    await EasyLoading.show(status: 'Loading distributors...');
+
+    final distributors = await UnifiedPushService.instance
+        .getAvailableDistributors();
+    await EasyLoading.dismiss();
+
+    if (distributors.isEmpty) {
+      await EasyLoading.showError(
+        'No UnifiedPush distributors found.\nPlease install a distributor app like ntfy or NextPush.',
+      );
+      return;
+    }
+
+    final result = await showDialog<String>(
+      context: Get.context!,
+      builder: (BuildContext context) {
+        return SimpleDialog(
+          title: const Text('Select Distributor'),
+          children: distributors.map((distributor) {
+            final isSelected = distributor == currentDistributor.value;
+            final displayName = _formatDistributorName(distributor);
+            return SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(distributor),
+              child: ListTile(
+                leading: Icon(
+                  Icons.notifications_active,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                title: Text(displayName),
+                subtitle: Text(
+                  distributor,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                trailing: isSelected
+                    ? Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+
+    if (result != null && result != currentDistributor.value) {
+      await EasyLoading.show(status: 'Switching distributor...');
+      try {
+        // Unregister from current distributor if registered
+        if (UnifiedPushService.instance.isRegistered) {
+          await UnifiedPushService.instance.unregister();
+        }
+
+        // Save and register with new distributor
+        await UnifiedPushService.instance.selectDistributor();
+
+        currentDistributor.value = await UnifiedPushService.instance
+            .getCurrentDistributor();
+        await EasyLoading.showSuccess('Distributor changed');
+      } catch (e) {
+        logger.e('Failed to switch distributor', error: e);
+        await EasyLoading.showError('Failed to switch distributor');
+      }
+    }
+  }
+
+  /// Format distributor package name to a more readable display name
+  String _formatDistributorName(String packageName) {
+    final knownDistributors = {
+      'org.unifiedpush.distributor.fcm': 'FCM Distributor',
+      'org.unifiedpush.distributor.nextpush': 'NextPush',
+      'io.heckel.ntfy': 'ntfy',
+      'org.unifiedpush.distributor.noprovider2push': 'NoProvider2Push',
+      'im.vector.app': 'Element',
+      'de.pixart.messenger': 'Pix-Art Messenger',
+      'eu.siacs.conversations': 'Conversations',
+    };
+
+    if (knownDistributors.containsKey(packageName)) {
+      return knownDistributors[packageName]!;
+    }
+
+    // Extract last part of package name and capitalize
+    final parts = packageName.split('.');
+    if (parts.isNotEmpty) {
+      final name = parts.last;
+      return name[0].toUpperCase() + name.substring(1);
+    }
+    return packageName;
   }
 
   Future<bool> disableNotification() async {

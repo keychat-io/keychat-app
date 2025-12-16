@@ -56,6 +56,9 @@ class StorageKeyString {
 
   static const String ecashDBVersion = 'ecashDBVersion';
   static const String recentEmojis = 'recentEmojis';
+
+  // Push notification type: 'fcm' or 'unifiedpush'
+  static const String pushNotificationType = 'pushNotificationType';
 }
 
 class Storage {

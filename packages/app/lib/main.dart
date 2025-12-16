@@ -19,6 +19,7 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat/utils/config.dart' as env_config;
@@ -27,12 +28,28 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 
 bool isProdEnv = true;
 
-void main() async {
+/// Store command line arguments for UnifiedPush Linux background support
+List<String> appLaunchArgs = [];
+
+void main(List<String> args) async {
+  // Store args for UnifiedPush Linux support
+  appLaunchArgs = args;
+
   final stopwatch = Stopwatch()..start();
   final sc = await initServices();
   final isLogin = await IdentityService.instance.count() > 0;
   final themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
+
+  // Check if running in UnifiedPush background mode on Linux
+  final isUnifiedPushBackground = args.contains('--unifiedpush-bg');
+  if (isUnifiedPushBackground && GetPlatform.isLinux) {
+    logger.i('Starting in UnifiedPush background mode');
+    // Initialize UnifiedPush in background mode
+    await UnifiedPushService.instance.init(args);
+    // Don't run the full app UI in background mode
+    return;
+  }
 
   initEasyLoading();
   Get.config(

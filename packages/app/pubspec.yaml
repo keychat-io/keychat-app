@@ -103,6 +103,10 @@ dependencies:
   json_serializable: ^6.9.0
   giphy_get: ^3.6.1+1
   emoji_picker_flutter: ^4.4.0
+  unifiedpush: ^6.2.0
+  unifiedpush_storage_interface: ^1.0.0
+  unifiedpush_storage_shared_preferences: ^1.0.0
+  unifiedpush_platform_interface: ^4.0.0
 
 dev_dependencies:
   flutter_test:

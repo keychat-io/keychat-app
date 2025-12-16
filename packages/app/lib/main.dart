@@ -1,5 +1,12 @@
 import 'dart:io' show Directory;
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/desktop/DesktopController.dart';
@@ -12,17 +19,9 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/storage.dart';
-import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat/utils/config.dart' as env_config;
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 

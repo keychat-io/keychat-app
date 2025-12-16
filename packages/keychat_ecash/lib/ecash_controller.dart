@@ -387,6 +387,7 @@ class EcashController extends GetxController {
   Future<void> restore() async {
     if (currentIdentity == null) return;
     final mnemonic = await currentIdentity!.getMnemonic();
+    final errors = <String, dynamic>{};
     for (final m in mints) {
       final Map? nuts = m.info?.nuts;
       logger.d('restore mint ${m.url} nuts: $nuts');
@@ -394,8 +395,15 @@ class EcashController extends GetxController {
         final res = await rust_cashu.restore(mintUrl: m.url, words: mnemonic);
         logger.d('restore mint ${res.$1.toInt()} proofs: ${res.$2.toInt()}');
       } catch (e) {
+        errors[m.url] = e.toString();
         logger.e('Failed to restore mint ${m.url}: $e');
       }
+    }
+    if (errors.isNotEmpty) {
+      final errorMsg = errors.entries
+          .map((e) => 'Mint: ${e.key}, Error: ${e.value}')
+          .join('\n');
+      throw Exception('Restore errors:\n$errorMsg');
     }
     await getBalance();
   }

@@ -1,6 +1,6 @@
-import 'package:keychat/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat/utils/config.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 

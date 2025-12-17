@@ -76,7 +76,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       // Load current push type
 
       // Load FCM token
-      _fcmToken = NotifyService.instance.currentDeviceId;
+      _fcmToken = await NotifyService.instance.deviceId;
 
       // Load UnifiedPush data
       if (GetPlatform.isAndroid || GetPlatform.isLinux) {
@@ -332,11 +332,20 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
 
   /// Change push type
   Future<void> _changePushType(PushType newType) async {
-    await EasyLoading.show(status: 'Switching...');
-
     try {
-      // Clear current registration
-      await NotifyService.instance.clearAll();
+      if (newType == PushType.unifiedpush) {
+        // Check if any distributors available BEFORE switching
+        final distributors = await UnifiedPushService.instance
+            .getAvailableDistributors();
+        if (distributors.isEmpty) {
+          await EasyLoading.showError(
+            'No UnifiedPush distributors found.\nPlease install a distributor app like ntfy or NextPush.',
+          );
+          return;
+        }
+      }
+
+      await EasyLoading.show(status: 'Switching...');
 
       // Save new type
       await Storage.setString(
@@ -345,34 +354,40 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       );
 
       // Initialize new service
+      // set the oldToken for NotifyService to clean up previous registrations
+      NotifyService.instance.oldToken = await NotifyService.instance.deviceId;
       if (newType == PushType.fcm) {
         // Initialize FCM
-        await NotifyService.instance.init(requestPermission: true);
+        await NotifyService.instance.init(
+          requestPermission: true,
+        );
         await UnifiedPushService.instance.unregister();
       } else {
         // Initialize UnifiedPush
-        await UnifiedPushService.instance.init();
+        final upService = UnifiedPushService.instance;
 
-        // Check if any distributors available
-        final distributors = await UnifiedPushService.instance
-            .getAvailableDistributors();
-        if (distributors.isEmpty) {
+        // Reset initialization state to allow re-init
+        upService.resetInitState();
+
+        // Initialize UnifiedPush service - don't auto prompt, we handle it here
+        await upService.init(autoPromptDistributor: false);
+
+        // Check if we have an endpoint after init
+        if (upService.currentEndpoint == null) {
+          // If no endpoint yet, might need user to select distributor
           await EasyLoading.dismiss();
-          await EasyLoading.showError(
-            'No UnifiedPush distributors found.\nPlease install a distributor app like ntfy or sunup.',
-          );
-          // Revert to FCM
-          await Storage.setString(
-            StorageKeyString.pushNotificationType,
-            'fcm',
-          );
-          await NotifyService.instance.init(requestPermission: true);
+
+          // Check if we need to show distributor picker
+          final currentDistributor = await upService.getCurrentDistributor();
+          if (currentDistributor == null) {
+            await _showDistributorPicker();
+          }
+
+          // Reload data
+          await _loadData();
           return;
         }
       }
-
-      // Sync to server
-      await NotifyService.instance.syncPubkeysToServer();
 
       await EasyLoading.showSuccess('Switched successfully');
 
@@ -611,7 +626,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
     try {
       await EasyLoading.show(status: 'Processing');
 
-      Get.find<HomeController>().disableNotification();
+      await Get.find<HomeController>().disableNotification();
 
       // Clear from server
       await NotifyService.instance.clearAll();

@@ -555,7 +555,7 @@ class HomeController extends GetxController
         if (pushType == 'unifiedpush' &&
             (GetPlatform.isAndroid || GetPlatform.isLinux)) {
           // User chose UnifiedPush - initialize it with launch args for Linux support
-          await UnifiedPushService.instance.init(appLaunchArgs);
+          await UnifiedPushService.instance.init(args: appLaunchArgs);
         } else {
           // User chose FCM or platform doesn't support UnifiedPush
           NotifyService.instance.init().catchError((Object e, StackTrace s) {

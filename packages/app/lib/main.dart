@@ -46,7 +46,7 @@ void main(List<String> args) async {
   if (isUnifiedPushBackground && GetPlatform.isLinux) {
     logger.i('Starting in UnifiedPush background mode');
     // Initialize UnifiedPush in background mode
-    await UnifiedPushService.instance.init(args);
+    await UnifiedPushService.instance.init(args: args);
     // Don't run the full app UI in background mode
     return;
   }

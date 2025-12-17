@@ -56,15 +56,6 @@ class NotifyService {
     return typeStr == 'unifiedpush' ? PushType.unifiedpush : PushType.fcm;
   }
 
-  /// Get the current device ID based on push type
-  /// Returns FCM token or UnifiedPush endpoint
-  String? get currentDeviceId {
-    if (currentPushType == PushType.unifiedpush) {
-      return UnifiedPushService.instance.currentEndpoint;
-    }
-    return fcmToken;
-  }
-
   /// Get push type string for API requests
   String get pushTypeString {
     return currentPushType == PushType.unifiedpush ? 'unifiedpush' : 'fcm';
@@ -76,7 +67,7 @@ class NotifyService {
     List<String> toAddPubkeys, [
     List<String> toRemovePubkeys = const [],
   ]) async {
-    final deviceId = currentDeviceId;
+    final deviceId = await this.deviceId;
     if (deviceId == null) {
       logger.w('addPubkeys: No device ID available ($pushTypeString)');
       return false;
@@ -138,7 +129,7 @@ class NotifyService {
   /// Clear all registrations from notification server
   /// Supports both FCM and UnifiedPush
   Future<void> clearAll() async {
-    final deviceId = currentDeviceId;
+    final deviceId = await this.deviceId;
     if (deviceId == null) {
       logger.w('clearAll: No device ID available');
       return;
@@ -152,6 +143,8 @@ class NotifyService {
       // Only clear fcmToken if using FCM
       if (currentPushType == PushType.fcm) {
         fcmToken = null;
+      } else {
+        await UnifiedPushService.instance.unregister();
       }
     } catch (e, s) {
       logger.e('clearAll ($pushTypeString)', error: e, stackTrace: s);
@@ -217,24 +210,9 @@ class NotifyService {
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   /// Sync pubkeys to notification server
   /// Supports both FCM and UnifiedPush
-  Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
-    // Get device ID based on current push type
-    String? deviceId;
-    if (currentPushType == PushType.unifiedpush) {
-      deviceId = UnifiedPushService.instance.currentEndpoint;
-      if (deviceId == null) {
-        logger.w('syncPubkeysToServer: UnifiedPush endpoint not available');
-        return;
-      }
-    } else {
-      fcmToken ??= await _getFCMToken();
-      deviceId = fcmToken;
-      if (deviceId == null) {
-        logger.w('syncPubkeysToServer: FCM token not available');
-        return;
-      }
-    }
-
+  Future<void> syncPubkeysToServer({
+    bool checkUpload = false,
+  }) async {
     final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
@@ -244,7 +222,11 @@ class NotifyService {
 
     final enable = Get.find<HomeController>().isNotificationEnabled;
     if (!enable) return;
-
+    final deviceId = await this.deviceId;
+    if (deviceId == null) {
+      logger.w('syncPubkeysToServer: No device ID available ($pushTypeString)');
+      return;
+    }
     final idPubkeys = await IdentityService.instance.getListenPubkeys(
       skipMute: true,
     );
@@ -265,12 +247,22 @@ class NotifyService {
       );
       if (hasUploaded) return;
     }
+    final preToken = deviceId == oldToken ? '' : oldToken;
     final map = {
       'kind': 4,
       'deviceId': deviceId,
       'pubkeys': [...idPubkeys, ...pubkeys2],
       'relays': relays,
+      'oldToken': preToken,
     };
+    if (deviceId.startsWith('http://') || deviceId.startsWith('https://')) {
+      final p256dh = UnifiedPushService.instance.p256dh;
+      final auth = UnifiedPushService.instance.auth;
+      if (p256dh != null && auth != null) {
+        map['p256dh'] = p256dh;
+        map['auth'] = auth;
+      }
+    }
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/init',
@@ -456,10 +448,25 @@ class NotifyService {
     await syncPubkeysToServer(checkUpload: true);
   }
 
+  String? _deviceId;
+  Future<String?> get deviceId async {
+    if (currentPushType == PushType.unifiedpush) {
+      _deviceId = UnifiedPushService.instance.currentEndpoint;
+    } else {
+      fcmToken ??= await _getFCMToken();
+      _deviceId = fcmToken;
+    }
+    return _deviceId;
+  }
+
+  String? _oldToken;
+  set oldToken(String? token) => _oldToken = token;
+  String get oldToken => _oldToken ?? '';
+
   /// Remove specific pubkeys from notification server
   /// Supports both FCM and UnifiedPush
   Future<bool> removePubkeys(List<String> pubkeys) async {
-    final deviceId = currentDeviceId;
+    final deviceId = await this.deviceId;
     if (deviceId == null) {
       logger.w('removePubkeys: No device ID available');
       return true;

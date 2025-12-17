@@ -154,7 +154,10 @@ class Storage {
     await sp.clear();
   }
 
-  static Future<void> setLocalStorageMap(String key, Map sourceMap) async {
+  static Future<void> setLocalStorageMap(
+    String key,
+    Map<String, dynamic> sourceMap,
+  ) async {
     final res = Storage.getString(key);
     Map map = {};
     if (res != null) {

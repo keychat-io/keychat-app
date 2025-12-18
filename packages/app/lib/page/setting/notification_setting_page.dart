@@ -36,9 +36,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   /// FCM token
   String? _fcmToken;
 
-  /// Whether UnifiedPush is registered
-  final bool _isUnifiedPushRegistered = false;
-
   /// Available distributors
   List<String> _availableDistributors = [];
 
@@ -46,7 +43,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   bool _isLoading = true;
 
   /// Notification enabled status
-  bool _isNotificationEnabled = false;
+  bool _isNotificationEnabled = true;
 
   /// Whether app has notification permission
   bool _hasPermission = false;
@@ -74,7 +71,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       logger.d(
         '_isNotificationEnabled: $_isNotificationEnabled, _hasPermission: $_hasPermission',
       );
-      // Load current push type
 
       // Load FCM token
       _fcmToken = await NotifyService.instance.deviceId;
@@ -120,9 +116,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
             SettingsTile.switchTile(
               initialValue: _isNotificationEnabled && _hasPermission,
               title: const Text('Enable Notifications'),
-              description: NoticeTextWidget.warning(
-                'When enabled, receiving addresses will be uploaded to the notification server.',
-              ),
               onToggle: (value) async {
                 if (value) {
                   await _enableNotification();
@@ -141,7 +134,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   ),
                 ),
                 onPressed: (_) async {
-                  final res = await openAppSettings();
+                  await openAppSettings();
                   await _loadData();
                 },
               ),
@@ -196,66 +189,29 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                 onPressed: (_) => _showDistributorPicker(),
               ),
               SettingsTile(
-                title: const Text('Registration Status'),
-                value: Text(
-                  _isUnifiedPushRegistered ? 'Registered' : 'Not Registered',
-                  style: TextStyle(
-                    color: _isUnifiedPushRegistered
-                        ? Colors.green
-                        : theme.colorScheme.error,
-                  ),
+                title: const Text('Endpoint'),
+                description: Text(
+                  _currentEndpoint?.url ?? 'none',
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
-                trailing: _isUnifiedPushRegistered
-                    ? null
-                    : TextButton(
-                        onPressed: _registerUnifiedPush,
-                        child: const Text('Register'),
-                      ),
               ),
-              if (_currentEndpoint != null)
-                SettingsTile(
-                  title: const Text('Endpoint'),
-                  description: Text(
-                    _currentEndpoint!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.copy, size: 20),
-                    onPressed: () {
-                      Clipboard.setData(
-                        ClipboardData(text: _currentEndpoint!),
-                      );
-                      EasyLoading.showSuccess('Copied');
-                    },
-                  ),
-                ),
             ],
           ),
 
         // FCM Settings
-        if (_isNotificationEnabled &&
-            _hasPermission &&
-            _pushType == PushType.fcm &&
-            _fcmToken != null)
+        if (_pushType == PushType.fcm)
           SettingsSection(
             title: const Text('FCM Settings'),
             tiles: [
               SettingsTile(
-                title: const Text('Device Token'),
-                description: Text(
-                  _fcmToken!,
-                  maxLines: 2,
+                title: const Text('FCM Token'),
+                value: Text(
+                  _formatText(_fcmToken),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.copy, size: 20),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _fcmToken!));
-                    EasyLoading.showSuccess('Copied');
-                  },
                 ),
               ),
             ],
@@ -476,37 +432,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
     }
   }
 
-  /// Register with UnifiedPush
-  Future<void> _registerUnifiedPush() async {
-    await EasyLoading.show(status: 'Registering...');
-
-    try {
-      if (_currentDistributor == null) {
-        // Need to select a distributor first
-        await EasyLoading.dismiss();
-        await _showDistributorPicker();
-        return;
-      }
-
-      // Use switchDistributor which handles the timing correctly
-      final endpoint = await UnifiedPushService.instance.switchDistributor(
-        _currentDistributor!,
-      );
-
-      if (endpoint != null) {
-        await EasyLoading.showSuccess('Registered');
-      } else {
-        await EasyLoading.showInfo('Registered, waiting for endpoint...');
-      }
-
-      // Reload data
-      await _loadData();
-    } catch (e) {
-      logger.e('Failed to register UnifiedPush', error: e);
-      await EasyLoading.showError('Failed to register');
-    }
-  }
-
   /// Format distributor package name to a more readable display name
   String _formatDistributorName(String packageName) {
     final knownDistributors = {
@@ -583,7 +508,9 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         await NotifyService.instance.syncPubkeysToServer();
       } else {
         // Initialize UnifiedPush
+        //
         final upService = UnifiedPushService.instance;
+        await upService.unregister();
         await upService.init(autoPromptDistributor: false);
 
         // Try to get endpoint with retry
@@ -622,6 +549,12 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
     }
   }
 
+  String _formatText(String? text) {
+    if (text == null || text.isEmpty) return 'none';
+    if (text.length <= 6) return text;
+    return '...${text.substring(text.length - 6)}';
+  }
+
   /// Disable notifications
   Future<void> _disableNotification() async {
     final confirmed = await Get.dialog<bool>(
@@ -656,11 +589,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
 
       // Clear from server and unregister based on push type
       await NotifyService.instance.clearAll();
-
-      if (_pushType == PushType.unifiedpush) {
-        // Unregister from UnifiedPush distributor
-        await UnifiedPushService.instance.unregister();
-      }
 
       await EasyLoading.showSuccess('Disabled');
 

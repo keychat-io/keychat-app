@@ -143,9 +143,8 @@ class NotifyService {
       // Only clear fcmToken if using FCM
       if (currentPushType == PushType.fcm) {
         fcmToken = null;
-      } else {
-        await UnifiedPushService.instance.unregister();
       }
+      await UnifiedPushService.instance.unregister();
     } catch (e, s) {
       logger.e('clearAll ($pushTypeString)', error: e, stackTrace: s);
     }
@@ -256,8 +255,9 @@ class NotifyService {
       'oldToken': preToken,
     };
     if (deviceId.startsWith('http://') || deviceId.startsWith('https://')) {
-      final p256dh = UnifiedPushService.instance.p256dh;
-      final auth = UnifiedPushService.instance.auth;
+      final p256dh =
+          UnifiedPushService.instance.currentEndpoint?.pubKeySet?.pubKey;
+      final auth = UnifiedPushService.instance.currentEndpoint?.pubKeySet?.auth;
       if (p256dh != null && auth != null) {
         map['p256dh'] = p256dh;
         map['auth'] = auth;
@@ -508,10 +508,4 @@ class NotifyService {
       }
     }
   }
-}
-
-class NotifySettingStatus {
-  static const int enable = 1;
-  static const int disable = -1;
-  static const int notConfirm = 0;
 }

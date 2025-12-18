@@ -1,5 +1,5 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class LocalNotificationService {
   factory LocalNotificationService() => _instance;
@@ -10,6 +10,7 @@ class LocalNotificationService {
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  static bool _notificationInitialized = false;
 
   /// Initialize the notification service
   Future<void> initialize() async {
@@ -33,10 +34,12 @@ class LocalNotificationService {
       linux: initializationSettingsLinux,
     );
 
-    await _notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-    );
+    _notificationInitialized =
+        await _notificationsPlugin.initialize(
+          initializationSettings,
+          onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+        ) ??
+        false;
 
     // // Request permissions for iOS/macOS
     // if (defaultTargetPlatform == TargetPlatform.iOS ||
@@ -120,6 +123,8 @@ class LocalNotificationService {
     required String body,
     String? payload,
   }) async {
+    if (!_notificationInitialized) await initialize();
+
     const androidDetails = AndroidNotificationDetails(
       'keychat_channel',
       'Keychat Notifications',
@@ -140,12 +145,12 @@ class LocalNotificationService {
       presentSound: true,
     );
 
-    const linuxDetails = LinuxNotificationDetails();
+    const linuxDetails = LinuxNotificationDetails(defaultActionName: 'open');
 
     const platformDetails = NotificationDetails(
       android: androidDetails,
-      iOS: iOSDetails,
-      macOS: macOSDetails,
+      // iOS: iOSDetails,
+      // macOS: macOSDetails,
       linux: linuxDetails,
     );
 

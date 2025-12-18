@@ -539,7 +539,7 @@ class HomeController extends GetxController
       await setSelectedTab(cupertinoTabController.index);
     });
     super.onInit();
-
+    await loadNotificationConfig();
     final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
@@ -937,17 +937,21 @@ ${file.message}
     enableDMFromNostrApp.value = res;
   }
 
-  int notificationState = NotifySettingStatus.enable;
+  int _notificationState = NotifySettingStatus.enable;
+  int get notificationState {
+    return _notificationState;
+  }
+
   Future<void> disableNotification() async {
     await Storage.setInt(
       StorageKeyString.settingNotifyStatus,
       NotifySettingStatus.disable,
     );
-    notificationState = NotifySettingStatus.disable;
+    _notificationState = NotifySettingStatus.disable;
   }
 
   bool get isNotificationEnabled {
-    return notificationState == NotifySettingStatus.enable;
+    return _notificationState != NotifySettingStatus.disable;
   }
 
   Future<void> enableNotification() async {
@@ -955,14 +959,13 @@ ${file.message}
       StorageKeyString.settingNotifyStatus,
       NotifySettingStatus.enable,
     );
-    notificationState = NotifySettingStatus.enable;
+    _notificationState = NotifySettingStatus.enable;
   }
 
-  Future<int> loadNotification() async {
-    final status = Storage.getIntOrZero(
+  Future<void> loadNotificationConfig() async {
+    _notificationState = Storage.getIntOrZero(
       StorageKeyString.settingNotifyStatus,
     );
-    return status;
   }
 }
 

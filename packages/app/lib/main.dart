@@ -32,18 +32,21 @@ bool isProdEnv = true;
 List<String> appLaunchArgs = [];
 
 void main(List<String> args) async {
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
   // Store args for UnifiedPush Linux support
   appLaunchArgs = args;
   // Initialize UnifiedPush in background mode
   // Don't run the full app UI in background mode
   if (args.contains('--unifiedpush-bg')) {
     logger.i('Starting in UnifiedPush background mode');
+    await Storage.init();
     await UnifiedPushService.instance.init(args: args);
     return;
   }
 
   final stopwatch = Stopwatch()..start();
-  final sc = await initServices();
+  final sc = await initServices(widgetsBinding);
 
   final isLogin = await IdentityService.instance.count() > 0;
   final themeMode = await getThemeMode();
@@ -106,8 +109,7 @@ void initEasyLoading() {
     ..fontSize = 16;
 }
 
-Future<SettingController> initServices() async {
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],

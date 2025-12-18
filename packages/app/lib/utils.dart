@@ -1514,3 +1514,9 @@ class _IdentityButtonController extends GetxController {
     update();
   }
 }
+
+class NotifySettingStatus {
+  static const int enable = 1;
+  static const int disable = -1;
+  static const int notConfirm = 0;
+}

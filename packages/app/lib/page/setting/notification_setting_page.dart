@@ -12,6 +12,7 @@ import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:unifiedpush/unifiedpush.dart';
 
 /// Notification settings page with proper state management
 class NotificationSettingPage extends StatefulWidget {
@@ -30,13 +31,13 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   String? _currentDistributor;
 
   /// Current endpoint (for UnifiedPush)
-  String? _currentEndpoint;
+  PushEndpoint? _currentEndpoint;
 
   /// FCM token
   String? _fcmToken;
 
   /// Whether UnifiedPush is registered
-  bool _isUnifiedPushRegistered = false;
+  final bool _isUnifiedPushRegistered = false;
 
   /// Available distributors
   List<String> _availableDistributors = [];
@@ -83,7 +84,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         _currentDistributor = await UnifiedPushService.instance
             .getCurrentDistributor();
         _currentEndpoint = UnifiedPushService.instance.currentEndpoint;
-        _isUnifiedPushRegistered = UnifiedPushService.instance.isRegistered;
         _availableDistributors = await UnifiedPushService.instance
             .getAvailableDistributors();
       }
@@ -366,14 +366,11 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         // Initialize UnifiedPush
         final upService = UnifiedPushService.instance;
 
-        // Reset initialization state to allow re-init
-        upService.resetInitState();
-
         // Initialize UnifiedPush service - don't auto prompt, we handle it here
         await upService.init(autoPromptDistributor: false);
-
+        final currentEndpoint = await upService.getCurrentEndpointWithRetry();
         // Check if we have an endpoint after init
-        if (upService.currentEndpoint == null) {
+        if (currentEndpoint == null) {
           // If no endpoint yet, might need user to select distributor
           await EasyLoading.dismiss();
 
@@ -382,7 +379,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
           if (currentDistributor == null) {
             await _showDistributorPicker();
           }
-
           // Reload data
           await _loadData();
           return;
@@ -567,22 +563,52 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       await EasyLoading.show(status: 'Initializing...');
       await Get.find<HomeController>().enableNotification();
 
-      // Initialize notification service
-      await NotifyService.instance.init(requestPermission: true);
+      // Initialize notification service based on push type
+      if (_pushType == PushType.fcm) {
+        // Initialize FCM
+        await NotifyService.instance.init(requestPermission: true);
 
-      // Check permission
-      final hasPermission = await NotifyService.instance
-          .isNotifyPermissionGrant();
-      if (!hasPermission) {
-        await EasyLoading.showError(
-          'Please enable notification permission in system settings',
-        );
-        await openAppSettings();
-        return;
+        // Check permission
+        final hasPermission = await NotifyService.instance
+            .isNotifyPermissionGrant();
+        if (!hasPermission) {
+          await EasyLoading.showError(
+            'Please enable notification permission in system settings',
+          );
+          await openAppSettings();
+          return;
+        }
+
+        // Sync to server
+        await NotifyService.instance.syncPubkeysToServer();
+      } else {
+        // Initialize UnifiedPush
+        final upService = UnifiedPushService.instance;
+        await upService.init(autoPromptDistributor: false);
+
+        // Try to get endpoint with retry
+        final endpoint = await upService.getCurrentEndpointWithRetry();
+
+        if (endpoint == null) {
+          // Need to select distributor
+          await EasyLoading.dismiss();
+
+          final currentDistributor = await upService.getCurrentDistributor();
+          if (currentDistributor == null) {
+            await _showDistributorPicker();
+          } else {
+            // Re-register with current distributor
+            await upService.switchDistributor(currentDistributor);
+          }
+
+          await _loadData();
+          return;
+        }
+
+        // Sync to server
+        await NotifyService.instance.syncPubkeysToServer();
       }
 
-      // Sync to server
-      await NotifyService.instance.syncPubkeysToServer();
       await EasyLoading.showSuccess('Enabled');
 
       // Reload data
@@ -628,8 +654,14 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
 
       await Get.find<HomeController>().disableNotification();
 
-      // Clear from server
+      // Clear from server and unregister based on push type
       await NotifyService.instance.clearAll();
+
+      if (_pushType == PushType.unifiedpush) {
+        // Unregister from UnifiedPush distributor
+        await UnifiedPushService.instance.unregister();
+      }
+
       await EasyLoading.showSuccess('Disabled');
 
       // Reload data

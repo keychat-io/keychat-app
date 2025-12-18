@@ -448,15 +448,11 @@ class NotifyService {
     await syncPubkeysToServer(checkUpload: true);
   }
 
-  String? _deviceId;
   Future<String?> get deviceId async {
     if (currentPushType == PushType.unifiedpush) {
-      _deviceId = UnifiedPushService.instance.currentEndpoint;
-    } else {
-      fcmToken ??= await _getFCMToken();
-      _deviceId = fcmToken;
+      return UnifiedPushService.instance.currentEndpoint?.url;
     }
-    return _deviceId;
+    return fcmToken ?? await _getFCMToken();
   }
 
   String? _oldToken;

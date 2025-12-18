@@ -5,9 +5,9 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat/app.dart';
+import 'package:keychat/global.dart' show KeychatGlobal;
+import 'package:keychat/service/local_notification_service.dart';
 import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/utils/notification_utils.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import 'package:unifiedpush_platform_interface/unifiedpush_platform_interface.dart'
     show LinuxOptions;
@@ -24,6 +24,7 @@ class UnifiedPushService {
   PushEndpoint? currentEndpoint;
   String? p256dh;
   String? auth;
+  bool isBackground = false;
 
   /// Get the currently saved distributor
   Future<String?> getCurrentDistributor() async {
@@ -50,16 +51,12 @@ class UnifiedPushService {
     if (!GetPlatform.isAndroid && !GetPlatform.isLinux) {
       return;
     }
-
-    logger.i('[UnifiedPush] Starting initialization...');
+    debugPrint('[UnifiedPush] Starting initialization...');
 
     // Configure Linux options if on Linux platform
     LinuxOptions? linuxOptions;
+    final isBackground = args.contains('--unifiedpush-bg');
     if (GetPlatform.isLinux) {
-      final isBackground = args.contains('--unifiedpush-bg');
-      logger.i(
-        '[UnifiedPush] Linux platform detected, background: $isBackground',
-      );
       linuxOptions = LinuxOptions(
         dbusName: KeychatGlobal.appPackageName,
         storage: UnifiedPushStorageSharedPreferences(),
@@ -78,7 +75,7 @@ class UnifiedPushService {
       linuxOptions: linuxOptions,
     );
 
-    logger.i(
+    debugPrint(
       '[UnifiedPush] Initialized. Already registered: $alreadyRegistered',
     );
     if (alreadyRegistered) {
@@ -99,7 +96,7 @@ class UnifiedPushService {
   Future<PushEndpoint?> switchDistributor(String newDistributor) async {
     final currentDistributor = await getCurrentDistributor();
 
-    logger.i(
+    debugPrint(
       '[UnifiedPush] Switching distributor: $currentDistributor -> $newDistributor',
     );
 
@@ -110,17 +107,17 @@ class UnifiedPushService {
 
     // Unregister from current distributor if switching to a different one
     if (currentDistributor != newDistributor) {
-      logger.i('[UnifiedPush] Unregistering from current distributor...');
+      debugPrint('[UnifiedPush] Unregistering from current distributor...');
       await unregister();
       // Wait a bit for unregister to propagate
       await Future<void>.delayed(const Duration(milliseconds: 500));
     }
 
     // Save and register with new distributor
-    logger.i('[UnifiedPush] Saving distributor: $newDistributor');
+    debugPrint('[UnifiedPush] Saving distributor: $newDistributor');
     await UnifiedPush.saveDistributor(newDistributor);
 
-    logger.i('[UnifiedPush] Registering with new distributor...');
+    debugPrint('[UnifiedPush] Registering with new distributor...');
     await UnifiedPush.register(instance: localInstance);
     await Future.delayed(const Duration(seconds: 1));
     return currentEndpoint;
@@ -143,17 +140,17 @@ class UnifiedPushService {
     Duration retryInterval = const Duration(seconds: 1),
   }) async {
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
-      logger.i(
+      debugPrint(
         '[UnifiedPush] Attempting to get endpoint (attempt $attempt/$maxAttempts)...',
       );
 
       if (currentEndpoint != null) {
-        logger.i('[UnifiedPush] Endpoint found: ${currentEndpoint!.url}');
+        debugPrint('[UnifiedPush] Endpoint found: ${currentEndpoint!.url}');
         return currentEndpoint;
       }
 
       if (attempt < maxAttempts) {
-        logger.i(
+        debugPrint(
           '[UnifiedPush] Endpoint not available, waiting ${retryInterval.inSeconds}s...',
         );
         await Future.delayed(retryInterval);
@@ -178,14 +175,9 @@ class UnifiedPushService {
       }
     }
     currentEndpoint = endpoint;
+    if (isBackground) return;
     NotifyService.instance.oldToken = await NotifyService.instance.deviceId;
-
-    loggerNoLine
-      ..i('[UnifiedPush] ✅ New endpoint received!')
-      ..i('[UnifiedPush]   Instance: $instance')
-      ..i('[UnifiedPush]   Endpoint URL: ${endpoint.url}')
-      ..i('[UnifiedPush]   pubKeySet: ${endpoint.pubKeySet?.pubKey}')
-      ..i('[UnifiedPush]   pubKeySet: ${endpoint.pubKeySet?.auth}');
+    debugPrint('[UnifiedPush]   Endpoint URL: ${endpoint.url}');
     EasyThrottle.throttle(
       'unifiedpush_sync:${endpoint.url}',
       const Duration(seconds: 1),
@@ -198,22 +190,18 @@ class UnifiedPushService {
   /// Sync the UnifiedPush endpoint to notification server
   Future<void> _syncEndpointToServer() async {
     if (currentEndpoint == null) {
-      logger.w('[UnifiedPush] Cannot sync: no endpoint available');
+      debugPrint('[UnifiedPush] Cannot sync: no endpoint available');
       return;
     }
 
     try {
-      logger.i(
+      debugPrint(
         '[UnifiedPush] Syncing endpoint ${currentEndpoint!.url} to notification server...',
       );
       await NotifyService.instance.syncPubkeysToServer(checkUpload: true);
-      logger.i('[UnifiedPush] Endpoint synced successfully');
+      debugPrint('[UnifiedPush] Endpoint synced successfully');
     } catch (e, s) {
-      logger.e(
-        '[UnifiedPush] Failed to sync endpoint',
-        error: e,
-        stackTrace: s,
-      );
+      debugPrint('[UnifiedPush] Failed to sync endpoint');
     }
   }
 
@@ -226,21 +214,17 @@ class UnifiedPushService {
       return;
     }
     currentEndpoint = null;
-    logger.e('[UnifiedPush] ❌ Registration failed!');
+    debugPrint('[UnifiedPush] ❌ Registration failed! $reason');
 
     var reasonMsg = '';
     switch (reason) {
       case FailedReason.network:
-        logger.e('[UnifiedPush]   Network error - check internet connection');
         reasonMsg = 'Network error, please check your internet connection';
       case FailedReason.internalError:
-        logger.e('[UnifiedPush]   Internal error in the distributor');
         reasonMsg = 'Internal error in the distributor';
       case FailedReason.actionRequired:
-        logger.e('[UnifiedPush]   User action required in distributor app');
         reasonMsg = 'Action required in the distributor app';
       case FailedReason.vapidRequired:
-        logger.e('[UnifiedPush]   VAPID key required but not provided');
         reasonMsg = 'VAPID key required but not provided';
     }
 
@@ -264,14 +248,29 @@ class UnifiedPushService {
 
   /// Called when the distributor is temporarily unavailable
   void _onTempUnavailable(String instance) {
-    logger.w('[UnifiedPush] ⚠️ Distributor temporarily unavailable');
-    logger.w('[UnifiedPush]   Instance: $instance');
-    logger.w('[UnifiedPush]   Push notifications may be delayed');
+    debugPrint('[UnifiedPush] _onTempUnavailable  Instance: $instance');
   }
 
   /// Called when a push message is received
-  void _onMessage(PushMessage message, String instance) {
-    logger.d('[UnifiedPush] 📩 : ${utf8.decode(message.content)}, $instance');
-    UPNotificationUtils.basicOnNotification(message, instance);
+  Future<void> _onMessage(PushMessage message, String instance) async {
+    if (instance != KeychatGlobal.appName) {
+      return;
+    }
+    String? id;
+    try {
+      final payload = utf8.decode(message.content);
+      final data = jsonDecode(payload) as Map<String, dynamic>;
+      id = data['id'] as String?;
+      debugPrint('[UnifiedPush] $instance 📩 : $payload');
+    } catch (e) {
+      debugPrint(
+        "Couldn't decrypt content (decrypted=${message.decrypted}): $e",
+      );
+    }
+    await LocalNotificationService().showNotification(
+      id: DateTime.now().microsecondsSinceEpoch % 100000000,
+      title: '📩 Keychat',
+      body: id ?? 'New Message',
+    );
   }
 }

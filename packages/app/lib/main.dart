@@ -34,22 +34,20 @@ List<String> appLaunchArgs = [];
 void main(List<String> args) async {
   // Store args for UnifiedPush Linux support
   appLaunchArgs = args;
+  // Initialize UnifiedPush in background mode
+  // Don't run the full app UI in background mode
+  if (args.contains('--unifiedpush-bg')) {
+    logger.i('Starting in UnifiedPush background mode');
+    await UnifiedPushService.instance.init(args: args);
+    return;
+  }
 
   final stopwatch = Stopwatch()..start();
   final sc = await initServices();
+
   final isLogin = await IdentityService.instance.count() > 0;
   final themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
-
-  // Check if running in UnifiedPush background mode on Linux
-  final isUnifiedPushBackground = args.contains('--unifiedpush-bg');
-  if (isUnifiedPushBackground && GetPlatform.isLinux) {
-    logger.i('Starting in UnifiedPush background mode');
-    // Initialize UnifiedPush in background mode
-    await UnifiedPushService.instance.init(args: args);
-    // Don't run the full app UI in background mode
-    return;
-  }
 
   initEasyLoading();
   Get.config(

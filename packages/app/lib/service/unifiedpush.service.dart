@@ -75,12 +75,19 @@ class UnifiedPushService {
     }
 
     debugPrint('[UnifiedPush] Starting initialization...');
+    debugPrint(
+      '[UnifiedPush] Platform: Linux=${GetPlatform.isLinux}, Android=${GetPlatform.isAndroid}',
+    );
 
     // Configure Linux options if on Linux platform
     LinuxOptions? linuxOptions;
     if (GetPlatform.isLinux) {
+      const dbusName = KeychatGlobal.appPackageName;
+      debugPrint('[UnifiedPush] DBus Name: $dbusName');
+      debugPrint('[UnifiedPush] Background mode: $isBackground');
+
       linuxOptions = LinuxOptions(
-        dbusName: KeychatGlobal.appPackageName,
+        dbusName: dbusName,
         storage: UnifiedPushStorageSharedPreferences(),
         background: isBackground,
       );
@@ -106,13 +113,23 @@ class UnifiedPushService {
       await UnifiedPush.register(instance: localInstance);
       return;
     }
+
+    debugPrint('[UnifiedPush] Checking for distributors...');
+    final distributorsBeforeRegister = await UnifiedPush.getDistributors();
+    debugPrint(
+      '[UnifiedPush] Available distributors before register: $distributorsBeforeRegister (count: ${distributorsBeforeRegister.length})',
+    );
+
     UnifiedPush.tryUseCurrentOrDefaultDistributor().then((success) async {
-      debugPrint("Current or Default found=$success");
+      debugPrint('[UnifiedPush] Current or Default found=$success');
       if (success) {
+        _isInitialized = true;
         UnifiedPush.register(instance: localInstance);
       }
       final distributors = await UnifiedPush.getDistributors();
-      debugPrint("Available distributors: $distributors");
+      debugPrint(
+        '[UnifiedPush] Available distributors after tryUse: $distributors',
+      );
     });
   }
 

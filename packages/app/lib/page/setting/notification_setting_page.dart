@@ -25,7 +25,7 @@ class NotificationSettingPage extends StatefulWidget {
 
 class _NotificationSettingPageState extends State<NotificationSettingPage> {
   /// Current push type
-  PushType _pushType = PushType.fcm;
+  PushType _pushType = GetPlatform.isLinux ? PushType.unifiedpush : PushType.fcm;
 
   /// Current distributor (for UnifiedPush)
   String? _currentDistributor;
@@ -67,21 +67,23 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         _hasPermission = true;
       } else {
         _hasPermission = await NotifyService.instance.isNotifyPermissionGrant();
+        _fcmToken = await NotifyService.instance.deviceId;
       }
       logger.d(
         '_isNotificationEnabled: $_isNotificationEnabled, _hasPermission: $_hasPermission',
       );
 
-      // Load FCM token
-      _fcmToken = await NotifyService.instance.deviceId;
-
       // Load UnifiedPush data
       if (GetPlatform.isAndroid || GetPlatform.isLinux) {
+        await UnifiedPushService.instance.init(autoPromptDistributor: false);
         _currentDistributor = await UnifiedPushService.instance
             .getCurrentDistributor();
         _currentEndpoint = UnifiedPushService.instance.currentEndpoint;
         _availableDistributors = await UnifiedPushService.instance
             .getAvailableDistributors();
+        _currentEndpoint = await UnifiedPushService.instance
+            .getCurrentEndpointWithRetry();
+
       }
     } catch (e) {
       logger.e('Failed to load notification settings', error: e);
@@ -160,7 +162,13 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   style: TextStyle(color: theme.colorScheme.primary),
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onPressed: (_) => _showPushTypePicker(),
+                onPressed: (_) async{
+                  if(GetPlatform.isLinux){
+                    EasyLoading.showInfo('On Linux, only UnifiedPush is supported.');
+                    return;
+                  }
+                  await _showPushTypePicker();
+                },
               ),
             ],
           ),

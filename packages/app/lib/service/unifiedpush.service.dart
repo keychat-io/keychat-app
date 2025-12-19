@@ -101,11 +101,19 @@ class UnifiedPushService {
       '[UnifiedPush] Initialized. Already registered: $alreadyRegistered',
     );
 
-    _isInitialized = true;
-
     if (alreadyRegistered) {
+      _isInitialized = true;
       await UnifiedPush.register(instance: localInstance);
+      return;
     }
+    UnifiedPush.tryUseCurrentOrDefaultDistributor().then((success) async {
+      debugPrint("Current or Default found=$success");
+      if (success) {
+        UnifiedPush.register(instance: localInstance);
+      }
+      final distributors = await UnifiedPush.getDistributors();
+      debugPrint("Available distributors: $distributors");
+    });
   }
 
   void onUnregistered(String instance) {

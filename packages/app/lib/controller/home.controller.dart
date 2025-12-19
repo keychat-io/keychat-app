@@ -550,14 +550,11 @@ class HomeController extends GetxController
       // init notify service when identity exists (without requesting permission on startup)
       Future.delayed(const Duration(seconds: 3)).then((_) async {
         // Initialize based on user's push type preference
-        final pushType =
-            Storage.getString(StorageKeyString.pushNotificationType) ?? 'fcm';
-        if (pushType == 'unifiedpush' &&
+        final pushType = NotifyService.instance.currentPushType;
+        if (pushType == PushType.unifiedpush &&
             (GetPlatform.isAndroid || GetPlatform.isLinux)) {
-          // User chose UnifiedPush - initialize it with launch args for Linux support
           await UnifiedPushService.instance.init(args: appLaunchArgs);
         } else {
-          // User chose FCM or platform doesn't support UnifiedPush
           NotifyService.instance.init().catchError((Object e, StackTrace s) {
             logger.e('initNotifycation error', error: e, stackTrace: s);
           });

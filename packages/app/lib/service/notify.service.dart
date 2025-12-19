@@ -51,6 +51,9 @@ class NotifyService {
 
   /// Get current push type from storage
   PushType get currentPushType {
+    if(GetPlatform.isLinux){
+      return PushType.unifiedpush;
+    }
     final typeStr =
         Storage.getString(StorageKeyString.pushNotificationType) ?? 'fcm';
     return typeStr == 'unifiedpush' ? PushType.unifiedpush : PushType.fcm;
@@ -151,9 +154,12 @@ class NotifyService {
   }
 
   Future<bool> isNotifyPermissionGrant() async {
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.i('Notification not working on windows and linux');
+    if (GetPlatform.isWindows) {
+      logger.i('Notification not working on windows');
       return false;
+    }
+    if (GetPlatform.isLinux) {
+      return true;
     }
 
     try {

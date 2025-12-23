@@ -139,7 +139,9 @@ melos bootstrap
 
 # build rust lib: packages\keychat_rust_ffi_plugin\README.md
 # cd packages/keychat_rust_ffi_plugin
-# git submodule update --init --recursive
+
+# apt install protobuf-compiler
+# apt install libsecret-1-dev
 
 cd packages/app
 flutter devices

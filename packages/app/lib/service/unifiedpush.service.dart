@@ -309,7 +309,7 @@ class UnifiedPushService {
     if (instance != KeychatGlobal.appName) {
       return;
     }
-    if (!isBackground) {
+    if (!isBackground && GetPlatform.isAndroid) {
       try {
         final isResumed = Get.find<HomeController>().resumed;
         if (isResumed) {
@@ -347,7 +347,9 @@ class UnifiedPushService {
     await LocalNotificationService().showNotification(
       id: DateTime.now().microsecondsSinceEpoch % 100000000,
       title: '📩 Keychat',
-      body: id != null ? 'EventId: $id' : 'New Message',
+      body: id != null && id.length > 8
+          ? 'EventId: ${id.substring(0, 8)}...'
+          : 'New Message',
     );
   }
 }

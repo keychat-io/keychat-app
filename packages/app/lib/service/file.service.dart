@@ -102,7 +102,6 @@ class FileService {
     final dir = Directory('${Utils.appFolder.path}/${Config.env}/');
     if (dir.existsSync()) {
       await dir.delete(recursive: true);
-      logger.i('delete other file');
     }
   }
 

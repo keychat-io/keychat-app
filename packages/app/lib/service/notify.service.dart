@@ -28,6 +28,12 @@ enum PushType {
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await dotenv.load();
+  } catch (e) {
+    debugPrint('Failed to load dotenv in background handler: $e');
+  }
+
   final app = Firebase.apps.isEmpty
       ? await Firebase.initializeApp(
           name: GetPlatform.isAndroid ? 'keychat-bg' : null,

@@ -1,7 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/browser/browser_connect.dart';
 import 'package:keychat/models/db_provider.dart';
@@ -18,16 +29,6 @@ import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
-import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:settings_ui/settings_ui.dart';
@@ -178,6 +179,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           Obx(
             () => Expanded(
               child: SettingsList(
+                contentPadding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom,
+                ),
                 platform: DevicePlatform.iOS,
                 sections: [
                   SettingsSection(
@@ -482,7 +486,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           ),
                         _getNsec(),
                         SettingsTile.navigation(
-                          leading: const Icon(Icons.key),
+                          leading: const Icon(Icons.lock),
                           title: const Text('Seed Phrase'),
                           onPressed: (context) async {
                             if (controller.identity.value.index == -1) {
@@ -491,40 +495,46 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               );
                               return;
                             }
-                            var mnemonic = controller.identity.value.mnemonic;
-                            if (mnemonic == null || mnemonic.isEmpty) {
-                              mnemonic = await SecureStorage.instance
-                                  .getPhraseWords();
-                            }
-                            if (mnemonic == null || mnemonic.isEmpty) {
-                              EasyLoading.showError('Seed phrase not found');
-                              return;
-                            }
-                            Get.dialog(
-                              CupertinoAlertDialog(
-                                title: const Text('Seed Phrase'),
-                                content: Text(mnemonic),
-                                actions: <Widget>[
-                                  CupertinoDialogAction(
-                                    isDefaultAction: true,
-                                    onPressed: () {
-                                      Clipboard.setData(
-                                        ClipboardData(
-                                          text: mnemonic ?? '',
+                            await Get.find<SettingController>()
+                                .biometricAuthThen(() async {
+                                  var mnemonic =
+                                      controller.identity.value.mnemonic;
+                                  if (mnemonic == null || mnemonic.isEmpty) {
+                                    mnemonic = await SecureStorage.instance
+                                        .getPhraseWords();
+                                  }
+                                  if (mnemonic == null || mnemonic.isEmpty) {
+                                    EasyLoading.showError(
+                                      'Seed phrase not found',
+                                    );
+                                    return;
+                                  }
+                                  Get.dialog(
+                                    CupertinoAlertDialog(
+                                      title: const Text('Seed Phrase'),
+                                      content: Text(mnemonic),
+                                      actions: <Widget>[
+                                        CupertinoDialogAction(
+                                          isDefaultAction: true,
+                                          onPressed: () {
+                                            Clipboard.setData(
+                                              ClipboardData(
+                                                text: mnemonic ?? '',
+                                              ),
+                                            );
+                                            EasyLoading.showSuccess('Copied');
+                                            Get.back<void>();
+                                          },
+                                          child: const Text('Copy'),
                                         ),
-                                      );
-                                      EasyLoading.showSuccess('Copied');
-                                      Get.back<void>();
-                                    },
-                                    child: const Text('Copy'),
-                                  ),
-                                  CupertinoDialogAction(
-                                    onPressed: Get.back,
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                            );
+                                        CupertinoDialogAction(
+                                          onPressed: Get.back,
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                });
                           },
                         ),
                       ],
@@ -556,36 +566,38 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       leading: showIcon ? const Icon(Icons.key) : null,
       title: const Text('Nsec'),
       onPressed: (c) async {
-        var nsec = '';
-        try {
-          final sk = await controller.identity.value.getSecp256k1SKHex();
-          nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
-        } catch (e) {
-          logger.e('Failed to get Nsec: ${Utils.getErrorMessage(e)}');
-          EasyLoading.showError(Utils.getErrorMessage(e));
-          return;
-        }
-        Get.dialog(
-          CupertinoAlertDialog(
-            title: const Text('Nsec'),
-            content: Text(nsec),
-            actions: <Widget>[
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: nsec));
-                  EasyLoading.showSuccess('Copied');
-                  Get.back<void>();
-                },
-                child: const Text('Copy'),
-              ),
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        );
+        await Get.find<SettingController>().biometricAuthThen(() async {
+          late String nsec;
+          try {
+            final sk = await controller.identity.value.getSecp256k1SKHex();
+            nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
+          } catch (e) {
+            logger.e('Failed to get Nsec: ${Utils.getErrorMessage(e)}');
+            EasyLoading.showError(Utils.getErrorMessage(e));
+            return;
+          }
+          Get.dialog(
+            CupertinoAlertDialog(
+              title: const Text('Nsec'),
+              content: Text(nsec),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: nsec));
+                    EasyLoading.showSuccess('Copied');
+                    Get.back<void>();
+                  },
+                  child: const Text('Copy'),
+                ),
+                CupertinoDialogAction(
+                  onPressed: Get.back,
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          );
+        });
       },
     );
   }

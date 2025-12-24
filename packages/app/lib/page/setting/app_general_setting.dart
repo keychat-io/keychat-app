@@ -512,71 +512,50 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
             isDestructiveAction: true,
             child: const Text('Logout'),
             onPressed: () async {
-              // Biometrics Auth
-              if (GetPlatform.isMobile) {
-                final isBiometricsEnable = await SecureStorage.instance
-                    .isBiometricsEnable();
-                if (isBiometricsEnable) {
-                  final authed = await Get.to(
-                    () => const BiometricAuthScreen(
-                      canPop: true,
-                      title: 'Authenticate to Logout',
-                    ),
-                    fullscreenDialog: true,
-                    popGesture: true,
-                    transition: Transition.fadeIn,
-                  );
-                  if (authed == null || authed == false) {
-                    return;
-                  }
-                }
-              }
-              EasyLoading.show(status: 'Processing...');
-              try {
-                // Stop WebSocket first
-                await Get.find<WebsocketService>().stopListening();
-
-                // Close database connection to release file handles
-                await DBProvider.close();
-
-                // Close logger to release log file handles (critical for Windows)
-                await Utils.closeLogger();
-
-                // Add a short delay to ensure all file handles are released on Windows
-                await Future.delayed(const Duration(milliseconds: 500));
-
-                // Now delete all files
-                await FileService.instance
-                    .deleteAllFolder(); // delete all files
-
-                await Storage.clearAll();
-                await SecureStorage.instance.clearAll();
-                await Storage.setInt(StorageKeyString.onboarding, 0);
+              await Get.find<SettingController>().biometricAuthThen(() async {
+                EasyLoading.show(status: 'Processing...');
                 try {
-                  final type = NotifyService.instance.currentPushType;
-                  if (type == PushType.fcm) {
-                    await FirebaseMessaging.instance.deleteToken();
-                  } else {
-                    await UnifiedPushService.instance.unregister();
+                  // Stop WebSocket first
+                  await Get.find<WebsocketService>().stopListening();
+
+                  // Close database connection to release file handles
+                  await DBProvider.close();
+
+                  // Now delete all files
+                  await FileService.instance
+                      .deleteAllFolder(); // delete all files
+
+                  await Storage.clearAll();
+                  await SecureStorage.instance.clearAll();
+                  await Storage.setInt(StorageKeyString.onboarding, 0);
+                  try {
+                    final type = NotifyService.instance.currentPushType;
+                    if (type == PushType.fcm) {
+                      FirebaseMessaging.instance.deleteToken();
+                    } else {
+                      UnifiedPushService.instance.unregister();
+                    }
+                  } catch (e) {}
+                  NotifyService.instance.clearAll();
+                  if (kReleaseMode) {
+                    EasyLoading.showSuccess(
+                      'Logout successfully, App will exit',
+                    );
+                    await Future.delayed(const Duration(seconds: 2));
+                    exit(0);
                   }
-                } catch (e) {}
-                NotifyService.instance.clearAll();
-                if (kReleaseMode) {
-                  EasyLoading.showSuccess('Logout successfully, App will exit');
-                  await Future.delayed(const Duration(seconds: 2));
-                  exit(0);
+                  // for debug mode, just go to login page
+                  await EasyLoading.showSuccess('Logout successfully');
+                  await Get.offAllNamed(Routes.login);
+                } catch (e, s) {
+                  final msg = Utils.getErrorMessage(e);
+                  logger.e(msg, error: e, stackTrace: s);
+                  EasyLoading.showError(
+                    msg,
+                    duration: const Duration(seconds: 4),
+                  );
                 }
-                // for debug mode, just go to login page
-                await EasyLoading.showSuccess('Logout successfully');
-                await Get.offAllNamed(Routes.login);
-              } catch (e, s) {
-                final msg = Utils.getErrorMessage(e);
-                logger.e(msg, error: e, stackTrace: s);
-                EasyLoading.showError(
-                  msg,
-                  duration: const Duration(seconds: 4),
-                );
-              }
+              });
             },
           ),
         ],

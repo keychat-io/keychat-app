@@ -36,7 +36,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   PushEndpoint? _currentEndpoint;
 
   /// FCM token
-  String? _currentDeivceId;
+  String? _fcm;
 
   /// Available distributors
   List<String> _availableDistributors = [];
@@ -85,7 +85,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         _hasPermission = await NotifyService.instance.isNotifyPermissionGrant();
       }
       if (_isNotificationEnabled) {
-        _currentDeivceId = await NotifyService.instance.deviceId;
+        _fcm = await NotifyService.instance.deviceId;
       }
       logger.d(
         '_isNotificationEnabled: $_isNotificationEnabled, _hasPermission: $_hasPermission',
@@ -205,8 +205,15 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
               ),
               SettingsTile(
                 title: const Text('Endpoint'),
+                onPressed: (context) async {
+                  if (_currentEndpoint?.url == null) return;
+                  await Clipboard.setData(
+                    ClipboardData(text: _currentEndpoint!.url),
+                  );
+                  await EasyLoading.showSuccess('Copied to clipboard');
+                },
                 description: Text(
-                  _currentEndpoint?.url ?? 'none',
+                  _currentEndpoint?.url ?? 'None',
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
@@ -223,8 +230,9 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
               SettingsTile(
                 title: const Text('FCM Token'),
                 value: Text(
-                  _formatText(_currentDeivceId),
-                  maxLines: 1,
+                  ((_fcm ?? 'none').length) > 6
+                      ? '${_fcm?.substring(0, 6)}...'
+                      : 'none',
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),
@@ -562,12 +570,6 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       await Future<void>.delayed(const Duration(seconds: 1));
       await EasyLoading.dismiss();
     }
-  }
-
-  String _formatText(String? text) {
-    if (text == null || text.isEmpty) return 'none';
-    if (text.length <= 6) return text;
-    return '...${text.substring(text.length - 6)}';
   }
 
   /// Disable notifications

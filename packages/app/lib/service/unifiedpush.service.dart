@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart' show KeychatGlobal;
@@ -264,37 +265,30 @@ class UnifiedPushService {
     if (instance != localInstance) {
       return;
     }
-    currentEndpoint = null;
-    debugPrint('[UnifiedPush] ❌ Registration failed! $reason');
+    EasyThrottle.throttle(
+      '_onRegistrationFailed:$instance',
+      const Duration(seconds: 1),
+      () async {
+        currentEndpoint = null;
+        debugPrint('[UnifiedPush] ❌ Registration failed! $reason');
 
-    var reasonMsg = '';
-    switch (reason) {
-      case FailedReason.network:
-        reasonMsg = 'Network error, please check your internet connection';
-      case FailedReason.internalError:
-        reasonMsg = 'Internal error in the distributor';
-      case FailedReason.actionRequired:
-        reasonMsg = 'Action required in the distributor app';
-      case FailedReason.vapidRequired:
-        reasonMsg = 'VAPID key required but not provided';
-    }
+        var reasonMsg = '';
+        switch (reason) {
+          case FailedReason.network:
+            reasonMsg = 'Network error, please check your internet connection';
+          case FailedReason.internalError:
+            reasonMsg = 'Internal error in the distributor';
+          case FailedReason.actionRequired:
+            reasonMsg = 'Action required in the distributor app';
+          case FailedReason.vapidRequired:
+            reasonMsg = 'VAPID key required but not provided';
+        }
 
-    final context = Get.context;
-    if (context != null && reasonMsg.isNotEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => CupertinoAlertDialog(
-          title: const Text('Push Registration Failed'),
-          content: Text(reasonMsg),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
+        await EasyLoading.showError(
+          'UnfiedPush Registration Failed. $reasonMsg',
+        );
+      },
+    );
   }
 
   /// Called when the distributor is temporarily unavailable

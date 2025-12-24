@@ -28,16 +28,14 @@ enum PushType {
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    if (Firebase.apps.isEmpty) {
-      final app = await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      logger.i('Firebase initialized in background: ${app.name}');
-    }
-    debugPrint('Handling a background message: ${message.messageId}');
-  }
+  final app = Firebase.apps.isEmpty
+      ? await Firebase.initializeApp(
+          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+          options: DefaultFirebaseOptions.currentPlatform,
+        )
+      : Firebase.app(GetPlatform.isAndroid ? 'keychat-bg' : '[DEFAULT]');
+  debugPrint('Firebase initialized in background: ${app.name}');
+  debugPrint('Handling a background message: ${message.messageId}');
 }
 
 class NotifyService {
@@ -51,7 +49,7 @@ class NotifyService {
 
   /// Get current push type from storage
   PushType get currentPushType {
-    if(GetPlatform.isLinux){
+    if (GetPlatform.isLinux) {
       return PushType.unifiedpush;
     }
     final typeStr =
@@ -386,7 +384,10 @@ class NotifyService {
   /// 1. On app startup (if user hasn't disabled notifications and chose FCM)
   /// 2. When user enables notifications in settings and chose FCM
   /// Note: For UnifiedPush, use UnifiedPushService.instance.init() instead
-  Future<void> init({bool requestPermission = false}) async {
+  Future<void> init({
+    bool requestPermission = false,
+    bool checkUpload = false,
+  }) async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
       logger.i('Notification not working on windows and linux');
       return;
@@ -434,7 +435,6 @@ class NotifyService {
           duration: const Duration(seconds: 4),
         );
       }
-
       return;
     }
     logger.i('Setup FcmToken: $fcmToken');
@@ -451,7 +451,7 @@ class NotifyService {
     _setupFCMListeners();
 
     // Sync pubkeys to server
-    await syncPubkeysToServer(checkUpload: true);
+    await syncPubkeysToServer(checkUpload: checkUpload);
   }
 
   Future<String?> get deviceId async {

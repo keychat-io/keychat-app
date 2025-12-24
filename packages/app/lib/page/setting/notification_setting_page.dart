@@ -25,7 +25,9 @@ class NotificationSettingPage extends StatefulWidget {
 
 class _NotificationSettingPageState extends State<NotificationSettingPage> {
   /// Current push type
-  PushType _pushType = GetPlatform.isLinux ? PushType.unifiedpush : PushType.fcm;
+  PushType _pushType = GetPlatform.isLinux
+      ? PushType.unifiedpush
+      : PushType.fcm;
 
   /// Current distributor (for UnifiedPush)
   String? _currentDistributor;
@@ -34,7 +36,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   PushEndpoint? _currentEndpoint;
 
   /// FCM token
-  String? _fcmToken;
+  String? _currentDeivceId;
 
   /// Available distributors
   List<String> _availableDistributors = [];
@@ -65,26 +67,29 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       _pushType = NotifyService.instance.currentPushType;
       if (_pushType == PushType.unifiedpush) {
         _hasPermission = true;
+        if (_isNotificationEnabled) {
+          if (GetPlatform.isAndroid || GetPlatform.isLinux) {
+            await UnifiedPushService.instance.init(
+              autoPromptDistributor: false,
+            );
+            _currentDistributor = await UnifiedPushService.instance
+                .getCurrentDistributor();
+            _currentEndpoint = UnifiedPushService.instance.currentEndpoint;
+            _availableDistributors = await UnifiedPushService.instance
+                .getAvailableDistributors();
+            _currentEndpoint = await UnifiedPushService.instance
+                .getCurrentEndpointWithRetry();
+          }
+        }
       } else {
         _hasPermission = await NotifyService.instance.isNotifyPermissionGrant();
-        _fcmToken = await NotifyService.instance.deviceId;
+      }
+      if (_isNotificationEnabled) {
+        _currentDeivceId = await NotifyService.instance.deviceId;
       }
       logger.d(
         '_isNotificationEnabled: $_isNotificationEnabled, _hasPermission: $_hasPermission',
       );
-
-      // Load UnifiedPush data
-      if (GetPlatform.isAndroid || GetPlatform.isLinux) {
-        await UnifiedPushService.instance.init(autoPromptDistributor: false);
-        _currentDistributor = await UnifiedPushService.instance
-            .getCurrentDistributor();
-        _currentEndpoint = UnifiedPushService.instance.currentEndpoint;
-        _availableDistributors = await UnifiedPushService.instance
-            .getAvailableDistributors();
-        _currentEndpoint = await UnifiedPushService.instance
-            .getCurrentEndpointWithRetry();
-
-      }
     } catch (e) {
       logger.e('Failed to load notification settings', error: e);
     } finally {
@@ -162,9 +167,11 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   style: TextStyle(color: theme.colorScheme.primary),
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onPressed: (_) async{
-                  if(GetPlatform.isLinux){
-                    EasyLoading.showInfo('On Linux, only UnifiedPush is supported.');
+                onPressed: (_) async {
+                  if (GetPlatform.isLinux) {
+                    EasyLoading.showInfo(
+                      'On Linux, only UnifiedPush is supported.',
+                    );
                     return;
                   }
                   await _showPushTypePicker();
@@ -209,14 +216,14 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
           ),
 
         // FCM Settings
-        if (_pushType == PushType.fcm)
+        if (_pushType == PushType.fcm && _isNotificationEnabled)
           SettingsSection(
             title: const Text('FCM Settings'),
             tiles: [
               SettingsTile(
                 title: const Text('FCM Token'),
                 value: Text(
-                  _formatText(_fcmToken),
+                  _formatText(_currentDeivceId),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
@@ -311,6 +318,9 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
 
       await EasyLoading.show(status: 'Switching...');
 
+      // set the oldToken for NotifyService to clean up previous registrations
+      NotifyService.instance.oldToken = await NotifyService.instance.deviceId;
+
       // Save new type
       await Storage.setString(
         StorageKeyString.pushNotificationType,
@@ -318,10 +328,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       );
 
       // Initialize new service
-      // set the oldToken for NotifyService to clean up previous registrations
-      NotifyService.instance.oldToken = await NotifyService.instance.deviceId;
       if (newType == PushType.fcm) {
-        // Initialize FCM
         await NotifyService.instance.init(
           requestPermission: true,
         );
@@ -594,10 +601,9 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
       await EasyLoading.show(status: 'Processing');
 
       await Get.find<HomeController>().disableNotification();
-
+      _isNotificationEnabled = false;
       // Clear from server and unregister based on push type
       await NotifyService.instance.clearAll();
-
       await EasyLoading.showSuccess('Disabled');
 
       // Reload data

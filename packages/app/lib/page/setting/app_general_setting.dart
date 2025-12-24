@@ -1,5 +1,11 @@
 import 'dart:io' show exit;
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
@@ -15,14 +21,9 @@ import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class AppGeneralSetting extends StatefulWidget {
@@ -550,10 +551,14 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
 
                 await Storage.clearAll();
                 await SecureStorage.instance.clearAll();
-                Storage.setInt(StorageKeyString.onboarding, 0);
+                await Storage.setInt(StorageKeyString.onboarding, 0);
                 try {
-                  await FirebaseMessaging.instance.deleteToken();
-                  // ignore: empty_catches
+                  final type = NotifyService.instance.currentPushType;
+                  if (type == PushType.fcm) {
+                    await FirebaseMessaging.instance.deleteToken();
+                  } else {
+                    await UnifiedPushService.instance.unregister();
+                  }
                 } catch (e) {}
                 NotifyService.instance.clearAll();
                 if (kReleaseMode) {
@@ -562,8 +567,8 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                   exit(0);
                 }
                 // for debug mode, just go to login page
-                EasyLoading.showSuccess('Logout successfully');
-                Get.offAllNamed(Routes.login);
+                await EasyLoading.showSuccess('Logout successfully');
+                await Get.offAllNamed(Routes.login);
               } catch (e, s) {
                 final msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: s);

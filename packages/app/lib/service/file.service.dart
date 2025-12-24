@@ -100,8 +100,83 @@ class FileService {
 
   Future<void> deleteAllFolder() async {
     final dir = Directory('${Utils.appFolder.path}/${Config.env}/');
-    if (dir.existsSync()) {
-      await dir.delete(recursive: true);
+    if (!dir.existsSync()) {
+      loggerNoLine.i('Directory does not exist: ${dir.path}');
+      return;
+    }
+
+    loggerNoLine.i('Starting to delete directory: ${dir.path}');
+    final failedFiles = <String>[];
+
+    try {
+      // List all files and subdirectories
+      await _deleteDirectoryContents(dir, failedFiles);
+
+      // Finally delete the directory itself
+      try {
+        await dir.delete();
+        loggerNoLine.i('Successfully deleted main directory: ${dir.path}');
+      } catch (e) {
+        loggerNoLine.e(
+          'Failed to delete main directory: ${dir.path}, error: $e',
+        );
+        failedFiles.add('Main directory: ${dir.path}');
+      }
+    } catch (e) {
+      loggerNoLine.e('Error during directory deletion: $e');
+    }
+
+    if (failedFiles.isNotEmpty) {
+      loggerNoLine.e('Failed to delete ${failedFiles.length} items:');
+      for (final file in failedFiles) {
+        loggerNoLine.e('  - $file');
+      }
+      throw Exception(
+        'Failed to delete ${failedFiles.length} files/folders. First failure: ${failedFiles.first}',
+      );
+    } else {
+      loggerNoLine.i('Successfully deleted all files in ${dir.path}');
+    }
+  }
+
+  Future<void> _deleteDirectoryContents(
+    Directory dir,
+    List<String> failedFiles,
+  ) async {
+    try {
+      final entities = dir.listSync();
+      loggerNoLine.i('Found ${entities.length} items in ${dir.path}');
+
+      for (final entity in entities) {
+        try {
+          if (entity is File) {
+            loggerNoLine.i('Deleting file: ${entity.path}');
+            await entity.delete();
+            loggerNoLine.i('✓ Deleted file: ${entity.path}');
+          } else if (entity is Directory) {
+            loggerNoLine.i('Processing subdirectory: ${entity.path}');
+            // Recursively delete subdirectory contents first
+            await _deleteDirectoryContents(entity, failedFiles);
+            // Then delete the empty directory
+            await entity.delete();
+            loggerNoLine.i('✓ Deleted directory: ${entity.path}');
+          }
+        } catch (e, s) {
+          loggerNoLine.e(
+            '✗ Failed to delete ${entity.path}: $e',
+            error: e,
+            stackTrace: s,
+          );
+          failedFiles.add('${entity.path} (Error: $e)');
+        }
+      }
+    } catch (e, s) {
+      loggerNoLine.e(
+        'Error listing directory contents: ${dir.path}, error: $e',
+        error: e,
+        stackTrace: s,
+      );
+      failedFiles.add('Directory listing failed: ${dir.path} (Error: $e)');
     }
   }
 

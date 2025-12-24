@@ -532,10 +532,22 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
               }
               EasyLoading.show(status: 'Processing...');
               try {
-                DBProvider.instance.deleteAll();
+                // Stop WebSocket first
+                await Get.find<WebsocketService>().stopListening();
+
+                // Close database connection to release file handles
+                await DBProvider.close();
+
+                // Close logger to release log file handles (critical for Windows)
+                await Utils.closeLogger();
+
+                // Add a short delay to ensure all file handles are released on Windows
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Now delete all files
                 await FileService.instance
                     .deleteAllFolder(); // delete all files
-                await Get.find<WebsocketService>().stopListening();
+
                 await Storage.clearAll();
                 await SecureStorage.instance.clearAll();
                 Storage.setInt(StorageKeyString.onboarding, 0);

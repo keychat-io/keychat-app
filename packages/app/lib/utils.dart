@@ -1023,7 +1023,13 @@ Init File: $time \n
     }
   }
 
+  static LogFileOutputs? _logOutput;
+
   static Future<void> initLoggger(Directory directory) async {
+    _logOutput = kReleaseMode
+        ? LogFileOutputs(await Utils.createLogFile(directory.path))
+        : null;
+
     logger = Logger(
       filter: kReleaseMode ? MyLogFilter() : null,
       printer: PrettyPrinter(
@@ -1033,9 +1039,7 @@ Init File: $time \n
         colors: false,
         methodCount: kReleaseMode ? 1 : 5,
       ),
-      output: kReleaseMode
-          ? LogFileOutputs(await Utils.createLogFile(directory.path))
-          : null,
+      output: _logOutput,
     );
 
     loggerNoLine = logger = Logger(
@@ -1047,10 +1051,16 @@ Init File: $time \n
         colors: false,
         methodCount: kReleaseMode ? 1 : 0,
       ),
-      output: kReleaseMode
-          ? LogFileOutputs(await Utils.createLogFile(directory.path))
-          : null,
+      output: _logOutput,
     );
+  }
+
+  /// Close logger file output to release file handles
+  static Future<void> closeLogger() async {
+    if (_logOutput != null) {
+      await _logOutput!.close();
+      _logOutput = null;
+    }
   }
 
   static String randomString(int length) {

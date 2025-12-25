@@ -1,4 +1,4 @@
-import 'dart:io' show exit;
+import 'dart:io' show Directory, exit;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,16 +15,16 @@ import 'package:keychat/page/components.dart';
 import 'package:keychat/page/dbSetup/db_setting.dart';
 import 'package:keychat/page/login/OnboardingPage2.dart';
 import 'package:keychat/page/routes.dart';
-import 'package:keychat/page/setting/BiometricAuthScreen.dart';
 import 'package:keychat/page/widgets/notice_text_widget.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
+import 'package:keychat/utils/config.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
 class AppGeneralSetting extends StatefulWidget {
   const AppGeneralSetting({super.key});
@@ -520,14 +520,10 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
 
                   // Close database connection to release file handles
                   await DBProvider.close();
-
-                  // Now delete all files
-                  await FileService.instance
-                      .deleteAllFolder(); // delete all files
-
                   await Storage.clearAll();
                   await SecureStorage.instance.clearAll();
                   await Storage.setInt(StorageKeyString.onboarding, 0);
+
                   try {
                     final type = NotifyService.instance.currentPushType;
                     if (type == PushType.fcm) {
@@ -537,6 +533,33 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                     }
                   } catch (e) {}
                   NotifyService.instance.clearAll();
+                  try {
+                    await _deleteAllFolder();
+                  } catch (e, s) {
+                    logger.e(
+                      '  Failed to delete folder',
+                      error: e,
+                      stackTrace: s,
+                    );
+                    await EasyLoading.dismiss();
+                    await Get.dialog<void>(
+                      CupertinoAlertDialog(
+                        title: const Text('Notice'),
+                        content: Text(
+                          'Database deletion failed. After closing the app, please delete the directory: ${Utils.appFolder.path}',
+                        ),
+                        actions: [
+                          CupertinoDialogAction(
+                            onPressed: () async {
+                              await launchUrl(Uri.file(Utils.appFolder.path));
+                              Get.back();
+                            },
+                            child: const Text('Open Folder'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   if (kReleaseMode) {
                     EasyLoading.showSuccess(
                       'Logout successfully, App will exit',
@@ -561,5 +584,31 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
         ],
       ),
     );
+  }
+
+  Future<void> _deleteAllFolder() async {
+    try {
+      final root = Utils.appFolder;
+      if (!root.existsSync()) return;
+      final envs = ['dev1', 'dev2', 'dev3', 'prod'];
+      for (final entity in root.listSync()) {
+        final name = entity.uri.pathSegments.lastWhere(
+          (s) => s.isNotEmpty,
+          orElse: () => '',
+        );
+        loggerNoLine.i('Processing folder: ${entity.uri}');
+        if (envs.contains(name) && name != Config.env) {
+          continue;
+        }
+        try {
+          await entity.delete(recursive: true);
+          loggerNoLine.i('Deleted folder: ${entity.uri}');
+        } catch (e) {
+          logger.e('Failed to delete folder: ${entity.uri}', error: e);
+        }
+      }
+    } catch (e) {
+      logger.e('Failed to delete folders', error: e);
+    }
   }
 }

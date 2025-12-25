@@ -1,5 +1,3 @@
-import 'dart:io' show Directory;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -114,18 +112,17 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
   );
-  final appFolder = await Utils.getAppFolder();
-  await dotenv.load();
-  await Storage.init();
-  await RustLib.init();
   const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
+  final appFolder = await Utils.initAppFolder(env);
+  final dbPath = Utils.dbPath;
+  await dotenv.load();
+  await Storage.init();
+  await RustLib.init();
 
   // init log file
   await Utils.initLoggger(appFolder);
-  final dbPath = '${appFolder.path}/$env/database/';
-  Directory(dbPath).createSync(recursive: true);
 
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);

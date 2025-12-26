@@ -15,22 +15,33 @@ import 'package:keychat/firebase_options.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:permission_handler/permission_handler.dart';
 
+/// Push notification type
+enum PushType {
+  fcm,
+  unifiedpush,
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    if (Firebase.apps.isEmpty) {
-      final app = await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      logger.i('Firebase initialized in background: ${app.name}');
-    }
-    debugPrint('Handling a background message: ${message.messageId}');
+  try {
+    await dotenv.load();
+  } catch (e) {
+    debugPrint('Failed to load dotenv in background handler: $e');
   }
+
+  final app = Firebase.apps.isEmpty
+      ? await Firebase.initializeApp(
+          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+          options: DefaultFirebaseOptions.currentPlatform,
+        )
+      : Firebase.app(GetPlatform.isAndroid ? 'keychat-bg' : '[DEFAULT]');
+  debugPrint('Firebase initialized in background: ${app.name}');
+  debugPrint('Handling a background message: ${message.messageId}');
 }
 
 class NotifyService {
@@ -41,11 +52,33 @@ class NotifyService {
   static NotifyService get instance => _instance ??= NotifyService._();
 
   String? fcmToken;
+
+  /// Get current push type from storage
+  PushType get currentPushType {
+    if (GetPlatform.isLinux) {
+      return PushType.unifiedpush;
+    }
+    final typeStr =
+        Storage.getString(StorageKeyString.pushNotificationType) ?? 'fcm';
+    return typeStr == 'unifiedpush' ? PushType.unifiedpush : PushType.fcm;
+  }
+
+  /// Get push type string for API requests
+  String get pushTypeString {
+    return currentPushType == PushType.unifiedpush ? 'unifiedpush' : 'fcm';
+  }
+
+  /// Add pubkeys to notification server
+  /// Supports both FCM and UnifiedPush
   Future<bool> addPubkeys(
     List<String> toAddPubkeys, [
     List<String> toRemovePubkeys = const [],
   ]) async {
-    if (fcmToken == null) return false;
+    final deviceId = await this.deviceId;
+    if (deviceId == null) {
+      logger.w('addPubkeys: No device ID available ($pushTypeString)');
+      return false;
+    }
     final res = await checkAllNotifyPermission();
     if (!res) return false;
     final relays = Get.find<WebsocketService>().getActiveRelayString();
@@ -54,13 +87,15 @@ class NotifyService {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/add',
         data: {
-          'deviceId': fcmToken,
+          'deviceId': deviceId,
           'pubkeys': toAddPubkeys,
           'toRemove': toRemovePubkeys,
           'relays': relays,
         },
       );
-      logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
+      logger.i(
+        'addPubkeys ($pushTypeString) $toAddPubkeys, response: ${res.data}',
+      );
       return res.data['data'] is! bool || res.data['data'] as bool;
     } on DioException catch (e) {
       logger.e('addPubkeys error: ${e.response?.data}', error: e);
@@ -78,41 +113,57 @@ class NotifyService {
     final isGrant = await isNotifyPermissionGrant();
     if (!isGrant) return false;
 
-    final enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().isNotificationEnabled;
     if (!enable) return false;
     return true;
   }
 
-  Future<bool> checkHashcode(String playerId, String hashcode) async {
+  Future<bool> checkHashcode(String deviceId, String hashcode) async {
     try {
       final res = await Dio().get(
-        '${KeychatGlobal.notifycationServer}/hashcode?play_id=$playerId',
+        '${KeychatGlobal.notifycationServer}/hashcode',
+        queryParameters: {
+          'play_id': deviceId,
+        },
       );
       return hashcode == res.data['data'];
     } catch (e, s) {
-      logger.e('checkPushed', error: e, stackTrace: s);
+      logger.e('checkHashcode ($pushTypeString)', error: e, stackTrace: s);
     }
     return false;
   }
 
+  /// Clear all registrations from notification server
+  /// Supports both FCM and UnifiedPush
   Future<void> clearAll() async {
-    if (fcmToken == null) return;
+    final deviceId = await this.deviceId;
+    if (deviceId == null) {
+      logger.w('clearAll: No device ID available');
+      return;
+    }
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/delete',
-        data: {'deviceId': fcmToken},
+        data: {'deviceId': deviceId},
       );
-      logger.i('clearAll success: ${res.data}');
-      fcmToken = null;
+      logger.i('clearAll ($pushTypeString) success: ${res.data}');
+      // Only clear fcmToken if using FCM
+      if (currentPushType == PushType.fcm) {
+        fcmToken = null;
+      }
+      await UnifiedPushService.instance.unregister();
     } catch (e, s) {
-      logger.e('clearAll', error: e, stackTrace: s);
+      logger.e('clearAll ($pushTypeString)', error: e, stackTrace: s);
     }
   }
 
   Future<bool> isNotifyPermissionGrant() async {
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.i('Notification not working on windows and linux');
+    if (GetPlatform.isWindows) {
+      logger.i('Notification not working on windows');
       return false;
+    }
+    if (GetPlatform.isLinux) {
+      return true;
     }
 
     try {
@@ -166,8 +217,11 @@ class NotifyService {
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
-  Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
-    if (fcmToken == null) return;
+  /// Sync pubkeys to notification server
+  /// Supports both FCM and UnifiedPush
+  Future<void> syncPubkeysToServer({
+    bool checkUpload = false,
+  }) async {
     final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
@@ -175,11 +229,13 @@ class NotifyService {
       await ContactService.instance.removeAllToRemoveKeys();
     }
 
-    final enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().isNotificationEnabled;
     if (!enable) return;
-    fcmToken ??= await _getFCMToken();
-    if (fcmToken == null) return;
-
+    final deviceId = await this.deviceId;
+    if (deviceId == null) {
+      logger.w('syncPubkeysToServer: No device ID available ($pushTypeString)');
+      return;
+    }
     final idPubkeys = await IdentityService.instance.getListenPubkeys(
       skipMute: true,
     );
@@ -195,26 +251,41 @@ class NotifyService {
         ...pubkeys2,
       ]);
       final hasUploaded = await checkHashcode(
-        fcmToken!,
+        deviceId,
         hashcode,
       );
       if (hasUploaded) return;
     }
+    final preToken = deviceId == oldToken ? '' : oldToken;
     final map = {
       'kind': 4,
-      'deviceId': fcmToken,
+      'deviceId': deviceId,
       'pubkeys': [...idPubkeys, ...pubkeys2],
       'relays': relays,
+      'oldToken': preToken,
     };
+    if (deviceId.startsWith('http://') || deviceId.startsWith('https://')) {
+      final p256dh =
+          UnifiedPushService.instance.currentEndpoint?.pubKeySet?.pubKey;
+      final auth = UnifiedPushService.instance.currentEndpoint?.pubKeySet?.auth;
+      if (p256dh != null && auth != null) {
+        map['p256dh'] = p256dh;
+        map['auth'] = auth;
+      }
+    }
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/init',
         data: map,
       );
 
-      logger.i('initNofityConfig ${res.data}');
+      logger.i('syncPubkeysToServer ($pushTypeString): ${res.data}');
     } on DioException catch (e, s) {
-      logger.e('initNofityConfig ${e.response}', error: e, stackTrace: s);
+      logger.e(
+        'syncPubkeysToServer ($pushTypeString): ${e.response}',
+        error: e,
+        stackTrace: s,
+      );
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
@@ -314,26 +385,29 @@ class NotifyService {
     }
   }
 
-  /// Initialize notification service
+  /// Initialize FCM notification service
   /// This should be called:
-  /// 1. On app startup (if user hasn't disabled notifications)
-  /// 2. When user enables notifications in settings
-  Future<void> init({bool requestPermission = false}) async {
+  /// 1. On app startup (if user hasn't disabled notifications and chose FCM)
+  /// 2. When user enables notifications in settings and chose FCM
+  /// Note: For UnifiedPush, use UnifiedPushService.instance.init() instead
+  Future<void> init({
+    bool requestPermission = false,
+    bool checkUpload = false,
+  }) async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
       logger.i('Notification not working on windows and linux');
       return;
     }
 
+    // Skip FCM initialization if user has chosen UnifiedPush
+    if (currentPushType == PushType.unifiedpush) {
+      return;
+    }
+
     logger.i('NotifyService init (requestPermission: $requestPermission)');
     final homeController = Get.find<HomeController>();
-
-    // Check if user has disabled notifications in app settings
-    final settingNotifyStatus = Storage.getIntOrZero(
-      StorageKeyString.settingNotifyStatus,
-    );
-    if (settingNotifyStatus == NotifySettingStatus.disable) {
+    if (homeController.notificationState == NotifySettingStatus.disable) {
       logger.i('Notification disabled by user setting');
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -342,7 +416,6 @@ class NotifyService {
       await _initializeFirebase();
     } catch (e) {
       logger.e('Failed to initialize Firebase', error: e);
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -356,7 +429,6 @@ class NotifyService {
 
     if (!hasPermission) {
       logger.i('Notification permission not granted');
-      homeController.notificationStatus.value = false;
       return;
     }
 
@@ -369,20 +441,10 @@ class NotifyService {
           duration: const Duration(seconds: 4),
         );
       }
-      homeController.notificationStatus.value = false;
       return;
     }
     logger.i('Setup FcmToken: $fcmToken');
-
-    // Update status
-    homeController.notificationStatus.value = true;
-    if (settingNotifyStatus != NotifySettingStatus.enable) {
-      await Storage.setInt(
-        StorageKeyString.settingNotifyStatus,
-        NotifySettingStatus.enable,
-      );
-    }
-
+    await Get.find<HomeController>().enableNotification();
     // Handle initial message if app was opened from notification
     FirebaseMessaging.instance.getInitialMessage().then(
       (initialMessage) async {
@@ -395,21 +457,41 @@ class NotifyService {
     _setupFCMListeners();
 
     // Sync pubkeys to server
-    await syncPubkeysToServer(checkUpload: true);
+    await syncPubkeysToServer(checkUpload: checkUpload);
   }
 
+  Future<String?> get deviceId async {
+    if (currentPushType == PushType.unifiedpush) {
+      return UnifiedPushService.instance.currentEndpoint?.url;
+    }
+    return fcmToken ?? await _getFCMToken();
+  }
+
+  String? _oldToken;
+  set oldToken(String? token) => _oldToken = token;
+  String get oldToken => _oldToken ?? '';
+
+  /// Remove specific pubkeys from notification server
+  /// Supports both FCM and UnifiedPush
   Future<bool> removePubkeys(List<String> pubkeys) async {
-    if (fcmToken == null) return true;
+    final deviceId = await this.deviceId;
+    if (deviceId == null) {
+      logger.w('removePubkeys: No device ID available');
+      return true;
+    }
 
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/remove',
-        data: {'deviceId': fcmToken, 'pubkeys': pubkeys},
+        data: {
+          'deviceId': deviceId,
+          'pubkeys': pubkeys,
+        },
       );
-      logger.i('removePubkeys ${res.data}');
+      logger.i('removePubkeys ($pushTypeString): ${res.data}');
       return true;
     } catch (e, s) {
-      logger.e('removePubkeys', error: e, stackTrace: s);
+      logger.e('removePubkeys ($pushTypeString)', error: e, stackTrace: s);
     }
     return false;
   }
@@ -438,9 +520,4 @@ class NotifyService {
       }
     }
   }
-}
-
-class NotifySettingStatus {
-  static const int enable = 1;
-  static const int disable = -1;
 }

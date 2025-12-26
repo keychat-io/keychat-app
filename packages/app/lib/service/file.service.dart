@@ -98,14 +98,6 @@ class FileService {
     }
   }
 
-  Future<void> deleteAllFolder() async {
-    final dir = Directory('${Utils.appFolder.path}/${Config.env}/');
-    if (dir.existsSync()) {
-      await dir.delete(recursive: true);
-      logger.i('delete other file');
-    }
-  }
-
   void deleteFilesByTime(String path, DateTime fromAt) {
     final directory = Directory(path);
     if (directory.existsSync()) {

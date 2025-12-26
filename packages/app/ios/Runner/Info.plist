@@ -92,6 +92,8 @@
     </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSUserNotificationsUsageDescription</key>
+    <string>This app needs notification permission to send you local notifications</string>
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>

@@ -1,8 +1,21 @@
 import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 
+import 'package:app_links/app_links.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTabController;
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_new_badger/flutter_new_badger.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
+import 'package:keychat/main.dart' show appLaunchArgs;
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
@@ -18,21 +31,10 @@ import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/remote_config.dart' as remote_config;
-import 'package:app_links/app_links.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dio/dio.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/cupertino.dart' show CupertinoTabController;
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter_new_badger/flutter_new_badger.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -55,7 +57,6 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   late Timer _connectionCheckTimer;
-  RxBool notificationStatus = false.obs;
   RxBool checkRunStatus = true.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
@@ -538,7 +539,7 @@ class HomeController extends GetxController
       await setSelectedTab(cupertinoTabController.index);
     });
     super.onInit();
-
+    await loadNotificationConfig();
     final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
@@ -547,10 +548,17 @@ class HomeController extends GetxController
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists (without requesting permission on startup)
-      Future.delayed(const Duration(seconds: 3)).then((_) {
-        NotifyService.instance.init().catchError((Object e, StackTrace s) {
-          logger.e('initNotifycation error', error: e, stackTrace: s);
-        });
+      Future.delayed(const Duration(seconds: 3)).then((_) async {
+        // Initialize based on user's push type preference
+        final pushType = NotifyService.instance.currentPushType;
+        if (pushType == PushType.unifiedpush &&
+            (GetPlatform.isAndroid || GetPlatform.isLinux)) {
+          await UnifiedPushService.instance.init(args: appLaunchArgs);
+        } else {
+          NotifyService.instance.init().catchError((Object e, StackTrace s) {
+            logger.e('initNotifycation error', error: e, stackTrace: s);
+          });
+        }
       });
     }
     FlutterNativeSplash.remove(); // close splash page
@@ -924,6 +932,37 @@ ${file.message}
   Future<void> initEnableDMFromNostrApp() async {
     final res = Storage.getBool(StorageKeyString.enableDMFromNostrApp) ?? true;
     enableDMFromNostrApp.value = res;
+  }
+
+  int _notificationState = NotifySettingStatus.enable;
+  int get notificationState {
+    return _notificationState;
+  }
+
+  Future<void> disableNotification() async {
+    await Storage.setInt(
+      StorageKeyString.settingNotifyStatus,
+      NotifySettingStatus.disable,
+    );
+    _notificationState = NotifySettingStatus.disable;
+  }
+
+  bool get isNotificationEnabled {
+    return _notificationState != NotifySettingStatus.disable;
+  }
+
+  Future<void> enableNotification() async {
+    await Storage.setInt(
+      StorageKeyString.settingNotifyStatus,
+      NotifySettingStatus.enable,
+    );
+    _notificationState = NotifySettingStatus.enable;
+  }
+
+  Future<void> loadNotificationConfig() async {
+    _notificationState = Storage.getIntOrZero(
+      StorageKeyString.settingNotifyStatus,
+    );
   }
 }
 

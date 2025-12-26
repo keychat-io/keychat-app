@@ -1,5 +1,11 @@
-import 'dart:io' show exit;
+import 'dart:io' show Directory, exit;
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
@@ -9,21 +15,16 @@ import 'package:keychat/page/components.dart';
 import 'package:keychat/page/dbSetup/db_setting.dart';
 import 'package:keychat/page/login/OnboardingPage2.dart';
 import 'package:keychat/page/routes.dart';
-import 'package:keychat/page/setting/BiometricAuthScreen.dart';
 import 'package:keychat/page/widgets/notice_text_widget.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
+import 'package:keychat/utils/config.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
 class AppGeneralSetting extends StatefulWidget {
   const AppGeneralSetting({super.key});
@@ -511,59 +512,103 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
             isDestructiveAction: true,
             child: const Text('Logout'),
             onPressed: () async {
-              // Biometrics Auth
-              if (GetPlatform.isMobile) {
-                final isBiometricsEnable = await SecureStorage.instance
-                    .isBiometricsEnable();
-                if (isBiometricsEnable) {
-                  final authed = await Get.to(
-                    () => const BiometricAuthScreen(
-                      canPop: true,
-                      title: 'Authenticate to Logout',
-                    ),
-                    fullscreenDialog: true,
-                    popGesture: true,
-                    transition: Transition.fadeIn,
-                  );
-                  if (authed == null || authed == false) {
-                    return;
-                  }
-                }
-              }
-              EasyLoading.show(status: 'Processing...');
-              try {
-                DBProvider.instance.deleteAll();
-                await FileService.instance
-                    .deleteAllFolder(); // delete all files
-                await Get.find<WebsocketService>().stopListening();
-                await Storage.clearAll();
-                await SecureStorage.instance.clearAll();
-                Storage.setInt(StorageKeyString.onboarding, 0);
+              await Get.find<SettingController>().biometricAuthThen(() async {
+                EasyLoading.show(status: 'Processing...');
                 try {
-                  await FirebaseMessaging.instance.deleteToken();
-                  // ignore: empty_catches
-                } catch (e) {}
-                NotifyService.instance.clearAll();
-                if (kReleaseMode) {
-                  EasyLoading.showSuccess('Logout successfully, App will exit');
-                  await Future.delayed(const Duration(seconds: 2));
-                  exit(0);
+                  // Stop WebSocket first
+                  await Get.find<WebsocketService>().stopListening();
+
+                  // Close database connection to release file handles
+                  await DBProvider.close();
+                  await Storage.clearAll();
+                  await SecureStorage.instance.clearAll();
+                  await Storage.setInt(StorageKeyString.onboarding, 0);
+
+                  try {
+                    final type = NotifyService.instance.currentPushType;
+                    if (type == PushType.fcm) {
+                      FirebaseMessaging.instance.deleteToken();
+                    } else {
+                      UnifiedPushService.instance.unregister();
+                    }
+                  } catch (e) {}
+                  NotifyService.instance.clearAll();
+                  try {
+                    await _deleteAllFolder();
+                  } catch (e, s) {
+                    logger.e(
+                      '  Failed to delete folder',
+                      error: e,
+                      stackTrace: s,
+                    );
+                    await EasyLoading.dismiss();
+                    await Get.dialog<void>(
+                      CupertinoAlertDialog(
+                        title: const Text('Notice'),
+                        content: Text(
+                          'Database deletion failed. After closing the app, please delete the directory: ${Utils.appFolder.path}',
+                        ),
+                        actions: [
+                          CupertinoDialogAction(
+                            onPressed: () async {
+                              await launchUrl(Uri.file(Utils.appFolder.path));
+                              Get.back();
+                            },
+                            child: const Text('Open Folder'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  if (kReleaseMode) {
+                    EasyLoading.showSuccess(
+                      'Logout successfully, App will exit',
+                    );
+                    await Future.delayed(const Duration(seconds: 2));
+                    exit(0);
+                  }
+                  // for debug mode, just go to login page
+                  await EasyLoading.showSuccess('Logout successfully');
+                  await Get.offAllNamed(Routes.login);
+                } catch (e, s) {
+                  final msg = Utils.getErrorMessage(e);
+                  logger.e(msg, error: e, stackTrace: s);
+                  EasyLoading.showError(
+                    msg,
+                    duration: const Duration(seconds: 4),
+                  );
                 }
-                // for debug mode, just go to login page
-                EasyLoading.showSuccess('Logout successfully');
-                Get.offAllNamed(Routes.login);
-              } catch (e, s) {
-                final msg = Utils.getErrorMessage(e);
-                logger.e(msg, error: e, stackTrace: s);
-                EasyLoading.showError(
-                  msg,
-                  duration: const Duration(seconds: 4),
-                );
-              }
+              });
             },
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteAllFolder() async {
+    try {
+      final root = Utils.appFolder;
+      if (!root.existsSync()) return;
+      final envs = ['dev1', 'dev2', 'dev3', 'prod'];
+      for (final entity in root.listSync()) {
+        final name = entity.uri.pathSegments.lastWhere(
+          (s) => s.isNotEmpty,
+          orElse: () => '',
+        );
+        loggerNoLine.i('Processing folder: ${entity.uri}');
+        if (envs.contains(name) && name != Config.env) {
+          continue;
+        }
+        try {
+          await entity.delete(recursive: true);
+          loggerNoLine.i('Deleted folder: ${entity.uri}');
+        } catch (e) {
+          logger.e('Failed to delete folder: ${entity.uri}', error: e);
+        }
+      }
+    } catch (e) {
+      logger.e('Failed to delete folders', error: e);
+    }
   }
 }

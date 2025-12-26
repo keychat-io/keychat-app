@@ -157,6 +157,9 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
             Expanded(
               child: SettingsList(
                 platform: DevicePlatform.iOS,
+                contentPadding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom,
+                ),
                 sections: [
                   SettingsSection(
                     tiles: [

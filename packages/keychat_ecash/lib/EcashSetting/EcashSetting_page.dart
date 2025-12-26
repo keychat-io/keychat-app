@@ -1,14 +1,15 @@
-import 'package:flutter/foundation.dart';
-import 'package:keychat/global.dart';
-import 'package:keychat/rust_api.dart';
-import 'package:keychat/service/secure_storage.dart';
-import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:keychat/controller/setting.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_controller.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -93,34 +94,38 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                   leading: const Icon(Icons.lock),
                   title: const Text('Ecash Seed Phrase'),
                   onPressed: (context) async {
-                    final words = await SecureStorage.instance.getPhraseWords();
-                    Get.dialog(
-                      CupertinoAlertDialog(
-                        title: const Text('Ecash Seed Phrase'),
-                        content: Text(
-                          words ??
-                              'The seed phrase for the first ID is also the seed phrase for ecash.',
-                        ),
-                        actions: [
-                          CupertinoDialogAction(
-                            onPressed: Get.back,
-                            child: const Text('OK'),
+                    await Get.find<SettingController>()
+                        .biometricAuthThen(() async {
+                      final words =
+                          await SecureStorage.instance.getPhraseWords();
+                      Get.dialog(
+                        CupertinoAlertDialog(
+                          title: const Text('Ecash Seed Phrase'),
+                          content: Text(
+                            words ??
+                                'The seed phrase for the first ID is also the seed phrase for ecash.',
                           ),
-                          if (words != null)
+                          actions: [
                             CupertinoDialogAction(
-                              isDefaultAction: true,
-                              onPressed: () async {
-                                await Clipboard.setData(
-                                  ClipboardData(text: words),
-                                );
-                                EasyLoading.showSuccess('Copied');
-                                Get.back<void>();
-                              },
-                              child: const Text('Copy'),
+                              onPressed: Get.back,
+                              child: const Text('OK'),
                             ),
-                        ],
-                      ),
-                    );
+                            if (words != null)
+                              CupertinoDialogAction(
+                                isDefaultAction: true,
+                                onPressed: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: words),
+                                  );
+                                  EasyLoading.showSuccess('Copied');
+                                  Get.back<void>();
+                                },
+                                child: const Text('Copy'),
+                              ),
+                          ],
+                        ),
+                      );
+                    });
                   },
                 ),
               SettingsTile.navigation(

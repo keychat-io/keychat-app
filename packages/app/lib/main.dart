@@ -1,5 +1,3 @@
-import 'dart:io' show Directory;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +17,7 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat/utils/config.dart' as env_config;
@@ -27,9 +26,26 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 
 bool isProdEnv = true;
 
-void main() async {
+/// Store command line arguments for UnifiedPush Linux background support
+List<String> appLaunchArgs = [];
+
+void main(List<String> args) async {
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Store args for UnifiedPush Linux support
+  appLaunchArgs = args;
+  // Initialize UnifiedPush in background mode
+  // Don't run the full app UI in background mode
+  if (args.contains('--unifiedpush-bg')) {
+    logger.i('Starting in UnifiedPush background mode');
+    await Storage.init();
+    await UnifiedPushService.instance.init(args: args);
+    return;
+  }
+
   final stopwatch = Stopwatch()..start();
-  final sc = await initServices();
+  final sc = await initServices(widgetsBinding);
+
   final isLogin = await IdentityService.instance.count() > 0;
   final themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
@@ -91,24 +107,22 @@ void initEasyLoading() {
     ..fontSize = 16;
 }
 
-Future<SettingController> initServices() async {
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
   );
-  final appFolder = await Utils.getAppFolder();
-  await dotenv.load();
-  await Storage.init();
-  await RustLib.init();
   const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
+  final appFolder = await Utils.initAppFolder(env);
+  final dbPath = Utils.dbPath;
+  await dotenv.load();
+  await Storage.init();
+  await RustLib.init();
 
   // init log file
   await Utils.initLoggger(appFolder);
-  final dbPath = '${appFolder.path}/$env/database/';
-  Directory(dbPath).createSync(recursive: true);
 
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);

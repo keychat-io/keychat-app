@@ -2,7 +2,7 @@ name: keychat
 description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.37.6+6487
+version: 1.38.1+6489
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
@@ -65,11 +65,7 @@ dependencies:
   avatar_plus: ^0.0.5
   intl: ^0.20.2
   firebase_core: ^4.2.1
-  firebase_messaging:
-    git:
-      url: https://github.com/firebase/flutterfire.git
-      ref: messaging_17859
-      path: packages/firebase_messaging/firebase_messaging
+  firebase_messaging: ^16.1.0
   async_queue: ^2.0.2
   url_launcher: ^6.3.2
   flutter_inappwebview: ^6.2.0-beta.2
@@ -103,6 +99,11 @@ dependencies:
   json_serializable: ^6.9.0
   giphy_get: ^3.6.1+1
   emoji_picker_flutter: ^4.4.0
+  unifiedpush: ^6.2.0
+  unifiedpush_storage_interface: ^1.0.0
+  unifiedpush_storage_shared_preferences: ^1.0.0
+  unifiedpush_platform_interface: ^4.0.0
+  flutter_local_notifications: ^19.5.0
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@
   <application android:label="Keychat" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:enableOnBackInvokedCallback="true">
     <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
     <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="keychat_channel" />
 
     <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:theme="@style/Theme.AppCompat.DayNight" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
       <!-- Specifies an Android theme to apply to this Activity as soon as
@@ -133,6 +134,17 @@
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
     <meta-data android:name="flutterEmbedding" android:value="2" />
 
+    <!-- flutter_local_notifications configuration -->
+    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+      </intent-filter>
+    </receiver>
+
     <provider android:name="com.pichillilorenzo.flutter_inappwebview_android.InAppWebViewFileProvider" android:authorities="${applicationId}.flutter_inappwebview_android.fileprovider" android:exported="false" android:grantUriPermissions="true">
       <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/provider_paths" />
     </provider>
@@ -155,6 +167,11 @@
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+
+  <!-- flutter_local_notifications permissions -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
   <!--
     Granular media permissions for Android 13 and newer.

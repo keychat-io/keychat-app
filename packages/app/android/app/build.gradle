@@ -5,6 +5,18 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+// Fix duplicate tink classes issue (tink vs tink-android)
+// https://pub.dev/packages/unifiedpush#the-build-fails-because-of-duplicate-classes
+def tink = 'com.google.crypto.tink:tink-android:1.19.0'
+configurations.all {
+    resolutionStrategy {
+        force tink
+        dependencySubstitution {
+            substitute module('com.google.crypto.tink:tink') using module(tink)
+        }
+    }
+}
+
 def keystoreProperties = new Properties()
 def localProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -34,6 +46,7 @@ android {
         // Ensures Java 21 compatibility.
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -100,5 +113,6 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
     implementation 'com.google.android.material:material:1.12.0'
 }

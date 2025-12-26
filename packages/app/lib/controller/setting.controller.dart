@@ -1,10 +1,10 @@
-import 'package:keychat/app.dart';
-import 'package:keychat/service/secure_storage.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/setting/BiometricAuthScreen.dart';
+import 'package:keychat/service/secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
 class SettingController extends GetxController with StateMixin<Type> {
@@ -107,9 +107,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   }
 
   Future<bool> authenticate() async {
-    final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final canAuthenticate =
-        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+    final canAuthenticate = await canBiometricAuth();
     if (!canAuthenticate) {
       EasyLoading.showError('Biometrics not available');
       return false;
@@ -125,6 +123,37 @@ class SettingController extends GetxController with StateMixin<Type> {
       logger.e('Authentication error: $e');
       return false;
     }
+  }
+
+  Future<bool> canBiometricAuth() async {
+    final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+    final canAuthenticate =
+        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+    return canAuthenticate;
+  }
+
+  Future<void> biometricAuthThen(Function anyFunction) async {
+    final result = await canBiometricAuth();
+    if (result) {
+      final authed = await Get.to<bool>(
+        () => const BiometricAuthScreen(
+          canPop: true,
+          title: 'Authenticate to continue',
+        ),
+        fullscreenDialog: true,
+        popGesture: true,
+        transition: Transition.fadeIn,
+      );
+      if (authed == null || !authed) {
+        return;
+      }
+    } else {
+      if (biometricsEnabled.value) {
+        EasyLoading.showError('Biometrics enabled but not available');
+        return;
+      }
+    }
+    await anyFunction();
   }
 
   Future<bool> getViewKeychatFutures() async {

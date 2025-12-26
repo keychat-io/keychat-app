@@ -14,12 +14,16 @@ list(APPEND FLUTTER_PLUGIN_LIST
   isar_community_flutter_libs
   local_auth_windows
   permission_handler_windows
+  screen_retriever_windows
   share_plus
   super_native_extensions
   url_launcher_windows
+  webcrypto
+  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  flutter_local_notifications_windows
   keychat_rust_ffi_plugin
 )
 

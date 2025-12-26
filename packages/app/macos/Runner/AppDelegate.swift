@@ -1,9 +1,10 @@
 import Cocoa
 import FlutterMacOS
+import UserNotifications
 import app_links
 
 @main
-class AppDelegate: FlutterAppDelegate {
+class AppDelegate: FlutterAppDelegate, UNUserNotificationCenterDelegate {
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     // dummy_method_to_enforce_bundling()
     return false
@@ -15,6 +16,10 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
     super.applicationDidFinishLaunching(notification)
+
+    // flutter_local_notifications configuration
+    UNUserNotificationCenter.current().delegate = self
+
     if let window = NSApplication.shared.windows.first {
       window.backgroundColor = NSColor.white
       window.setContentSize(NSMakeSize(830, 730))

@@ -55,7 +55,26 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
       },
       child: Scaffold(
         body: Center(
-          child: FilledButton(onPressed: auth, child: Text(widget.title)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                size: 100,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 32),
+              FilledButton(onPressed: auth, child: Text(widget.title)),
+              if (widget.canPop) const SizedBox(height: 16),
+              if (widget.canPop)
+                OutlinedButton(
+                  onPressed: () {
+                    Get.back(result: false);
+                  },
+                  child: const Text('Back'),
+                ),
+            ],
+          ),
         ),
       ),
     );

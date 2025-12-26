@@ -26,7 +26,7 @@ Like the postal system, Keychat requires no registration. Users just generate No
 <img src="./docs/images/inspiration.png" width="90%" height="auto"/>
 </p>
 
-### Design Philosoph
+### Design Philosophy
 Offline Me needs self-controlled IDs and wallets to live in the physical world.
 
 Online Me also first needs self-controlled IDs and wallets to live in the digital world.
@@ -56,9 +56,9 @@ In Browser, Me uses the IDs to log in to Mini Apps and pays in Bitcoin with the 
 - [Android APK](https://github.com/keychat-io/keychat-app/releases)
 - [MacOS-arm64](https://github.com/keychat-io/keychat-app/releases)
 - [iOS](https://apps.apple.com/us/app/keychat-io/id6447493752)
-- GooglePlay: Coming
 - [Windows-x86_64](https://github.com/keychat-io/keychat-app/releases)
 - [Linux](https://github.com/keychat-io/keychat-app/releases)
+- GooglePlay: Coming
 
 ## Install Requirements
 - Android: >= 12
@@ -96,11 +96,18 @@ Keychat implements the following nips:
 [nip55]: https://github.com/nostr-protocol/nips/blob/master/55.md
 [B7]: https://github.com/nostr-protocol/nips/blob/master/B7.md
 
+## Notification
+Keychat uses [Firebase Messaging](https://firebase.google.com/docs/cloud-messaging) and [UnifiedPush](https://unifiedpush.org/) to receive notification push.
+
+- Android: Firebase Messaging, UnifiedPush
+- iOS: Firebase Messaging
+- Linux: UnifiedPush
+
 ## WebLN Provider
 [webln.dev](https://www.webln.dev/)
 
-[x] sendPayment
-[x] makeInvoice
+- [x] sendPayment
+- [x] makeInvoice
 
 ## Universal Link
 ### Add a contact from pubkey
@@ -139,7 +146,9 @@ melos bootstrap
 
 # build rust lib: packages\keychat_rust_ffi_plugin\README.md
 # cd packages/keychat_rust_ffi_plugin
-# git submodule update --init --recursive
+
+# apt install protobuf-compiler
+# apt install libsecret-1-dev
 
 cd packages/app
 flutter devices

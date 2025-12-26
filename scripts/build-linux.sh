@@ -3,18 +3,20 @@
 set -e
 echo "🟩 Building Linux AppImage using fastforge"
 
-if ! command -v appimagetool >/dev/null 2>&1; then
-  wget -O appimagetool "https://gh-proxy.com/https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
-  chmod +x appimagetool
-  sudo mv appimagetool /usr/local/bin/
-fi
+# if ! command -v appimagetool >/dev/null 2>&1; then
+#   wget -O appimagetool "https://gh-proxy.com/https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+#   chmod +x appimagetool
+#   sudo mv appimagetool /usr/local/bin/
+# fi
+cd packages/app || exit 1
 
 fastforge package \
     --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
     --platform linux \
-    --targets appimage \
+    --targets deb \
     --skip-clean
     # --artifact-name 'Keychat-1.36.5+6459-linux-amd64.AppImage' \
+# sudo apt install ./xxx.deb
 
 # ./keychat-1.36.5+6459-linux.AppImage --appimage-extract
 # # build lisisar.so on glibc 3.35

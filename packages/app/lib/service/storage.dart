@@ -56,10 +56,14 @@ class StorageKeyString {
 
   static const String ecashDBVersion = 'ecashDBVersion';
   static const String recentEmojis = 'recentEmojis';
+
+  // Push notification type: 'fcm' or 'unifiedpush'
+  static const String pushNotificationType = 'pushNotificationType';
 }
 
 class Storage {
   static SharedPreferences? _sp;
+  static bool _isInitialized = false;
 
   // Add a getter that ensures SharedPreferences is initialized
   static SharedPreferences get sp {
@@ -68,6 +72,9 @@ class Storage {
     }
     return _sp!;
   }
+
+  // Check if Storage has been initialized
+  static bool get isInitialized => _isInitialized;
 
   static Future<void> init() async {
     try {
@@ -93,6 +100,7 @@ class Storage {
         _sp = await SharedPreferences.getInstance();
       }
     }
+    _isInitialized = true;
   }
 
   static Future<void> _repairPreferences(String appDataPath) async {
@@ -151,7 +159,10 @@ class Storage {
     await sp.clear();
   }
 
-  static Future<void> setLocalStorageMap(String key, Map sourceMap) async {
+  static Future<void> setLocalStorageMap(
+    String key,
+    Map<String, dynamic> sourceMap,
+  ) async {
     final res = Storage.getString(key);
     Map map = {};
     if (res != null) {

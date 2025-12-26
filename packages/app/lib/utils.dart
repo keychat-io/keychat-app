@@ -2,6 +2,19 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:avatar_plus/avatar_plus.dart';
+import 'package:badges/badges.dart' as badges;
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:convert/convert.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:keychat/desktop/DesktopController.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/contact.dart';
@@ -17,20 +30,6 @@ import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils/config.dart';
 import 'package:keychat/utils/log_file.dart';
-import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:avatar_plus/avatar_plus.dart';
-import 'package:badges/badges.dart' as badges;
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:convert/convert.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'package:intl/intl.dart' show DateFormat;
-import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
@@ -383,8 +382,6 @@ Init File: $time \n
     );
   }
 
-  static Directory appFolder = Directory('/');
-
   static bool isRunningInFlatpak() {
     final flatpakId = Platform.environment['FLATPAK_ID'];
 
@@ -402,9 +399,8 @@ Init File: $time \n
     return false;
   }
 
-  static Future<Directory> getAppFolder() async {
+  static Future<Directory> initAppFolder(String env) async {
     Directory? directory;
-
     switch (Platform.operatingSystem) {
       case 'macos':
         // macOS: ~/Library/Application Support/<appName>
@@ -435,25 +431,35 @@ Init File: $time \n
         // For iOS, Android and other platforms
         directory = await getApplicationDocumentsDirectory();
     }
-    initDirectory(directory);
+    initDirectory(directory, env);
     return directory;
   }
 
-  static String avatarsFolder = '';
-  static String browserCacheFolder = '';
-  static String browserUserDataFolder = '';
+  static Directory _appFolder = Directory('/');
+  static String _avatarsFolder = '';
+  static String _browserCacheFolder = '';
+  static String _errorsFolder = '';
+  static String _dbPath = '';
 
-  static void initDirectory(Directory directory) {
-    appFolder = directory;
-    avatarsFolder = '${directory.path}/avatars';
-    browserCacheFolder = '${directory.path}/browserCache';
+  static Directory get appFolder => _appFolder;
+  static String get avatarsFolder => _avatarsFolder;
+  static String get browserCacheFolder => _browserCacheFolder;
+  static String get errorsFolder => _errorsFolder;
+  static String get dbPath => _dbPath;
 
-    // avatar folder
-    avatarsFolder = '${Utils.appFolder.path}/avatars';
-    browserCacheFolder = '${Utils.appFolder.path}/browserCache';
-    final errorsFolder = '${Utils.appFolder.path}/errors';
+  static void initDirectory(Directory directory, String env) {
+    _appFolder = directory;
+    _avatarsFolder = '${directory.path}/avatars';
+    _browserCacheFolder = '${directory.path}/browserCache';
+    _errorsFolder = '${directory.path}/errors';
+    _dbPath = '${appFolder.path}/$env/database/';
 
-    for (final folder in [avatarsFolder, browserCacheFolder, errorsFolder]) {
+    for (final folder in [
+      _avatarsFolder,
+      _browserCacheFolder,
+      _errorsFolder,
+      _dbPath,
+    ]) {
       final exist = Directory(folder).existsSync();
       if (!exist) {
         Directory(folder).createSync(recursive: true);
@@ -1023,7 +1029,13 @@ Init File: $time \n
     }
   }
 
+  static LogFileOutputs? _logOutput;
+
   static Future<void> initLoggger(Directory directory) async {
+    _logOutput = kReleaseMode
+        ? LogFileOutputs(await Utils.createLogFile(directory.path))
+        : null;
+
     logger = Logger(
       filter: kReleaseMode ? MyLogFilter() : null,
       printer: PrettyPrinter(
@@ -1033,9 +1045,7 @@ Init File: $time \n
         colors: false,
         methodCount: kReleaseMode ? 1 : 5,
       ),
-      output: kReleaseMode
-          ? LogFileOutputs(await Utils.createLogFile(directory.path))
-          : null,
+      output: _logOutput,
     );
 
     loggerNoLine = logger = Logger(
@@ -1047,10 +1057,16 @@ Init File: $time \n
         colors: false,
         methodCount: kReleaseMode ? 1 : 0,
       ),
-      output: kReleaseMode
-          ? LogFileOutputs(await Utils.createLogFile(directory.path))
-          : null,
+      output: _logOutput,
     );
+  }
+
+  /// Close logger file output to release file handles
+  static Future<void> closeLogger() async {
+    if (_logOutput != null) {
+      await _logOutput!.close();
+      _logOutput = null;
+    }
   }
 
   static String randomString(int length) {
@@ -1308,7 +1324,6 @@ Init File: $time \n
   static Future<void> logErrorToFile(String errorDetails) async {
     if (kDebugMode) return;
     try {
-      final appFolder = await getAppFolder();
       final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final errorFilePath = '${appFolder.path}/errors/$dateStr.txt';
       final file = File(errorFilePath);
@@ -1513,4 +1528,10 @@ class _IdentityButtonController extends GetxController {
     currentIdentity = identity;
     update();
   }
+}
+
+class NotifySettingStatus {
+  static const int enable = 1;
+  static const int disable = -1;
+  static const int notConfirm = 0;
 }

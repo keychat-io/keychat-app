@@ -162,6 +162,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  bech32:
+    dependency: transitive
+    description:
+      name: bech32
+      sha256: "156cbace936f7720c79a79d16a03efad343b1ef17106716e04b8b8e39f99f7f7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   bip21_uri:
     dependency: transitive
     description:
@@ -171,6 +179,14 @@ packages:
       url: "https://github.com/keychat-io/dart-bip21-uri.git"
     source: git
     version: "2.2.0"
+  bip340:
+    dependency: transitive
+    description:
+      name: bip340
+      sha256: b7bcd70a860e605046006adaa72bc4f7453f4d31d7ba74a4ad9d5de387a0fc0b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -411,6 +427,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  cryptography:
+    dependency: transitive
+    description:
+      name: cryptography
+      sha256: "3eda3029d34ec9095a27a198ac9785630fe525c0eb6a49f3d575272f8e792ef0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.9.0"
   csslib:
     dependency: transitive
     description:
@@ -507,6 +531,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  elliptic:
+    dependency: transitive
+    description:
+      name: elliptic
+      sha256: "67931d408faa353bdebac9f7a1df0c3f6f828f4e8439cdf084573cd1601a2f4b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.12"
   emoji_picker_flutter:
     dependency: transitive
     description:
@@ -1414,6 +1446,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
+  ndk:
+    dependency: transitive
+    description:
+      name: ndk
+      sha256: "555db0766c0731ab62297309d8b26d7c64594a7960609a0831ae777385eb27be"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
+  ndk_rust_verifier:
+    dependency: transitive
+    description:
+      name: ndk_rust_verifier
+      sha256: "177933f601d2afe3217734ea759c618ee624f79a1959ee5214ec184d06516728"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.2"
   nested:
     dependency: transitive
     description:
@@ -1751,6 +1799,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  rust_lib_ndk:
+    dependency: transitive
+    description:
+      name: rust_lib_ndk
+      sha256: f06a1a47c6fbadf25250eac796b65b91ea99797b6377304abb152f06205c28ff
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.7"
   rxdart:
     dependency: transitive
     description:

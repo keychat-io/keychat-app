@@ -1,3 +1,7 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -9,11 +13,9 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/page/setting/app_general_setting.dart';
 import 'package:keychat/page/setting/more_chat_setting.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_nwc/nwc/nwc_page.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -108,10 +110,30 @@ class _MinePageState extends State<MinePage> {
                     onPressed: (context) async {
                       Get.toNamed(Routes.ecash);
                     },
-                    title: const Text('Bitcoin Ecash'),
+                    title: const Text('Cashu Ecash'),
                   ),
                 ],
               ),
+            // if (GetPlatform.isMobile)
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  leading: const Icon(
+                    CupertinoIcons.bitcoin,
+                    color: Color(0xfff2a900),
+                  ),
+                  onPressed: (context) async {
+                    try {
+                      Utils.getOrPutGetxController(create: NwcController.new);
+                      Get.to(() => const NwcPage());
+                    } catch (e) {
+                      logger.e('Failed to process QR result: $e');
+                    }
+                  },
+                  title: const Text('Nostr Wallet Connect'),
+                ),
+              ],
+            ),
             SettingsSection(
               tiles: [
                 SettingsTile.navigation(

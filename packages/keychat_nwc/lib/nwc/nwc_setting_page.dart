@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat_nwc/NWC/nwc_controller.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:flutter/services.dart';
 
 class NwcSettingPage extends GetView<NwcController> {
+  const NwcSettingPage({required this.connection, super.key});
   final ActiveNwcConnection connection;
-  const NwcSettingPage({super.key, required this.connection});
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +19,13 @@ class NwcSettingPage extends GetView<NwcController> {
         padding: const EdgeInsets.all(16),
         children: [
           ListTile(
-            title: const Text("URI"),
+            title: const Text('URI'),
             subtitle: Text(connection.info.uri),
             trailing: IconButton(
               icon: const Icon(Icons.copy),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: connection.info.uri));
-                Get.snackbar("Copied", "URI copied to clipboard");
+                Get.snackbar('Copied', 'URI copied to clipboard');
               },
             ),
           ),
@@ -34,7 +34,7 @@ class NwcSettingPage extends GetView<NwcController> {
           TextField(
             controller: nameController,
             decoration: const InputDecoration(
-              labelText: "Name (optional)",
+              labelText: 'Name (optional)',
               border: OutlineInputBorder(),
             ),
           ),
@@ -49,9 +49,9 @@ class NwcSettingPage extends GetView<NwcController> {
               // ConnectionStorage has `update`.
               // Let's skip update implementation for this session unless requested,
               // or just pretend it works for now or add it later if critical.
-              Get.snackbar("Info", "Update name not fully wired yet");
+              Get.snackbar('Info', 'Update name not fully wired yet');
             },
-            child: const Text("Save Name"),
+            child: const Text('Save Name'),
           ),
           const Divider(),
           const SizedBox(height: 20),
@@ -59,23 +59,24 @@ class NwcSettingPage extends GetView<NwcController> {
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Get.defaultDialog<void>(
-                  title: "Delete Connection?",
-                  middleText:
-                      "Are you sure you want to remove this NWC connection?",
-                  textConfirm: "Delete",
-                  confirmTextColor: Colors.white,
-                  buttonColor: Colors.red,
-                  textCancel: "Cancel",
-                  onConfirm: () async {
-                    await controller.deleteConnection(connection.info.uri);
-                    // Get.back handled in controller?
-                    // controller.deleteConnection calls Get.back() once.
-                    // But we are in defaultDialog, so controller.deleteConnection closing dialog is fine.
-                    // But we also want to close the SettingsPage.
-                    Get.back<void>(); // Close settings page
-                  });
+                title: 'Delete Connection?',
+                middleText:
+                    'Are you sure you want to remove this NWC connection?',
+                textConfirm: 'Delete',
+                confirmTextColor: Colors.white,
+                buttonColor: Colors.red,
+                textCancel: 'Cancel',
+                onConfirm: () async {
+                  await controller.deleteConnection(connection.info.uri);
+                  // Get.back handled in controller?
+                  // controller.deleteConnection calls Get.back() once.
+                  // But we are in defaultDialog, so controller.deleteConnection closing dialog is fine.
+                  // But we also want to close the SettingsPage.
+                  Get.back<void>(); // Close settings page
+                },
+              );
             },
-            child: const Text("Delete Connection"),
+            child: const Text('Delete Connection'),
           ),
         ],
       ),

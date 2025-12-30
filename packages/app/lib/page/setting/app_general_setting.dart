@@ -535,13 +535,10 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                   NotifyService.instance.clearAll();
                   try {
                     await _deleteAllFolder();
-                  } catch (e, s) {
-                    logger.e(
-                      '  Failed to delete folder',
-                      error: e,
-                      stackTrace: s,
+                  } catch (e) {
+                    await EasyLoading.showError(
+                      'Please delete the directory: ${Utils.appFolder.path}',
                     );
-                    await EasyLoading.dismiss();
                     await Get.dialog<void>(
                       CupertinoAlertDialog(
                         title: const Text('Notice'),
@@ -559,6 +556,7 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                         ],
                       ),
                     );
+                    await Future.delayed(const Duration(seconds: 3));
                   }
                   if (kReleaseMode) {
                     EasyLoading.showSuccess(

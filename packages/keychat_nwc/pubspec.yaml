@@ -12,8 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
   keychat: ^1.36.5
+  keychat_rust_ffi_plugin: 1.0.0
+  keychat_ecash: 1.0.0
   ndk: ^0.6.0
+  qr_flutter: ^4.1.0
   ndk_rust_verifier: ^0.4.2
   flutter_secure_storage: ^10.0.0
   carousel_slider: ^5.1.1
-

@@ -1,6 +1,8 @@
 import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:keychat_nwc/nwc_connection_info.dart';
 import 'package:keychat_nwc/nwc_connection_storage.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
+    show TransactionStatus;
 import 'package:ndk/ndk.dart';
 import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
 
@@ -25,6 +27,7 @@ class NwcService {
       NdkConfig(
         eventVerifier: eventVerifier ?? RustEventVerifier(),
         cache: MemCacheManager(),
+        logLevel: LogLevel.debug,
       ),
     );
 
@@ -52,13 +55,6 @@ class NwcService {
 
       final active = ActiveNwcConnection(info: info, connection: connection);
       _activeConnections[info.uri] = active;
-
-      // Try to fetch initial balance
-      try {
-        await refreshBalance(info.uri);
-      } catch (e) {
-        Logger.log.e('Failed to fetch initial balance for ${info.uri}: $e');
-      }
     } catch (e) {
       Logger.log.e('Failed to connect to NWC: ${info.uri} error: $e');
     }
@@ -128,7 +124,7 @@ class NwcService {
     int? until,
     int? limit,
     int? offset,
-    bool unpaid = false,
+    bool unpaid = true,
   }) async {
     final active = _activeConnections[nwcUri];
     if (active == null) {
@@ -175,5 +171,20 @@ class NwcService {
       descriptionHash: descriptionHash,
       expiry: expiry,
     );
+  }
+
+  TransactionStatus getTransactionStatus(TransactionResult transaction) {
+    if (transaction.preimage != null && transaction.preimage!.isNotEmpty) {
+      return TransactionStatus.success;
+    }
+    if (transaction.expiresAt != null && transaction.expiresAt! > 0) {
+      final expiry = DateTime.fromMillisecondsSinceEpoch(
+        transaction.expiresAt! * 1000,
+      );
+      if (DateTime.now().isAfter(expiry)) {
+        return TransactionStatus.expired;
+      }
+    }
+    return TransactionStatus.pending;
   }
 }

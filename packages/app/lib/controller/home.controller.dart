@@ -543,8 +543,8 @@ class HomeController extends GetxController
     final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
-    // Ecash Init
     if (mys.isNotEmpty) {
+      // Ecash Init
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists (without requesting permission on startup)

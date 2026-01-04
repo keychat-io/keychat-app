@@ -57,18 +57,73 @@ class IdentityService {
     return ontTimeKey;
   }
 
+  /// Common initialization logic after identity creation
+  Future<void> _postCreateIdentity(
+    Identity identity,
+    String pubkey, {
+    required bool isFirstAccount,
+  }) async {
+    final homeController = Get.find<HomeController>();
+
+    // Reload room list
+    await homeController.loadRoomList(init: true);
+
+    // Listen to pubkey when relay is online
+    Utils.waitRelayOnline().then((_) async {
+      Get.find<WebsocketService>().listenPubkey(
+        [pubkey],
+        kinds: [EventKinds.nip04],
+      );
+      Get.find<WebsocketService>().listenPubkeyNip17([pubkey]);
+      final reloadedIdentity = await getIdentityByNostrPubkey(pubkey);
+      if (reloadedIdentity != null) {
+        syncProfileFromRelay(identity);
+      }
+    });
+
+    // Handle first account specific initialization
+    if (isFirstAccount) {
+      try {
+        Get.find<EcashController>().initIdentity(identity);
+        await homeController.createAIIdentity([identity], KeychatGlobal.bot);
+        homeController.loadAppRemoteConfig();
+
+        // Request notification permission for first account
+        NotifyService.instance
+            .init(requestPermission: true)
+            .then((_) => NotifyService.instance.addPubkeys([pubkey]))
+            .catchError((Object e, StackTrace s) {
+              logger.e('initNotification error', error: e, stackTrace: s);
+              return false;
+            });
+        RelayService.instance.initRelay();
+      } catch (e, s) {
+        logger.e('First account init error', error: e, stackTrace: s);
+      }
+    } else {
+      // For non-first accounts, just add pubkeys
+      NotifyService.instance.addPubkeys([pubkey]);
+    }
+
+    // Initialize MLS
+    MlsGroupService.instance.initIdentities([identity]).then((_) {
+      MlsGroupService.instance.uploadKeyPackages(identities: [identity]);
+    });
+  }
+
   Future<Identity> createIdentity({
     required String name,
     required rust_nostr.Secp256k1Account account,
     required int index,
-    bool isFirstAccount = false,
   }) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
+    final isFirstAccount = await count() == 0;
     final database = DBProvider.database;
-    final homeController = Get.find<HomeController>();
+
     final exist = await getIdentityByNostrPubkey(account.pubkey);
     if (exist != null) throw Exception('Identity already exist');
-    final iden =
+
+    final identity =
         Identity(
             name: name,
             secp256k1PKHex: account.pubkey,
@@ -76,62 +131,31 @@ class IdentityService {
           )
           ..curve25519PkHex = account.curve25519PkHex
           ..index = index;
-    await database.writeTxn(() async {
-      await database.identitys.put(iden);
 
-      // store the prikey in secure storage
+    // Save to database with keys
+    await database.writeTxn(() async {
+      await database.identitys.put(identity);
       await SecureStorage.instance.writePhraseWordsWhenNotExist(
         account.mnemonic!,
       );
-
-      await SecureStorage.instance.write(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance.write(
-        iden.curve25519PkHex!,
+        identity.secp256k1PKHex,
+        account.prikey,
+      );
+      await SecureStorage.instance.write(
+        identity.curve25519PkHex!,
         account.curve25519SkHex!,
       );
     });
-    await homeController.loadRoomList(init: true);
 
-    Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>().listenPubkey(
-        [account.pubkey],
-        kinds: [EventKinds.nip04],
-      );
-      Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
-      final identity = await getIdentityByNostrPubkey(iden.secp256k1PKHex);
-      if (identity != null) {
-        syncProfileFromRelay(iden);
-      }
-    });
+    // Common post-creation initialization
+    await _postCreateIdentity(
+      identity,
+      account.pubkey,
+      isFirstAccount: isFirstAccount,
+    );
 
-    if (isFirstAccount) {
-      try {
-        Get.find<EcashController>().initIdentity(iden);
-
-        // create ai identity
-        await homeController.createAIIdentity([iden], KeychatGlobal.bot);
-        homeController.loadAppRemoteConfig();
-
-        // init notification (request permission for first account)
-        NotifyService.instance
-            .init(requestPermission: true)
-            .then((c) {
-              NotifyService.instance.addPubkeys([account.pubkey]);
-            })
-            .catchError((Object e, StackTrace s) {
-              logger.e('initNotifycation error', error: e, stackTrace: s);
-            });
-        RelayService.instance.initRelay();
-      } catch (e, s) {
-        logger.e(e.toString(), error: e, stackTrace: s);
-      }
-    } else {
-      NotifyService.instance.addPubkeys([account.pubkey]);
-    }
-    MlsGroupService.instance.initIdentities([iden]).then((_) {
-      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
-    });
-    return iden;
+    return identity;
   }
 
   Future<Identity> createIdentityByPrikey({
@@ -139,72 +163,61 @@ class IdentityService {
     required String hexPubkey,
     required String prikey,
   }) async {
+    final isFirstAccount = await count() == 0;
     final database = DBProvider.database;
-    final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+
     final exist = await getIdentityByNostrPubkey(hexPubkey);
     if (exist != null) throw Exception('Identity already exist');
-    final iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    final identity = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1;
+
+    // Save to database with private key
     await database.writeTxn(() async {
-      await database.identitys.put(iden);
+      await database.identitys.put(identity);
       await SecureStorage.instance.write(hexPubkey, prikey);
     });
 
-    await Get.find<HomeController>().loadRoomList(init: true);
-    Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>().listenPubkey(
-        [hexPubkey],
-        kinds: [EventKinds.nip04],
-      );
-      Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
-      final identity = await getIdentityByNostrPubkey(hexPubkey);
-      if (identity != null) {
-        syncProfileFromRelay(iden);
-      }
-    });
+    // Common post-creation initialization
+    await _postCreateIdentity(
+      identity,
+      hexPubkey,
+      isFirstAccount: isFirstAccount,
+    );
 
-    NotifyService.instance.addPubkeys([hexPubkey]);
-    MlsGroupService.instance.initIdentities([iden]).then((_) {
-      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
-    });
-    return iden;
+    return identity;
   }
 
   Future<Identity> createIdentityByAmberPubkey({
     required String name,
     required String pubkey,
   }) async {
+    final isFirstAccount = await count() == 0;
     final database = DBProvider.database;
+
     final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final exist = await getIdentityByNostrPubkey(hexPubkey);
     if (exist != null) throw Exception('Identity already exist');
+
     final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
-    final iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+    final identity = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1
       ..isFromSigner = true;
+
+    // Save to database (no private key for Amber/Signer)
     await database.writeTxn(() async {
-      await database.identitys.put(iden);
+      await database.identitys.put(identity);
     });
 
-    await Get.find<HomeController>().loadRoomList(init: true);
+    // Common post-creation initialization
+    await _postCreateIdentity(
+      identity,
+      hexPubkey,
+      isFirstAccount: isFirstAccount,
+    );
 
-    Utils.waitRelayOnline().then((_) async {
-      Get.find<WebsocketService>().listenPubkey(
-        [hexPubkey],
-        kinds: [EventKinds.nip04],
-      );
-      Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
-      final identity = await getIdentityByNostrPubkey(hexPubkey);
-      if (identity != null) {
-        syncProfileFromRelay(iden);
-      }
-    });
-
-    NotifyService.instance.addPubkeys([hexPubkey]);
-    MlsGroupService.instance.initIdentities([iden]).then((_) {
-      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
-    });
-    return iden;
+    return identity;
   }
 
   Future<void> delete(Identity identity) async {
@@ -443,10 +456,9 @@ class IdentityService {
         .findFirst();
   }
 
-  Map prikeys = {};
+  Map<String, String?> prikeys = {};
   Future<String?> getPrikeyByPubkey(String pubkey) async {
-    if (prikeys[pubkey] != null)
-      return Future.value(prikeys[pubkey] as String?);
+    if (prikeys[pubkey] != null) return prikeys[pubkey];
 
     final identities = Get.find<HomeController>().allIdentities.values
         .where((element) => element.secp256k1PKHex == pubkey)

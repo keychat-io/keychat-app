@@ -82,15 +82,11 @@ class _CreateAccountState extends State<CreateAccount> {
                       return;
                     }
                     try {
-                      final isFirstAccount =
-                          await IdentityService.instance.count() == 0;
-
                       final identity = await IdentityService.instance
                           .createIdentity(
                             name: name,
                             account: accounts[selected],
                             index: selected,
-                            isFirstAccount: isFirstAccount,
                           );
                       textEditingController.clear();
                       Get.back(result: identity);

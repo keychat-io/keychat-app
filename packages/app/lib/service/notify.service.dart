@@ -14,6 +14,7 @@ import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/firebase_options.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/local_notification_service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
@@ -46,7 +47,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class NotifyService {
   // Avoid self instance
-  // Avoid self instance
   NotifyService._();
   static NotifyService? _instance;
   static NotifyService get instance => _instance ??= NotifyService._();
@@ -74,7 +74,7 @@ class NotifyService {
     List<String> toAddPubkeys, [
     List<String> toRemovePubkeys = const [],
   ]) async {
-    final deviceId = await this.deviceId;
+    final deviceId = deviceIdFromCache;
     if (deviceId == null) {
       logger.w('addPubkeys: No device ID available ($pushTypeString)');
       return false;
@@ -136,7 +136,7 @@ class NotifyService {
   /// Clear all registrations from notification server
   /// Supports both FCM and UnifiedPush
   Future<void> clearAll() async {
-    final deviceId = await this.deviceId;
+    final deviceId = deviceIdFromCache;
     if (deviceId == null) {
       logger.w('clearAll: No device ID available');
       return;
@@ -168,10 +168,8 @@ class NotifyService {
 
     try {
       if (GetPlatform.isMacOS) {
-        // macOS must use Firebase
-        final s = await FirebaseMessaging.instance.getNotificationSettings();
-        return s.authorizationStatus == AuthorizationStatus.authorized ||
-            s.authorizationStatus == AuthorizationStatus.provisional;
+        return await LocalNotificationService()
+            .checkMacOSNotificationPermission();
       } else {
         // Android and iOS use permission_handler
         final status = await Permission.notification.status;
@@ -191,28 +189,16 @@ class NotifyService {
       return false;
     }
 
+    if (GetPlatform.isMacOS) {
+      return LocalNotificationService().requestMacOSPermissions();
+    }
+    // Android/ iOS
     try {
-      // Try Firebase first
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        provisional: true,
-      );
-      logger.i('Notification Status: ${settings.authorizationStatus.name}');
-
-      return settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
-    } catch (e) {
-      // Fallback to permission_handler if Firebase fails
-      logger.w(
-        'Firebase permission request failed, using permission_handler',
-        error: e,
-      );
-      try {
-        final status = await Permission.notification.request();
-        return status.isGranted;
-      } catch (e2) {
-        logger.e('requestNotifyPermission error', error: e2);
-        return false;
-      }
+      final status = await Permission.notification.request();
+      return status.isGranted;
+    } catch (e2) {
+      logger.e('error', error: e2);
+      return false;
     }
   }
 
@@ -379,8 +365,8 @@ class NotifyService {
         );
       }
       return apnsToken;
-    } catch (e) {
-      logger.e('getAPNSToken error: $e');
+    } catch (e, s) {
+      logger.e('getAPNSToken error: $e', stackTrace: s);
       return _getFCMTokenFromCache();
     }
   }
@@ -410,15 +396,6 @@ class NotifyService {
       logger.i('Notification disabled by user setting');
       return;
     }
-
-    // Initialize Firebase
-    try {
-      await _initializeFirebase();
-    } catch (e) {
-      logger.e('Failed to initialize Firebase', error: e);
-      return;
-    }
-
     // Check or request permission
     var hasPermission = false;
     if (requestPermission) {
@@ -429,6 +406,14 @@ class NotifyService {
 
     if (!hasPermission) {
       logger.i('Notification permission not granted');
+      return;
+    }
+
+    // Initialize Firebase
+    try {
+      await _initializeFirebase();
+    } catch (e) {
+      logger.e('Failed to initialize Firebase', error: e);
       return;
     }
 
@@ -465,6 +450,13 @@ class NotifyService {
       return UnifiedPushService.instance.currentEndpoint?.url;
     }
     return fcmToken ?? await _getFCMToken();
+  }
+
+  String? get deviceIdFromCache {
+    if (currentPushType == PushType.unifiedpush) {
+      return UnifiedPushService.instance.currentEndpoint?.url;
+    }
+    return fcmToken;
   }
 
   String? _oldToken;

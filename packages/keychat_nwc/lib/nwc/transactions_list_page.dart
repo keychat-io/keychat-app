@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart' show formatTime;
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
-import 'package:keychat_nwc/nwc.service.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:ndk/ndk.dart';
@@ -144,7 +143,7 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
                 ],
               ),
               trailing: EcashUtils.getLNIcon(
-                NwcService.instance.getTransactionStatus(tx),
+                controller.getTransactionStatus(tx),
               ),
             );
           },

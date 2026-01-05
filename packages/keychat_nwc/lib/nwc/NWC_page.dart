@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
-import 'package:keychat/utils.dart' show formatTime;
+import 'package:keychat/utils.dart' show DesktopContainer, formatTime;
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
-import 'package:keychat_nwc/nwc.service.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/nwc/nwc_setting_page.dart';
 import 'package:keychat_nwc/active_nwc_connection.dart';
@@ -25,52 +24,57 @@ class NwcPage extends GetView<NwcController> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => controller.refreshBalances(),
+            onPressed: () async {
+              await controller.refreshBalances();
+              await EasyLoading.showInfo('Balances refreshed');
+            },
             icon: const Icon(CupertinoIcons.refresh),
           ),
         ],
       ),
       bottomNavigationBar: _buildBottomBar(context),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          children: [
-            _buildCarousel(context),
-            const SizedBox(height: 30),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Transactions',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      if (controller.activeConnections.isNotEmpty &&
-                          controller.currentIndex.value <
-                              controller.activeConnections.length) {
-                        final uri = controller
-                            .activeConnections[controller.currentIndex.value]
-                            .info
-                            .uri;
-                        Get.to(() => TransactionsListPage(nwcUri: uri));
-                      }
-                    },
-                    child: const Text('More'),
-                  ),
-                ],
+      body: DesktopContainer(
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            children: [
+              _buildCarousel(context),
+              const SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Transactions',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        if (controller.activeConnections.isNotEmpty &&
+                            controller.currentIndex.value <
+                                controller.activeConnections.length) {
+                          final uri = controller
+                              .activeConnections[controller.currentIndex.value]
+                              .info
+                              .uri;
+                          Get.to(() => TransactionsListPage(nwcUri: uri));
+                        }
+                      },
+                      child: const Text('More'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            _buildTransactionsList(context),
-          ],
-        );
-      }),
+              const SizedBox(height: 10),
+              _buildTransactionsList(context),
+            ],
+          );
+        }),
+      ),
     );
   }
 
@@ -80,9 +84,10 @@ class NwcPage extends GetView<NwcController> {
         padding: const EdgeInsets.only(bottom: 16, top: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 32,
           children: [
             FilledButton.icon(
-              onPressed: () => controller.payInvoice(''), // TODO: Scan logic
+              onPressed: () => controller.payInvoice(''),
               icon: const Icon(CupertinoIcons.arrow_up_right),
               label: const Text('Pay'),
             ),
@@ -133,6 +138,17 @@ class NwcPage extends GetView<NwcController> {
     final transactions = connection.transactions
         ?.transactions; // Assuming transactions list inside response
 
+    // Loading state - show loading indicator
+    if (controller.isLoading.value) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Error state or no data
     if (transactions == null || transactions.isEmpty) {
       return const Center(
         child: Padding(
@@ -185,7 +201,7 @@ class NwcPage extends GetView<NwcController> {
             ],
           ),
           trailing: EcashUtils.getLNIcon(
-            NwcService.instance.getTransactionStatus(tx),
+            controller.getTransactionStatus(tx),
           ),
         );
       },
@@ -203,68 +219,159 @@ class NwcPage extends GetView<NwcController> {
         (mintHash & 0xFFFFFF) | 0x40000000,
       ), // Derived color with opacity
     ];
-    return GestureDetector(
-      onTap: () {
-        Get.to<void>(() => NwcSettingPage(connection: connection));
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradientColors,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+    // Check if this card is currently selected
+    final currentIndex = controller.activeConnections.indexOf(connection);
+
+    return Obx(() {
+      final isSelected = controller.currentIndex.value == currentIndex;
+
+      return GestureDetector(
+        onTap: () {
+          Get.to<void>(() => NwcSettingPage(connection: connection));
+        },
+        child: Stack(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Icon(Icons.wallet, color: Colors.white),
-                if (connection.info.name != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradientColors,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
+                    blurRadius: isSelected ? 12 : 8,
+                    offset: const Offset(0, 4),
+                    spreadRadius: isSelected ? 1 : 0,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Icon(Icons.wallet, color: Colors.white),
+                      if (connection.info.name != null)
+                        Flexible(
+                          child: Text(
+                            connection.info.name!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildBalanceDisplay(connection),
+                        const SizedBox(height: 4),
+                        _buildMaxBudgetDisplay(connection),
+                      ],
+                    ),
+                  ),
                   Text(
-                    connection.info.name!,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    '${connection.info.uri.substring(0, 40)}...',
+                    style: const TextStyle(color: Colors.white30, fontSize: 10),
+                    overflow: TextOverflow.ellipsis,
                   ),
-              ],
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${connection.balance?.balanceSats ?? '---'} sats",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+            // Selected indicator overlay
+            if (isSelected)
+              Positioned.fill(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 3,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  "Max Budget: ${connection.balance?.maxAmount ?? '-'}", // Show budget if available
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
-            ),
-            Text(
-              '${connection.info.uri.substring(0, 40)}...',
-              style: const TextStyle(color: Colors.white30, fontSize: 10),
-            ),
+              ),
           ],
         ),
+      );
+    });
+  }
+
+  Widget _buildBalanceDisplay(ActiveNwcConnection connection) {
+    if (controller.isLoading.value && connection.balance == null) {
+      // Loading state
+      return const SizedBox(
+        height: 32,
+        child: CupertinoActivityIndicator(
+          color: Colors.white,
+          radius: 12,
+        ),
+      );
+    }
+
+    if (connection.balance?.balanceSats != null) {
+      // Data loaded successfully
+      return Text(
+        '${connection.balance!.balanceSats} sats',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+
+    // Error state or no data
+    return const Text(
+      '--- sats',
+      style: TextStyle(
+        color: Colors.white70,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
       ),
+    );
+  }
+
+  Widget _buildMaxBudgetDisplay(ActiveNwcConnection connection) {
+    if (controller.isLoading.value && connection.balance == null) {
+      // Loading state
+      return const SizedBox(
+        height: 12,
+        width: 100,
+        child: CupertinoActivityIndicator(
+          color: Colors.white54,
+          radius: 6,
+        ),
+      );
+    }
+
+    if (connection.balance?.maxAmount != null) {
+      // Data loaded successfully
+      return Text(
+        'Max Budget: ${connection.balance!.maxAmount}',
+        style: const TextStyle(color: Colors.white54, fontSize: 12),
+      );
+    }
+
+    // Error state or no data
+    return const Text(
+      'Max Budget: -',
+      style: TextStyle(color: Colors.white54, fontSize: 12),
     );
   }
 

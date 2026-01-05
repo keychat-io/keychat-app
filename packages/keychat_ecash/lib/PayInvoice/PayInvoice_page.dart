@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
-import 'package:keychat_ecash/components/SelectMint.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -60,8 +60,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               (GetPlatform.isMobile || GetPlatform.isMacOS))
             IconButton(
               onPressed: () async {
-                final result = await QrScanService.instance
-                    .handleQRScan(autoProcess: false);
+                final result = await QrScanService.instance.handleQRScan();
                 if (result != null) {
                   controller.textController.text = result;
                 }
@@ -81,11 +80,15 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                   child: Column(
                     children: [
                       Obx(
-                        () => SelectMint(cashuController.latestMintUrl.value,
-                            (String mint) {
-                          cashuController.latestMintUrl.value = mint;
-                          controller.selectedMint.value = mint;
-                        }),
+                        () => SelectMintAndNwc(
+                          controller.selectedWallet.value,
+                          (WalletSelection wallet) {
+                            controller.selectedWallet.value = wallet;
+                            if (wallet.type == WalletType.cashu) {
+                              cashuController.latestMintUrl.value = wallet.id;
+                            }
+                          },
+                        ),
                       ),
                       if (!widget.isPay)
                         Padding(
@@ -183,8 +186,12 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               Obx(
                 () => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: cashuController
-                          .supportMint(controller.selectedMint.value)
+                  child: (controller.selectedWallet.value.type ==
+                                  WalletType.cashu &&
+                              cashuController.supportMint(
+                                controller.selectedWallet.value.id,
+                              )) ||
+                          controller.selectedWallet.value.type == WalletType.nwc
                       ? SizedBox(
                           width: GetPlatform.isDesktop ? 200 : double.infinity,
                           height: 44,
@@ -216,7 +223,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                           await controller.confirmToPayInvoice(
                                         invoice: controller.textController.text
                                             .trim(),
-                                        mint: controller.selectedMint.value,
+                                        walletSelection:
+                                            controller.selectedWallet.value,
                                         isPay: widget.isPay,
                                         paidCallback: widget.paidCallback,
                                       );

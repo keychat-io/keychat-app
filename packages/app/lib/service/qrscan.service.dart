@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -24,7 +25,7 @@ class QrScanService {
   static QrScanService? _instance;
   static QrScanService get instance => _instance ??= QrScanService._();
 
-  Future<String?> handleQRScan({bool autoProcess = true}) async {
+  Future<String?> handleQRScan({bool autoProcess = false}) async {
     if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
       EasyLoading.showToast('Not available on this devices');
       return null;
@@ -126,6 +127,12 @@ class QrScanService {
         isScrollControlled: true,
         ignoreSafeArea: false,
       );
+      return;
+    }
+    if (str.startsWith('nostr+walletconnect://')) {
+      await Utils.getOrPutGetxController(
+        create: NwcController.new,
+      ).addConnection(str);
       return;
     }
 

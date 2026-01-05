@@ -103,7 +103,7 @@ class _PayToLnurlState extends State<PayToLnurl> {
                   );
                   final tx = await pic.confirmToPayInvoice(
                     invoice: pr,
-                    mint: pic.selectedMint.value,
+                    walletSelection: pic.selectedWallet.value,
                     isPay: true,
                   );
                   Get.back(result: tx);

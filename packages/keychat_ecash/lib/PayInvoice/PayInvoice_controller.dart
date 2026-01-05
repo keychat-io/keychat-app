@@ -11,6 +11,8 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -20,13 +22,18 @@ class PayInvoiceController extends GetxController {
   final String? invoice;
   final rust_cashu.InvoiceInfo? invoiceInfo;
   late TextEditingController textController;
-  RxString selectedMint = ''.obs;
+  late Rx<WalletSelection> selectedWallet;
   RxString selectedInvoice = ''.obs;
   final RxBool isLoading = false.obs;
 
   @override
   void onInit() {
-    selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
+    final latestMintUrl = Get.find<EcashController>().latestMintUrl.value;
+    selectedWallet = WalletSelection(
+      type: WalletType.cashu,
+      id: latestMintUrl,
+      displayName: latestMintUrl,
+    ).obs;
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
 
@@ -73,9 +80,11 @@ class PayInvoiceController extends GetxController {
       unawaited(cc.requestPageRefresh());
       if (!isPay) {
         if (GetPlatform.isDesktop) {
-          await Get.bottomSheet(LightningTransactionPage(transaction: tx));
+          await Get.bottomSheet<void>(
+            LightningTransactionPage(transaction: tx),
+          );
         } else {
-          await Get.to(() => LightningTransactionPage(transaction: tx));
+          await Get.to<void>(() => LightningTransactionPage(transaction: tx));
         }
       }
       return tx;
@@ -88,9 +97,91 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
+  FutureOr<Transaction?> _payWithNwc(
+    String nwcUri,
+    String invoice,
+    rust_cashu.InvoiceInfo ii,
+    bool isPay, {
+    Function? paidCallback,
+  }) async {
+    final nwcController =
+        Utils.getOrPutGetxController(create: NwcController.new);
+
+    try {
+      EasyLoading.show(status: 'Processing...');
+
+      // Use NWC to pay invoice
+      final active = nwcController.activeConnections.firstWhereOrNull(
+        (c) => c.info.uri == nwcUri,
+      );
+
+      if (active == null) {
+        EasyLoading.showError('NWC connection not found');
+        return null;
+      }
+
+      // Check balance
+      if (active.balance != null) {
+        final balanceSat = (active.balance!.balanceMsats / 1000).floor();
+        if (balanceSat < ii.amount.toInt()) {
+          EasyLoading.showError('Not Enough Funds');
+          return null;
+        }
+      }
+
+      // Pay invoice through NWC
+      final ndk = nwcController.ndk;
+      await ndk.nwc.payInvoice(active.connection, invoice: invoice);
+
+      logger.i('PayInvoiceController: NWC payment successful');
+      EasyLoading.showSuccess('Success');
+
+      textController.clear();
+
+      // Refresh NWC balance
+      await nwcController.refreshBalances();
+
+      // Create a Transaction object for compatibility
+      // Note: NWC doesn't return the same Transaction structure as Cashu
+      // We create a minimal Transaction object for UI consistency
+      final tx = Transaction(
+        id: '',
+        kind: TransactionKind.ln,
+        amount: BigInt.from(ii.amount.toInt()),
+        status: TransactionStatus.success,
+        io: TransactionDirection.outgoing,
+        mintUrl: nwcUri,
+        unit: 'sat',
+        timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        token: invoice,
+        fee: BigInt.zero,
+        metadata: {'type': 'NWC Payment'},
+      );
+
+      if (!isPay) {
+        if (GetPlatform.isDesktop) {
+          await Get.bottomSheet<void>(
+            LightningTransactionPage(transaction: tx),
+          );
+        } else {
+          await Get.to<void>(() => LightningTransactionPage(transaction: tx));
+        }
+      }
+
+      return tx;
+    } catch (e, s) {
+      logger.e('NWC payment error', error: e, stackTrace: s);
+      EasyLoading.showError('Payment Failed: $e');
+      if (paidCallback != null) {
+        (paidCallback as Function)();
+      }
+    }
+    return null;
+  }
+
   FutureOr<Transaction?> confirmToPayInvoice({
     required String invoice,
-    required String mint,
+    required WalletSelection walletSelection,
     bool isPay = false,
     Function? paidCallback,
   }) async {
@@ -105,9 +196,52 @@ class PayInvoiceController extends GetxController {
     try {
       final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
+      // Handle NWC payment
+      if (walletSelection.type == WalletType.nwc) {
+        if (isPay) {
+          return await _payWithNwc(
+            walletSelection.id,
+            invoice,
+            ii,
+            isPay,
+            paidCallback: paidCallback,
+          );
+        }
+        return await Get.dialog(
+          CupertinoAlertDialog(
+            title: const Text('Pay Invoice'),
+            content: Text(
+              '${ii.amount} ${EcashTokenSymbol.sat.name}',
+              style: Theme.of(Get.context!).textTheme.titleLarge,
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Get.back<Transaction?>(),
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  Get.back(
+                    result: await _payWithNwc(
+                      walletSelection.id,
+                      invoice,
+                      ii,
+                      isPay,
+                    ),
+                  );
+                },
+                child: const Text('Confirm'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Handle Cashu payment
       if (isPay) {
         return await _confirmPayment(
-          mint,
+          walletSelection.id,
           invoice,
           ii,
           isPay,
@@ -123,14 +257,19 @@ class PayInvoiceController extends GetxController {
           ),
           actions: [
             CupertinoDialogAction(
-              onPressed: Get.back,
+              onPressed: () => Get.back<Transaction?>(),
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
                 Get.back(
-                  result: await _confirmPayment(mint, invoice, ii, isPay),
+                  result: await _confirmPayment(
+                    walletSelection.id,
+                    invoice,
+                    ii,
+                    isPay,
+                  ),
                 );
               },
               child: const Text('Confirm'),
@@ -159,7 +298,7 @@ class PayInvoiceController extends GetxController {
       if (parts.length == 2) {
         host = 'https://${parts[1]}/.well-known/lnurlp/${parts[0]}';
         try {
-          final res = await Dio().get(host);
+          final res = await Dio().get<dynamic>(host);
           data = res.data as Map<String, dynamic>?;
           data?['domain'] = parts[1];
         } catch (e, s) {
@@ -177,7 +316,7 @@ class PayInvoiceController extends GetxController {
       //demo: LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS
       final url = rust_nostr.decodeBech32(content: input);
       try {
-        final res = await Dio().get(url);
+        final res = await Dio().get<dynamic>(url);
         data = res.data as Map<String, dynamic>?;
         data?['domain'] = Uri.parse(url).host;
       } catch (e, s) {

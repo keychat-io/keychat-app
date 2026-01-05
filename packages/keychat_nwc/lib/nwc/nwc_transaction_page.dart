@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_nwc/nwc.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
@@ -34,7 +34,8 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
 
   TransactionStatus get _status {
     if (_isPaid) return TransactionStatus.success;
-    return NwcService.instance.getTransactionStatus(widget.transaction);
+    final controller = Get.find<NwcController>();
+    return controller.getTransactionStatus(widget.transaction);
   }
 
   @override
@@ -62,7 +63,8 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
     _isChecking = true;
     try {
       if (!silent) EasyLoading.show(status: 'Checking...');
-      final lookup = await NwcService.instance.lookupInvoice(
+      final controller = Get.find<NwcController>();
+      final lookup = await controller.lookupInvoice(
         widget.nwcUri,
         invoice: widget.transaction.invoice,
       );
@@ -76,7 +78,6 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
 
           // Refresh controller
           try {
-            final controller = Get.find<NwcController>();
             controller.refreshBalances();
             controller.fetchTransactionsForCurrent();
           } catch (_) {}
@@ -109,8 +110,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
         centerTitle: true,
         title: const Text('Receive via NWC'),
       ),
-      body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+      body: DesktopContainer(
         child: ListView(
           children: [
             const SizedBox(height: 20),

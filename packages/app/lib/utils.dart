@@ -1535,3 +1535,22 @@ class NotifySettingStatus {
   static const int disable = -1;
   static const int notConfirm = 0;
 }
+
+class DesktopContainer extends StatelessWidget {
+  const DesktopContainer({required this.child, super.key});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        width: double.infinity,
+        padding: GetPlatform.isDesktop
+            ? const EdgeInsets.all(8)
+            : EdgeInsets.zero,
+        child: child,
+      ),
+    );
+  }
+}

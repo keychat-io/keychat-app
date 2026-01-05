@@ -8,7 +8,7 @@ class ActiveNwcConnection {
     this.balance,
     this.transactions,
   });
-  final NwcConnectionInfo info;
+  NwcConnectionInfo info;
   final NwcConnection connection;
   GetBalanceResponse? balance;
   ListTransactionsResponse? transactions;

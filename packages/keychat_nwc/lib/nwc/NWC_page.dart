@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
@@ -379,7 +380,7 @@ class NwcPage extends GetView<NwcController> {
     return GestureDetector(
       onTap: () => _showAddConnectionDialog(context),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color:
@@ -391,16 +392,20 @@ class NwcPage extends GetView<NwcController> {
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 Icons.add_circle_outline,
-                size: 48,
+                size: 36,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Text(
                 'Add Connection',
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -410,36 +415,37 @@ class NwcPage extends GetView<NwcController> {
   }
 
   Future<void> _showAddConnectionDialog(BuildContext context) async {
-    final textController = TextEditingController();
-    await Get.dialog(
-      CupertinoAlertDialog(
+    await Get.bottomSheet(
+      CupertinoActionSheet(
         title: const Text('Add NWC Connection'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            controller: textController,
-            placeholder: 'nostr+walletconnect://...',
-            maxLines: 3,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 14,
-            ),
-          ),
-        ),
         actions: [
-          CupertinoDialogAction(
-            onPressed: Get.back,
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('Add'),
+          CupertinoActionSheetAction(
             onPressed: () async {
-              if (textController.text.isEmpty) return;
-              await controller.addConnection(textController.text.trim());
+              Get.back();
+              final scanned = await controller.qrScanService.handleQRScan();
+              if (scanned != null && scanned.isNotEmpty) {
+                await controller.addConnection(scanned);
+              }
             },
+            child: const Text('Scan QR Code'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Get.back();
+              final data = await Clipboard.getData(Clipboard.kTextPlain);
+              if (data?.text != null && data!.text!.isNotEmpty) {
+                await controller.addConnection(data.text!);
+              } else {
+                EasyLoading.showError('Clipboard is empty');
+              }
+            },
+            child: const Text('Paste from Clipboard'),
           ),
         ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: Get.back,
+          child: const Text('Cancel'),
+        ),
       ),
     );
   }

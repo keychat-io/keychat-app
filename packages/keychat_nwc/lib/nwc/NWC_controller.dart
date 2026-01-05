@@ -20,6 +20,7 @@ class NwcController extends GetxController {
   late Ndk ndk;
   NwcConnectionStorage _storage = NwcConnectionStorage();
   final Map<String, ActiveNwcConnection> _activeConnections = {};
+  final QrScanService qrScanService = QrScanService.instance;
 
   final RxList<ActiveNwcConnection> activeConnections =
       <ActiveNwcConnection>[].obs;
@@ -147,7 +148,9 @@ class NwcController extends GetxController {
       await _connectAndAdd(info);
       refreshList();
       await EasyLoading.showSuccess('NWC Connection added');
-      Get.back(); // Close dialog
+      if (Get.isDialogOpen ?? false) {
+        Get.back(); // Close dialog
+      }
     } catch (e, s) {
       logger.e(e, stackTrace: s);
       EasyLoading.showError(e.toString());
@@ -200,9 +203,7 @@ class NwcController extends GetxController {
             CupertinoActionSheetAction(
               onPressed: () async {
                 Get.back();
-                final scanned = await QrScanService.instance.handleQRScan(
-                  autoProcess: false,
-                );
+                final scanned = await QrScanService.instance.handleQRScan();
                 if (scanned != null && scanned.isNotEmpty) {
                   payInvoice(scanned);
                 }

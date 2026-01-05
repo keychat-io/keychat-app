@@ -40,7 +40,7 @@ class CashuPage extends GetView<EcashController> {
             IconButton(
               color: Theme.of(context).colorScheme.primary,
               onPressed: () {
-                QrScanService.instance.handleQRScan();
+                QrScanService.instance.handleQRScan(autoProcess: true);
               },
               icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
             ),

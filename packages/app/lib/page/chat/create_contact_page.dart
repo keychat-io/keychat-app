@@ -86,7 +86,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                                 ),
                                 onPressed: () async {
                                   final qrCode = await QrScanService.instance
-                                      .handleQRScan(autoProcess: false);
+                                      .handleQRScan();
                                   if (qrCode != null) _controller.text = qrCode;
                                 },
                               )

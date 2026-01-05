@@ -64,7 +64,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
             if (GetPlatform.isMobile || GetPlatform.isMacOS)
               IconButton(
                 onPressed: () async {
-                  QrScanService.instance.handleQRScan();
+                  QrScanService.instance.handleQRScan(autoProcess: true);
                 },
                 icon: const Icon(CupertinoIcons.qrcode_viewfinder),
               ),

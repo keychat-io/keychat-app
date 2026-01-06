@@ -12,6 +12,7 @@ import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -28,12 +29,8 @@ class PayInvoiceController extends GetxController {
 
   @override
   void onInit() {
-    final latestMintUrl = Get.find<EcashController>().latestMintUrl.value;
-    selectedWallet = WalletSelection(
-      type: WalletType.cashu,
-      id: latestMintUrl,
-      displayName: latestMintUrl,
-    ).obs;
+    // Load saved selection or use default
+    selectedWallet = WalletSelectionStorage.loadWallet().obs;
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
 
@@ -49,6 +46,11 @@ class PayInvoiceController extends GetxController {
       });
     });
     super.onInit();
+  }
+
+  void updateWallet(WalletSelection wallet) {
+    selectedWallet.value = wallet;
+    WalletSelectionStorage.saveWallet(wallet);
   }
 
   @override

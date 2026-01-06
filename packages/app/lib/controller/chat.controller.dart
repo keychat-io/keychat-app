@@ -27,11 +27,10 @@ import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show Transaction, TransactionStatus;
+    show TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -697,29 +696,16 @@ class ChatController extends GetxController {
   }
 
   Future<void> _handleSendLightning() async {
-    final invoice = await Get.bottomSheet<Transaction>(
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(),
-    );
-    if (invoice == null) return;
-
     try {
-      final cim = CashuInfoModel()
-        ..amount = invoice.amount.toInt()
-        ..token = invoice.token
-        ..mint = invoice.mintUrl
-        ..status = invoice.status
-        ..hash = invoice.id
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
-          invoice.timestamp.toInt() * 1000,
-        );
+      final result = await EcashUtils.makeInvoice();
+      if (result.$1 == null || result.$2 == null) {
+        return;
+      }
+      logger.d('invoice: ${result.$1}, cashuInfo: ${result.$2}');
       await RoomService.instance.sendMessage(
         roomObs.value,
-        invoice.token,
-        realMessage: cim.toString(),
+        result.$1!,
+        realMessage: result.$2,
         mediaType: MessageMediaType.lightningInvoice,
       );
       hideAdd.value = true; // close features section

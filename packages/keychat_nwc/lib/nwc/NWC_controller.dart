@@ -27,6 +27,14 @@ class NwcController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxInt currentIndex = 0.obs;
 
+  /// Computed total balance across all connections
+  int get totalSats {
+    return activeConnections.fold<int>(
+      0,
+      (sum, connection) => sum + (connection.balance?.balanceSats ?? 0),
+    );
+  }
+
   /// Inject storage for testing
   set storage(NwcConnectionStorage storage) => _storage = storage;
 
@@ -89,14 +97,21 @@ class NwcController extends GetxController {
   }
 
   Future<void> refreshBalances() async {
-    for (final connection in activeConnections) {
-      try {
-        await _refreshBalance(connection.info.uri);
-        activeConnections.refresh(); // Update UI for this specific connection
-      } catch (e) {
-        // Log error but continue
-        logger.e('Error refreshing balance for ${connection.info.uri}: $e');
+    isLoading.value = true;
+    try {
+      for (final connection in activeConnections) {
+        try {
+          await _refreshBalance(connection.info.uri);
+          activeConnections.refresh(); // Update UI for this specific connection
+        } catch (e) {
+          // Log error but continue
+          logger.e('Error refreshing balance for ${connection.info.uri}: $e');
+        }
       }
+      // Refresh transactions for current connection
+      await fetchTransactionsForCurrent();
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -194,6 +209,7 @@ class NwcController extends GetxController {
     }
   }
 
+  @Deprecated("Use PayInvoiceController' s confirmToPayInvoice instead")
   Future<void> payInvoice(String invoice) async {
     if (invoice.isEmpty) {
       await Get.bottomSheet(
@@ -235,6 +251,9 @@ class NwcController extends GetxController {
     if (activeConnections.isEmpty) {
       EasyLoading.showError('No NWC connection available');
       return;
+    }
+    if (invoice.startsWith('lightning:')) {
+      invoice = invoice.replaceFirst('lightning:', '');
     }
 
     // Basic validation

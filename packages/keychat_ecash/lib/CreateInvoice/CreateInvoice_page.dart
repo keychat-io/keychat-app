@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
-import 'package:keychat_ecash/components/SelectMint.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 
 class CreateInvoicePage extends StatelessWidget {
-  CreateInvoicePage({this.amount, this.showSelectMint = true, super.key});
+  CreateInvoicePage({this.amount, this.description, super.key});
   final int? amount;
-  final bool showSelectMint;
+  final String? description;
   final RxBool isLoading = false.obs;
 
   @override
@@ -22,9 +22,8 @@ class CreateInvoicePage extends StatelessWidget {
         appBar: AppBar(
           leading: Container(),
           centerTitle: true,
-          title: Text(
-            'Receive From Lightning Wallet',
-            style: Theme.of(context).textTheme.bodyMedium,
+          title: const Text(
+            'Make Invoice',
           ),
         ),
         body: Container(
@@ -33,10 +32,12 @@ class CreateInvoicePage extends StatelessWidget {
               BoxDecoration(color: Theme.of(context).colorScheme.surface),
           child: Column(
             children: [
-              if (showSelectMint)
-                SelectMint(controller.selectedMint.value, (String mint) {
-                  controller.selectedMint.value = mint;
-                }),
+              Obx(
+                () => SelectMintAndNwc(
+                  controller.selectedWallet.value,
+                  controller.updateWallet,
+                ),
+              ),
               const SizedBox(height: 8),
               Expanded(
                 child: Form(
@@ -54,12 +55,28 @@ class CreateInvoicePage extends StatelessWidget {
                           border: OutlineInputBorder(),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        style: const TextStyle(fontSize: 18),
+                        controller: controller.descController,
+                        keyboardType: TextInputType.text,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'Description (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
               Obx(
-                () => cashuController.supportMint(controller.selectedMint.value)
+                () => (controller.selectedWallet.value.type ==
+                                WalletType.cashu &&
+                            cashuController.supportMint(
+                              controller.selectedWallet.value.id,
+                            )) ||
+                        controller.selectedWallet.value.type == WalletType.nwc
                     ? SizedBox(
                         width: GetPlatform.isDesktop ? 200 : double.infinity,
                         height: 44,
@@ -88,7 +105,7 @@ class CreateInvoicePage extends StatelessWidget {
                                       ),
                                     ),
                                   )
-                                : const Text('Create Invoice'),
+                                : const Text('Make Invoice'),
                           ),
                         ),
                       )

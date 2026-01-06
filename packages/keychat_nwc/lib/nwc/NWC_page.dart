@@ -2,37 +2,42 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart' show DesktopContainer, formatTime;
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
+import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/nwc/nwc_setting_page.dart';
-import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:keychat_nwc/nwc/transactions_list_page.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class NwcPage extends GetView<NwcController> {
-  const NwcPage({super.key});
+  const NwcPage({super.key, this.isEmbedded = false});
+
+  final bool isEmbedded;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('NWC Wallet'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await controller.refreshBalances();
-              await EasyLoading.showInfo('Balances refreshed');
-            },
-            icon: const Icon(CupertinoIcons.refresh),
-          ),
-        ],
-      ),
+      appBar: isEmbedded
+          ? null
+          : AppBar(
+              title: const Text('NWC Wallet'),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    await controller.refreshBalances();
+                    await EasyLoading.showInfo('Balances refreshed');
+                  },
+                  icon: const Icon(CupertinoIcons.refresh),
+                ),
+              ],
+            ),
       bottomNavigationBar: _buildBottomBar(context),
       body: DesktopContainer(
         child: Obx(() {
@@ -42,6 +47,57 @@ class NwcPage extends GetView<NwcController> {
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 20),
             children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Wrap(
+                      direction: Axis.vertical,
+                      children: [
+                        const Text('Total Balance'),
+                        Obx(
+                          () => controller.isLoading.value &&
+                                  controller.activeConnections.isEmpty
+                              ? SizedBox(
+                                  height: 60,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                  ),
+                                )
+                              : RichText(
+                                  text: TextSpan(
+                                    text: controller.totalSats.toString(),
+                                    children: const <TextSpan>[
+                                      TextSpan(
+                                        text: ' sats',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                    style: TextStyle(
+                                      height: 1.3,
+                                      fontSize: 48,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge!
+                                          .color,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                    if (isEmbedded) _buildRefreshButton(),
+                  ],
+                ),
+              ),
               _buildCarousel(context),
               const SizedBox(height: 30),
               Padding(
@@ -53,19 +109,25 @@ class NwcPage extends GetView<NwcController> {
                       'Transactions',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    TextButton(
-                      onPressed: () {
-                        if (controller.activeConnections.isNotEmpty &&
-                            controller.currentIndex.value <
-                                controller.activeConnections.length) {
-                          final uri = controller
-                              .activeConnections[controller.currentIndex.value]
-                              .info
-                              .uri;
-                          Get.to(() => TransactionsListPage(nwcUri: uri));
-                        }
-                      },
-                      child: const Text('More'),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            if (controller.activeConnections.isNotEmpty &&
+                                controller.currentIndex.value <
+                                    controller.activeConnections.length) {
+                              final uri = controller
+                                  .activeConnections[
+                                      controller.currentIndex.value]
+                                  .info
+                                  .uri;
+                              Get.to(() => TransactionsListPage(nwcUri: uri));
+                            }
+                          },
+                          child: const Text('More'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -88,13 +150,22 @@ class NwcPage extends GetView<NwcController> {
           spacing: 32,
           children: [
             FilledButton.icon(
-              onPressed: () => controller.payInvoice(''),
+              onPressed: () async {
+                await Get.bottomSheet<void>(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4)),
+                  ),
+                  const PayInvoicePage(),
+                );
+              },
               icon: const Icon(CupertinoIcons.arrow_up_right),
               label: const Text('Pay'),
             ),
             const SizedBox(width: 20),
             FilledButton.icon(
-              onPressed: () => controller.receive(),
+              onPressed: EcashUtils.proccessMakeLnInvoice,
               icon: const Icon(CupertinoIcons.arrow_down_left),
               label: const Text('Receive'),
             ),
@@ -111,8 +182,10 @@ class NwcPage extends GetView<NwcController> {
       child: CarouselSlider(
         options: CarouselOptions(
           height: 150,
-          viewportFraction: 0.45,
+          disableCenter: true,
+          viewportFraction: 0.5,
           padEnds: false,
+          enlargeCenterPage: true,
           enableInfiniteScroll: false,
           onPageChanged: (index, reason) {
             controller.updateCurrentIndex(index);
@@ -376,41 +449,50 @@ class NwcPage extends GetView<NwcController> {
     );
   }
 
+  Widget _buildRefreshButton() {
+    return IconButton(
+      onPressed: () async {
+        await controller.refreshBalances();
+      },
+      icon: const Icon(CupertinoIcons.refresh),
+    );
+  }
+
   Widget _buildAddCard(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showAddConnectionDialog(context),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color:
-              Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    return Builder(
+      builder: (BuildContext context) {
+        return Container(
+          width: MediaQuery.of(context).size.width / 2,
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.onSurface.withAlpha(10),
+                Theme.of(context).colorScheme.onSurface.withAlpha(40),
+              ],
+            ),
           ),
-        ),
-        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.add_circle_outline,
-                size: 36,
-                color: Theme.of(context).colorScheme.primary,
+              IconButton(
+                icon: const Icon(
+                  CupertinoIcons.add_circled,
+                  size: 48,
+                ),
+                onPressed: () => _showAddConnectionDialog(context),
               ),
-              const SizedBox(height: 6),
               Text(
                 'Add Connection',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 12,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

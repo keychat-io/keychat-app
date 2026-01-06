@@ -83,7 +83,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                         () => SelectMintAndNwc(
                           controller.selectedWallet.value,
                           (WalletSelection wallet) {
-                            controller.selectedWallet.value = wallet;
+                            controller.updateWallet(wallet);
                             if (wallet.type == WalletType.cashu) {
                               cashuController.latestMintUrl.value = wallet.id;
                             }

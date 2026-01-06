@@ -5,6 +5,8 @@ import 'package:keychat/models/room.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:keychat/utils.dart' show Utils;
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:sidebarx/sidebarx.dart';
 
 class DesktopController extends GetxController {
@@ -15,7 +17,7 @@ class DesktopController extends GetxController {
   RxDouble roomListWidth = 260.0.obs;
   RxDouble browserSidebarWidth = 180.0.obs;
   late HomeController hc;
-
+  late NwcController controller;
   @override
   void onInit() {
     hc = Get.find<HomeController>();
@@ -26,7 +28,9 @@ class DesktopController extends GetxController {
     sidebarXController.addListener(() async {
       await hc.setSelectedTab(sidebarXController.selectedIndex);
     });
+    Utils.getOrPutGetxController(create: NwcController.new);
     super.onInit();
+
     unawaited(_loadRoomListWidth());
     unawaited(
       _loadBrowserSidebarWidth(),

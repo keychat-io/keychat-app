@@ -4,6 +4,20 @@ import 'dart:convert' show base64, jsonDecode;
 import 'dart:io';
 import 'dart:math' show Random;
 
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:background_downloader/background_downloader.dart';
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -23,24 +37,8 @@ import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:background_downloader/background_downloader.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
@@ -1974,17 +1972,11 @@ img {
               ? int.parse(source['defaultAmount'] as String)
               : 0;
           final invoiceAmount = amount > 0 ? amount : defaultAmount;
-          final result = await Get.bottomSheet<Transaction>(
-            ignoreSafeArea: false,
-            clipBehavior: Clip.antiAlias,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-            ),
-            CreateInvoicePage(amount: invoiceAmount),
+          return EcashUtils.proccessMakeLnInvoice(
+            amount: invoiceAmount,
+            description: source['description'] as String? ?? '',
+            getString: true,
           );
-          if (result != null) {
-            return result.token;
-          }
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
         }

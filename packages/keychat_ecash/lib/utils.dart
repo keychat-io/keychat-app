@@ -9,9 +9,14 @@ import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
+import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
+import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
 
 enum EcashTokenSymbol { sat, usdt }
 
@@ -401,5 +406,98 @@ Restoring...''',
         ),
       );
     }
+  }
+
+  static String getInvoiceString(dynamic invoice) {
+    if (invoice is Transaction) {
+      return invoice.token;
+    } else if (invoice is MakeInvoiceResponse) {
+      return invoice.invoice;
+    }
+    if (invoice is String) {
+      return invoice;
+    }
+    throw Exception('Unknown invoice type');
+  }
+
+  static Future<String?> proccessMakeLnInvoice({
+    int? amount,
+    String? description,
+    bool getString = false,
+  }) async {
+    final result = await Get.bottomSheet(
+      ignoreSafeArea: false,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(amount: amount, description: description),
+    );
+    if (result == null) return null;
+    if (getString) {
+      return getInvoiceString(result);
+    }
+    if (result is Transaction) {
+      await Get.to(
+        () => LightningTransactionPage(transaction: result),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+      await Get.find<EcashController>().requestPageRefresh();
+      return null;
+    }
+
+    // Handle NWC invoice result
+    if (result is MakeInvoiceResponse) {
+      final tx = TransactionResult(
+        type: 'incoming',
+        invoice: result.invoice,
+        amount: result.amountSat * 1000,
+        description: result.description,
+        createdAt: result.createdAt,
+        feesPaid: result.feesPaid,
+        paymentHash: result.paymentHash,
+        preimage: result.preimage,
+      );
+      final selected = WalletSelectionStorage.loadWallet();
+      await Get.to(
+        () => NwcTransactionPage(transaction: tx, nwcUri: selected.id),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+    return null;
+  }
+
+  static Future<(String?, String?)> makeInvoice() async {
+    final invoice = await Get.bottomSheet(
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(),
+    );
+    if (invoice == null) return (null, null);
+
+    final cim = CashuInfoModel();
+    late String token;
+    if (invoice is Transaction) {
+      token = invoice.token;
+      cim
+        ..amount = invoice.amount.toInt()
+        ..token = invoice.token
+        ..mint = invoice.mintUrl
+        ..status = invoice.status
+        ..hash = invoice.id
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
+          invoice.timestamp.toInt() * 1000,
+        );
+    } else if (invoice is MakeInvoiceResponse) {
+      token = invoice.invoice;
+      cim
+        ..amount = invoice.amountSat
+        ..token = invoice.invoice
+        ..mint = invoice.preimage
+        ..status = TransactionStatus.pending;
+    }
+    return (token, cim.toString());
   }
 }

@@ -116,171 +116,244 @@ class SelectMintAndNwc extends StatelessWidget {
     }
 
     final selection = await Get.bottomSheet<WalletSelection>(
-      StatefulBuilder(
-        builder: (context, setState) {
-          return Obx(() {
-            // Build sections list
-            final sections = <SettingsSection>[];
-
-            // Add Mint section
-            if (ecashController.mintBalances.isNotEmpty) {
-              sections.add(
-                SettingsSection(
-                  title: const Text(
-                    'Cashu Mints',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  tiles: ecashController.mintBalances
-                      .map(
-                        (mint) => SettingsTile(
-                          title: Text(
-                            mint.mint,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          value: Text(
-                            '${mint.balance} ${EcashTokenSymbol.sat.name}',
-                          ),
-                          onPressed: (context) {
-                            Get.back(
-                              result: WalletSelection(
-                                type: WalletType.cashu,
-                                id: mint.mint,
-                                displayName: mint.mint,
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                      .toList(),
+      Container(
+        decoration: BoxDecoration(
+          color: Theme.of(Get.context!).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Select Wallet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(Get.context!).textTheme.titleLarge?.color,
                 ),
-              );
-            }
-
-            // Show loading if NWC is still loading
-            if (nwc.isLoading.value && nwc.activeConnections.isEmpty) {
-              sections.add(
-                SettingsSection(
-                  title: const Text(
-                    'Lightning Wallets (NWC)',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  tiles: [
-                    SettingsTile(
-                      title: const Row(
-                        children: [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 12),
-                          Text('Loading NWC wallets...'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            } else if (nwc.activeConnections.isNotEmpty) {
-              // Add NWC section
-              sections.add(
-                SettingsSection(
-                  title: const Text(
-                    'Lightning Wallets (NWC)',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  tiles: nwc.activeConnections.map(
-                    (connection) {
-                      var balanceText = 'Loading...';
-                      if (connection.balance != null) {
-                        final balanceMsat = connection.balance!.balanceMsats;
-                        final balanceSat = (balanceMsat / 1000).floor();
-                        balanceText = '$balanceSat sat';
-                      }
-
-                      final displayName =
-                          connection.info.name ?? connection.info.uri;
-
-                      return SettingsTile(
-                        title: Text(
-                          displayName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        value: Text(balanceText),
-                        onPressed: (context) {
-                          Get.back(
-                            result: WalletSelection(
-                              type: WalletType.nwc,
-                              id: connection.info.uri,
-                              displayName: displayName,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ).toList(),
-                ),
-              );
-            }
-
-            // Check if we have any options
-            if (sections.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(32),
-                child: const Center(
-                  child: Text('No wallet available'),
-                ),
-              );
-            }
-
-            sections.add(
-              SettingsSection(
-                tiles: [
-                  SettingsTile(
-                    title: Obx(
-                      () => Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (isRefreshing.value)
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          else
-                            const Icon(CupertinoIcons.refresh, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            isRefreshing.value
-                                ? 'Refreshing...'
-                                : 'Refresh Balances',
-                          ),
-                        ],
-                      ),
-                    ),
-                    onPressed: isRefreshing.value
-                        ? null
-                        : (context) => handleRefresh(),
-                  ),
-                ],
               ),
-            );
+            ),
+            Flexible(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return Obx(() {
+                    // Build sections list
+                    final sections = <SettingsSection>[];
 
-            return SettingsList(
-              platform: DevicePlatform.iOS,
-              sections: sections,
-            );
-          });
-        },
+                    // Add Mint section
+                    if (ecashController.mintBalances.isNotEmpty) {
+                      sections.add(
+                        SettingsSection(
+                          title: const Text(
+                            'Cashu Mints',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          tiles: ecashController.mintBalances
+                              .map(
+                                (mint) => SettingsTile(
+                                  title: Text(
+                                    mint.mint,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '${mint.balance} ${EcashTokenSymbol.sat.name}',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      if (selected.value.type ==
+                                              WalletType.cashu &&
+                                          selected.value.id == mint.mint) ...[
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          CupertinoIcons.check_mark,
+                                          color: Colors.green,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  onPressed: (context) {
+                                    Get.back(
+                                      result: WalletSelection(
+                                        type: WalletType.cashu,
+                                        id: mint.mint,
+                                        displayName: mint.mint,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      );
+                    }
+
+                    // Show loading if NWC is still loading
+                    if (nwc.isLoading.value && nwc.activeConnections.isEmpty) {
+                      sections.add(
+                        SettingsSection(
+                          title: const Text(
+                            'Lightning Wallets (NWC)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          tiles: [
+                            SettingsTile(
+                              title: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text('Loading NWC wallets...'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else if (nwc.activeConnections.isNotEmpty) {
+                      // Add NWC section
+                      sections.add(
+                        SettingsSection(
+                          title: const Text(
+                            'Lightning Wallets (NWC)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          tiles: nwc.activeConnections.map(
+                            (connection) {
+                              var balanceText = 'Loading...';
+                              if (connection.balance != null) {
+                                final balanceMsat =
+                                    connection.balance!.balanceMsats;
+                                final balanceSat = (balanceMsat / 1000).floor();
+                                balanceText = '$balanceSat sat';
+                              }
+
+                              final displayName =
+                                  connection.info.name ?? connection.info.uri;
+
+                              return SettingsTile(
+                                title: Text(
+                                  displayName,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      balanceText,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    if (selected.value.type == WalletType.nwc &&
+                                        selected.value.id ==
+                                            connection.info.uri) ...[
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        CupertinoIcons.check_mark,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                onPressed: (context) {
+                                  Get.back(
+                                    result: WalletSelection(
+                                      type: WalletType.nwc,
+                                      id: connection.info.uri,
+                                      displayName: displayName,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ).toList(),
+                        ),
+                      );
+                    }
+
+                    // Check if we have any options
+                    if (sections.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(32),
+                        child: const Center(
+                          child: Text('No wallet available'),
+                        ),
+                      );
+                    }
+
+                    sections.add(
+                      SettingsSection(
+                        tiles: [
+                          SettingsTile(
+                            title: Obx(
+                              () => Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isRefreshing.value)
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  else
+                                    const Icon(
+                                      CupertinoIcons.refresh,
+                                      size: 16,
+                                    ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isRefreshing.value
+                                        ? 'Refreshing...'
+                                        : 'Refresh Balances',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onPressed: isRefreshing.value
+                                ? null
+                                : (context) => handleRefresh(),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    return SettingsList(
+                      contentPadding: const EdgeInsets.all(4),
+                      platform: DevicePlatform.iOS,
+                      sections: sections,
+                    );
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
 

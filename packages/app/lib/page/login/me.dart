@@ -110,30 +110,21 @@ class _MinePageState extends State<MinePage> {
                     onPressed: (context) async {
                       Get.toNamed(Routes.ecash);
                     },
-                    title: const Text('Cashu Ecash'),
+                    title: const Text('Cashu Wallet'),
+                  ),
+                  SettingsTile.navigation(
+                    leading: const Icon(
+                      CupertinoIcons.bitcoin,
+                      color: Color(0xfff2a900),
+                    ),
+                    onPressed: (context) async {
+                      Utils.getOrPutGetxController(create: NwcController.new);
+                      Get.to(() => const NwcPage());
+                    },
+                    title: const Text('Nostr Wallet Connect'),
                   ),
                 ],
               ),
-            // if (GetPlatform.isMobile)
-            SettingsSection(
-              tiles: [
-                SettingsTile.navigation(
-                  leading: const Icon(
-                    CupertinoIcons.bitcoin,
-                    color: Color(0xfff2a900),
-                  ),
-                  onPressed: (context) async {
-                    try {
-                      Utils.getOrPutGetxController(create: NwcController.new);
-                      Get.to(() => const NwcPage());
-                    } catch (e) {
-                      logger.e('Failed to process QR result: $e');
-                    }
-                  },
-                  title: const Text('Nostr Wallet Connect'),
-                ),
-              ],
-            ),
             SettingsSection(
               tiles: [
                 SettingsTile.navigation(

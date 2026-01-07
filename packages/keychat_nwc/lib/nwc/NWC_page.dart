@@ -38,12 +38,20 @@ class NwcPage extends GetView<NwcController> {
                 ),
               ],
             ),
-      bottomNavigationBar: _buildBottomBar(context),
+      bottomNavigationBar: controller.activeConnections.isEmpty
+          ? null
+          : _buildBottomBar(context),
       body: DesktopContainer(
         child: Obx(() {
           if (controller.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          // Show empty state when no connections
+          if (controller.activeConnections.isEmpty) {
+            return _buildEmptyState(context);
+          }
+
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 20),
             children: [
@@ -527,6 +535,256 @@ class NwcPage extends GetView<NwcController> {
         cancelButton: CupertinoActionSheetAction(
           onPressed: Get.back,
           child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      child: Column(
+        children: [
+          // Hero section
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primaryContainer,
+                  Theme.of(context).colorScheme.secondaryContainer,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.flash_on,
+                  size: 80,
+                  color: Color(0xfff2a900),
+                ),
+                const SizedBox(height: 24),
+                Column(
+                  children: [
+                    Text(
+                      'Nostr Wallet Connect',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                              ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Connect your Lightning wallet to make instant payments',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer
+                                .withOpacity(0.8),
+                            height: 1.5,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          // Providers Header
+          Text(
+            'Recommended Providers',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 24),
+          _buildProviderItem(
+            context,
+            'Coinos',
+            'Easy to use web wallet with instant NWC setup',
+            'https://coinos.io/',
+            Icons.flash_on,
+            Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _buildProviderItem(
+            context,
+            'Alby Hub',
+            'Self-hosted Lightning node with full control',
+            'https://albyhub.com/',
+            Icons.hub_outlined,
+            Colors.amber,
+          ),
+          const SizedBox(height: 32),
+          // Add Button
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _showAddConnectionDialog(context),
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Add NWC Connection'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () {
+              EasyLoading.showInfo('Visit https://nwc.dev/ for more info');
+            },
+            icon: const Icon(Icons.info_outline, size: 18),
+            label: const Text('Learn more about NWC'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderItem(
+    BuildContext context,
+    String name,
+    String description,
+    String url,
+    IconData icon,
+    Color accentColor,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            accentColor.withOpacity(0.05),
+          ],
+        ),
+        border: Border.all(
+          color: accentColor.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            EasyLoading.showInfo('Visit $url');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accentColor.withOpacity(0.2),
+                        accentColor.withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accentColor.withOpacity(0.9),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Recommended',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: accentColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                              height: 1.3,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 18,
+                  color: accentColor.withOpacity(0.7),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

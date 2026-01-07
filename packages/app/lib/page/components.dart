@@ -708,3 +708,24 @@ Widget pageLoadingSpinKit({String title = 'Loading...'}) {
     ),
   );
 }
+
+Widget recommendedText([String text = 'Recommended']) {
+  return Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 8,
+      vertical: 2,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.green.withAlpha(50),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: Colors.green,
+      ),
+    ),
+  );
+}

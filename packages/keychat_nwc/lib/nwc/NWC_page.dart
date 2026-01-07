@@ -14,6 +14,7 @@ import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/nwc/nwc_setting_page.dart';
 import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:keychat_nwc/nwc/transactions_list_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NwcPage extends GetView<NwcController> {
   const NwcPage({super.key, this.isEmbedded = false});
@@ -652,8 +653,8 @@ class NwcPage extends GetView<NwcController> {
           ),
           const SizedBox(height: 16),
           TextButton.icon(
-            onPressed: () {
-              EasyLoading.showInfo('Visit https://nwc.dev/ for more info');
+            onPressed: () async {
+              await launchUrl(Uri.parse('https://nwc.dev/'));
             },
             icon: const Icon(Icons.info_outline, size: 18),
             label: const Text('Learn more about NWC'),

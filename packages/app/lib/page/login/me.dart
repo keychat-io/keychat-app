@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
@@ -113,9 +114,10 @@ class _MinePageState extends State<MinePage> {
                     title: const Text('Cashu Wallet'),
                   ),
                   SettingsTile.navigation(
-                    leading: const Icon(
-                      CupertinoIcons.bitcoin,
-                      color: Color(0xfff2a900),
+                    leading: SvgPicture.asset(
+                      'assets/images/logo/nwc.svg',
+                      width: 24,
+                      height: 24,
                     ),
                     onPressed: (context) async {
                       Utils.getOrPutGetxController(create: NwcController.new);

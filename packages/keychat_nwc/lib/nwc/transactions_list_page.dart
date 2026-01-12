@@ -131,7 +131,7 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
                     : Icons.arrow_upward,
                 color: tx.type == 'incoming' ? Colors.green : Colors.red,
               ),
-              title: Text('${tx.amountSat} sats'),
+              title: Text('${tx.amountSat} sat'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

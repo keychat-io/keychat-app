@@ -20,7 +20,6 @@ class CreateInvoicePage extends StatelessWidget {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
-          leading: Container(),
           centerTitle: true,
           title: const Text(
             'Make Invoice',

@@ -1,3 +1,4 @@
+import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/utils.dart';
@@ -49,7 +50,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        leading: Container(),
         centerTitle: true,
         title: Text(
           'Send to Lightning Wallet',
@@ -151,17 +151,22 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                             final invoiceInfo = snapshot.data!;
                             return Column(
                               children: [
-                                const SizedBox(height: 8),
                                 RichText(
                                   text: TextSpan(
                                     children: [
                                       TextSpan(
-                                        text: '-${invoiceInfo.amount}',
+                                        text: 'Paying Amount: ',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium,
+                                      ),
+                                      TextSpan(
+                                        text: '${invoiceInfo.amount}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge
                                             ?.copyWith(
-                                              fontSize: 34,
+                                              fontSize: 20,
                                               color: Colors.green,
                                             ),
                                       ),
@@ -169,7 +174,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         text: ' sat',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .bodyLarge,
+                                            .bodyMedium,
                                       ),
                                     ],
                                   ),

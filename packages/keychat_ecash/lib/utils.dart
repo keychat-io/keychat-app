@@ -425,13 +425,10 @@ Restoring...''',
     String? description,
     bool getString = false,
   }) async {
-    final result = await Get.bottomSheet(
-      ignoreSafeArea: false,
-      clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(amount: amount, description: description),
+    final result = await showCupertinoSheet(
+      context: Get.context!,
+      builder: (_) =>
+          CreateInvoicePage(amount: amount, description: description),
     );
     if (result == null) return null;
     if (getString) {

@@ -30,13 +30,14 @@ class NwcPage extends GetView<NwcController> {
               title: const Text('NWC Wallet'),
               centerTitle: true,
               actions: [
-                IconButton(
-                  onPressed: () async {
-                    await controller.refreshBalances();
-                    await EasyLoading.showInfo('Balances refreshed');
-                  },
-                  icon: const Icon(CupertinoIcons.refresh),
-                ),
+                if (controller.activeConnections.isNotEmpty)
+                  IconButton(
+                    onPressed: () async {
+                      await controller.refreshBalances();
+                      await EasyLoading.showInfo('Balances refreshed');
+                    },
+                    icon: const Icon(CupertinoIcons.refresh),
+                  ),
               ],
             ),
       bottomNavigationBar: controller.activeConnections.isEmpty
@@ -82,7 +83,7 @@ class NwcPage extends GetView<NwcController> {
                                     text: controller.totalSats.toString(),
                                     children: const <TextSpan>[
                                       TextSpan(
-                                        text: ' sats',
+                                        text: ' sat',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -108,7 +109,7 @@ class NwcPage extends GetView<NwcController> {
                 ),
               ),
               _buildCarousel(context),
-              const SizedBox(height: 30),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -141,7 +142,6 @@ class NwcPage extends GetView<NwcController> {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
               _buildTransactionsList(context),
             ],
           );
@@ -251,13 +251,14 @@ class NwcPage extends GetView<NwcController> {
       itemBuilder: (context, index) {
         final tx = transactions[index];
         return ListTile(
+          dense: true,
           leading: Icon(
             tx.type == 'incoming'
                 ? Icons.arrow_downward
                 : Icons.arrow_upward, // detailed type check needed
             color: tx.type == 'incoming' ? Colors.green : Colors.red,
           ),
-          title: Text('${tx.amountSat} sats'),
+          title: Text('${tx.amountSat} sat'),
           onTap: () {
             if (tx.invoice != null) {
               Get.to(
@@ -567,40 +568,34 @@ class NwcPage extends GetView<NwcController> {
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.flash_on,
-                  size: 80,
+                  size: 64,
                   color: Color(0xfff2a900),
                 ),
-                const SizedBox(height: 24),
-                Column(
-                  children: [
-                    Text(
-                      'Nostr Wallet Connect',
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Connect your Lightning wallet to make instant payments',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer
-                                .withOpacity(0.8),
-                            height: 1.5,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                const SizedBox(height: 16),
+                Text(
+                  'Nostr Wallet Connect',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Connect your Lightning wallet to make instant payments',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer
+                            .withOpacity(0.8),
+                        height: 1.5,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -679,23 +674,16 @@ class NwcPage extends GetView<NwcController> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            accentColor.withOpacity(0.05),
-          ],
-        ),
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(
-          color: accentColor.withOpacity(0.2),
-          width: 1.5,
+          color: accentColor.withOpacity(0.4),
+          width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -703,7 +691,7 @@ class NwcPage extends GetView<NwcController> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            EasyLoading.showInfo('Visit $url');
+            launchUrl(Uri.parse(url));
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(

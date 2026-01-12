@@ -9,6 +9,8 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
+import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart'
+    show TransactionType;
 import 'package:ndk/ndk.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -108,12 +110,16 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Receive via NWC'),
+        title: Text(
+          widget.transaction.type == TransactionType.incoming.name
+              ? 'Receive via NWC'
+              : 'Send via NWC',
+        ),
       ),
       body: DesktopContainer(
         child: ListView(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -136,7 +142,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                     text: widget.transaction.amountSat.toString(),
                     children: const <TextSpan>[
                       TextSpan(
-                        text: ' sats',
+                        text: ' sat',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -203,12 +209,15 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                 style: const TextStyle(color: Colors.grey),
               ),
             const SizedBox(height: 8),
-            Text(
-              widget.transaction.invoice ?? '',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            Padding(
+              padding: const EdgeInsetsDirectional.symmetric(horizontal: 16),
+              child: Text(
+                widget.transaction.invoice ?? '',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 16),
             Wrap(
               runAlignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,

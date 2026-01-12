@@ -14,7 +14,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
 import 'package:ndk/ndk.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+// import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
 
 class NwcController extends GetxController {
   late Ndk ndk;
@@ -282,7 +282,7 @@ class NwcController extends GetxController {
           children: [
             const SizedBox(height: 10),
             Text(
-              '${invoiceInfo.amount} sats',
+              '${invoiceInfo.amount} sat',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -357,7 +357,7 @@ class NwcController extends GetxController {
             const SizedBox(height: 10),
             CupertinoTextField(
               controller: amountController,
-              placeholder: 'Amount (sats)',
+              placeholder: 'Amount (sat)',
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
@@ -559,5 +559,19 @@ class NwcController extends GetxController {
       }
     }
     return TransactionStatus.pending;
+  }
+}
+
+class RustEventVerifier implements EventVerifier {
+  @override
+  Future<bool> verify(Nip01Event event) async {
+    try {
+      //TODO: implement verifier
+      const isValid = true; // await _verifier.verifyEvent(event.toJson());
+      return isValid;
+    } catch (e) {
+      logger.e('Event verification failed: $e');
+      return false;
+    }
   }
 }

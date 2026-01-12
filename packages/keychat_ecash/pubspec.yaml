@@ -24,4 +24,3 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_svg: ^2.2.0
   custom_refresh_indicator: ^4.0.1
-  ndk: ^0.6.0

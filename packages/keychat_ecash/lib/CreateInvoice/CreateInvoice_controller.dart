@@ -18,12 +18,9 @@ class CreateInvoiceController extends GetxController {
   EcashController ecashController = Get.find<EcashController>();
   late TextEditingController textController;
   late TextEditingController descController;
-  late Rx<WalletSelection> selectedWallet;
 
   @override
   void onInit() {
-    // Load saved selection or use default
-    selectedWallet = WalletSelectionStorage.loadWallet().obs;
     textController = TextEditingController();
     descController = TextEditingController();
     if (defaultAmount != null) {
@@ -33,11 +30,6 @@ class CreateInvoiceController extends GetxController {
       descController.text = defaultDescription!;
     }
     super.onInit();
-  }
-
-  void updateWallet(WalletSelection wallet) {
-    selectedWallet.value = wallet;
-    WalletSelectionStorage.saveWallet(wallet);
   }
 
   @override
@@ -93,12 +85,12 @@ If payment fails, please contact the mint server.''',
       EasyLoading.show(status: 'Generating...');
       final description = descController.text.trim();
       // Handle NWC wallet
-      if (selectedWallet.value.type == WalletType.nwc) {
+      if (ecashController.selectedWallet.value.type == WalletType.nwc) {
         final nwcController = Utils.getOrPutGetxController(
           create: NwcController.new,
         );
         final active = nwcController.activeConnections.firstWhereOrNull(
-          (c) => c.info.uri == selectedWallet.value.id,
+          (c) => c.info.uri == ecashController.selectedWallet.value.id,
         );
 
         if (active == null) {
@@ -120,7 +112,7 @@ If payment fails, please contact the mint server.''',
       // Handle Cashu mint: Transaction
       final tr = await rust_cashu.requestMint(
         amount: BigInt.from(amount),
-        activeMint: selectedWallet.value.id,
+        activeMint: ecashController.selectedWallet.value.id,
       );
       Get.find<EcashController>().getRecentTransactions();
       await EasyLoading.showToast('Create Successfully');

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 
 class PayToLnurl extends StatefulWidget {
   const PayToLnurl(this.data, {super.key});
@@ -18,8 +19,10 @@ class _PayToLnurlState extends State<PayToLnurl> {
   bool isLoading = false;
   late TextEditingController amountController;
   late Map<String, dynamic> data;
+  late EcashController ecashController;
   @override
   void initState() {
+    ecashController = Get.find<EcashController>();
     data = widget.data;
     amountController = TextEditingController();
     super.initState();
@@ -103,7 +106,7 @@ class _PayToLnurlState extends State<PayToLnurl> {
                   );
                   final tx = await pic.confirmToPayInvoice(
                     invoice: pr,
-                    walletSelection: pic.selectedWallet.value,
+                    walletSelection: ecashController.selectedWallet.value,
                     isPay: true,
                   );
                   Get.back(result: tx);

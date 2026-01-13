@@ -126,6 +126,7 @@ class HomeController extends GetxController
   }
 
   // add identity AI and add AI contacts
+  @Deprecated('Remove AI identity')
   Future<void> createAIIdentity(
     List<Identity> existsIdentity,
     String idName,

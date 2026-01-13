@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart' show DesktopContainer, Utils, formatTime;
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
 import 'package:keychat_nwc/active_nwc_connection.dart';
@@ -28,11 +27,32 @@ class NwcPage extends StatefulWidget {
 
 class _NwcPageState extends State<NwcPage> {
   late NwcController controller;
+  Worker? _loadingWorker;
 
   @override
   void initState() {
     super.initState();
     controller = Utils.getOrPutGetxController(create: NwcController.new);
+
+    // Wait for connections to load, then fetch transactions
+    _loadingWorker = ever(
+      controller.isLoading,
+      (isLoading) {
+        if (!isLoading && controller.activeConnections.isNotEmpty && mounted) {
+          // Loading completed, fetch transactions for current connection
+          controller.fetchTransactionsForCurrent();
+          // Dispose worker after first execution
+          _loadingWorker?.dispose();
+          _loadingWorker = null;
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _loadingWorker?.dispose();
+    super.dispose();
   }
 
   @override
@@ -419,25 +439,26 @@ class _NwcPageState extends State<NwcPage> {
       );
     }
 
-    if (connection.balance?.balanceSats != null) {
-      // Data loaded successfully
-      return Text(
-        '${connection.balance!.balanceSats} sats',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-    }
-
-    // Error state or no data
-    return const Text(
-      '--- sats',
-      style: TextStyle(
-        color: Colors.white70,
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '${connection.balance?.balanceSats ?? "--"}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const TextSpan(
+            text: ' sat',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

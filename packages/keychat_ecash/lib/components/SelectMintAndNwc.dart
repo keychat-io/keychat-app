@@ -1,3 +1,4 @@
+import 'package:keychat/app.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -32,21 +33,13 @@ class WalletSelection {
 }
 
 class SelectMintAndNwc extends StatefulWidget {
-  const SelectMintAndNwc(
-    this.initialSelection,
-    this.selectCallback, {
-    super.key,
-  });
-
-  final WalletSelection initialSelection;
-  final void Function(WalletSelection) selectCallback;
+  const SelectMintAndNwc({super.key});
 
   @override
   State<SelectMintAndNwc> createState() => _SelectMintAndNwcState();
 }
 
 class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
-  late final Rx<WalletSelection> selected;
   late final EcashController ecashController;
   late final NwcController nwcController;
   Worker? _nwcWorker;
@@ -54,44 +47,8 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
   @override
   void initState() {
     super.initState();
-    selected = Rx<WalletSelection>(widget.initialSelection);
     ecashController = Get.find<EcashController>();
     nwcController = Utils.getOrPutGetxController(create: NwcController.new);
-
-    // Wait for NWC to load if initial selection is NWC
-    if (widget.initialSelection.type == WalletType.nwc) {
-      _setupNwcListener();
-    }
-  }
-
-  void _setupNwcListener() {
-    // Listen to activeConnections changes
-    _nwcWorker = ever(
-      nwcController.activeConnections,
-      (connections) {
-        if (connections.isNotEmpty && mounted) {
-          // Verify the initial selection still exists
-          if (widget.initialSelection.type == WalletType.nwc) {
-            final exists = connections.any(
-              (c) => c.info.uri == widget.initialSelection.id,
-            );
-
-            // If the initial NWC wallet exists, trigger a refresh by reassigning
-            if (exists) {
-              // Force trigger Obx update by creating a new instance
-              selected.value = WalletSelection(
-                type: widget.initialSelection.type,
-                id: widget.initialSelection.id,
-                displayName: widget.initialSelection.displayName,
-              );
-            }
-          }
-
-          // Force refresh to update the display
-          setState(() {});
-        }
-      },
-    );
   }
 
   @override
@@ -106,7 +63,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
       elevation: 0.2,
       child: ListTile(
         title: Obx(() {
-          final sel = selected.value;
+          final sel = ecashController.selectedWallet.value;
           if (sel.type == WalletType.cashu) {
             final balance = ecashController.getBalanceByMint(sel.id);
             return Text('$balance ${EcashTokenSymbol.sat.name}');
@@ -114,26 +71,52 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
             // NWC wallet
             final nwc = nwcController;
 
+            // Find the connection first
             final connection = nwc.activeConnections.firstWhereOrNull(
               (c) => c.info.uri == sel.id,
             );
 
-            if (connection?.balance != null) {
-              final balanceMsat = connection!.balance!.balanceMsats;
+            // If still loading and no connection found yet
+            if (nwc.isLoading.value && connection == null) {
+              return const Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            }
+
+            // Connection not found after loading
+            if (connection == null) {
+              return const Text('Wallet not found');
+            }
+
+            // Connection found, check balance
+            if (connection.balance != null) {
+              final balanceMsat = connection.balance!.balanceMsats;
               final balanceSat = (balanceMsat / 1000).floor();
               return Text('$balanceSat sat');
             }
 
-            return const Text('Loading...');
+            // Balance not yet loaded
+            return const Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
           }
         }),
-        subtitle: Obx(() {
-          final sel = selected.value;
-          return Text(
-            sel.displayName,
+        subtitle: Obx(
+          () => Text(
+            ecashController.selectedWallet.value.displayName,
             overflow: TextOverflow.ellipsis,
-          );
-        }),
+          ),
+        ),
         trailing: IconButton(
           icon: Icon(
             CupertinoIcons.arrow_right_arrow_left,
@@ -163,7 +146,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
       }
     }
 
-    final selection = await Get.bottomSheet<WalletSelection>(
+    await Get.bottomSheet<WalletSelection>(
       Container(
         decoration: BoxDecoration(
           color: Theme.of(Get.context!).scaffoldBackgroundColor,
@@ -218,9 +201,12 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                                           color: Colors.grey,
                                         ),
                                       ),
-                                      if (selected.value.type ==
+                                      if (ecashController
+                                                  .selectedWallet.value.type ==
                                               WalletType.cashu &&
-                                          selected.value.id == mint.mint) ...[
+                                          ecashController
+                                                  .selectedWallet.value.id ==
+                                              mint.mint) ...[
                                         const SizedBox(width: 8),
                                         const Icon(
                                           CupertinoIcons.check_mark,
@@ -230,13 +216,17 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                                       ],
                                     ],
                                   ),
-                                  onPressed: (context) {
+                                  onPressed: (context) async {
+                                    final wallet = WalletSelection(
+                                      type: WalletType.cashu,
+                                      id: mint.mint,
+                                      displayName: mint.mint,
+                                    );
+                                    await Get.find<EcashController>()
+                                        .updateSelectedWallet(wallet);
+
                                     Get.back(
-                                      result: WalletSelection(
-                                        type: WalletType.cashu,
-                                        id: mint.mint,
-                                        displayName: mint.mint,
-                                      ),
+                                      result: wallet,
                                     );
                                   },
                                 ),
@@ -315,8 +305,11 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                                         color: Colors.grey,
                                       ),
                                     ),
-                                    if (selected.value.type == WalletType.nwc &&
-                                        selected.value.id ==
+                                    if (ecashController
+                                                .selectedWallet.value.type ==
+                                            WalletType.nwc &&
+                                        ecashController
+                                                .selectedWallet.value.id ==
                                             connection.info.uri) ...[
                                       const SizedBox(width: 8),
                                       const Icon(
@@ -327,13 +320,17 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                                     ],
                                   ],
                                 ),
-                                onPressed: (context) {
+                                onPressed: (context) async {
+                                  final wallet = WalletSelection(
+                                    type: WalletType.nwc,
+                                    id: connection.info.uri,
+                                    displayName: displayName,
+                                  );
+                                  await Get.find<EcashController>()
+                                      .updateSelectedWallet(wallet);
+
                                   Get.back(
-                                    result: WalletSelection(
-                                      type: WalletType.nwc,
-                                      id: connection.info.uri,
-                                      displayName: displayName,
-                                    ),
+                                    result: wallet,
                                   );
                                 },
                               );
@@ -404,10 +401,5 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
         ),
       ),
     );
-
-    if (selection != null) {
-      selected.value = selection;
-      widget.selectCallback(selection);
-    }
   }
 }

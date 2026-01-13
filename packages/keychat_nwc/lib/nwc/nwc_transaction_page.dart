@@ -327,7 +327,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                                 icon: Icons.payments_outlined,
                                 label: 'Network Fee',
                                 value:
-                                    '${widget.transaction.feesPaid! ~/ 1000} sats',
+                                    '${widget.transaction.feesPaid! ~/ 1000} sat',
                                 color: Colors.orange,
                               ),
                           ],

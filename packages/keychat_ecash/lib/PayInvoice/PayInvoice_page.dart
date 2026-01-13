@@ -26,13 +26,13 @@ class PayInvoicePage extends StatefulWidget {
 }
 
 class _PayInvoicePageState extends State<PayInvoicePage> {
-  late EcashController cashuController;
+  late EcashController ecashController;
   late PayInvoiceController controller;
   @override
   void initState() {
     controller = Get.put(PayInvoiceController(invoice: widget.invoce));
-    cashuController = Get.find<EcashController>();
-    cashuController.getBalance();
+    ecashController = Get.find<EcashController>();
+    ecashController.getBalance();
     super.initState();
   }
 
@@ -76,17 +76,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
                     children: [
-                      Obx(
-                        () => SelectMintAndNwc(
-                          controller.selectedWallet.value,
-                          (WalletSelection wallet) {
-                            controller.updateWallet(wallet);
-                            if (wallet.type == WalletType.cashu) {
-                              cashuController.latestMintUrl.value = wallet.id;
-                            }
-                          },
-                        ),
-                      ),
+                      const SelectMintAndNwc(),
                       if (!widget.isPay)
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -188,12 +178,13 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               Obx(
                 () => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: (controller.selectedWallet.value.type ==
+                  child: (ecashController.selectedWallet.value.type ==
                                   WalletType.cashu &&
-                              cashuController.supportMint(
-                                controller.selectedWallet.value.id,
+                              ecashController.supportMint(
+                                ecashController.selectedWallet.value.id,
                               )) ||
-                          controller.selectedWallet.value.type == WalletType.nwc
+                          ecashController.selectedWallet.value.type ==
+                              WalletType.nwc
                       ? SizedBox(
                           width: GetPlatform.isDesktop ? 200 : double.infinity,
                           height: 44,
@@ -225,8 +216,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                           await controller.confirmToPayInvoice(
                                         invoice: controller.textController.text
                                             .trim(),
-                                        walletSelection:
-                                            controller.selectedWallet.value,
+                                        walletSelection: ecashController
+                                            .selectedWallet.value,
                                         isPay: widget.isPay,
                                       );
                                       if (tx != null) {

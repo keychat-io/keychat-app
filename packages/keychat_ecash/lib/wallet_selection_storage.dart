@@ -1,77 +1,74 @@
-import 'package:keychat/service/storage.dart';
+import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_nwc/nwc_connection_storage.dart';
 import 'package:get/get.dart';
-import 'package:keychat/utils.dart' show Utils;
 
 class WalletSelectionStorage {
-  static const String _key = 'wallet_selection';
+  static const String _secureKey = 'secure_ecash_wallet_selection';
 
   /// Load wallet selection
-  static WalletSelection loadWallet() {
-    return _loadWallet(_key);
+  static Future<WalletSelection> loadWallet() async {
+    return _loadWallet(_secureKey);
   }
 
   /// Save wallet selection
   static Future<void> saveWallet(WalletSelection wallet) async {
-    await _saveWallet(_key, wallet);
+    await _saveWallet(_secureKey, wallet);
   }
 
-  static WalletSelection _loadWallet(String key) {
-    try {
-      final id = Storage.sp.getString(key);
-      if (id != null && id.isNotEmpty) {
-        // Determine type by URI format
-        final isNwc = id.startsWith('nostr+walletconnect://');
-        final type = isNwc ? WalletType.nwc : WalletType.cashu;
-
-        // Validate that the wallet still exists and get displayName
-        if (type == WalletType.cashu) {
-          final ecashController = Get.find<EcashController>();
-          final exists = ecashController.mintBalances.any((m) => m.mint == id);
-          if (exists) {
-            return WalletSelection(
-              type: type,
-              id: id,
-              displayName: id,
-            );
-          }
-        } else {
-          final nwcController = Utils.getOrPutGetxController(
-            create: NwcController.new,
-          );
-          final connection = nwcController.activeConnections.firstWhereOrNull(
-            (c) => c.info.uri == id,
-          );
-          if (connection != null) {
-            final displayName = connection.info.name ?? id;
-            return WalletSelection(
-              type: type,
-              id: id,
-              displayName: displayName,
-            );
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore errors and fall back to default
-    }
-
-    // Fallback to default cashu mint
+  static Future<WalletSelection> _loadWallet(String secureKey) async {
+    final secureId = await SecureStorage.instance.read(secureKey);
     final ecashController = Get.find<EcashController>();
+
     final latestMintUrl = ecashController.latestMintUrl.value;
-    return WalletSelection(
+    final fall = WalletSelection(
       type: WalletType.cashu,
       id: latestMintUrl,
       displayName: latestMintUrl,
     );
+
+    if (secureId != null && secureId.isNotEmpty) {
+      // Determine type by URI format
+      final isNwc = secureId.startsWith('nostr+walletconnect://');
+      final type = isNwc ? WalletType.nwc : WalletType.cashu;
+
+      // Validate that the wallet still exists
+      if (type == WalletType.cashu) {
+        final exists =
+            ecashController.mintBalances.any((m) => m.mint == secureId);
+        if (exists) {
+          return WalletSelection(
+            type: type,
+            id: secureId,
+            displayName: secureId,
+          );
+        }
+        return fall;
+      } else if (type == WalletType.nwc) {
+        // Check if NWC connection still exists
+        final storage = NwcConnectionStorage();
+        final savedConnections = await storage.getAll();
+        final exists = savedConnections.any((conn) => conn.uri == secureId);
+
+        if (exists) {
+          return WalletSelection(
+            type: type,
+            id: secureId,
+            displayName: secureId,
+          );
+        }
+        return fall;
+      }
+    }
+
+    return fall;
   }
 
   static Future<void> _saveWallet(
-    String key,
+    String secureKey,
     WalletSelection wallet,
   ) async {
-    await Storage.sp.setString(key, wallet.id);
+    await SecureStorage.instance.write(secureKey, wallet.id);
   }
 }

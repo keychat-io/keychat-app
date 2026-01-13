@@ -58,7 +58,6 @@ class NwcController extends GetxController {
     }
     // Fetch balances in background
     refreshBalances();
-    fetchTransactionsForCurrent();
   }
 
   Future<void> _initNdk({EventVerifier? eventVerifier}) async {
@@ -108,8 +107,6 @@ class NwcController extends GetxController {
           logger.e('Error refreshing balance for ${connection.info.uri}: $e');
         }
       }
-      // Refresh transactions for current connection
-      await fetchTransactionsForCurrent();
     } finally {
       isLoading.value = false;
     }
@@ -454,8 +451,7 @@ class NwcController extends GetxController {
       await listTransactions(uri, limit: 10); // Default limit
       refreshList(); // Update UI to show transactions
     } catch (e) {
-      // Silent fail or log?
-      print('Error fetching transactions: $e');
+      logger.e('Error fetching transactions: $e');
     }
   }
 

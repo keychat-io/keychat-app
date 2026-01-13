@@ -17,7 +17,9 @@ import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:ndk/ndk.dart' show TransactionResult;
@@ -47,13 +49,36 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late IndicatorController indicatorController;
+  final Rx<WalletSelection> selectedWallet = Rx(
+    WalletSelection(
+      type: WalletType.cashu,
+      id: KeychatGlobal.defaultCashuMintURL,
+      displayName: KeychatGlobal.defaultCashuMintURL,
+    ),
+  );
+
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     indicatorController = IndicatorController();
     super.onInit();
+    initSelectedWallet();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
+  }
+
+  Future<WalletSelection> initSelectedWallet() async {
+    final wallet = await WalletSelectionStorage.loadWallet();
+    selectedWallet.value = wallet;
+    return wallet;
+  }
+
+  Future<void> updateSelectedWallet(WalletSelection wallet) async {
+    if (wallet.type == WalletType.cashu) {
+      latestMintUrl.value = wallet.id;
+    }
+    selectedWallet.value = wallet;
+    await WalletSelectionStorage.saveWallet(wallet);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {

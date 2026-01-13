@@ -25,14 +25,11 @@ class PayInvoiceController extends GetxController {
   final String? invoice;
   final rust_cashu.InvoiceInfo? invoiceInfo;
   late TextEditingController textController;
-  late Rx<WalletSelection> selectedWallet;
   RxString selectedInvoice = ''.obs;
   final RxBool isLoading = false.obs;
 
   @override
   void onInit() {
-    // Load saved selection or use default
-    selectedWallet = WalletSelectionStorage.loadWallet().obs;
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
 
@@ -48,11 +45,6 @@ class PayInvoiceController extends GetxController {
       });
     });
     super.onInit();
-  }
-
-  void updateWallet(WalletSelection wallet) {
-    selectedWallet.value = wallet;
-    WalletSelectionStorage.saveWallet(wallet);
   }
 
   @override

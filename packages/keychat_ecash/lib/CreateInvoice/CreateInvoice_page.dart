@@ -13,7 +13,7 @@ class CreateInvoicePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cashuController = Get.find<EcashController>();
+    final ecashController = Get.find<EcashController>();
     final controller = Get.put(CreateInvoiceController(defaultAmount: amount));
 
     return SafeArea(
@@ -31,12 +31,7 @@ class CreateInvoicePage extends StatelessWidget {
               BoxDecoration(color: Theme.of(context).colorScheme.surface),
           child: Column(
             children: [
-              Obx(
-                () => SelectMintAndNwc(
-                  controller.selectedWallet.value,
-                  controller.updateWallet,
-                ),
-              ),
+              const SelectMintAndNwc(),
               const SizedBox(height: 8),
               Expanded(
                 child: Form(
@@ -70,12 +65,13 @@ class CreateInvoicePage extends StatelessWidget {
                 ),
               ),
               Obx(
-                () => (controller.selectedWallet.value.type ==
+                () => (ecashController.selectedWallet.value.type ==
                                 WalletType.cashu &&
-                            cashuController.supportMint(
-                              controller.selectedWallet.value.id,
+                            ecashController.supportMint(
+                              ecashController.selectedWallet.value.id,
                             )) ||
-                        controller.selectedWallet.value.type == WalletType.nwc
+                        ecashController.selectedWallet.value.type ==
+                            WalletType.nwc
                     ? SizedBox(
                         width: GetPlatform.isDesktop ? 200 : double.infinity,
                         height: 44,

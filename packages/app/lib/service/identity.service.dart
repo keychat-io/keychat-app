@@ -85,7 +85,6 @@ class IdentityService {
     if (isFirstAccount) {
       try {
         Get.find<EcashController>().initIdentity(identity);
-        await homeController.createAIIdentity([identity], KeychatGlobal.bot);
         homeController.loadAppRemoteConfig();
 
         // Request notification permission for first account

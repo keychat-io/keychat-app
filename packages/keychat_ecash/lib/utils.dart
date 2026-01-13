@@ -455,7 +455,7 @@ Restoring...''',
         paymentHash: result.paymentHash,
         preimage: result.preimage,
       );
-      final selected = WalletSelectionStorage.loadWallet();
+      final selected = await WalletSelectionStorage.loadWallet();
       await Get.to(
         () => NwcTransactionPage(transaction: tx, nwcUri: selected.id),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,

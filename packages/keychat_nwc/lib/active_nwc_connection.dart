@@ -1,5 +1,5 @@
-import 'package:ndk/ndk.dart';
 import 'package:keychat_nwc/nwc_connection_info.dart';
+import 'package:ndk/ndk.dart';
 
 class ActiveNwcConnection {
   ActiveNwcConnection({

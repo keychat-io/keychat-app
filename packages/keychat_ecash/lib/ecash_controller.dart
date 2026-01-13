@@ -20,6 +20,7 @@ import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:ndk/ndk.dart' show TransactionResult;
 
 class EcashDBVersion {
   static const int v0 = 0; // not initial version
@@ -457,25 +458,60 @@ class EcashController extends GetxController {
     }
   }
 
-  FutureOr<Transaction?> proccessPayLightningBill(
-    String invoice, {
+  // Transaction or TransactionResult
+  // input: lnbc, lnurl
+  FutureOr<dynamic> payToLightning(
+    String? input, {
     bool isPay = false,
-    Function? paidCallback,
   }) async {
-    try {
-      await rust_cashu.decodeInvoice(encodedInvoice: invoice);
-    } catch (e) {
-      EasyLoading.showError('Invalid lightning invoice');
-      return null;
+    if (input != null) {
+      if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
+        return await Get.bottomSheet(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+          PayInvoicePage(invoce: input, isPay: isPay, showScanButton: false),
+        );
+      }
+      try {
+        await rust_cashu.decodeInvoice(encodedInvoice: input);
+      } catch (e) {
+        await EasyLoading.showError('Invalid lightning invoice');
+        return null;
+      }
     }
-    return Get.bottomSheet<Transaction>(
+    return await Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
       PayInvoicePage(
-        invoce: invoice,
+        invoce: input,
         isPay: isPay,
         showScanButton: !isPay,
-        paidCallback: paidCallback,
       ),
     );
+  }
+
+  String? getPreimage(dynamic input) {
+    if (input is Transaction) {
+      return input.token;
+    }
+    if (input is TransactionResult) {
+      return input.preimage;
+    }
+    return null;
+  }
+
+  int? getFee(dynamic input) {
+    if (input is Transaction) {
+      return input.fee.toInt();
+    }
+    if (input is TransactionResult) {
+      return input.feesPaid != null ? input.feesPaid! ~/ 1000 : null;
+    }
+    return null;
   }
 
   Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {

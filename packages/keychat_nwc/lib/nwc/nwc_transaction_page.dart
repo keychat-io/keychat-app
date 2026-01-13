@@ -50,7 +50,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
   }
 
   void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       if (_status != TransactionStatus.pending) {
         timer.cancel();
         if (mounted) setState(() {}); // Update UI for state change
@@ -268,9 +268,269 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                 const SizedBox(height: 8),
               ],
             ),
+            // Transaction Details Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  // Primary Information Card
+                  if (widget.transaction.state != null ||
+                      widget.transaction.settledAt != null ||
+                      widget.transaction.feesPaid != null)
+                    Card(
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Status
+                            if (widget.transaction.state != null) ...[
+                              _buildPrimaryInfo(
+                                context,
+                                icon: Icons.info_outline,
+                                label: 'Status',
+                                value: widget.transaction.state!,
+                                color:
+                                    _getStatusColor(widget.transaction.state!),
+                              ),
+                              if (widget.transaction.settledAt != null ||
+                                  widget.transaction.feesPaid != null)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Divider(),
+                                ),
+                            ],
+
+                            // Settled Time
+                            if (widget.transaction.settledAt != null) ...[
+                              _buildPrimaryInfo(
+                                context,
+                                icon: Icons.check_circle_outline,
+                                label: 'Settled At',
+                                value: formatTime(
+                                  widget.transaction.settledAt! * 1000,
+                                ),
+                                color: Colors.green,
+                              ),
+                              if (widget.transaction.feesPaid != null)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Divider(),
+                                ),
+                            ],
+
+                            // Fees Paid
+                            if (widget.transaction.feesPaid != null)
+                              _buildPrimaryInfo(
+                                context,
+                                icon: Icons.payments_outlined,
+                                label: 'Network Fee',
+                                value:
+                                    '${widget.transaction.feesPaid! ~/ 1000} sats',
+                                color: Colors.orange,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 12),
+
+                  // Technical Details Card
+                  Card(
+                    elevation: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // const SizedBox(height: 16),
+                          // Payment Hash
+                          if (widget.transaction.paymentHash.isNotEmpty)
+                            _buildHashRow(
+                              context,
+                              'Payment Hash',
+                              widget.transaction.paymentHash,
+                            ),
+
+                          // Preimage
+                          if (widget.transaction.preimage != null &&
+                              widget.transaction.preimage!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildHashRow(
+                              context,
+                              'Preimage',
+                              widget.transaction.preimage!,
+                            ),
+                          ],
+
+                          // Created At
+                          const SizedBox(height: 12),
+                          _buildSecondaryInfo(
+                            context,
+                            'Created',
+                            formatTime(
+                              widget.transaction.createdAt * 1000,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
+  }
+
+  // Primary information with icon and color
+  Widget _buildPrimaryInfo(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Hash display with copy button
+  Widget _buildHashRow(BuildContext context, String label, String hash) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Colors.grey[300]!,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  hash,
+                  style: const TextStyle(
+                    fontFamily: 'Courier',
+                    fontSize: 11,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: hash));
+                  EasyLoading.showToast('Copied');
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.copy,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Secondary information (simple text)
+  Widget _buildSecondaryInfo(BuildContext context, String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(String state) {
+    switch (state.toLowerCase()) {
+      case 'settled':
+      case 'paid':
+      case 'success':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'failed':
+      case 'expired':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
   }
 }

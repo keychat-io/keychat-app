@@ -6,8 +6,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
-import 'package:keychat/utils.dart' show DesktopContainer, formatTime;
+import 'package:keychat/utils.dart' show DesktopContainer, Utils, formatTime;
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
 import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
@@ -16,138 +17,155 @@ import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:keychat_nwc/nwc/transactions_list_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class NwcPage extends GetView<NwcController> {
+class NwcPage extends StatefulWidget {
   const NwcPage({super.key, this.isEmbedded = false});
 
   final bool isEmbedded;
 
   @override
+  State<NwcPage> createState() => _NwcPageState();
+}
+
+class _NwcPageState extends State<NwcPage> {
+  late NwcController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Utils.getOrPutGetxController(create: NwcController.new);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: isEmbedded
-          ? null
-          : AppBar(
-              title: const Text('NWC Wallet'),
-              centerTitle: true,
-              actions: [
-                if (controller.activeConnections.isNotEmpty)
-                  IconButton(
-                    onPressed: () async {
-                      await controller.refreshBalances();
-                      await EasyLoading.showInfo('Balances refreshed');
-                    },
-                    icon: const Icon(CupertinoIcons.refresh),
-                  ),
-              ],
-            ),
-      bottomNavigationBar: controller.activeConnections.isEmpty
-          ? null
-          : _buildBottomBar(context),
-      body: DesktopContainer(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Obx(() {
+      return Scaffold(
+        appBar: widget.isEmbedded
+            ? null
+            : AppBar(
+                title: const Text('NWC Wallet'),
+                centerTitle: true,
+                actions: [
+                  if (controller.activeConnections.isNotEmpty)
+                    IconButton(
+                      onPressed: () async {
+                        await controller.refreshBalances();
+                        await EasyLoading.showInfo('Balances refreshed');
+                      },
+                      icon: const Icon(CupertinoIcons.refresh),
+                    ),
+                ],
+              ),
+        bottomNavigationBar: controller.activeConnections.isEmpty
+            ? null
+            : _buildBottomBar(context),
+        body: DesktopContainer(
+          child: () {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          // Show empty state when no connections
-          if (controller.activeConnections.isEmpty) {
-            return _buildEmptyState(context);
-          }
+            // Show empty state when no connections
+            if (controller.activeConnections.isEmpty) {
+              return _buildEmptyState(context);
+            }
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Wrap(
-                      direction: Axis.vertical,
-                      children: [
-                        const Text('Total Balance'),
-                        Obx(
-                          () => controller.isLoading.value &&
-                                  controller.activeConnections.isEmpty
-                              ? SizedBox(
-                                  height: 60,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      color: Theme.of(context).primaryColor,
-                                    ),
-                                  ),
-                                )
-                              : RichText(
-                                  text: TextSpan(
-                                    text: controller.totalSats.toString(),
-                                    children: const <TextSpan>[
-                                      TextSpan(
-                                        text: ' sat',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+            return ListView(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Wrap(
+                        direction: Axis.vertical,
+                        children: [
+                          const Text('Total Balance'),
+                          Obx(
+                            () => controller.isLoading.value &&
+                                    controller.activeConnections.isEmpty
+                                ? SizedBox(
+                                    height: 60,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        color: Theme.of(context).primaryColor,
                                       ),
-                                    ],
-                                    style: TextStyle(
-                                      height: 1.3,
-                                      fontSize: 48,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .titleLarge!
-                                          .color,
-                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : RichText(
+                                    text: TextSpan(
+                                      text: controller.totalSats.toString(),
+                                      children: const <TextSpan>[
+                                        TextSpan(
+                                          text: ' sat',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                      style: TextStyle(
+                                        height: 1.3,
+                                        fontSize: 48,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge!
+                                            .color,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
-                        ),
-                      ],
-                    ),
-                    if (isEmbedded) _buildRefreshButton(),
-                  ],
+                          ),
+                        ],
+                      ),
+                      if (widget.isEmbedded) _buildRefreshButton(),
+                    ],
+                  ),
                 ),
-              ),
-              _buildCarousel(context),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Transactions',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            if (controller.activeConnections.isNotEmpty &&
-                                controller.currentIndex.value <
-                                    controller.activeConnections.length) {
-                              final uri = controller
-                                  .activeConnections[
-                                      controller.currentIndex.value]
-                                  .info
-                                  .uri;
-                              Get.to(() => TransactionsListPage(nwcUri: uri));
-                            }
-                          },
-                          child: const Text('More'),
-                        ),
-                      ],
-                    ),
-                  ],
+                _buildCarousel(context),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Transactions',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              if (controller.activeConnections.isNotEmpty &&
+                                  controller.currentIndex.value <
+                                      controller.activeConnections.length) {
+                                final uri = controller
+                                    .activeConnections[
+                                        controller.currentIndex.value]
+                                    .info
+                                    .uri;
+                                Get.to(
+                                  () => TransactionsListPage(nwcUri: uri),
+                                );
+                              }
+                            },
+                            child: const Text('More'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              _buildTransactionsList(context),
-            ],
-          );
-        }),
-      ),
-    );
+                _buildTransactionsList(context),
+              ],
+            );
+          }(),
+        ),
+      );
+    });
   }
 
   Widget _buildBottomBar(BuildContext context) {
@@ -160,14 +178,7 @@ class NwcPage extends GetView<NwcController> {
           children: [
             FilledButton.icon(
               onPressed: () async {
-                await Get.bottomSheet<void>(
-                  clipBehavior: Clip.antiAlias,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(4)),
-                  ),
-                  const PayInvoicePage(),
-                );
+                await Get.find<EcashController>().payToLightning(null);
               },
               icon: const Icon(CupertinoIcons.arrow_up_right),
               label: const Text('Pay'),

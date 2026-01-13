@@ -1944,14 +1944,14 @@ img {
           return 'Error: Invoice is empty';
         }
         try {
-          final tr = await ecashController.proccessPayLightningBill(
+          final tr = await ecashController.payToLightning(
             lnbc,
             isPay: true,
           );
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
-          return tr.token;
+          return ecashController.getPreimage(tr);
         } catch (e) {
           final msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
@@ -2219,22 +2219,12 @@ img {
       }
       // lightning invoice
       if (urlString.startsWith('lightning:')) {
-        final str = urlString.replaceFirst('lightning:', '');
-        if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
-          await Get.bottomSheet<void>(
-            clipBehavior: Clip.antiAlias,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-            ),
-            PayInvoicePage(invoce: str, showScanButton: false),
-          );
-          return true;
-        }
-        await ecashController.proccessPayLightningBill(str, isPay: true);
+        final input = urlString.replaceFirst('lightning:', '');
+        await ecashController.payToLightning(input, isPay: true);
         return true;
       }
       if (urlString.startsWith('lnbc')) {
-        await ecashController.proccessPayLightningBill(urlString, isPay: true);
+        await ecashController.payToLightning(urlString, isPay: true);
         return true;
       }
       // Handle Bitcoin URIs

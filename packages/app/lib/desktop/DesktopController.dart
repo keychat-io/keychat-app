@@ -28,7 +28,6 @@ class DesktopController extends GetxController {
     sidebarXController.addListener(() async {
       await hc.setSelectedTab(sidebarXController.selectedIndex);
     });
-    Utils.getOrPutGetxController(create: NwcController.new);
     super.onInit();
 
     unawaited(_loadRoomListWidth());

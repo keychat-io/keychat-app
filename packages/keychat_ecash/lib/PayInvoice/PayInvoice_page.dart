@@ -1,11 +1,10 @@
-import 'package:get/get_connect/http/src/utils/utils.dart';
+import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
@@ -17,12 +16,10 @@ class PayInvoicePage extends StatefulWidget {
     this.invoce,
     this.isPay = false,
     this.showScanButton = true,
-    this.paidCallback,
   });
   final String? invoce;
   final bool isPay;
   final bool showScanButton;
-  final Function? paidCallback;
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -231,7 +228,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         walletSelection:
                                             controller.selectedWallet.value,
                                         isPay: widget.isPay,
-                                        paidCallback: widget.paidCallback,
                                       );
                                       if (tx != null) {
                                         Get.back(result: tx);

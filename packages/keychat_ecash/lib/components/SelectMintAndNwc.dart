@@ -31,25 +31,73 @@ class WalletSelection {
   int get hashCode => type.hashCode ^ id.hashCode;
 }
 
-class SelectMintAndNwc extends StatelessWidget {
-  SelectMintAndNwc(this.initialSelection, this.selectCallback, {super.key}) {
-    selected.value = initialSelection;
-  }
+class SelectMintAndNwc extends StatefulWidget {
+  const SelectMintAndNwc(
+    this.initialSelection,
+    this.selectCallback, {
+    super.key,
+  });
 
   final WalletSelection initialSelection;
   final void Function(WalletSelection) selectCallback;
-  final Rx<WalletSelection> selected = Rx<WalletSelection>(
-    WalletSelection(
-      type: WalletType.cashu,
-      id: '',
-      displayName: '',
-    ),
-  );
 
-  final EcashController ecashController = Get.find<EcashController>();
+  @override
+  State<SelectMintAndNwc> createState() => _SelectMintAndNwcState();
+}
 
-  NwcController get nwcController {
-    return Utils.getOrPutGetxController(create: NwcController.new);
+class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
+  late final Rx<WalletSelection> selected;
+  late final EcashController ecashController;
+  late final NwcController nwcController;
+  Worker? _nwcWorker;
+
+  @override
+  void initState() {
+    super.initState();
+    selected = Rx<WalletSelection>(widget.initialSelection);
+    ecashController = Get.find<EcashController>();
+    nwcController = Utils.getOrPutGetxController(create: NwcController.new);
+
+    // Wait for NWC to load if initial selection is NWC
+    if (widget.initialSelection.type == WalletType.nwc) {
+      _setupNwcListener();
+    }
+  }
+
+  void _setupNwcListener() {
+    // Listen to activeConnections changes
+    _nwcWorker = ever(
+      nwcController.activeConnections,
+      (connections) {
+        if (connections.isNotEmpty && mounted) {
+          // Verify the initial selection still exists
+          if (widget.initialSelection.type == WalletType.nwc) {
+            final exists = connections.any(
+              (c) => c.info.uri == widget.initialSelection.id,
+            );
+
+            // If the initial NWC wallet exists, trigger a refresh by reassigning
+            if (exists) {
+              // Force trigger Obx update by creating a new instance
+              selected.value = WalletSelection(
+                type: widget.initialSelection.type,
+                id: widget.initialSelection.id,
+                displayName: widget.initialSelection.displayName,
+              );
+            }
+          }
+
+          // Force refresh to update the display
+          setState(() {});
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _nwcWorker?.dispose();
+    super.dispose();
   }
 
   @override
@@ -359,7 +407,7 @@ class SelectMintAndNwc extends StatelessWidget {
 
     if (selection != null) {
       selected.value = selection;
-      selectCallback(selection);
+      widget.selectCallback(selection);
     }
   }
 }

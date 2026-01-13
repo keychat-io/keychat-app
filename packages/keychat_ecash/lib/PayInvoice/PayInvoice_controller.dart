@@ -17,6 +17,8 @@ import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:ndk/ndk.dart' show TransactionResult;
+import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 
 class PayInvoiceController extends GetxController {
   PayInvoiceController({this.invoice, this.invoiceInfo});
@@ -63,9 +65,8 @@ class PayInvoiceController extends GetxController {
     String mint,
     String invoice,
     rust_cashu.InvoiceInfo ii,
-    bool isPay, {
-    Function? paidCallback,
-  }) async {
+    bool isPay,
+  ) async {
     final cc = Get.find<EcashController>();
 
     if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
@@ -92,20 +93,17 @@ class PayInvoiceController extends GetxController {
       return tx;
     } catch (e, s) {
       final msg = await EcashUtils.ecashErrorHandle(e, s);
-      if (msg.contains('11000') && paidCallback != null) {
-        (paidCallback as Function)();
-      }
+      EasyLoading.showError(msg);
     }
     return null;
   }
 
-  FutureOr<Transaction?> _payWithNwc(
+  FutureOr<TransactionResult?> _payWithNwc(
     String nwcUri,
     String invoice,
     rust_cashu.InvoiceInfo ii,
-    bool isPay, {
-    Function? paidCallback,
-  }) async {
+    bool isPay,
+  ) async {
     final nwcController =
         Utils.getOrPutGetxController(create: NwcController.new);
 
@@ -133,7 +131,8 @@ class PayInvoiceController extends GetxController {
 
       // Pay invoice through NWC
       final ndk = nwcController.ndk;
-      await ndk.nwc.payInvoice(active.connection, invoice: invoice);
+      final result =
+          await ndk.nwc.payInvoice(active.connection, invoice: invoice);
 
       logger.i('PayInvoiceController: NWC payment successful');
       EasyLoading.showSuccess('Success');
@@ -143,49 +142,40 @@ class PayInvoiceController extends GetxController {
       // Refresh NWC balance
       await nwcController.refreshBalances();
 
-      // Create a Transaction object for compatibility
-      // Note: NWC doesn't return the same Transaction structure as Cashu
-      // We create a minimal Transaction object for UI consistency
-      final tx = Transaction(
-        id: '',
-        kind: TransactionKind.ln,
-        amount: BigInt.from(ii.amount.toInt()),
-        status: TransactionStatus.success,
-        io: TransactionDirection.outgoing,
-        mintUrl: nwcUri,
-        unit: 'sat',
-        timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
-        token: invoice,
-        fee: BigInt.zero,
-        metadata: {'type': 'NWC Payment'},
+      final tx = TransactionResult(
+        type: 'outgoing',
+        invoice: invoice,
+        amount: ii.amount.toInt(),
+        description: ii.memo,
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        feesPaid: result.feesPaid ~/ 1000,
+        preimage: result.preimage,
+        paymentHash: 'none',
       );
-
       if (!isPay) {
-        if (GetPlatform.isDesktop) {
-          await Get.bottomSheet<void>(
-            LightningTransactionPage(transaction: tx),
-          );
-        } else {
-          await Get.to<void>(() => LightningTransactionPage(transaction: tx));
-        }
+        await Get.to(
+          () => NwcTransactionPage(transaction: tx, nwcUri: nwcUri),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        );
       }
 
       return tx;
     } catch (e, s) {
       logger.e('NWC payment error', error: e, stackTrace: s);
-      EasyLoading.showError('Payment Failed: $e');
-      if (paidCallback != null) {
-        (paidCallback as Function)();
-      }
+      await EasyLoading.showError('Payment Failed: $e');
+    } finally {
+      Future.delayed(const Duration(seconds: 2)).then((value) async {
+        await EasyLoading.dismiss();
+      });
     }
     return null;
   }
 
-  FutureOr<Transaction?> confirmToPayInvoice({
+  // Transaction(cashu)  or TransactionResult(nwc)
+  FutureOr<dynamic> confirmToPayInvoice({
     required String invoice,
     required WalletSelection walletSelection,
     bool isPay = false,
-    Function? paidCallback,
   }) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
@@ -206,7 +196,6 @@ class PayInvoiceController extends GetxController {
             invoice,
             ii,
             isPay,
-            paidCallback: paidCallback,
           );
         }
         return await Get.dialog(
@@ -247,7 +236,6 @@ class PayInvoiceController extends GetxController {
           invoice,
           ii,
           isPay,
-          paidCallback: paidCallback,
         );
       }
       return await Get.dialog(

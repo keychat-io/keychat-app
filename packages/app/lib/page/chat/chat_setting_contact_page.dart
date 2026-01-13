@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatSettingContactPage extends StatefulWidget {
@@ -254,18 +255,11 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                         true) {
                                       return;
                                     }
-                                    await Get.bottomSheet<void>(
-                                      clipBehavior: Clip.antiAlias,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(4),
-                                        ),
-                                      ),
-                                      PayInvoicePage(
-                                        invoce: cc.roomContact.value.lightning,
-                                        showScanButton: false,
-                                      ),
-                                    );
+                                    await Get.find<EcashController>()
+                                        .payToLightning(
+                                          cc.roomContact.value.lightning,
+                                          isPay: true,
+                                        );
                                   },
                                 ),
                         ),

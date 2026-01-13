@@ -100,17 +100,15 @@ class QrScanService {
       final cleanInvoice = trimmedStr.startsWith('lightning:')
           ? trimmedStr.replaceFirst('lightning:', '')
           : trimmedStr;
-      ecashController.proccessPayLightningBill(cleanInvoice);
+      ecashController.payToLightning(cleanInvoice);
       return;
     }
 
     // Handle LNURL and email addresses
     if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
-      showModalBottomSheetWidget(
-        Get.context!,
-        '',
-        PayInvoicePage(invoce: trimmedStr),
-        showAppBar: false,
+      await Get.find<EcashController>().payToLightning(
+        trimmedStr,
+        isPay: true,
       );
       return;
     }
@@ -180,7 +178,7 @@ class QrScanService {
       final decoded = bip21.decode(str);
       final lightningInvoice = decoded.lightningInvoice;
       if (lightningInvoice != null && lightningInvoice.isNotEmpty) {
-        await ecashController.proccessPayLightningBill(lightningInvoice);
+        await ecashController.payToLightning(lightningInvoice);
         return;
       }
     } catch (e) {

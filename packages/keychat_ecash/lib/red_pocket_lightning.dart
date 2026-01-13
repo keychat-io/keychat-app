@@ -97,17 +97,18 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                       if (_cashuInfoModel.status != TransactionStatus.pending) {
                         return;
                       }
-                      final tx = await Get.find<EcashController>()
-                          .proccessPayLightningBill(
+                      final tx =
+                          await Get.find<EcashController>().payToLightning(
                         _cashuInfoModel.token,
                         isPay: true,
-                        paidCallback: () {
-                          updateMessageEcashStatus(TransactionStatus.success);
-                        },
                       );
                       if (tx == null) return;
                       final lnTx = tx;
-                      updateMessageEcashStatus(lnTx.status);
+                      if (lnTx is Transaction) {
+                        updateMessageEcashStatus(lnTx.status);
+                      } else {
+                        updateMessageEcashStatus(TransactionStatus.success);
+                      }
                     });
                   },
                   child: Text(

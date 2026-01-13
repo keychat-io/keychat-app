@@ -495,13 +495,9 @@ class CashuPage extends GetView<EcashController> {
                 title: const Text('Send to Lightning Wallet'),
                 onPressed: (context) async {
                   Get.back<void>();
-                  await Get.bottomSheet<void>(
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                    const PayInvoicePage(),
+                  await Get.find<EcashController>().payToLightning(
+                    null,
+                    isPay: true,
                   );
                   unawaited(
                     controller.getRecentTransactions(),

@@ -220,36 +220,21 @@ class NostrWalletConnectController extends GetxController {
           invoice = invoice.replaceFirst('lightning:', '');
         }
         if (!invoice.startsWith('lnbc')) return;
-        final tx = await ecashController.proccessPayLightningBill(
+        final tx = await ecashController.payToLightning(
           invoice,
           isPay: true,
         );
         late Map toSendMessage;
         if (tx == null) {
-          try {
-            final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
-
-            // Print all fields of the invoice
-            loggerNoLine.d('paymentHash: ${ii.hash}');
-            loggerNoLine.d('description: ${ii.memo}');
-            loggerNoLine.d('expiry: ${ii.expiryTs}');
-            loggerNoLine.d('amount: ${ii.amount}');
-            loggerNoLine.d('mint: ${ii.mint}');
-            toSendMessage = {
-              'result_type': 'pay_invoice',
-              'error': {'code': 'PAYMENT_FAILED', 'message': 'User Cancel'},
-            };
-          } catch (e) {
-            toSendMessage = {
-              'result_type': 'pay_invoice',
-              'error': {
-                'code': 'PAYMENT_FAILED',
-                'message': 'Invoice decoded failed',
-              },
-            };
-          }
+          toSendMessage = {
+            'result_type': 'pay_invoice',
+            'error': {
+              'code': 'PAYMENT_FAILED',
+              'message': '',
+            },
+          };
         } else {
-          if (tx.status != TransactionStatus.success) {
+          if (tx is Transaction && tx.status != TransactionStatus.success) {
             toSendMessage = {
               'result_type': 'pay_invoice',
               'error': {'code': 'PAYMENT_FAILED', 'message': 'PAYMENT FAILED'},
@@ -258,8 +243,8 @@ class NostrWalletConnectController extends GetxController {
             toSendMessage = {
               'result_type': 'pay_invoice',
               'result': {
-                'preimage': tx.id,
-                'fees_paid': tx.fee.toInt(),
+                'preimage': ecashController.getPreimage(tx),
+                'fees_paid': ecashController.getFee(tx),
               },
             };
           }

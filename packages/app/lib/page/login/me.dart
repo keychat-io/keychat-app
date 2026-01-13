@@ -120,7 +120,6 @@ class _MinePageState extends State<MinePage> {
                       height: 24,
                     ),
                     onPressed: (context) async {
-                      Utils.getOrPutGetxController(create: NwcController.new);
                       Get.to(() => const NwcPage());
                     },
                     title: const Text('Nostr Wallet Connect'),

@@ -852,17 +852,7 @@ class HomeController extends GetxController
   }
 
   Future<void> _handleAppLinkLightning(String input) async {
-    if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-      await Get.bottomSheet(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-        ),
-        PayInvoicePage(invoce: input, showScanButton: false),
-      );
-      return;
-    }
-    await Get.find<EcashController>().proccessPayLightningBill(
+    await Get.find<EcashController>().payToLightning(
       input,
       isPay: true,
     );

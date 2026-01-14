@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert' show jsonEncode;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -14,7 +16,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
 import 'package:ndk/ndk.dart';
-// import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class NwcController extends GetxController {
   late Ndk ndk;
@@ -44,6 +46,35 @@ class NwcController extends GetxController {
     _loadConnections();
   }
 
+  /// Wait for isLoading to become true, with a maximum timeout of 5 seconds
+  /// Returns true if isLoading became true, false if timeout
+  Future<bool> waitForLoading() async {
+    if (isLoading.value) {
+      return true;
+    }
+
+    final completer = Completer<bool>();
+    late Worker worker;
+    Timer? timeoutTimer;
+
+    worker = ever(isLoading, (bool value) {
+      if (value && !completer.isCompleted) {
+        timeoutTimer?.cancel();
+        worker.dispose();
+        completer.complete(true);
+      }
+    });
+
+    timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (!completer.isCompleted) {
+        worker.dispose();
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
+  }
+
   Future<void> _loadConnections() async {
     isLoading.value = true;
     try {
@@ -53,11 +84,11 @@ class NwcController extends GetxController {
         await _connectAndAdd(info);
       }
       refreshList();
+      // Fetch balances in background
+      await refreshBalances();
     } finally {
       isLoading.value = false;
     }
-    // Fetch balances in background
-    refreshBalances();
   }
 
   Future<void> _initNdk({EventVerifier? eventVerifier}) async {
@@ -65,7 +96,7 @@ class NwcController extends GetxController {
       NdkConfig(
         eventVerifier: eventVerifier ?? RustEventVerifier(),
         cache: MemCacheManager(),
-        logLevel: LogLevel.debug,
+        logLevel: kDebugMode ? LogLevel.debug : LogLevel.error,
       ),
     );
   }
@@ -95,15 +126,14 @@ class NwcController extends GetxController {
     logger.i('Loaded ${activeConnections.length} NWC connections');
   }
 
-  Future<void> refreshBalances() async {
+  Future<void> refreshBalances([List<ActiveNwcConnection>? connections]) async {
     isLoading.value = true;
     try {
-      for (final connection in activeConnections) {
+      for (final connection in connections ?? activeConnections) {
         try {
           await _refreshBalance(connection.info.uri);
           activeConnections.refresh(); // Update UI for this specific connection
         } catch (e) {
-          // Log error but continue
           logger.e('Error refreshing balance for ${connection.info.uri}: $e');
         }
       }
@@ -143,6 +173,25 @@ class NwcController extends GetxController {
       } catch (e) {
         logger.e('Failed to refresh balance for $uri: $e');
       }
+    }
+  }
+
+  /// Reload connections by reconnecting NDK and re-executing _loadConnections
+  Future<void> reloadConnections() async {
+    isLoading.value = true;
+    try {
+      await ndk.destroy();
+      // Clear existing connections
+      _activeConnections.clear();
+      activeConnections.clear();
+
+      // Reinitialize NDK and load connections
+      await _loadConnections();
+    } catch (e) {
+      logger.e('Failed to reload connections: $e');
+      EasyLoading.showError('Failed to reload connections');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -562,11 +611,13 @@ class RustEventVerifier implements EventVerifier {
   @override
   Future<bool> verify(Nip01Event event) async {
     try {
-      //TODO: implement verifier
-      const isValid = true; // await _verifier.verifyEvent(event.toJson());
-      return isValid;
-    } catch (e) {
-      logger.e('Event verification failed: $e');
+      await rust_nostr.verifyEvent(json: jsonEncode(event.toJson()));
+      return true;
+    } catch (e, s) {
+      logger.e(
+        'Event verification failed: ${event.toJson()} , $e',
+        stackTrace: s,
+      );
       return false;
     }
   }

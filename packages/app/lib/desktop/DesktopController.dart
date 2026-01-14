@@ -5,7 +5,6 @@ import 'package:keychat/models/room.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:sidebarx/sidebarx.dart';
 

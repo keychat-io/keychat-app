@@ -11,6 +11,7 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/status_enum.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_nwc/index.dart';
 
 class RedPocketLightning extends StatefulWidget {
   const RedPocketLightning({required this.message, super.key});
@@ -102,6 +103,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                         _cashuInfoModel.token,
                         isPay: true,
                       );
+                      logger.d('payToLightning tx: $tx');
                       if (tx == null) return;
                       final lnTx = tx;
                       if (lnTx is Transaction) {
@@ -154,6 +156,26 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
     final hash = _cashuInfoModel.hash;
     if (hash == null) {
       EasyLoading.showError('No id found');
+      return;
+    }
+    if (_cashuInfoModel.mint.startsWith(NwcUtils.nwcPrefix)) {
+      final nwcController =
+          Utils.getOrPutGetxController(create: NwcController.new);
+      await nwcController.waitForLoading();
+      final res = await nwcController.lookupInvoice(
+        _cashuInfoModel.mint,
+        invoice: _cashuInfoModel.token,
+      );
+      if (res != null) {
+        if (res.settledAt != null) {
+          await updateMessageEcashStatus(TransactionStatus.success);
+          return;
+        }
+        if (res.expiresAt * 1000 < DateTime.now().millisecondsSinceEpoch) {
+          await updateMessageEcashStatus(TransactionStatus.expired);
+          return;
+        }
+      }
       return;
     }
     try {

@@ -497,7 +497,6 @@ class CashuPage extends GetView<EcashController> {
                   Get.back<void>();
                   await Get.find<EcashController>().payToLightning(
                     null,
-                    isPay: true,
                   );
                   unawaited(
                     controller.getRecentTransactions(),

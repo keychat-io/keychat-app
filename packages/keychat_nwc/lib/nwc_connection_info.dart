@@ -1,16 +1,15 @@
-class NwcConnectionInfo {
-  final String uri;
-  final String? name;
-  final int weight;
+import 'package:keychat_nwc/utils.dart';
 
+class NwcConnectionInfo {
   NwcConnectionInfo({
     required this.uri,
     this.name,
     this.weight = 0,
   }) {
-    if (!uri.startsWith('nostr+walletconnect://')) {
+    if (!uri.startsWith(NwcUtils.nwcPrefix)) {
       throw ArgumentError(
-          'Invalid NWC URI: must start with nostr+walletconnect://');
+        'Invalid NWC URI: must start with ${NwcUtils.nwcPrefix}',
+      );
     }
   }
 
@@ -21,6 +20,9 @@ class NwcConnectionInfo {
       weight: json['weight'] as int? ?? 0,
     );
   }
+  final String uri;
+  final String? name;
+  final int weight;
 
   Map<String, dynamic> toJson() {
     return {

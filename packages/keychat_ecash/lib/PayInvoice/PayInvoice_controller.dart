@@ -132,12 +132,12 @@ class PayInvoiceController extends GetxController {
       textController.clear();
 
       // Refresh NWC balance
-      await nwcController.refreshBalances();
+      await nwcController.refreshBalances([active]);
 
       final tx = TransactionResult(
         type: 'outgoing',
         invoice: invoice,
-        amount: ii.amount.toInt(),
+        amount: ii.amount.toInt() * 1000,
         description: ii.memo,
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         feesPaid: result.feesPaid ~/ 1000,
@@ -267,7 +267,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<Transaction?> lnurlPayFirst(String input) async {
+  FutureOr<dynamic> lnurlPayFirst(String input) async {
     if (input.isEmpty) {
       return null;
     }
@@ -323,9 +323,9 @@ class PayInvoiceController extends GetxController {
       if (Get.isBottomSheetOpen ?? false) {
         Get.back<void>();
       }
-      return await Get.bottomSheet<Transaction>(
+      return await Get.bottomSheet(
         ignoreSafeArea: false,
-        PayToLnurl(data),
+        PayToLnurl(data, input),
       );
     }
     return null;

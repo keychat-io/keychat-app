@@ -425,12 +425,14 @@ Restoring...''',
     String? description,
     bool getString = false,
   }) async {
-    final result = await showCupertinoSheet(
+    final res = await showCupertinoSheet(
       context: Get.context!,
       builder: (_) =>
           CreateInvoicePage(amount: amount, description: description),
     );
-    if (result == null) return null;
+    if (res == null) return null;
+    if (res.$1 == null) return null;
+    final dynamic result = res.$1;
     if (getString) {
       return getInvoiceString(result);
     }
@@ -465,13 +467,16 @@ Restoring...''',
   }
 
   static Future<(String?, String?)> makeInvoice() async {
-    final invoice = await Get.bottomSheet(
+    final res = await Get.bottomSheet(
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
       CreateInvoicePage(),
     );
+    if (res == null) return (null, null);
+    if (res.$1 == null) return (null, null);
+    final dynamic invoice = res.$1;
     if (invoice == null) return (null, null);
 
     final cim = CashuInfoModel();
@@ -492,7 +497,8 @@ Restoring...''',
       cim
         ..amount = invoice.amountSat
         ..token = invoice.invoice
-        ..mint = invoice.preimage
+        ..mint = res.$2?.toString() ?? ''
+        ..hash = invoice.paymentHash
         ..status = TransactionStatus.pending;
     }
     return (token, cim.toString());

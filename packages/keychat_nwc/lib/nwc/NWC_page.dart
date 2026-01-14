@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -66,13 +67,7 @@ class _NwcPageState extends State<NwcPage> {
                 centerTitle: true,
                 actions: [
                   if (controller.activeConnections.isNotEmpty)
-                    IconButton(
-                      onPressed: () async {
-                        await controller.refreshBalances();
-                        await EasyLoading.showInfo('Balances refreshed');
-                      },
-                      icon: const Icon(CupertinoIcons.refresh),
-                    ),
+                    _buildRefreshButton(),
                 ],
               ),
         bottomNavigationBar: controller.activeConnections.isEmpty
@@ -89,98 +84,106 @@ class _NwcPageState extends State<NwcPage> {
               return _buildEmptyState(context);
             }
 
-            return ListView(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16, bottom: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Wrap(
-                        direction: Axis.vertical,
-                        children: [
-                          const Text('Total Balance'),
-                          Obx(
-                            () => controller.isLoading.value &&
-                                    controller.activeConnections.isEmpty
-                                ? SizedBox(
-                                    height: 60,
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
-                                  )
-                                : RichText(
-                                    text: TextSpan(
-                                      text: controller.totalSats.toString(),
-                                      children: const <TextSpan>[
-                                        TextSpan(
-                                          text: ' sat',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+            return CustomMaterialIndicator(
+              onRefresh: () async {
+                await controller.reloadConnections();
+              },
+              displacement: 20,
+              backgroundColor: Colors.white,
+              triggerMode: IndicatorTriggerMode.anywhere,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Wrap(
+                          direction: Axis.vertical,
+                          children: [
+                            const Text('Total Balance'),
+                            Obx(
+                              () => controller.isLoading.value &&
+                                      controller.activeConnections.isEmpty
+                                  ? SizedBox(
+                                      height: 60,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 3,
+                                          color: Theme.of(context).primaryColor,
                                         ),
-                                      ],
-                                      style: TextStyle(
-                                        height: 1.3,
-                                        fontSize: 48,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge!
-                                            .color,
-                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : RichText(
+                                      text: TextSpan(
+                                        text: controller.totalSats.toString(),
+                                        children: const <TextSpan>[
+                                          TextSpan(
+                                            text: ' sat',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                        style: TextStyle(
+                                          height: 1.3,
+                                          fontSize: 48,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge!
+                                              .color,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                          ),
-                        ],
-                      ),
-                      if (widget.isEmbedded) _buildRefreshButton(),
-                    ],
+                            ),
+                          ],
+                        ),
+                        if (widget.isEmbedded) _buildRefreshButton(),
+                      ],
+                    ),
                   ),
-                ),
-                _buildCarousel(context),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Transactions',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              if (controller.activeConnections.isNotEmpty &&
-                                  controller.currentIndex.value <
-                                      controller.activeConnections.length) {
-                                final uri = controller
-                                    .activeConnections[
-                                        controller.currentIndex.value]
-                                    .info
-                                    .uri;
-                                Get.to(
-                                  () => TransactionsListPage(nwcUri: uri),
-                                );
-                              }
-                            },
-                            child: const Text('More'),
-                          ),
-                        ],
-                      ),
-                    ],
+                  _buildCarousel(context),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Transactions',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                if (controller.activeConnections.isNotEmpty &&
+                                    controller.currentIndex.value <
+                                        controller.activeConnections.length) {
+                                  final uri = controller
+                                      .activeConnections[
+                                          controller.currentIndex.value]
+                                      .info
+                                      .uri;
+                                  Get.to(
+                                    () => TransactionsListPage(nwcUri: uri),
+                                  );
+                                }
+                              },
+                              child: const Text('More'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _buildTransactionsList(context),
-              ],
+                  _buildTransactionsList(context),
+                ],
+              ),
             );
           }(),
         ),
@@ -312,7 +315,11 @@ class _NwcPageState extends State<NwcPage> {
                 context,
                 'Fee: ${tx.feesPaid} - ${formatTime(tx.createdAt * 1000)}',
               ),
-              if (tx.description != null) Text(tx.description!),
+              if (tx.description != null && tx.description!.isNotEmpty)
+                textSmallGray(
+                  context,
+                  tx.description!,
+                ),
             ],
           ),
           trailing: EcashUtils.getLNIcon(
@@ -494,7 +501,7 @@ class _NwcPageState extends State<NwcPage> {
   Widget _buildRefreshButton() {
     return IconButton(
       onPressed: () async {
-        await controller.refreshBalances();
+        await controller.reloadConnections();
       },
       icon: const Icon(CupertinoIcons.refresh),
     );

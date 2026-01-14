@@ -2,6 +2,7 @@ import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_nwc/nwc_connection_storage.dart';
+import 'package:keychat_nwc/utils.dart';
 import 'package:get/get.dart';
 
 class WalletSelectionStorage {
@@ -28,40 +29,50 @@ class WalletSelectionStorage {
       displayName: latestMintUrl,
     );
 
-    if (secureId != null && secureId.isNotEmpty) {
-      // Determine type by URI format
-      final isNwc = secureId.startsWith('nostr+walletconnect://');
-      final type = isNwc ? WalletType.nwc : WalletType.cashu;
-
-      // Validate that the wallet still exists
-      if (type == WalletType.cashu) {
-        final exists =
-            ecashController.mintBalances.any((m) => m.mint == secureId);
-        if (exists) {
-          return WalletSelection(
-            type: type,
-            id: secureId,
-            displayName: secureId,
-          );
-        }
-        return fall;
-      } else if (type == WalletType.nwc) {
-        // Check if NWC connection still exists
-        final storage = NwcConnectionStorage();
-        final savedConnections = await storage.getAll();
-        final exists = savedConnections.any((conn) => conn.uri == secureId);
-
-        if (exists) {
-          return WalletSelection(
-            type: type,
-            id: secureId,
-            displayName: secureId,
-          );
-        }
-        return fall;
+    if (secureId == null || secureId.isEmpty) {
+      final firstNonZeroBalanceMint =
+          ecashController.mintBalances.firstWhereOrNull((m) => m.balance > 0);
+      if (firstNonZeroBalanceMint != null) {
+        return WalletSelection(
+          type: WalletType.cashu,
+          id: firstNonZeroBalanceMint.mint,
+          displayName: firstNonZeroBalanceMint.mint,
+        );
       }
+      return fall;
     }
 
+    // Determine type by URI format
+    final isNwc = secureId.startsWith(NwcUtils.nwcPrefix);
+    final type = isNwc ? WalletType.nwc : WalletType.cashu;
+
+    // Validate that the wallet still exists
+    if (type == WalletType.cashu) {
+      final exists =
+          ecashController.mintBalances.any((m) => m.mint == secureId);
+      if (exists) {
+        return WalletSelection(
+          type: type,
+          id: secureId,
+          displayName: secureId,
+        );
+      }
+      return fall;
+    } else if (type == WalletType.nwc) {
+      // Check if NWC connection still exists
+      final storage = NwcConnectionStorage();
+      final savedConnections = await storage.getAll();
+      final exists = savedConnections.any((conn) => conn.uri == secureId);
+
+      if (exists) {
+        return WalletSelection(
+          type: type,
+          id: secureId,
+          displayName: secureId,
+        );
+      }
+      return fall;
+    }
     return fall;
   }
 

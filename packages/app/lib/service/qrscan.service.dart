@@ -11,6 +11,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_nwc/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -127,7 +128,7 @@ class QrScanService {
       );
       return;
     }
-    if (str.startsWith('nostr+walletconnect://')) {
+    if (str.startsWith(NwcUtils.nwcPrefix)) {
       await Utils.getOrPutGetxController(
         create: NwcController.new,
       ).addConnection(str);

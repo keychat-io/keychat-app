@@ -48,11 +48,11 @@
     </array>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
-    <key>FirebaseAppDelegateProxyEnabled</key>
-    <true/>
-    <key>FirebaseMessagingAutoInitEnabled</key>
-    <true/>
     <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
+    <key>FirebaseMessagingAutoInitEnabled</key>
     <false/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.social-networking</string>

@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_nwc/index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 enum WalletType { cashu, nwc }
@@ -42,19 +42,12 @@ class SelectMintAndNwc extends StatefulWidget {
 class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
   late final EcashController ecashController;
   late final NwcController nwcController;
-  Worker? _nwcWorker;
 
   @override
   void initState() {
     super.initState();
     ecashController = Get.find<EcashController>();
     nwcController = Utils.getOrPutGetxController(create: NwcController.new);
-  }
-
-  @override
-  void dispose() {
-    _nwcWorker?.dispose();
-    super.dispose();
   }
 
   @override

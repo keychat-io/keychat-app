@@ -345,9 +345,9 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // const SizedBox(height: 16),
                           // Payment Hash
-                          if (widget.transaction.paymentHash.isNotEmpty)
+                          if (widget.transaction.paymentHash.isNotEmpty &&
+                              widget.transaction.paymentHash != 'none')
                             _buildHashRow(
                               context,
                               'Payment Hash',

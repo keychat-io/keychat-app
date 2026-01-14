@@ -6,7 +6,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
-import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -39,6 +38,9 @@ class CreateInvoiceController extends GetxController {
     super.onClose();
   }
 
+  // Handle create invoice action
+  // Returns: (MakeInvoiceResponse, Uri String) for NWC wallet
+  //         (Transaction, Mint String) for Cashu mint
   Future<void> handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
@@ -105,7 +107,9 @@ If payment fails, please contact the mint server.''',
         );
 
         await EasyLoading.showSuccess('Invoice created');
-        Get.back(result: response); // MakeInvoiceResponse
+        Get.back(
+          result: (response, active.connection.uri.toUri()),
+        ); // MakeInvoiceResponse
         return;
       }
 
@@ -117,7 +121,7 @@ If payment fails, please contact the mint server.''',
       Get.find<EcashController>().getRecentTransactions();
       await EasyLoading.showToast('Create Successfully');
       textController.clear();
-      Get.back(result: tr);
+      Get.back(result: (tr, ecashController.selectedWallet.value.id));
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);

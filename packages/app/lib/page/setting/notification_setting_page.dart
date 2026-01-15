@@ -230,9 +230,9 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
               SettingsTile(
                 title: const Text('FCM Token'),
                 value: Text(
-                  ((_fcm ?? 'none').length) > 6
-                      ? '${_fcm?.substring(0, 6)}...'
-                      : 'none',
+                  ((_fcm ?? '--').length) > 8
+                      ? '${_fcm?.substring(0, 8)}...'
+                      : '--',
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),

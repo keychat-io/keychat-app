@@ -105,11 +105,11 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                       );
                       logger.d('payToLightning tx: $tx');
                       if (tx == null) return;
-                      final lnTx = tx;
-                      if (lnTx is Transaction) {
-                        updateMessageEcashStatus(lnTx.status);
-                      } else {
-                        updateMessageEcashStatus(TransactionStatus.success);
+                      switch (tx) {
+                        case CashuPaymentResult():
+                          updateMessageEcashStatus(tx.tx.status);
+                        case NwcPaymentResult():
+                          updateMessageEcashStatus(TransactionStatus.success);
                       }
                     });
                   },

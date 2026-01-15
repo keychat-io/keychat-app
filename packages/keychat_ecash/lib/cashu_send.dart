@@ -8,7 +8,7 @@ import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 
 class CashuSendPage extends StatefulWidget {
-  const CashuSendPage(this.isRoom, {super.key});
+  const CashuSendPage({required this.isRoom, super.key});
   final bool isRoom;
 
   @override
@@ -33,16 +33,11 @@ class _CashuSendPageState extends State<CashuSendPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: Column(
           children: [
-            Center(
-              child: Text(
-                'Send Sat(Cashu)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
+            AppBar(title: const Text('Send Sat(Cashu)')),
             Obx(
               () => SelectMint(ecashController.latestMintUrl.value,
                   (String mint) {

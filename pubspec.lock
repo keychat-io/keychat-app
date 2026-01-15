@@ -30,7 +30,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: bbe63652a14e6b51efaea7171475485eeae6f8fd
+      resolved-ref: "0d4c1722c42dfce1cbbe72c5d7b781d83d74a0b0"
       url: "https://github.com/keychat-io/amberflutter.git"
     source: git
     version: "0.0.8"

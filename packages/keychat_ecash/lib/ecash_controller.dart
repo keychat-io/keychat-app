@@ -18,11 +18,11 @@ import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.d
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_ecash/payment_result.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart' show TransactionResult;
 
 class EcashDBVersion {
   static const int v0 = 0; // not initial version
@@ -407,6 +407,7 @@ class EcashController extends GetxController {
   Future<void> addMintUrl(String mint) async {
     await rust_cashu.addMint(url: mint);
     mints.value = await rust_cashu.getMints();
+    mints.refresh();
     await getBalance();
   }
 
@@ -483,15 +484,16 @@ class EcashController extends GetxController {
     }
   }
 
-  // Transaction or TransactionResult
-  // input: lnbc, lnurl
-  FutureOr<dynamic> payToLightning(
+  /// Pay to lightning invoice or LNURL.
+  /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
+  /// [input] can be: lnbc invoice, lnurl, or lightning address (email format).
+  FutureOr<PaymentResult?> payToLightning(
     String? input, {
     bool isPay = false,
   }) async {
     if (input != null) {
       if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-        return await Get.bottomSheet(
+        return await Get.bottomSheet<PaymentResult?>(
           clipBehavior: Clip.antiAlias,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -506,7 +508,7 @@ class EcashController extends GetxController {
         return null;
       }
     }
-    return await Get.bottomSheet(
+    return await Get.bottomSheet<PaymentResult?>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -519,25 +521,11 @@ class EcashController extends GetxController {
     );
   }
 
-  String? getPreimage(dynamic input) {
-    if (input is Transaction) {
-      return input.token;
-    }
-    if (input is TransactionResult) {
-      return input.preimage;
-    }
-    return null;
-  }
+  /// Get the preimage from a payment result.
+  String? getPreimage(PaymentResult? result) => result?.preimage;
 
-  int? getFee(dynamic input) {
-    if (input is Transaction) {
-      return input.fee.toInt();
-    }
-    if (input is TransactionResult) {
-      return input.feesPaid != null ? input.feesPaid! ~/ 1000 : null;
-    }
-    return null;
-  }
+  /// Get the fee paid from a payment result in sats.
+  int? getFee(PaymentResult? result) => result?.fee;
 
   Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
     final originalStatus = transaction.status;

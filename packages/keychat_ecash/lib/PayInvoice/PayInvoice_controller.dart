@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:keychat/app.dart';
-import 'package:keychat/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,10 +11,8 @@ import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
-import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:ndk/ndk.dart' show TransactionResult;
 import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
@@ -53,7 +50,7 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<Transaction?> _confirmPayment(
+  FutureOr<CashuPaymentResult?> _payWithCashu(
     String mint,
     String invoice,
     rust_cashu.InvoiceInfo ii,
@@ -82,7 +79,7 @@ class PayInvoiceController extends GetxController {
           await Get.to<void>(() => LightningTransactionPage(transaction: tx));
         }
       }
-      return tx;
+      return CashuPaymentResult(tx);
     } catch (e, s) {
       final msg = await EcashUtils.ecashErrorHandle(e, s);
       EasyLoading.showError(msg);
@@ -90,7 +87,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<TransactionResult?> _payWithNwc(
+  FutureOr<NwcPaymentResult?> _payWithNwc(
     String nwcUri,
     String invoice,
     rust_cashu.InvoiceInfo ii,
@@ -134,23 +131,18 @@ class PayInvoiceController extends GetxController {
       // Refresh NWC balance
       await nwcController.refreshBalances([active]);
 
-      final tx = TransactionResult(
-        type: 'outgoing',
-        invoice: invoice,
-        amount: ii.amount.toInt() * 1000,
-        description: ii.memo,
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        feesPaid: result.feesPaid ~/ 1000,
-        preimage: result.preimage,
-        paymentHash: 'none',
+      final tx = NwcPaymentResult(
+        TransactionResult(
+          type: 'outgoing',
+          invoice: invoice,
+          amount: ii.amount.toInt() * 1000,
+          description: ii.memo,
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          feesPaid: result.feesPaid ~/ 1000,
+          preimage: result.preimage,
+          paymentHash: 'none',
+        ),
       );
-      if (!isPay) {
-        await Get.to(
-          () => NwcTransactionPage(transaction: tx, nwcUri: nwcUri),
-          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-        );
-      }
-
       return tx;
     } catch (e, s) {
       logger.e('NWC payment error', error: e, stackTrace: s);
@@ -163,14 +155,15 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  // Transaction(cashu)  or TransactionResult(nwc)
-  FutureOr<dynamic> confirmToPayInvoice({
+  /// Pay a lightning invoice and return the payment result.
+  /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
+  FutureOr<PaymentResult?> confirmToPayInvoice({
     required String invoice,
     required WalletSelection walletSelection,
-    bool isPay = false,
+    bool isPay = false, // pay invoice, then return
   }) async {
     if (invoice.isEmpty) {
-      EasyLoading.showToast('Please enter a valid invoice');
+      await EasyLoading.showToast('Please enter a valid invoice');
       return null;
     }
 
@@ -190,7 +183,7 @@ class PayInvoiceController extends GetxController {
             isPay,
           );
         }
-        return await Get.dialog(
+        return await Get.dialog<NwcPaymentResult?>(
           CupertinoAlertDialog(
             title: const Text('Pay Invoice'),
             content: Text(
@@ -199,19 +192,29 @@ class PayInvoiceController extends GetxController {
             ),
             actions: [
               CupertinoDialogAction(
-                onPressed: () => Get.back<Transaction?>(),
+                onPressed: () => Get.back<NwcPaymentResult?>(),
                 child: const Text('Cancel'),
               ),
               CupertinoDialogAction(
                 isDefaultAction: true,
                 onPressed: () async {
-                  Get.back(
-                    result: await _payWithNwc(
-                      walletSelection.id,
-                      invoice,
-                      ii,
-                      isPay,
+                  Get.back<void>(); // close dialog
+                  final res = await _payWithNwc(
+                    walletSelection.id,
+                    invoice,
+                    ii,
+                    isPay,
+                  );
+                  if (res == null) return;
+                  if (Get.isBottomSheetOpen ?? false) {
+                    Get.back<void>(); // close bottom sheet
+                  }
+                  await Get.to<void>(
+                    () => NwcTransactionPage(
+                      transaction: res.tx,
+                      nwcUri: walletSelection.id,
                     ),
+                    id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
                   );
                 },
                 child: const Text('Confirm'),
@@ -223,14 +226,14 @@ class PayInvoiceController extends GetxController {
 
       // Handle Cashu payment
       if (isPay) {
-        return await _confirmPayment(
+        return await _payWithCashu(
           walletSelection.id,
           invoice,
           ii,
           isPay,
         );
       }
-      return await Get.dialog(
+      return await Get.dialog<CashuPaymentResult?>(
         CupertinoAlertDialog(
           title: const Text('Pay Invoice'),
           content: Text(
@@ -239,14 +242,14 @@ class PayInvoiceController extends GetxController {
           ),
           actions: [
             CupertinoDialogAction(
-              onPressed: () => Get.back<Transaction?>(),
+              onPressed: () => Get.back<CashuPaymentResult?>(),
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
                 Get.back(
-                  result: await _confirmPayment(
+                  result: await _payWithCashu(
                     walletSelection.id,
                     invoice,
                     ii,
@@ -267,7 +270,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<dynamic> lnurlPayFirst(String input) async {
+  FutureOr<PaymentResult?> lnurlPayFirst(String input) async {
     if (input.isEmpty) {
       return null;
     }
@@ -312,7 +315,6 @@ class PayInvoiceController extends GetxController {
         return null;
       }
     }
-
     if (host == null || data == null) {
       return null;
     }
@@ -323,11 +325,13 @@ class PayInvoiceController extends GetxController {
       if (Get.isBottomSheetOpen ?? false) {
         Get.back<void>();
       }
-      return await Get.bottomSheet(
+      return await Get.bottomSheet<PaymentResult?>(
         ignoreSafeArea: false,
         PayToLnurl(data, input),
       );
     }
-    return null;
+    final errorMessage =
+        (data['reason'] as String?) ?? 'Unable to find valid user walle';
+    throw Exception(errorMessage);
   }
 }

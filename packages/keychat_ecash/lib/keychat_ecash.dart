@@ -2,6 +2,7 @@ export './EcashSetting/EcashSetting_page.dart';
 export './cashu_page.dart';
 export './cashu_receive.dart';
 export './cashu_send.dart';
+export './payment_result.dart';
 export './utils.dart';
 export 'ecash_controller.dart';
 export 'red_pocket_cashu.dart';

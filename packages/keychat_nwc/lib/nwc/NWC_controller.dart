@@ -187,6 +187,7 @@ class NwcController extends GetxController {
 
       // Reinitialize NDK and load connections
       await _loadConnections();
+      fetchTransactionsForCurrent();
     } catch (e) {
       logger.e('Failed to reload connections: $e');
       EasyLoading.showError('Failed to reload connections');

@@ -84,15 +84,16 @@ class EcashUtils {
     final ec = Get.find<EcashController>();
 
     if (!retry) {
-      EasyLoading.show(status: 'Redeeming...');
+      await EasyLoading.show(status: 'Redeeming...');
     }
     late rust_cashu.TokenInfo decoded;
     try {
       decoded = await rust_cashu.decodeToken(encodedToken: token);
     } catch (e, s) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('Error: $e', duration: const Duration(seconds: 3));
-      logger.e('receive error 2', error: e, stackTrace: s);
+      await EasyLoading.dismiss();
+      final msg = Utils.getErrorMessage(e);
+      await EasyLoading.showError('Error: $msg');
+      logger.e('receive error $msg', error: e, stackTrace: s);
       return null;
     }
     if (!isValidEcashToken(decoded.unit.toString())) {
@@ -170,7 +171,9 @@ class EcashUtils {
   }) async {
     try {
       final model = await RustAPI.receiveToken(encodedToken: token);
-      await Get.find<EcashController>().getBalance();
+      Get.find<EcashController>()
+        ..getBalance()
+        ..getRecentTransactions();
       if (messageId != null) {
         await MessageService.instance.updateMessageCashuStatus(messageId);
       }
@@ -425,11 +428,16 @@ Restoring...''',
     String? description,
     bool getString = false,
   }) async {
-    final res = await showCupertinoSheet(
-      context: Get.context!,
-      builder: (_) =>
-          CreateInvoicePage(amount: amount, description: description),
+    final res = await Get.bottomSheet(
+      ignoreSafeArea: false,
+      isScrollControlled: !GetPlatform.isDesktop,
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(amount: amount, description: description),
     );
+
     if (res == null) return null;
     if (res.$1 == null) return null;
     final dynamic result = res.$1;
@@ -466,8 +474,9 @@ Restoring...''',
     return null;
   }
 
-  static Future<(String?, String?)> makeInvoice() async {
+  static Future<(String?, String?)> makeInvoiceForChat() async {
     final res = await Get.bottomSheet(
+      ignoreSafeArea: false,
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),

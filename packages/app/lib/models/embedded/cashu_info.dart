@@ -9,6 +9,10 @@ part 'cashu_info.g.dart';
 @embedded
 @JsonSerializable(includeIfNull: false)
 class CashuInfoModel {
+  CashuInfoModel();
+
+  factory CashuInfoModel.fromJson(Map<String, dynamic> json) =>
+      _$CashuInfoModelFromJson(json);
   late String mint;
   late String token;
   late int amount;
@@ -22,13 +26,8 @@ class CashuInfoModel {
   String? hash;
   DateTime? expiredAt;
 
-  CashuInfoModel();
-
   @override
-  toString() => jsonEncode(toJson());
-
-  factory CashuInfoModel.fromJson(Map<String, dynamic> json) =>
-      _$CashuInfoModelFromJson(json);
+  String toString() => jsonEncode(toJson());
 
   Map<String, dynamic> toJson() => _$CashuInfoModelToJson(this);
 
@@ -42,17 +41,18 @@ class CashuInfoModel {
   }
 
   Transaction toCashuTransaction() {
-    Transaction ct = Transaction(
-        id: id ?? '',
-        status: status,
-        amount: BigInt.from(amount),
-        token: token,
-        mintUrl: mint,
-        io: TransactionDirection.outgoing,
-        timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch),
-        kind: TransactionKind.cashu,
-        fee: BigInt.from(0),
-        metadata: {});
+    final ct = Transaction(
+      id: id ?? '',
+      status: status,
+      amount: BigInt.from(amount),
+      token: token,
+      mintUrl: mint,
+      io: TransactionDirection.outgoing,
+      timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      kind: TransactionKind.cashu,
+      fee: BigInt.from(0),
+      metadata: {},
+    );
     return ct;
   }
 }

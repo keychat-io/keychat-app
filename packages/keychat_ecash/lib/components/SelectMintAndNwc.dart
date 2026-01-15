@@ -132,7 +132,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
       try {
         await Future.wait([
           ecashController.getBalance(),
-          nwc.refreshBalances(),
+          nwc.reloadConnections(),
         ]);
       } finally {
         isRefreshing.value = false;

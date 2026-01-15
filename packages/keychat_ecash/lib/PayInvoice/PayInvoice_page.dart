@@ -1,3 +1,4 @@
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -77,36 +78,35 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                   child: Column(
                     children: [
                       const SelectMintAndNwc(),
-                      if (!widget.isPay)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
-                          ),
-                          child: TextField(
-                            controller: controller.textController,
-                            textInputAction: TextInputAction.done,
-                            maxLines: 2,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              labelText: 'Lightning Invoice or address',
-                              hintText: 'Lightning invoice or address',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.paste),
-                                onPressed: () async {
-                                  final clipboardData = await Clipboard.getData(
-                                    Clipboard.kTextPlain,
-                                  );
-                                  if (clipboardData?.text != null) {
-                                    controller.textController.text =
-                                        clipboardData!.text!;
-                                  }
-                                },
-                              ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: TextField(
+                          controller: controller.textController,
+                          textInputAction: TextInputAction.done,
+                          maxLines: 2,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            labelText: 'Lightning Invoice or address',
+                            hintText: 'Lightning invoice or address',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.paste),
+                              onPressed: () async {
+                                final clipboardData = await Clipboard.getData(
+                                  Clipboard.kTextPlain,
+                                );
+                                if (clipboardData?.text != null) {
+                                  controller.textController.text =
+                                      clipboardData!.text!;
+                                }
+                              },
                             ),
                           ),
                         ),
+                      ),
                       Obx(
                         () => FutureBuilder(
                           future: () async {
@@ -196,22 +196,32 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       await HapticFeedback.lightImpact();
                                     }
                                     try {
+                                      final input =
+                                          controller.textController.text.trim();
                                       controller.isLoading.value = true;
+                                      // lnurl
                                       if (isEmail(
-                                            controller.textController.text,
+                                            input,
                                           ) ||
-                                          controller.textController.text
+                                          input
                                               .toUpperCase()
                                               .startsWith('LNURL')) {
-                                        final tx =
-                                            await controller.lnurlPayFirst(
-                                          controller.textController.text,
-                                        );
-                                        if (tx != null) {
-                                          Get.back(result: tx);
+                                        try {
+                                          final tx =
+                                              await controller.lnurlPayFirst(
+                                            input,
+                                          );
+                                          if (tx != null) {
+                                            Get.back(result: tx);
+                                          }
+                                        } catch (e, s) {
+                                          await EasyLoading.showError(
+                                              e.toString());
+                                          logger.e(e.toString(), stackTrace: s);
                                         }
                                         return;
                                       }
+                                      // invoice
                                       final tx =
                                           await controller.confirmToPayInvoice(
                                         invoice: controller.textController.text

@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
+@Deprecated('Receive from Clipboard or scan qr code')
 class ReceiveEcash extends StatefulWidget {
   const ReceiveEcash({super.key});
 

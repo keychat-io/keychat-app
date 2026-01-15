@@ -199,18 +199,24 @@ class _NwcPageState extends State<NwcPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 32,
           children: [
-            FilledButton.icon(
-              onPressed: () async {
-                await Get.find<EcashController>().payToLightning(null);
-              },
-              icon: const Icon(CupertinoIcons.arrow_up_right),
-              label: const Text('Pay'),
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await Get.find<EcashController>().payToLightning(null);
+                },
+                icon: const Icon(CupertinoIcons.arrow_up_right),
+                label: const Text('Pay'),
+              ),
             ),
             const SizedBox(width: 20),
-            FilledButton.icon(
-              onPressed: EcashUtils.proccessMakeLnInvoice,
-              icon: const Icon(CupertinoIcons.arrow_down_left),
-              label: const Text('Receive'),
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                onPressed: EcashUtils.proccessMakeLnInvoice,
+                icon: const Icon(CupertinoIcons.arrow_down_left),
+                label: const Text('Receive'),
+              ),
             ),
           ],
         ),

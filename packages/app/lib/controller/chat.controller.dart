@@ -676,7 +676,7 @@ class ChatController extends GetxController {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CashuSendPage(true),
+      const CashuSendPage(isRoom: true),
     );
     if (cashuInfo == null) return;
     try {
@@ -697,7 +697,7 @@ class ChatController extends GetxController {
 
   Future<void> _handleSendLightning() async {
     try {
-      final result = await EcashUtils.makeInvoice();
+      final result = await EcashUtils.makeInvoiceForChat();
       if (result.$1 == null || result.$2 == null) {
         return;
       }

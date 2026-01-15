@@ -1554,3 +1554,52 @@ class DesktopContainer extends StatelessWidget {
     );
   }
 }
+
+class BottomSheetContainer extends StatelessWidget {
+  const BottomSheetContainer({required this.children, this.title, super.key});
+  final List<Widget> children;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Container(
+      padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+      constraints: BoxConstraints(
+        maxWidth: GetPlatform.isDesktop ? 800 : double.infinity,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+      ),
+      child: Column(
+        children: [
+          if (GetPlatform.isDesktop && title != null)
+            AppBar(
+              leading: BackButton(
+                onPressed: Get.back,
+              ),
+              centerTitle: true,
+              title: Text(title!),
+            ),
+          ...children,
+        ],
+      ),
+    );
+    if (GetPlatform.isDesktop) return child;
+
+    return SafeArea(
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: title == null
+            ? null
+            : AppBar(
+                leading: BackButton(
+                  onPressed: Get.back,
+                ),
+                centerTitle: true,
+                title: Text(title!),
+              ),
+        body: child,
+      ),
+    );
+  }
+}

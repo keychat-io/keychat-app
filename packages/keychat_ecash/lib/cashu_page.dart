@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
@@ -14,7 +15,6 @@ import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/Bills/transactions_page.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -33,10 +33,13 @@ class CashuPage extends GetView<EcashController> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 32,
           children: [
-            FilledButton.icon(
-              icon: const Icon(CupertinoIcons.arrow_up_right),
-              onPressed: _handleSend,
-              label: const Text('Send'),
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                icon: const Icon(CupertinoIcons.arrow_up_right),
+                onPressed: _handleSend,
+                label: const Text('Pay'),
+              ),
             ),
             IconButton(
               color: Theme.of(context).colorScheme.primary,
@@ -45,10 +48,13 @@ class CashuPage extends GetView<EcashController> {
               },
               icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
             ),
-            FilledButton.icon(
-              icon: const Icon(CupertinoIcons.arrow_down_left),
-              onPressed: _handleReceive,
-              label: const Text('Receive'),
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                icon: const Icon(CupertinoIcons.arrow_down_left),
+                onPressed: _handleReceive,
+                label: const Text('Receive'),
+              ),
             ),
           ],
         ),
@@ -219,83 +225,7 @@ class CashuPage extends GetView<EcashController> {
                                       size: 48,
                                     ),
                                     onPressed: () {
-                                      final mintController =
-                                          TextEditingController();
-                                      Get.dialog(
-                                        CupertinoAlertDialog(
-                                          title: const Text('Add Mint'),
-                                          content: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 10,
-                                            ),
-                                            child: TextField(
-                                              decoration: const InputDecoration(
-                                                hintText: 'Mint URL',
-                                                border: OutlineInputBorder(),
-                                              ),
-                                              controller: mintController,
-                                            ),
-                                          ),
-                                          actions: [
-                                            CupertinoDialogAction(
-                                              child: const Text('Cancel'),
-                                              onPressed: () async {
-                                                Get.back<void>();
-                                              },
-                                            ),
-                                            CupertinoDialogAction(
-                                              isDefaultAction: true,
-                                              child: const Text('Add'),
-                                              onPressed: () async {
-                                                final input =
-                                                    mintController.text.trim();
-                                                if (input.isEmpty) {
-                                                  EasyLoading.showError(
-                                                    'Input is null',
-                                                  );
-                                                  return;
-                                                }
-                                                if (!(input.startsWith(
-                                                      'http',
-                                                    ) ||
-                                                    input.startsWith(
-                                                      'https',
-                                                    ))) {
-                                                  EasyLoading.showError(
-                                                    'Invalid URL',
-                                                  );
-                                                  return;
-                                                }
-                                                try {
-                                                  EasyLoading.show(
-                                                    status: 'Processing',
-                                                  );
-                                                  await controller
-                                                      .addMintUrl(input);
-                                                  EasyLoading.showSuccess(
-                                                    'Added',
-                                                  );
-
-                                                  Get.back<void>();
-                                                } catch (e, s) {
-                                                  logger.e(
-                                                    e.toString(),
-                                                    error: e,
-                                                    stackTrace: s,
-                                                  );
-                                                  final msg =
-                                                      Utils.getErrorMessage(
-                                                    e,
-                                                  );
-                                                  EasyLoading.showToast(
-                                                    'Exception: $msg',
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      );
+                                      _showAddConnectionDialog(context);
                                     },
                                   ),
                                   Text(
@@ -442,6 +372,83 @@ class CashuPage extends GetView<EcashController> {
     );
   }
 
+  Future<void> _saveMint(String input) async {
+    if (input.isEmpty) {
+      EasyLoading.showError(
+        'Input is null',
+      );
+      return;
+    }
+    if (!(input.startsWith(
+          'http',
+        ) ||
+        input.startsWith(
+          'https',
+        ))) {
+      EasyLoading.showError(
+        'Invalid URL',
+      );
+      return;
+    }
+    try {
+      EasyLoading.show(
+        status: 'Processing...',
+      );
+      await controller.addMintUrl(input);
+      EasyLoading.showSuccess(
+        'Added',
+      );
+    } catch (e, s) {
+      logger.e(
+        e.toString(),
+        error: e,
+        stackTrace: s,
+      );
+      final msg = Utils.getErrorMessage(
+        e,
+      );
+      await EasyLoading.showToast(
+        'Exception: $msg',
+      );
+    }
+  }
+
+  Future<void> _showAddConnectionDialog(BuildContext context) async {
+    await Get.bottomSheet(
+      CupertinoActionSheet(
+        title: const Text('Add Mint Url'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Get.back();
+              final scanned = await QrScanService.instance.handleQRScan();
+              if (scanned != null && scanned.isNotEmpty) {
+                await _saveMint(scanned);
+              }
+            },
+            child: const Text('Scan QR Code'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Get.back();
+              final data = await Clipboard.getData(Clipboard.kTextPlain);
+              if (data?.text != null && data!.text!.isNotEmpty) {
+                await _saveMint(data.text!);
+              } else {
+                EasyLoading.showError('Clipboard is empty');
+              }
+            },
+            child: const Text('Paste from Clipboard'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: Get.back,
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
   void _handleReceive() {
     Get.bottomSheet(
       ignoreSafeArea: false,
@@ -462,19 +469,25 @@ class CashuPage extends GetView<EcashController> {
                 },
               ),
               SettingsTile.navigation(
-                title: const Text('Receive Ecash'),
+                title: const Text('Receive Ecash from Clipboard'),
                 onPressed: (context) async {
                   Get.back<void>();
-                  await Get.bottomSheet(
-                    ignoreSafeArea: false,
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                    const ReceiveEcash(),
-                  );
-                  await Get.find<EcashController>().getRecentTransactions();
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null && data!.text!.isNotEmpty) {
+                    await EcashUtils.handleReceiveToken(token: data.text!);
+                  } else {
+                    EasyLoading.showError('Clipboard is empty');
+                  }
+                },
+              ),
+              SettingsTile.navigation(
+                title: const Text('Receive Ecash from QR Code'),
+                onPressed: (context) async {
+                  Get.back<void>();
+                  final scanned = await QrScanService.instance.handleQRScan();
+                  if (scanned != null && scanned.isNotEmpty) {
+                    await EcashUtils.handleReceiveToken(token: scanned);
+                  }
                 },
               ),
             ],
@@ -513,7 +526,7 @@ class CashuPage extends GetView<EcashController> {
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(4)),
                     ),
-                    const CashuSendPage(false),
+                    const CashuSendPage(isRoom: false),
                   );
                   await Get.find<EcashController>().getRecentTransactions();
                 },

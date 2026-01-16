@@ -16,7 +16,6 @@ import 'package:keychat_ecash/Bills/transactions_page.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:settings_ui/settings_ui.dart';
 

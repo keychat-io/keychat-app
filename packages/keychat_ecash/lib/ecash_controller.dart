@@ -1,4 +1,4 @@
-import 'dart:async' show FutureOr, unawaited;
+import 'dart:async' show Completer, FutureOr, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
@@ -35,6 +35,7 @@ class EcashController extends GetxController {
   final String dbPath;
   RxBool cashuInitFailed = false.obs;
   RxBool isBalanceLoading = true.obs; // Keep this
+  RxBool isInitialized = false.obs; // Whether _initCashuMints has completed
 
   RxList<MintBalanceClass> mintBalances = <MintBalanceClass>[].obs;
   RxInt btcPrice = 0.obs;
@@ -71,6 +72,35 @@ class EcashController extends GetxController {
     final wallet = await WalletSelectionStorage.loadWallet();
     selectedWallet.value = wallet;
     return wallet;
+  }
+
+  /// Wait for initialization to complete, with a maximum timeout of 10 seconds
+  /// Returns true if initialized, false if timeout
+  Future<bool> waitForInit() async {
+    if (isInitialized.value) {
+      return true;
+    }
+
+    final completer = Completer<bool>();
+    late Worker worker;
+    Timer? timeoutTimer;
+
+    worker = ever(isInitialized, (bool value) {
+      if (value && !completer.isCompleted) {
+        timeoutTimer?.cancel();
+        worker.dispose();
+        completer.complete(true);
+      }
+    });
+
+    timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (!completer.isCompleted) {
+        worker.dispose();
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
   }
 
   Future<void> updateSelectedWallet(WalletSelection wallet) async {
@@ -123,14 +153,14 @@ class EcashController extends GetxController {
         final res = await rust_cashu.initCashu(
           prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount,
         );
-        logger.i('initCashu success');
         mints.addAll(res);
+        logger.i('initCashu success ${mints.length} mints loaded');
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         if (attempt == maxAttempts - 1) {
           cashuInitFailed.value = true;
           cashuInitFailed.refresh();
@@ -459,13 +489,17 @@ class EcashController extends GetxController {
     try {
       unawaited(rust_cashu.checkPending());
       await getBalance();
-      await getRecentTransactions();
+      isInitialized.value = true;
+      // await getRecentTransactions();
       final pendings = await rust_cashu.getLnPendingTransactions();
       await LightningUtils.instance
           .checkPendings(pendings)
           .timeout(const Duration(minutes: 3));
       // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      isInitialized.value = true;
+    }
   }
 
   Future<void> proccessCashuString(

@@ -17,11 +17,7 @@ class NwcSettingPage extends GetView<NwcController> {
     final infoFuture = controller.getInfo(connection.info.uri);
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back<void>(),
-        ),
-        title: const Text('Connection Details'),
+        title: const Text('NWC Connection Details'),
         actions: [
           MenuAnchor(
             builder: (

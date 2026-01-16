@@ -27,6 +27,7 @@ class NwcController extends GetxController {
   final RxList<ActiveNwcConnection> activeConnections =
       <ActiveNwcConnection>[].obs;
   final RxBool isLoading = false.obs;
+  final RxBool isInitialized = false.obs;
   final RxInt currentIndex = 0.obs;
 
   /// Computed total balance across all connections
@@ -49,7 +50,7 @@ class NwcController extends GetxController {
   /// Wait for isLoading to become true, with a maximum timeout of 5 seconds
   /// Returns true if isLoading became true, false if timeout
   Future<bool> waitForLoading() async {
-    if (isLoading.value) {
+    if (isInitialized.value) {
       return true;
     }
 
@@ -57,7 +58,7 @@ class NwcController extends GetxController {
     late Worker worker;
     Timer? timeoutTimer;
 
-    worker = ever(isLoading, (bool value) {
+    worker = ever(isInitialized, (bool value) {
       if (value && !completer.isCompleted) {
         timeoutTimer?.cancel();
         worker.dispose();
@@ -65,7 +66,7 @@ class NwcController extends GetxController {
       }
     });
 
-    timeoutTimer = Timer(const Duration(seconds: 5), () {
+    timeoutTimer = Timer(const Duration(seconds: 10), () {
       if (!completer.isCompleted) {
         worker.dispose();
         completer.complete(false);
@@ -88,6 +89,7 @@ class NwcController extends GetxController {
       await refreshBalances();
     } finally {
       isLoading.value = false;
+      isInitialized.value = true;
     }
   }
 
@@ -179,6 +181,7 @@ class NwcController extends GetxController {
   /// Reload connections by reconnecting NDK and re-executing _loadConnections
   Future<void> reloadConnections() async {
     isLoading.value = true;
+    isInitialized.value = false;
     try {
       await ndk.destroy();
       // Clear existing connections
@@ -187,12 +190,13 @@ class NwcController extends GetxController {
 
       // Reinitialize NDK and load connections
       await _loadConnections();
-      fetchTransactionsForCurrent();
+      // fetchTransactionsForCurrent();
     } catch (e) {
       logger.e('Failed to reload connections: $e');
       EasyLoading.showError('Failed to reload connections');
     } finally {
       isLoading.value = false;
+      isInitialized.value = true;
     }
   }
 

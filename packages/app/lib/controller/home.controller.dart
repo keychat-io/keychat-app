@@ -35,7 +35,6 @@ import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/remote_config.dart' as remote_config;
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -126,6 +125,7 @@ class HomeController extends GetxController
   }
 
   // add identity AI and add AI contacts
+  @Deprecated('Remove AI identity')
   Future<void> createAIIdentity(
     List<Identity> existsIdentity,
     String idName,
@@ -543,8 +543,8 @@ class HomeController extends GetxController
     final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
-    // Ecash Init
     if (mys.isNotEmpty) {
+      // Ecash Init
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists (without requesting permission on startup)
@@ -852,17 +852,7 @@ class HomeController extends GetxController
   }
 
   Future<void> _handleAppLinkLightning(String input) async {
-    if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-      await Get.bottomSheet(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-        ),
-        PayInvoicePage(invoce: input, showScanButton: false),
-      );
-      return;
-    }
-    await Get.find<EcashController>().proccessPayLightningBill(
+    await Get.find<EcashController>().payToLightning(
       input,
       isPay: true,
     );

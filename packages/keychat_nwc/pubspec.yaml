@@ -1,0 +1,20 @@
+name: keychat_nwc
+description: Nostr wallet connect
+version: 1.0.0
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.0.0"
+resolution: workspace
+
+# Add regular dependencies here.
+dependencies:
+  flutter:
+    sdk: flutter
+  keychat: ^1.36.5
+  keychat_rust_ffi_plugin: 1.0.0
+  keychat_ecash: 1.0.0
+  ndk: ^0.6.0
+  qr_flutter: ^4.1.0
+  flutter_secure_storage: ^10.0.0
+  carousel_slider: ^5.1.1

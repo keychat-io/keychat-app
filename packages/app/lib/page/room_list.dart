@@ -164,10 +164,11 @@ class RoomList extends GetView<HomeController> {
                     return const SizedBox();
                   }
                   if (index == 1) {
-                    return RecommendBots(
-                      data.identity,
-                      List<Room>.from(rooms.sublist(4)),
-                    );
+                    return Container();
+                    // return RecommendBots(
+                    //   data.identity,
+                    //   List<Room>.from(rooms.sublist(4)),
+                    // );
                   }
                   if (index == 2) {
                     return getNewFriendsWidget(

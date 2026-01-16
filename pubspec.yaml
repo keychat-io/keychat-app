@@ -6,6 +6,7 @@ environment:
 workspace:
   - packages/app
   - packages/keychat_ecash
+  - packages/keychat_nwc
   - packages/keychat_rust_ffi_plugin
 
 dev_dependencies:
@@ -129,6 +130,11 @@ melos:
       name: app_get
       description: "run app pub get only"
       run: cd packages/app && fvm flutter pub get
+
+    ios:
+      name: run_ios
+      description: "run app on ios device"
+      run: cd packages/app && flutter run -d 000 -v
 
     image:gen:
       name: gen_image

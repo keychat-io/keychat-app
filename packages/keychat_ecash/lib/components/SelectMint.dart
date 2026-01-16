@@ -50,26 +50,132 @@ class SelectMint extends StatelessWidget {
       EasyLoading.showError('No mint available');
       return;
     }
+
+    final isRefreshing = false.obs;
+
+    Future<void> handleRefresh() async {
+      isRefreshing.value = true;
+      try {
+        await ecashController.getBalance();
+      } finally {
+        isRefreshing.value = false;
+      }
+    }
+
     final mint = await Get.bottomSheet<String>(
-      SettingsList(
-        platform: DevicePlatform.iOS,
-        sections: [
-          SettingsSection(
-            tiles: ecashController.mintBalances
-                .map(
-                  (e) => SettingsTile(
-                    title: Text(e.mint),
-                    value: Text(e.balance.toString()),
-                    onPressed: (context) {
-                      Get.back(result: e.mint);
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-        ],
+      Container(
+        decoration: BoxDecoration(
+          color: Theme.of(Get.context!).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Select Wallet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(Get.context!).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            Flexible(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return Obx(() {
+                    final sections = <SettingsSection>[
+                      SettingsSection(
+                        title: const Text(
+                          'Ecash Mints',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        tiles: ecashController.mintBalances
+                            .map(
+                              (e) => SettingsTile(
+                                title: Text(e.mint),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      e.balance.toString(),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    if (e.mint == selected.value) ...[
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        CupertinoIcons.check_mark,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                onPressed: (context) {
+                                  Get.back(result: e.mint);
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      SettingsSection(
+                        tiles: [
+                          SettingsTile(
+                            title: Obx(
+                              () => Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isRefreshing.value)
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  else
+                                    const Icon(
+                                      CupertinoIcons.refresh,
+                                      size: 16,
+                                    ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isRefreshing.value
+                                        ? 'Refreshing...'
+                                        : 'Refresh Balances',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onPressed: isRefreshing.value
+                                ? null
+                                : (context) => handleRefresh(),
+                          ),
+                        ],
+                      ),
+                    ];
+
+                    return SettingsList(
+                      platform: DevicePlatform.iOS,
+                      sections: sections,
+                    );
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
+
     if (mint != null) {
       selected.value = mint;
       selectCallback(mint);

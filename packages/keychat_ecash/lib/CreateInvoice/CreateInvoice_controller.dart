@@ -5,21 +5,28 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class CreateInvoiceController extends GetxController {
-  CreateInvoiceController({this.defaultAmount});
+  CreateInvoiceController({this.defaultAmount, this.defaultDescription});
   final int? defaultAmount;
+  final String? defaultDescription;
 
   EcashController ecashController = Get.find<EcashController>();
   late TextEditingController textController;
-  RxString selectedMint = ''.obs;
+  late TextEditingController descController;
+
   @override
   void onInit() {
-    selectedMint.value = ecashController.latestMintUrl.value;
     textController = TextEditingController();
+    descController = TextEditingController();
     if (defaultAmount != null) {
       textController.text = defaultAmount.toString();
+    }
+    if (defaultDescription != null) {
+      descController.text = defaultDescription!;
     }
     super.onInit();
   }
@@ -27,9 +34,13 @@ class CreateInvoiceController extends GetxController {
   @override
   void onClose() {
     textController.dispose();
+    descController.dispose();
     super.onClose();
   }
 
+  // Handle create invoice action
+  // Returns: (MakeInvoiceResponse, Uri String) for NWC wallet
+  //         (Transaction, Mint String) for Cashu mint
   Future<void> handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
@@ -74,18 +85,47 @@ If payment fails, please contact the mint server.''',
 
     try {
       EasyLoading.show(status: 'Generating...');
+      final description = descController.text.trim();
+      // Handle NWC wallet
+      if (ecashController.selectedWallet.value.type == WalletType.nwc) {
+        final nwcController = Utils.getOrPutGetxController(
+          create: NwcController.new,
+        );
+        final active = nwcController.activeConnections.firstWhereOrNull(
+          (c) => c.info.uri == ecashController.selectedWallet.value.id,
+        );
+
+        if (active == null) {
+          EasyLoading.showError('NWC connection not found');
+          return;
+        }
+
+        final response = await nwcController.ndk.nwc.makeInvoice(
+          active.connection,
+          amountSats: amount,
+          description: description,
+        );
+
+        await EasyLoading.showSuccess('Invoice created');
+        Get.back(
+          result: (response, active.connection.uri.toUri()),
+        ); // MakeInvoiceResponse
+        return;
+      }
+
+      // Handle Cashu mint: Transaction
       final tr = await rust_cashu.requestMint(
         amount: BigInt.from(amount),
-        activeMint: selectedMint.value,
+        activeMint: ecashController.selectedWallet.value.id,
       );
       Get.find<EcashController>().getRecentTransactions();
-      EasyLoading.showToast('Create Successfully');
+      await EasyLoading.showToast('Create Successfully');
       textController.clear();
-      Get.back(result: tr);
+      Get.back(result: (tr, ecashController.selectedWallet.value.id));
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showToast(msg);
+      await EasyLoading.showToast(msg);
     }
   }
 }

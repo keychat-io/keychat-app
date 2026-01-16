@@ -1,6 +1,7 @@
+import 'package:keychat/app.dart' show Utils;
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/setting/RelaySetting.dart';
-import 'package:keychat/utils.dart';
+import 'package:keychat_nwc/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -62,7 +63,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                               .bodySmall
                               ?.copyWith(color: Colors.red),
                         )
-                      : const Text('nostr+walletconnect://')),
+                      : const Text(NwcUtils.nwcPrefix)),
               value: controller.featureStatus.value,
               onChanged: (bool value) {
                 controller.setFeatureStatus(value);
@@ -105,7 +106,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                             onPressed: () {
                               showModalBottomSheetWidget(
                                 context,
-                                'nostr+walletconnect://',
+                                NwcUtils.nwcPrefix,
                                 Center(
                                   child: Column(
                                     children: [
@@ -157,8 +158,9 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                             SettingsTile.navigation(
                               leading: const Icon(Icons.history),
                               title: const Text('Logs'),
-                              value: Obx(() =>
-                                  Text(controller.logs.length.toString())),
+                              value: Obx(
+                                () => Text(controller.logs.length.toString()),
+                              ),
                               onPressed: (context) async {
                                 Get.to(() => const NostrWalletConnectLogPage());
                               },

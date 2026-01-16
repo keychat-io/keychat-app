@@ -1,4 +1,4 @@
-import 'dart:async' show FutureOr, unawaited;
+import 'dart:async' show Completer, FutureOr, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
@@ -17,7 +17,10 @@ import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_ecash/payment_result.dart';
 import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
@@ -32,6 +35,7 @@ class EcashController extends GetxController {
   final String dbPath;
   RxBool cashuInitFailed = false.obs;
   RxBool isBalanceLoading = true.obs; // Keep this
+  RxBool isInitialized = false.obs; // Whether _initCashuMints has completed
 
   RxList<MintBalanceClass> mintBalances = <MintBalanceClass>[].obs;
   RxInt btcPrice = 0.obs;
@@ -46,13 +50,65 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late IndicatorController indicatorController;
+  final Rx<WalletSelection> selectedWallet = Rx(
+    WalletSelection(
+      type: WalletType.cashu,
+      id: KeychatGlobal.defaultCashuMintURL,
+      displayName: KeychatGlobal.defaultCashuMintURL,
+    ),
+  );
+
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     indicatorController = IndicatorController();
     super.onInit();
+    initSelectedWallet();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
+  }
+
+  Future<WalletSelection> initSelectedWallet() async {
+    final wallet = await WalletSelectionStorage.loadWallet();
+    selectedWallet.value = wallet;
+    return wallet;
+  }
+
+  /// Wait for initialization to complete, with a maximum timeout of 10 seconds
+  /// Returns true if initialized, false if timeout
+  Future<bool> waitForInit() async {
+    if (isInitialized.value) {
+      return true;
+    }
+
+    final completer = Completer<bool>();
+    late Worker worker;
+    Timer? timeoutTimer;
+
+    worker = ever(isInitialized, (bool value) {
+      if (value && !completer.isCompleted) {
+        timeoutTimer?.cancel();
+        worker.dispose();
+        completer.complete(true);
+      }
+    });
+
+    timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (!completer.isCompleted) {
+        worker.dispose();
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
+  }
+
+  Future<void> updateSelectedWallet(WalletSelection wallet) async {
+    if (wallet.type == WalletType.cashu) {
+      latestMintUrl.value = wallet.id;
+    }
+    selectedWallet.value = wallet;
+    await WalletSelectionStorage.saveWallet(wallet);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -97,14 +153,14 @@ class EcashController extends GetxController {
         final res = await rust_cashu.initCashu(
           prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount,
         );
-        logger.i('initCashu success');
         mints.addAll(res);
+        logger.i('initCashu success ${mints.length} mints loaded');
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         if (attempt == maxAttempts - 1) {
           cashuInitFailed.value = true;
           cashuInitFailed.refresh();
@@ -381,6 +437,7 @@ class EcashController extends GetxController {
   Future<void> addMintUrl(String mint) async {
     await rust_cashu.addMint(url: mint);
     mints.value = await rust_cashu.getMints();
+    mints.refresh();
     await getBalance();
   }
 
@@ -432,13 +489,17 @@ class EcashController extends GetxController {
     try {
       unawaited(rust_cashu.checkPending());
       await getBalance();
-      await getRecentTransactions();
+      isInitialized.value = true;
+      // await getRecentTransactions();
       final pendings = await rust_cashu.getLnPendingTransactions();
       await LightningUtils.instance
           .checkPendings(pendings)
           .timeout(const Duration(minutes: 3));
       // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      isInitialized.value = true;
+    }
   }
 
   Future<void> proccessCashuString(
@@ -457,26 +518,48 @@ class EcashController extends GetxController {
     }
   }
 
-  FutureOr<Transaction?> proccessPayLightningBill(
-    String invoice, {
+  /// Pay to lightning invoice or LNURL.
+  /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
+  /// [input] can be: lnbc invoice, lnurl, or lightning address (email format).
+  FutureOr<PaymentResult?> payToLightning(
+    String? input, {
     bool isPay = false,
-    Function? paidCallback,
   }) async {
-    try {
-      await rust_cashu.decodeInvoice(encodedInvoice: invoice);
-    } catch (e) {
-      EasyLoading.showError('Invalid lightning invoice');
-      return null;
+    if (input != null) {
+      if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
+        return await Get.bottomSheet<PaymentResult?>(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+          PayInvoicePage(invoce: input, isPay: isPay, showScanButton: false),
+        );
+      }
+      try {
+        await rust_cashu.decodeInvoice(encodedInvoice: input);
+      } catch (e) {
+        await EasyLoading.showError('Invalid lightning invoice');
+        return null;
+      }
     }
-    return Get.bottomSheet<Transaction>(
+    return await Get.bottomSheet<PaymentResult?>(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
       PayInvoicePage(
-        invoce: invoice,
+        invoce: input,
         isPay: isPay,
         showScanButton: !isPay,
-        paidCallback: paidCallback,
       ),
     );
   }
+
+  /// Get the preimage from a payment result.
+  String? getPreimage(PaymentResult? result) => result?.preimage;
+
+  /// Get the fee paid from a payment result in sats.
+  int? getFee(PaymentResult? result) => result?.fee;
 
   Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
     final originalStatus = transaction.status;

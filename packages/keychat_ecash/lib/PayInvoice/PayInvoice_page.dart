@@ -1,12 +1,13 @@
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
-import 'package:keychat_ecash/components/SelectMint.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -16,25 +17,23 @@ class PayInvoicePage extends StatefulWidget {
     this.invoce,
     this.isPay = false,
     this.showScanButton = true,
-    this.paidCallback,
   });
   final String? invoce;
   final bool isPay;
   final bool showScanButton;
-  final Function? paidCallback;
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
 }
 
 class _PayInvoicePageState extends State<PayInvoicePage> {
-  late EcashController cashuController;
+  late EcashController ecashController;
   late PayInvoiceController controller;
   @override
   void initState() {
     controller = Get.put(PayInvoiceController(invoice: widget.invoce));
-    cashuController = Get.find<EcashController>();
-    cashuController.getBalance();
+    ecashController = Get.find<EcashController>();
+    ecashController.getBalance();
     super.initState();
   }
 
@@ -49,7 +48,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        leading: Container(),
         centerTitle: true,
         title: Text(
           'Send to Lightning Wallet',
@@ -60,8 +58,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               (GetPlatform.isMobile || GetPlatform.isMacOS))
             IconButton(
               onPressed: () async {
-                final result = await QrScanService.instance
-                    .handleQRScan(autoProcess: false);
+                final result = await QrScanService.instance.handleQRScan();
                 if (result != null) {
                   controller.textController.text = result;
                 }
@@ -80,43 +77,36 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
                     children: [
-                      Obx(
-                        () => SelectMint(cashuController.latestMintUrl.value,
-                            (String mint) {
-                          cashuController.latestMintUrl.value = mint;
-                          controller.selectedMint.value = mint;
-                        }),
-                      ),
-                      if (!widget.isPay)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
-                          ),
-                          child: TextField(
-                            controller: controller.textController,
-                            textInputAction: TextInputAction.done,
-                            maxLines: 2,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              labelText: 'Lightning Invoice or address',
-                              hintText: 'Lightning invoice or address',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.paste),
-                                onPressed: () async {
-                                  final clipboardData = await Clipboard.getData(
-                                    Clipboard.kTextPlain,
-                                  );
-                                  if (clipboardData?.text != null) {
-                                    controller.textController.text =
-                                        clipboardData!.text!;
-                                  }
-                                },
-                              ),
+                      const SelectMintAndNwc(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: TextField(
+                          controller: controller.textController,
+                          textInputAction: TextInputAction.done,
+                          maxLines: 2,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            labelText: 'Lightning Invoice or address',
+                            hintText: 'Lightning invoice or address',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.paste),
+                              onPressed: () async {
+                                final clipboardData = await Clipboard.getData(
+                                  Clipboard.kTextPlain,
+                                );
+                                if (clipboardData?.text != null) {
+                                  controller.textController.text =
+                                      clipboardData!.text!;
+                                }
+                              },
                             ),
                           ),
                         ),
+                      ),
                       Obx(
                         () => FutureBuilder(
                           future: () async {
@@ -148,17 +138,22 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                             final invoiceInfo = snapshot.data!;
                             return Column(
                               children: [
-                                const SizedBox(height: 8),
                                 RichText(
                                   text: TextSpan(
                                     children: [
                                       TextSpan(
-                                        text: '-${invoiceInfo.amount}',
+                                        text: 'Paying Amount: ',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium,
+                                      ),
+                                      TextSpan(
+                                        text: '${invoiceInfo.amount}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge
                                             ?.copyWith(
-                                              fontSize: 34,
+                                              fontSize: 20,
                                               color: Colors.green,
                                             ),
                                       ),
@@ -166,7 +161,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         text: ' sat',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .bodyLarge,
+                                            .bodyMedium,
                                       ),
                                     ],
                                   ),
@@ -183,8 +178,13 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               Obx(
                 () => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: cashuController
-                          .supportMint(controller.selectedMint.value)
+                  child: (ecashController.selectedWallet.value.type ==
+                                  WalletType.cashu &&
+                              ecashController.supportMint(
+                                ecashController.selectedWallet.value.id,
+                              )) ||
+                          ecashController.selectedWallet.value.type ==
+                              WalletType.nwc
                       ? SizedBox(
                           width: GetPlatform.isDesktop ? 200 : double.infinity,
                           height: 44,
@@ -196,29 +196,39 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       await HapticFeedback.lightImpact();
                                     }
                                     try {
+                                      final input =
+                                          controller.textController.text.trim();
                                       controller.isLoading.value = true;
+                                      // lnurl
                                       if (isEmail(
-                                            controller.textController.text,
+                                            input,
                                           ) ||
-                                          controller.textController.text
+                                          input
                                               .toUpperCase()
                                               .startsWith('LNURL')) {
-                                        final tx =
-                                            await controller.lnurlPayFirst(
-                                          controller.textController.text,
-                                        );
-                                        if (tx != null) {
-                                          Get.back(result: tx);
+                                        try {
+                                          final tx =
+                                              await controller.lnurlPayFirst(
+                                            input,
+                                          );
+                                          if (tx != null) {
+                                            Get.back(result: tx);
+                                          }
+                                        } catch (e, s) {
+                                          await EasyLoading.showError(
+                                              e.toString());
+                                          logger.e(e.toString(), stackTrace: s);
                                         }
                                         return;
                                       }
+                                      // invoice
                                       final tx =
                                           await controller.confirmToPayInvoice(
                                         invoice: controller.textController.text
                                             .trim(),
-                                        mint: controller.selectedMint.value,
+                                        walletSelection: ecashController
+                                            .selectedWallet.value,
                                         isPay: widget.isPay,
-                                        paidCallback: widget.paidCallback,
                                       );
                                       if (tx != null) {
                                         Get.back(result: tx);

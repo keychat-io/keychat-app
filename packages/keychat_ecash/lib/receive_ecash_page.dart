@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
+@Deprecated('Receive from Clipboard or scan qr code')
 class ReceiveEcash extends StatefulWidget {
   const ReceiveEcash({super.key});
 
@@ -64,7 +65,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
             if (GetPlatform.isMobile || GetPlatform.isMacOS)
               IconButton(
                 onPressed: () async {
-                  QrScanService.instance.handleQRScan();
+                  QrScanService.instance.handleQRScan(autoProcess: true);
                 },
                 icon: const Icon(CupertinoIcons.qrcode_viewfinder),
               ),

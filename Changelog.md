@@ -2,6 +2,10 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.39.1+6490
+1. Implement a Nostr Wallet Connect (NWC) wallet based on NIP-47.
+2. Integrate Cashu and NWC wallets to provide a unified entry point for payments and receipts.
+
 ## 1.38.1+6489
 - Android and Linux support UnifiedPush for push notifications.
 - Added biometric authentication for privacy operations.

@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_nwc/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -24,7 +26,7 @@ class QrScanService {
   static QrScanService? _instance;
   static QrScanService get instance => _instance ??= QrScanService._();
 
-  Future<String?> handleQRScan({bool autoProcess = true}) async {
+  Future<String?> handleQRScan({bool autoProcess = false}) async {
     if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
       EasyLoading.showToast('Not available on this devices');
       return null;
@@ -99,17 +101,15 @@ class QrScanService {
       final cleanInvoice = trimmedStr.startsWith('lightning:')
           ? trimmedStr.replaceFirst('lightning:', '')
           : trimmedStr;
-      ecashController.proccessPayLightningBill(cleanInvoice);
+      ecashController.payToLightning(cleanInvoice);
       return;
     }
 
     // Handle LNURL and email addresses
     if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
-      showModalBottomSheetWidget(
-        Get.context!,
-        '',
-        PayInvoicePage(invoce: trimmedStr),
-        showAppBar: false,
+      await Get.find<EcashController>().payToLightning(
+        trimmedStr,
+        isPay: true,
       );
       return;
     }
@@ -126,6 +126,12 @@ class QrScanService {
         isScrollControlled: true,
         ignoreSafeArea: false,
       );
+      return;
+    }
+    if (str.startsWith(NwcUtils.nwcPrefix)) {
+      await Utils.getOrPutGetxController(
+        create: NwcController.new,
+      ).addConnection(str);
       return;
     }
 
@@ -173,7 +179,7 @@ class QrScanService {
       final decoded = bip21.decode(str);
       final lightningInvoice = decoded.lightningInvoice;
       if (lightningInvoice != null && lightningInvoice.isNotEmpty) {
-        await ecashController.proccessPayLightningBill(lightningInvoice);
+        await ecashController.payToLightning(lightningInvoice);
         return;
       }
     } catch (e) {

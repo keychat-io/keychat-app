@@ -1,0 +1,907 @@
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard;
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/utils.dart' show DesktopContainer, Utils, formatTime;
+import 'package:keychat_ecash/Bills/cashu_transaction.dart';
+import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
+import 'package:keychat_ecash/EcashSetting/EcashSetting_page.dart';
+import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
+import 'package:keychat_nwc/nwc/nwc_setting_page.dart';
+import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:settings_ui/settings_ui.dart';
+
+/// Unified Bitcoin Wallet page that integrates Cashu and NWC wallets
+class BitcoinWalletMain extends StatefulWidget {
+  const BitcoinWalletMain({super.key, this.isEmbedded = false});
+
+  final bool isEmbedded;
+
+  @override
+  State<BitcoinWalletMain> createState() => _BitcoinWalletMainState();
+}
+
+class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
+  late UnifiedWalletController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              centerTitle: true,
+              title: const Text('Bitcoin Wallet'),
+              actions: [
+                if (GetPlatform.isDesktop)
+                  IconButton(
+                    onPressed: () async {
+                      await controller.refreshAll();
+                      await EasyLoading.showSuccess('Refreshed');
+                    },
+                    icon: const Icon(CupertinoIcons.refresh),
+                  ),
+                IconButton(
+                  onPressed: _navigateToSettings,
+                  icon: const Icon(CupertinoIcons.settings),
+                ),
+              ],
+            ),
+      bottomNavigationBar: _buildBottomBar(context),
+      body: DesktopContainer(
+        child: Obx(() {
+          if (controller.isLoading.value && controller.wallets.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return CustomRefreshIndicator(
+            onRefresh: _handleRefresh,
+            trigger: IndicatorTrigger.bothEdges,
+            builder: (context, child, indicatorController) {
+              // Track current side for onRefresh callback
+              _currentIndicatorSide = indicatorController.side;
+              return Stack(
+                children: [
+                  child,
+                  // Top refresh indicator
+                  if (indicatorController.side == IndicatorSide.top)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildRefreshIndicator(indicatorController),
+                    ),
+                  // Bottom load more indicator
+                  if (indicatorController.side == IndicatorSide.bottom)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildLoadMorePullIndicator(indicatorController),
+                    ),
+                ],
+              );
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                // Total Balance Section
+                _buildTotalBalanceSection(context),
+                // Wallet Cards Carousel
+                _buildWalletCarousel(context),
+                // Transactions Section
+                _buildTransactionsHeader(context),
+                // Transaction List
+                _buildTransactionsList(context),
+                const SizedBox(height: 40),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  /// Current indicator side for determining refresh action
+  IndicatorSide? _currentIndicatorSide;
+
+  /// Handle refresh based on trigger direction
+  Future<void> _handleRefresh() async {
+    if (_currentIndicatorSide == IndicatorSide.top) {
+      // Pull down - refresh all
+      await controller.refreshAll();
+    } else if (_currentIndicatorSide == IndicatorSide.bottom) {
+      // Pull up - load more
+      await controller.loadMoreTransactions();
+    }
+  }
+
+  void _navigateToSettings() {
+    Get.to<void>(
+      () => const EcashSettingPage(),
+      binding: EcashSettingBindings(),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
+  }
+
+  /// Bottom action bar with Pay, Scan, Receive buttons
+  Widget _buildBottomBar(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16, top: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                icon: const Icon(CupertinoIcons.arrow_up_right),
+                onPressed: _handleSend,
+                label: const Text('Pay'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            IconButton(
+              color: Theme.of(context).colorScheme.primary,
+              onPressed: () {
+                QrScanService.instance.handleQRScan(autoProcess: true);
+              },
+              icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 120,
+              child: FilledButton.icon(
+                icon: const Icon(CupertinoIcons.arrow_down_left),
+                onPressed: _handleReceive,
+                label: const Text('Receive'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Total balance display section
+  Widget _buildTotalBalanceSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 8, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Wrap(
+            direction: Axis.vertical,
+            children: [
+              const Text('Total Balance'),
+              Obx(
+                () => controller.isLoading.value
+                    ? SizedBox(
+                        height: 60,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      )
+                    : RichText(
+                        text: TextSpan(
+                          text: controller.totalBalance.toString(),
+                          children: const <TextSpan>[
+                            TextSpan(
+                              text: ' sat',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                          style: TextStyle(
+                            height: 1.3,
+                            fontSize: 48,
+                            color:
+                                Theme.of(context).textTheme.titleLarge!.color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          if (widget.isEmbedded)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (GetPlatform.isDesktop)
+                  IconButton(
+                    onPressed: () async {
+                      await controller.refreshAll();
+                      await EasyLoading.showSuccess('Refreshed');
+                    },
+                    icon: const Icon(CupertinoIcons.refresh),
+                  ),
+                IconButton(
+                  onPressed: _navigateToSettings,
+                  icon: const Icon(CupertinoIcons.settings),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Wallet cards carousel
+  Widget _buildWalletCarousel(BuildContext context) {
+    return Obx(
+      () => Padding(
+        padding: const EdgeInsets.only(left: 10),
+        child: CarouselSlider(
+          options: CarouselOptions(
+            height: 160,
+            disableCenter: true,
+            viewportFraction: 0.45,
+            padEnds: false,
+            enlargeCenterPage: true,
+            enableInfiniteScroll: false,
+            onPageChanged: (index, reason) {
+              // Only update if it's a wallet card (not the add card)
+              if (index < controller.wallets.length) {
+                controller.selectWallet(index);
+              }
+            },
+          ),
+          items: [
+            // Wallet cards
+            ...controller.wallets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final wallet = entry.value;
+              return _buildWalletCard(context, wallet, index);
+            }),
+            // Add new wallet card
+            _buildAddCard(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Individual wallet card widget
+  Widget _buildWalletCard(BuildContext context, WalletBase wallet, int index) {
+    // Generate gradient colors based on wallet
+    final gradientColors = _getWalletGradientColors(wallet);
+    final isSelected = controller.selectedIndex.value == index;
+
+    return GestureDetector(
+      onTap: () => _onWalletCardTap(wallet),
+      child: Stack(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradientColors,
+              ),
+              border: isSelected
+                  ? Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    )
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Protocol icon and badge
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          wallet.icon,
+                          color: wallet.primaryColor,
+                          size: 42,
+                        ),
+                        _buildProtocolBadge(wallet.protocol),
+                      ],
+                    ),
+                  ),
+                  // Wallet name/URL
+                  Text(
+                    wallet.displayName,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodySmall!
+                              .color
+                              ?.withAlpha(160),
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Balance
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (wallet.isBalanceLoading)
+                        const SizedBox(
+                          width: 60,
+                          height: 28,
+                          child: CupertinoActivityIndicator(),
+                        )
+                      else
+                        RichText(
+                          text: TextSpan(
+                            text: wallet.balanceSats.toString(),
+                            children: const <TextSpan>[
+                              TextSpan(
+                                text: ' sat',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
+                            style: TextStyle(
+                              height: 1.3,
+                              fontSize: 28,
+                              color:
+                                  Theme.of(context).textTheme.bodyLarge!.color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      IconButton(
+                        onPressed: () => _onWalletCardTap(wallet),
+                        icon: const Icon(CupertinoIcons.right_chevron),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Protocol badge widget
+  Widget _buildProtocolBadge(WalletProtocol protocol) {
+    final (label, color) = switch (protocol) {
+      WalletProtocol.cashu => ('Cashu', Colors.orange),
+      WalletProtocol.nwc => ('NWC', Colors.purple),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  /// Add wallet card
+  Widget _buildAddCard(BuildContext context) {
+    return Builder(
+      builder: (BuildContext context) {
+        return Container(
+          width: MediaQuery.of(context).size.width / 2,
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.onSurface.withAlpha(10),
+                Theme.of(context).colorScheme.onSurface.withAlpha(40),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(CupertinoIcons.add_circled, size: 48),
+                onPressed: () => _showAddWalletDialog(context),
+              ),
+              Text(
+                'Add Wallet',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Transactions header
+  Widget _buildTransactionsHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Transactions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Obx(() {
+                final wallet = controller.selectedWallet;
+                if (wallet != null) {
+                  return Text(
+                    wallet.displayName,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodySmall!
+                              .color
+                              ?.withAlpha(160),
+                        ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Transaction list widget
+  Widget _buildTransactionsList(BuildContext context) {
+    return Obx(() {
+      if (controller.isTransactionsLoading.value &&
+          controller.transactions.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (controller.transactions.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: Wrap(
+              direction: Axis.vertical,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Icon(
+                  Icons.folder_open_outlined,
+                  size: 36,
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+                ),
+                textSmallGray(context, 'No transactions'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          ...controller.transactions.map((transaction) {
+            return _buildTransactionTile(context, transaction);
+          }),
+          // Load more / No more data indicator
+          _buildLoadMoreIndicator(context),
+        ],
+      );
+    });
+  }
+
+  /// Build top refresh indicator widget
+  Widget _buildRefreshIndicator(IndicatorController indicatorController) {
+    final value = indicatorController.value.clamp(0.0, 1.5);
+    return Container(
+      height: 60 * value,
+      alignment: Alignment.center,
+      child: indicatorController.isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              CupertinoIcons.arrow_down,
+              size: 24 * value,
+              color: Colors.grey,
+            ),
+    );
+  }
+
+  /// Build bottom pull-up load more indicator widget
+  Widget _buildLoadMorePullIndicator(IndicatorController indicatorController) {
+    // Don't show if no more data
+    if (!controller.hasMoreTransactions.value) {
+      return const SizedBox.shrink();
+    }
+
+    final value = indicatorController.value.clamp(0.0, 1.5);
+    return Container(
+      height: 60 * value,
+      alignment: Alignment.center,
+      child: indicatorController.isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              CupertinoIcons.arrow_up,
+              size: 24 * value,
+              color: Colors.grey,
+            ),
+    );
+  }
+
+  /// Build load more indicator widget (static indicator in list)
+  Widget _buildLoadMoreIndicator(BuildContext context) {
+    return Obx(() {
+      // Loading more state - handled by pull indicator now
+      if (controller.isLoadingMore.value) {
+        return const SizedBox.shrink();
+      }
+
+      // No more data state
+      if (!controller.hasMoreTransactions.value) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: Text(
+              'No more data',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Has more data - show hint text
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: Text(
+            'Pull up to load more',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+              fontSize: 12,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  /// Individual transaction tile
+  Widget _buildTransactionTile(
+    BuildContext context,
+    WalletTransactionBase transaction,
+  ) {
+    final isIncoming = transaction.isIncoming;
+    final amountText =
+        '${isIncoming ? '+' : '-'} ${transaction.amountSats.abs()}';
+
+    return ListTile(
+      key: Key(transaction.id + transaction.timestamp.toString()),
+      dense: true,
+      leading: Icon(
+        isIncoming
+            ? CupertinoIcons.arrow_down_left
+            : CupertinoIcons.arrow_up_right,
+        color: isIncoming ? Colors.green : Colors.red,
+      ),
+      title: Text(
+        amountText,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+      subtitle: Row(
+        children: [
+          // Protocol badge
+          _buildTransactionProtocolBadge(transaction.protocol),
+          const SizedBox(width: 4),
+          // Status and time
+          Expanded(
+            child: textSmallGray(
+              context,
+              '${_getStatusText(transaction.status)} - ${formatTime(transaction.timestamp.millisecondsSinceEpoch)}',
+            ),
+          ),
+        ],
+      ),
+      trailing: _buildTransactionStatusIcon(transaction.status),
+      onTap: () => _onTransactionTap(transaction),
+    );
+  }
+
+  /// Protocol badge for transaction
+  Widget _buildTransactionProtocolBadge(WalletProtocol protocol) {
+    final (label, color) = switch (protocol) {
+      WalletProtocol.cashu => ('Cashu', Colors.orange),
+      WalletProtocol.nwc => ('NWC', Colors.purple),
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  /// Transaction status icon
+  Widget _buildTransactionStatusIcon(WalletTransactionStatus status) {
+    return switch (status) {
+      WalletTransactionStatus.pending => const Icon(
+          CupertinoIcons.clock,
+          color: Colors.orange,
+          size: 18,
+        ),
+      WalletTransactionStatus.success => const Icon(
+          CupertinoIcons.checkmark_circle,
+          color: Colors.green,
+          size: 18,
+        ),
+      WalletTransactionStatus.failed => const Icon(
+          CupertinoIcons.xmark_circle,
+          color: Colors.red,
+          size: 18,
+        ),
+      WalletTransactionStatus.expired => const Icon(
+          CupertinoIcons.clock,
+          color: Colors.grey,
+          size: 18,
+        ),
+    };
+  }
+
+  String _getStatusText(WalletTransactionStatus status) {
+    return switch (status) {
+      WalletTransactionStatus.pending => 'Pending',
+      WalletTransactionStatus.success => 'Success',
+      WalletTransactionStatus.failed => 'Failed',
+      WalletTransactionStatus.expired => 'Expired',
+    };
+  }
+
+  /// Get gradient colors for wallet card
+  List<Color> _getWalletGradientColors(WalletBase wallet) {
+    final hash = wallet.id.hashCode;
+    return [
+      if (wallet.protocol == WalletProtocol.cashu)
+        KeychatGlobal.secondaryColor.withAlpha(100)
+      else
+        KeychatGlobal.secondaryColor,
+      Color((hash & 0xFFFFFF) | 0x40000000),
+    ];
+  }
+
+  /// Handle wallet card tap - navigate to wallet details
+  void _onWalletCardTap(WalletBase wallet) {
+    if (wallet is CashuWallet) {
+      Get.to<void>(
+        () => MintServerPage(wallet.rawData),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    } else if (wallet is NwcWallet) {
+      Get.to<void>(
+        () => NwcSettingPage(connection: wallet.rawData),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+  }
+
+  /// Handle transaction tap - navigate to transaction details
+  void _onTransactionTap(WalletTransactionBase transaction) {
+    if (transaction is CashuWalletTransaction) {
+      final tx = transaction.rawData;
+      final isLightning = tx.kind == TransactionKind.ln;
+
+      if (isLightning) {
+        Get.to<void>(
+          () => LightningTransactionPage(transaction: tx),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        );
+      } else {
+        Get.to<void>(
+          () => CashuTransactionPage(transaction: tx),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        );
+      }
+    } else if (transaction is NwcWalletTransaction) {
+      // Get the current selected wallet to obtain the NWC URI
+      final wallet = controller.selectedWallet;
+      if (wallet is NwcWallet) {
+        Get.to<void>(
+          () => NwcTransactionPage(
+            nwcUri: wallet.id,
+            transaction: transaction.rawData,
+          ),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        );
+      }
+    }
+  }
+
+  /// Show dialog to add a new wallet
+  Future<void> _showAddWalletDialog(BuildContext context) async {
+    await Get.bottomSheet<void>(
+      CupertinoActionSheet(
+        title: const Text('Add Wallet'),
+        message: const Text(
+          'Paste a Cashu mint URL or NWC connection string',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Get.back<void>();
+              final scanned = await QrScanService.instance.handleQRScan();
+              if (scanned != null && scanned.isNotEmpty) {
+                await _processWalletInput(scanned);
+              }
+            },
+            child: const Text('Scan QR Code'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Get.back<void>();
+              final data = await Clipboard.getData(Clipboard.kTextPlain);
+              if (data?.text != null && data!.text!.isNotEmpty) {
+                await _processWalletInput(data.text!);
+              } else {
+                EasyLoading.showError('Clipboard is empty');
+              }
+            },
+            child: const Text('Paste from Clipboard'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  /// Process wallet input and add appropriate wallet type
+  Future<void> _processWalletInput(String input) async {
+    final trimmedInput = input.trim();
+
+    // Detect wallet type
+    final walletType = controller.detectWalletType(trimmedInput);
+
+    if (walletType == null) {
+      EasyLoading.showError(
+        'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
+      );
+      return;
+    }
+
+    await controller.addWallet(trimmedInput);
+  }
+
+  /// Handle send action
+  Future<void> _handleSend() async {
+    await Get.bottomSheet<void>(
+      SettingsList(
+        platform: DevicePlatform.iOS,
+        sections: [
+          SettingsSection(
+            tiles: [
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.bolt),
+                title: const Text('Pay Lightning Invoice'),
+                onPressed: (context) {
+                  Get.back<void>();
+                  // Navigate to pay invoice page
+                  QrScanService.instance.handleQRScan(autoProcess: true);
+                },
+              ),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.bitcoin_circle),
+                title: const Text('Send Cashu Token'),
+                onPressed: (context) {
+                  Get.back<void>();
+                  // Navigate to send cashu page
+                  // TODO: Implement send cashu
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+    );
+  }
+
+  /// Handle receive action
+  void _handleReceive() {
+    Get.bottomSheet<void>(
+      ignoreSafeArea: false,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      SettingsList(
+        platform: DevicePlatform.iOS,
+        sections: [
+          SettingsSection(
+            tiles: [
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.bolt),
+                title: const Text('Create Lightning Invoice'),
+                onPressed: (context) {
+                  Get.back<void>();
+                  // Navigate to create invoice page
+                },
+              ),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.bitcoin_circle),
+                title: const Text('Receive Cashu Token'),
+                onPressed: (context) {
+                  Get.back<void>();
+                  // Navigate to receive cashu page
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

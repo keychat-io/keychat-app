@@ -111,4 +111,13 @@ class CashuWalletTransaction extends WalletTransactionBase {
 
   @override
   Transaction get rawData => transaction;
+
+  @override
+  String? get preimage => transaction.token;
+
+  @override
+  int? get fee => transaction.fee.toInt();
+
+  @override
+  bool get isSuccess => transaction.status == TransactionStatus.success;
 }

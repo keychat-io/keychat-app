@@ -9,6 +9,7 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class PayInvoicePage extends StatefulWidget {
@@ -178,13 +179,13 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               Obx(
                 () => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: (ecashController.selectedWallet.value.type ==
-                                  WalletType.cashu &&
+                  child: (ecashController.selectedWallet.value.protocol ==
+                                  WalletProtocol.cashu &&
                               ecashController.supportMint(
                                 ecashController.selectedWallet.value.id,
                               )) ||
-                          ecashController.selectedWallet.value.type ==
-                              WalletType.nwc
+                          ecashController.selectedWallet.value.protocol ==
+                              WalletProtocol.nwc
                       ? SizedBox(
                           width: GetPlatform.isDesktop ? 200 : double.infinity,
                           height: 44,
@@ -216,7 +217,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                           }
                                         } catch (e, s) {
                                           await EasyLoading.showError(
-                                              e.toString());
+                                            e.toString(),
+                                          );
                                           logger.e(e.toString(), stackTrace: s);
                                         }
                                         return;

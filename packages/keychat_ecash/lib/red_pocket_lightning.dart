@@ -9,6 +9,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/status_enum.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_nwc/index.dart';
@@ -106,9 +107,9 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                       logger.d('payToLightning tx: $tx');
                       if (tx == null) return;
                       switch (tx) {
-                        case CashuPaymentResult():
-                          updateMessageEcashStatus(tx.tx.status);
-                        case NwcPaymentResult():
+                        case CashuWalletTransaction():
+                          updateMessageEcashStatus(tx.rawData.status);
+                        case _:
                           updateMessageEcashStatus(TransactionStatus.success);
                       }
                     });

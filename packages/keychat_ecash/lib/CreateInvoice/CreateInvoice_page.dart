@@ -5,6 +5,7 @@ import 'package:keychat/utils.dart' show BottomSheetContainer;
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 
 // return: BaseWalletTransaction
 class CreateInvoicePage extends StatelessWidget {
@@ -55,12 +56,13 @@ class CreateInvoicePage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Obx(
-          () => (ecashController.selectedWallet.value.type ==
-                          WalletType.cashu &&
+          () => (ecashController.selectedWallet.value.protocol ==
+                          WalletProtocol.cashu &&
                       ecashController.supportMint(
                         ecashController.selectedWallet.value.id,
                       )) ||
-                  ecashController.selectedWallet.value.type == WalletType.nwc
+                  ecashController.selectedWallet.value.protocol ==
+                      WalletProtocol.nwc
               ? SizedBox(
                   width: double.infinity,
                   height: 44,

@@ -6,31 +6,7 @@ import 'package:get/get.dart';
 import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_nwc/index.dart';
-import 'package:settings_ui/settings_ui.dart';
-
-enum WalletType { cashu, nwc }
-
-class WalletSelection {
-  WalletSelection({
-    required this.type,
-    required this.id,
-    required this.displayName,
-  });
-
-  final WalletType type;
-  final String id; // mint URL or NWC URI
-  final String displayName;
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is WalletSelection && other.type == type && other.id == id;
-  }
-
-  @override
-  int get hashCode => type.hashCode ^ id.hashCode;
-}
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 
 class SelectMintAndNwc extends StatefulWidget {
   const SelectMintAndNwc({super.key});
@@ -41,13 +17,15 @@ class SelectMintAndNwc extends StatefulWidget {
 
 class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
   late final EcashController ecashController;
-  late final NwcController nwcController;
+  late final UnifiedWalletController unifiedWalletController;
 
   @override
   void initState() {
     super.initState();
     ecashController = Get.find<EcashController>();
-    nwcController = Utils.getOrPutGetxController(create: NwcController.new);
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
   }
 
   @override
@@ -56,44 +34,14 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
       elevation: 0.2,
       child: ListTile(
         title: Obx(() {
-          final sel = ecashController.selectedWallet.value;
-          if (sel.type == WalletType.cashu) {
-            final balance = ecashController.getBalanceByMint(sel.id);
-            return Text('$balance ${EcashTokenSymbol.sat.name}');
-          } else {
-            // NWC wallet
-            final nwc = nwcController;
+          final selectedWallet = ecashController.selectedWallet.value;
 
-            // Find the connection first
-            final connection = nwc.activeConnections.firstWhereOrNull(
-              (c) => c.info.uri == sel.id,
-            );
+          // Find the wallet from unifiedWalletController
+          final wallet = unifiedWalletController.wallets.firstWhereOrNull(
+            (w) => w.id == selectedWallet.id,
+          );
 
-            // If still loading and no connection found yet
-            if (nwc.isLoading.value && connection == null) {
-              return const Align(
-                alignment: Alignment.centerLeft,
-                child: SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              );
-            }
-
-            // Connection not found after loading
-            if (connection == null) {
-              return const Text('Wallet not found');
-            }
-
-            // Connection found, check balance
-            if (connection.balance != null) {
-              final balanceMsat = connection.balance!.balanceMsats;
-              final balanceSat = (balanceMsat / 1000).floor();
-              return Text('$balanceSat sat');
-            }
-
-            // Balance not yet loaded
+          if (wallet == null || unifiedWalletController.isLoading.value) {
             return const Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
@@ -103,13 +51,20 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
               ),
             );
           }
+
+          if (wallet.isBalanceLoading) {
+            return const Text('Loading...');
+          }
+
+          return Text('${wallet.balanceSats} ${EcashTokenSymbol.sat.name}');
         }),
-        subtitle: Obx(
-          () => Text(
-            ecashController.selectedWallet.value.displayName,
+        subtitle: Obx(() {
+          final selectedWallet = ecashController.selectedWallet.value;
+          return Text(
+            selectedWallet.displayName,
             overflow: TextOverflow.ellipsis,
-          ),
-        ),
+          );
+        }),
         trailing: IconButton(
           icon: Icon(
             CupertinoIcons.arrow_right_arrow_left,
@@ -124,22 +79,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
   }
 
   Future<void> selectWallet() async {
-    final nwc = nwcController;
-    final isRefreshing = false.obs;
-
-    Future<void> handleRefresh() async {
-      isRefreshing.value = true;
-      try {
-        await Future.wait([
-          ecashController.getBalance(),
-          nwc.reloadConnections(),
-        ]);
-      } finally {
-        isRefreshing.value = false;
-      }
-    }
-
-    await Get.bottomSheet<WalletSelection>(
+    await Get.bottomSheet<void>(
       Container(
         decoration: BoxDecoration(
           color: Theme.of(Get.context!).scaffoldBackgroundColor,
@@ -150,245 +90,122 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                'Select Wallet',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(Get.context!).textTheme.titleLarge?.color,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Wallet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(Get.context!).textTheme.titleLarge?.color,
+                    ),
+                  ),
+                  Obx(() {
+                    final isRefreshing =
+                        unifiedWalletController.isLoading.value;
+                    return IconButton(
+                      icon: isRefreshing
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              CupertinoIcons.refresh,
+                              color: MaterialTheme.lightScheme().primary,
+                            ),
+                      onPressed: isRefreshing
+                          ? null
+                          : () => unifiedWalletController.refreshAll(),
+                    );
+                  }),
+                ],
               ),
             ),
             Flexible(
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return Obx(() {
-                    // Build sections list
-                    final sections = <SettingsSection>[];
+              child: Obx(() {
+                final wallets = unifiedWalletController.wallets;
 
-                    // Add Mint section
-                    if (ecashController.mintBalances.isNotEmpty) {
-                      sections.add(
-                        SettingsSection(
-                          title: const Text(
-                            'Cashu Mints',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                if (unifiedWalletController.isLoading.value &&
+                    wallets.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (wallets.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(32),
+                    child: const Center(
+                      child: Text('No wallet available'),
+                    ),
+                  );
+                }
+
+                final currentSelectedWallet =
+                    ecashController.selectedWallet.value;
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: wallets.length,
+                  itemBuilder: (context, index) {
+                    final wallet = wallets[index];
+                    final isSelected = wallet.id == currentSelectedWallet.id;
+
+                    return ListTile(
+                      leading: Icon(
+                        wallet.icon,
+                        color: wallet.primaryColor,
+                      ),
+                      title: Text(
+                        wallet.displayName,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        wallet.subtitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            wallet.isBalanceLoading
+                                ? 'Loading...'
+                                : '${wallet.balanceSats} sat',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
                             ),
                           ),
-                          tiles: ecashController.mintBalances
-                              .map(
-                                (mint) => SettingsTile(
-                                  title: Text(
-                                    mint.mint,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '${mint.balance} ${EcashTokenSymbol.sat.name}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      if (ecashController
-                                                  .selectedWallet.value.type ==
-                                              WalletType.cashu &&
-                                          ecashController
-                                                  .selectedWallet.value.id ==
-                                              mint.mint) ...[
-                                        const SizedBox(width: 8),
-                                        const Icon(
-                                          CupertinoIcons.check_mark,
-                                          color: Colors.green,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  onPressed: (context) async {
-                                    final wallet = WalletSelection(
-                                      type: WalletType.cashu,
-                                      id: mint.mint,
-                                      displayName: mint.mint,
-                                    );
-                                    await Get.find<EcashController>()
-                                        .updateSelectedWallet(wallet);
-
-                                    Get.back(
-                                      result: wallet,
-                                    );
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      );
-                    }
-
-                    // Show loading if NWC is still loading
-                    if (nwc.isLoading.value && nwc.activeConnections.isEmpty) {
-                      sections.add(
-                        SettingsSection(
-                          title: const Text(
-                            'Lightning Wallets (NWC)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          tiles: [
-                            SettingsTile(
-                              title: const Row(
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text('Loading NWC wallets...'),
-                                ],
-                              ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              CupertinoIcons.check_mark_circled,
+                              color: Colors.green,
+                              size: 20,
                             ),
                           ],
-                        ),
-                      );
-                    } else if (nwc.activeConnections.isNotEmpty) {
-                      // Add NWC section
-                      sections.add(
-                        SettingsSection(
-                          title: const Text(
-                            'Lightning Wallets (NWC)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          tiles: nwc.activeConnections.map(
-                            (connection) {
-                              var balanceText = 'Loading...';
-                              if (connection.balance != null) {
-                                final balanceMsat =
-                                    connection.balance!.balanceMsats;
-                                final balanceSat = (balanceMsat / 1000).floor();
-                                balanceText = '$balanceSat sat';
-                              }
-
-                              final displayName =
-                                  connection.info.name ?? connection.info.uri;
-
-                              return SettingsTile(
-                                title: Text(
-                                  displayName,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      balanceText,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    if (ecashController
-                                                .selectedWallet.value.type ==
-                                            WalletType.nwc &&
-                                        ecashController
-                                                .selectedWallet.value.id ==
-                                            connection.info.uri) ...[
-                                      const SizedBox(width: 8),
-                                      const Icon(
-                                        CupertinoIcons.check_mark,
-                                        color: Colors.green,
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                onPressed: (context) async {
-                                  final wallet = WalletSelection(
-                                    type: WalletType.nwc,
-                                    id: connection.info.uri,
-                                    displayName: displayName,
-                                  );
-                                  await Get.find<EcashController>()
-                                      .updateSelectedWallet(wallet);
-
-                                  Get.back(
-                                    result: wallet,
-                                  );
-                                },
-                              );
-                            },
-                          ).toList(),
-                        ),
-                      );
-                    }
-
-                    // Check if we have any options
-                    if (sections.isEmpty) {
-                      return Container(
-                        padding: const EdgeInsets.all(32),
-                        child: const Center(
-                          child: Text('No wallet available'),
-                        ),
-                      );
-                    }
-
-                    sections.add(
-                      SettingsSection(
-                        tiles: [
-                          SettingsTile(
-                            title: Obx(
-                              () => Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (isRefreshing.value)
-                                    const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  else
-                                    const Icon(
-                                      CupertinoIcons.refresh,
-                                      size: 16,
-                                    ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isRefreshing.value
-                                        ? 'Refreshing...'
-                                        : 'Refresh Balances',
-                                  ),
-                                ],
-                              ),
-                            ),
-                            onPressed: isRefreshing.value
-                                ? null
-                                : (context) => handleRefresh(),
-                          ),
                         ],
                       ),
-                    );
+                      onTap: () async {
+                        // Update ecashController which is the source of truth
+                        await ecashController.updateSelectedWallet(wallet);
 
-                    return SettingsList(
-                      contentPadding: const EdgeInsets.all(4),
-                      platform: DevicePlatform.iOS,
-                      sections: sections,
+                        // Also update unifiedWalletController to keep it in sync
+                        final walletIndex = unifiedWalletController.wallets
+                            .indexWhere((w) => w.id == wallet.id);
+                        if (walletIndex != -1) {
+                          unifiedWalletController.selectWallet(walletIndex);
+                        }
+
+                        Get.back<void>();
+                      },
                     );
-                  });
-                },
-              ),
+                  },
+                );
+              }),
             ),
           ],
         ),

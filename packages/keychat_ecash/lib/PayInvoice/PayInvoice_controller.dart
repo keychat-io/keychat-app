@@ -10,8 +10,10 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
+import 'package:keychat_nwc/nwc/NWC_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:ndk/ndk.dart' show TransactionResult;
@@ -50,7 +52,7 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<CashuPaymentResult?> _payWithCashu(
+  FutureOr<CashuWalletTransaction?> _payWithCashu(
     String mint,
     String invoice,
     rust_cashu.InvoiceInfo ii,
@@ -79,7 +81,7 @@ class PayInvoiceController extends GetxController {
           await Get.to<void>(() => LightningTransactionPage(transaction: tx));
         }
       }
-      return CashuPaymentResult(tx);
+      return CashuWalletTransaction(transaction: tx, walletId: mint);
     } catch (e, s) {
       final msg = await EcashUtils.ecashErrorHandle(e, s);
       EasyLoading.showError(msg);
@@ -87,7 +89,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<NwcPaymentResult?> _payWithNwc(
+  FutureOr<NwcWalletTransaction?> _payWithNwc(
     String nwcUri,
     String invoice,
     rust_cashu.InvoiceInfo ii,
@@ -131,8 +133,8 @@ class PayInvoiceController extends GetxController {
       // Refresh NWC balance
       await nwcController.refreshBalances([active]);
 
-      final tx = NwcPaymentResult(
-        TransactionResult(
+      final tx = NwcWalletTransaction(
+        transaction: TransactionResult(
           type: 'outgoing',
           invoice: invoice,
           amount: ii.amount.toInt() * 1000,
@@ -142,13 +144,14 @@ class PayInvoiceController extends GetxController {
           preimage: result.preimage,
           paymentHash: 'none',
         ),
+        walletId: nwcUri,
       );
       return tx;
     } catch (e, s) {
       logger.e('NWC payment error', error: e, stackTrace: s);
       await EasyLoading.showError('Payment Failed: $e');
     } finally {
-      Future.delayed(const Duration(seconds: 2)).then((value) async {
+      Future<void>.delayed(const Duration(seconds: 2)).then((value) async {
         await EasyLoading.dismiss();
       });
     }
@@ -156,10 +159,10 @@ class PayInvoiceController extends GetxController {
   }
 
   /// Pay a lightning invoice and return the payment result.
-  /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
-  FutureOr<PaymentResult?> confirmToPayInvoice({
+  /// Returns [CashuWalletTransaction] for Cashu payments or [NwcWalletTransaction] for NWC payments.
+  FutureOr<WalletTransactionBase?> confirmToPayInvoice({
     required String invoice,
-    required WalletSelection walletSelection,
+    required WalletBase walletSelection,
     bool isPay = false, // pay invoice, then return
   }) async {
     if (invoice.isEmpty) {
@@ -174,7 +177,7 @@ class PayInvoiceController extends GetxController {
       final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
       // Handle NWC payment
-      if (walletSelection.type == WalletType.nwc) {
+      if (walletSelection.protocol == WalletProtocol.nwc) {
         if (isPay) {
           return await _payWithNwc(
             walletSelection.id,
@@ -183,7 +186,7 @@ class PayInvoiceController extends GetxController {
             isPay,
           );
         }
-        return await Get.dialog<NwcPaymentResult?>(
+        return await Get.dialog<NwcWalletTransaction?>(
           CupertinoAlertDialog(
             title: const Text('Pay Invoice'),
             content: Text(
@@ -192,7 +195,7 @@ class PayInvoiceController extends GetxController {
             ),
             actions: [
               CupertinoDialogAction(
-                onPressed: () => Get.back<NwcPaymentResult?>(),
+                onPressed: () => Get.back<NwcWalletTransaction?>(),
                 child: const Text('Cancel'),
               ),
               CupertinoDialogAction(
@@ -211,7 +214,7 @@ class PayInvoiceController extends GetxController {
                   }
                   await Get.to<void>(
                     () => NwcTransactionPage(
-                      transaction: res.tx,
+                      transaction: res.rawData,
                       nwcUri: walletSelection.id,
                     ),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
@@ -233,7 +236,7 @@ class PayInvoiceController extends GetxController {
           isPay,
         );
       }
-      return await Get.dialog<CashuPaymentResult?>(
+      return await Get.dialog<CashuWalletTransaction?>(
         CupertinoAlertDialog(
           title: const Text('Pay Invoice'),
           content: Text(
@@ -242,7 +245,7 @@ class PayInvoiceController extends GetxController {
           ),
           actions: [
             CupertinoDialogAction(
-              onPressed: () => Get.back<CashuPaymentResult?>(),
+              onPressed: () => Get.back<CashuWalletTransaction?>(),
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
@@ -270,7 +273,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<PaymentResult?> lnurlPayFirst(String input) async {
+  FutureOr<WalletTransactionBase?> lnurlPayFirst(String input) async {
     if (input.isEmpty) {
       return null;
     }
@@ -325,7 +328,7 @@ class PayInvoiceController extends GetxController {
       if (Get.isBottomSheetOpen ?? false) {
         Get.back<void>();
       }
-      return await Get.bottomSheet<PaymentResult?>(
+      return await Get.bottomSheet<WalletTransactionBase?>(
         ignoreSafeArea: false,
         PayToLnurl(data, input),
       );

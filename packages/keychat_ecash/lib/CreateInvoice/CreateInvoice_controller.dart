@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
-import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
+import 'package:ndk/ndk.dart' show TransactionResult;
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -88,7 +87,7 @@ If payment fails, please contact the mint server.''',
       EasyLoading.show(status: 'Generating...');
       final description = descController.text.trim();
       // Handle NWC wallet
-      if (ecashController.selectedWallet.value.type == WalletType.nwc) {
+      if (ecashController.selectedWallet.value.protocol == WalletProtocol.nwc) {
         final nwcController = Utils.getOrPutGetxController(
           create: NwcController.new,
         );

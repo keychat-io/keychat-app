@@ -8,7 +8,7 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/payment_result.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 enum NWCLogMethod { subscribe, receiveEvent, writeEvent, eose, notice, ok }
@@ -235,8 +235,8 @@ class NostrWalletConnectController extends GetxController {
         } else {
           // Check if Cashu payment failed
           final isFailed = switch (tx) {
-            CashuPaymentResult() => !tx.isSuccess,
-            NwcPaymentResult() => false,
+            CashuWalletTransaction() => !tx.isSuccess,
+            _ => false,
           };
           if (isFailed) {
             toSendMessage = {

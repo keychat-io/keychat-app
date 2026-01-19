@@ -17,11 +17,8 @@ import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
-import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
-import 'package:keychat_ecash/payment_result.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart'
-    show WalletTransactionBase;
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -59,25 +56,31 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late IndicatorController indicatorController;
-  final Rx<WalletSelection> selectedWallet = Rx(
-    WalletSelection(
-      type: WalletType.cashu,
-      id: KeychatGlobal.defaultCashuMintURL,
-      displayName: KeychatGlobal.defaultCashuMintURL,
-    ),
-  );
+  late final Rx<WalletBase> selectedWallet;
 
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     indicatorController = IndicatorController();
+
+    // Initialize selectedWallet with default Cashu wallet
+    selectedWallet = Rx(
+      CashuWallet(
+        mintBalance: MintBalanceClass(
+          KeychatGlobal.defaultCashuMintURL,
+          EcashTokenSymbol.sat.name,
+          0,
+        ),
+      ),
+    );
+
     super.onInit();
     initSelectedWallet();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
   }
 
-  Future<WalletSelection> initSelectedWallet() async {
+  Future<WalletBase> initSelectedWallet() async {
     final wallet = await WalletSelectionStorage.loadWallet();
     selectedWallet.value = wallet;
     return wallet;
@@ -112,8 +115,8 @@ class EcashController extends GetxController {
     return completer.future;
   }
 
-  Future<void> updateSelectedWallet(WalletSelection wallet) async {
-    if (wallet.type == WalletType.cashu) {
+  Future<void> updateSelectedWallet(WalletBase wallet) async {
+    if (wallet.protocol == WalletProtocol.cashu) {
       latestMintUrl.value = wallet.id;
     }
     selectedWallet.value = wallet;
@@ -527,15 +530,15 @@ class EcashController extends GetxController {
   }
 
   /// Pay to lightning invoice or LNURL.
-  /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
+  /// Returns [CashuWalletTransaction] for Cashu payments or [NwcWalletTransaction] for NWC payments.
   /// [input] can be: lnbc invoice, lnurl, or lightning address (email format).
-  FutureOr<PaymentResult?> payToLightning({
+  FutureOr<WalletTransactionBase?> payToLightning({
     String? input,
     bool isPay = false,
   }) async {
     if (input != null) {
       if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-        return await Get.bottomSheet<PaymentResult?>(
+        return await Get.bottomSheet<WalletTransactionBase?>(
           clipBehavior: Clip.antiAlias,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -550,7 +553,7 @@ class EcashController extends GetxController {
         return null;
       }
     }
-    return await Get.bottomSheet<PaymentResult?>(
+    return await Get.bottomSheet<WalletTransactionBase?>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -564,10 +567,10 @@ class EcashController extends GetxController {
   }
 
   /// Get the preimage from a payment result.
-  String? getPreimage(PaymentResult? result) => result?.preimage;
+  String? getPreimage(WalletTransactionBase? result) => result?.preimage;
 
   /// Get the fee paid from a payment result in sats.
-  int? getFee(PaymentResult? result) => result?.fee;
+  int? getFee(WalletTransactionBase? result) => result?.fee;
 
   Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
     final originalStatus = transaction.status;

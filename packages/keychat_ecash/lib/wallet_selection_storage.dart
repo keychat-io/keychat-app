@@ -1,84 +1,95 @@
 import 'package:keychat/service/secure_storage.dart';
-import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_nwc/nwc_connection_storage.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
+import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_nwc/nwc/NWC_controller.dart';
 import 'package:keychat_nwc/utils.dart';
+import 'package:keychat/utils.dart' show Utils;
 import 'package:get/get.dart';
 
 class WalletSelectionStorage {
   static const String _secureKey = 'secure_ecash_wallet_selection';
 
   /// Load wallet selection
-  static Future<WalletSelection> loadWallet() async {
+  static Future<WalletBase> loadWallet() async {
     return _loadWallet(_secureKey);
   }
 
   /// Save wallet selection
-  static Future<void> saveWallet(WalletSelection wallet) async {
+  static Future<void> saveWallet(WalletBase wallet) async {
     await _saveWallet(_secureKey, wallet);
   }
 
-  static Future<WalletSelection> _loadWallet(String secureKey) async {
+  static Future<WalletBase> _loadWallet(String secureKey) async {
     final secureId = await SecureStorage.instance.read(secureKey);
     final ecashController = Get.find<EcashController>();
 
     final latestMintUrl = ecashController.latestMintUrl.value;
-    final fall = WalletSelection(
-      type: WalletType.cashu,
-      id: latestMintUrl,
-      displayName: latestMintUrl,
-    );
+
+    // Default fallback wallet
+    WalletBase getFallbackWallet() {
+      return CashuWallet(
+        mintBalance: MintBalanceClass(
+          latestMintUrl,
+          EcashTokenSymbol.sat.name,
+          0,
+        ),
+      );
+    }
 
     if (secureId == null || secureId.isEmpty) {
       final firstNonZeroBalanceMint =
           ecashController.mintBalances.firstWhereOrNull((m) => m.balance > 0);
       if (firstNonZeroBalanceMint != null) {
-        return WalletSelection(
-          type: WalletType.cashu,
-          id: firstNonZeroBalanceMint.mint,
-          displayName: firstNonZeroBalanceMint.mint,
-        );
+        return CashuWallet(mintBalance: firstNonZeroBalanceMint);
       }
-      return fall;
+      return getFallbackWallet();
     }
 
     // Determine type by URI format
     final isNwc = secureId.startsWith(NwcUtils.nwcPrefix);
-    final type = isNwc ? WalletType.nwc : WalletType.cashu;
 
     // Validate that the wallet still exists
-    if (type == WalletType.cashu) {
-      final exists =
-          ecashController.mintBalances.any((m) => m.mint == secureId);
-      if (exists) {
-        return WalletSelection(
-          type: type,
-          id: secureId,
-          displayName: secureId,
-        );
+    if (!isNwc) {
+      // Cashu wallet
+      final mintBalance = ecashController.mintBalances
+          .firstWhereOrNull((m) => m.mint == secureId);
+      if (mintBalance != null) {
+        return CashuWallet(mintBalance: mintBalance);
       }
-      return fall;
-    } else if (type == WalletType.nwc) {
-      // Check if NWC connection still exists
-      final storage = NwcConnectionStorage();
-      final savedConnections = await storage.getAll();
-      final exists = savedConnections.any((conn) => conn.uri == secureId);
+      return getFallbackWallet();
+    } else {
+      // NWC wallet - try to find the connection
+      try {
+        final nwcController = Utils.getOrPutGetxController(
+          create: NwcController.new,
+        );
 
-      if (exists) {
-        return WalletSelection(
-          type: type,
-          id: secureId,
-          displayName: secureId,
+        // Wait for NWC connections to load if needed
+        if (nwcController.isLoading.value) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+        }
+
+        final connection = nwcController.activeConnections.firstWhereOrNull(
+          (conn) => conn.info.uri == secureId,
         );
+
+        if (connection != null) {
+          return NwcWallet(connection: connection);
+        }
+      } catch (e) {
+        // If NWC is not available, fall back to Cashu
       }
-      return fall;
+
+      return getFallbackWallet();
     }
-    return fall;
   }
 
   static Future<void> _saveWallet(
     String secureKey,
-    WalletSelection wallet,
+    WalletBase wallet,
   ) async {
     await SecureStorage.instance.write(secureKey, wallet.id);
   }

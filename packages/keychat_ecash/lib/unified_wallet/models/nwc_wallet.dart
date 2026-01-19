@@ -117,4 +117,14 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   TransactionResult get rawData => transaction;
+
+  @override
+  String? get preimage => transaction.preimage;
+
+  @override
+  int? get fee =>
+      transaction.feesPaid != null ? transaction.feesPaid! ~/ 1000 : null;
+
+  @override
+  bool get isSuccess => true; // NWC payment is always success if returned
 }

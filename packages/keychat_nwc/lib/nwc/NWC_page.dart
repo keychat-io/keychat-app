@@ -203,7 +203,7 @@ class _NwcPageState extends State<NwcPage> {
               width: 120,
               child: FilledButton.icon(
                 onPressed: () async {
-                  await Get.find<EcashController>().payToLightning(null);
+                  await Get.find<EcashController>().payToLightning();
                 },
                 icon: const Icon(CupertinoIcons.arrow_up_right),
                 label: const Text('Pay'),
@@ -213,7 +213,7 @@ class _NwcPageState extends State<NwcPage> {
             SizedBox(
               width: 120,
               child: FilledButton.icon(
-                onPressed: EcashUtils.proccessMakeLnInvoice,
+                onPressed: Get.find<EcashController>().proccessMakeLnInvoice,
                 icon: const Icon(CupertinoIcons.arrow_down_left),
                 label: const Text('Receive'),
               ),
@@ -654,15 +654,6 @@ class _NwcPageState extends State<NwcPage> {
                 ),
           ),
           const SizedBox(height: 24),
-          _buildProviderItem(
-            context,
-            'Coinos',
-            'Easy to use web wallet with instant NWC setup',
-            'https://coinos.io/',
-            Icons.flash_on,
-            Colors.orange,
-          ),
-          const SizedBox(height: 12),
           _buildProviderItem(
             context,
             'Alby Hub',

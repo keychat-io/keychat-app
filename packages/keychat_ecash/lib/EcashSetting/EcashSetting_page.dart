@@ -42,7 +42,9 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                     for (final tx in list) {
                       if (tx.status == TransactionStatus.pending) {
                         try {
-                          await RustAPI.receiveToken(encodedToken: tx.token);
+                          await rust_cashu.receiveToken(
+                            encodedToken: tx.token,
+                          );
                           success++;
                         } catch (e, s) {
                           final msg = Utils.getErrorMessage(e);
@@ -52,7 +54,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                         }
                       }
                     }
-                    EasyLoading.dismiss();
+                    await EasyLoading.dismiss();
                     await Get.dialog(
                       CupertinoAlertDialog(
                         title: const Text('Receive Result'),

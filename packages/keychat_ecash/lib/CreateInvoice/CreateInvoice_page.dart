@@ -6,6 +6,7 @@ import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 
+// return: BaseWalletTransaction
 class CreateInvoicePage extends StatelessWidget {
   CreateInvoicePage({this.amount, this.description, super.key});
   final int? amount;

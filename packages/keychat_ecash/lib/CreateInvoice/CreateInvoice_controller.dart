@@ -6,6 +6,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
+import 'package:keychat_ecash/unified_wallet/index.dart';
+import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
 import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -39,8 +41,7 @@ class CreateInvoiceController extends GetxController {
   }
 
   // Handle create invoice action
-  // Returns: (MakeInvoiceResponse, Uri String) for NWC wallet
-  //         (Transaction, Mint String) for Cashu mint
+  // WalletTransaction
   Future<void> handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
@@ -105,10 +106,23 @@ If payment fails, please contact the mint server.''',
           amountSats: amount,
           description: description,
         );
-
         await EasyLoading.showSuccess('Invoice created');
+        final trr = TransactionResult(
+          type: 'incoming',
+          invoice: response.invoice,
+          amount: response.amountSat * 1000,
+          description: response.description,
+          createdAt: response.createdAt,
+          feesPaid: response.feesPaid,
+          paymentHash: response.paymentHash,
+          preimage: response.preimage,
+        );
+        final tx = NwcWalletTransaction(
+          transaction: trr,
+          walletId: active.connection.uri.toUri(),
+        );
         Get.back(
-          result: (response, active.connection.uri.toUri()),
+          result: tx,
         ); // MakeInvoiceResponse
         return;
       }
@@ -118,10 +132,13 @@ If payment fails, please contact the mint server.''',
         amount: BigInt.from(amount),
         activeMint: ecashController.selectedWallet.value.id,
       );
-      Get.find<EcashController>().getRecentTransactions();
       await EasyLoading.showToast('Create Successfully');
       textController.clear();
-      Get.back(result: (tr, ecashController.selectedWallet.value.id));
+      final tx = CashuWalletTransaction(
+        transaction: tr,
+        walletId: ecashController.selectedWallet.value.id,
+      );
+      Get.back(result: tx);
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);

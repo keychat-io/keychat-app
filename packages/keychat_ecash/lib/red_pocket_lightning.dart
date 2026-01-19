@@ -100,7 +100,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                       }
                       final tx =
                           await Get.find<EcashController>().payToLightning(
-                        _cashuInfoModel.token,
+                        input: _cashuInfoModel.token,
                         isPay: true,
                       );
                       logger.d('payToLightning tx: $tx');

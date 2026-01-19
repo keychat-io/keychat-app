@@ -30,7 +30,7 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show TransactionStatus;
+    show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -671,16 +671,19 @@ class ChatController extends GetxController {
   }
 
   Future<void> _handleSendSats() async {
-    final cashuInfo = await Get.bottomSheet<CashuInfoModel>(
+    final tx = await Get.bottomSheet<Transaction>(
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CashuSendPage(isRoom: true),
+      const CashuSendPage(),
     );
-    if (cashuInfo == null) return;
+    if (tx == null) return;
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
     try {
-      logger.d(cashuInfo.toString());
+      final cashuInfo = CashuInfoModel.fromRustModel(tx);
       await RoomService.instance.sendMessage(
         roomObs.value,
         cashuInfo.token,
@@ -691,13 +694,13 @@ class ChatController extends GetxController {
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showError(msg);
+      await EasyLoading.showError(msg);
     }
   }
 
   Future<void> _handleSendLightning() async {
     try {
-      final result = await EcashUtils.makeInvoiceForChat();
+      final result = await Get.find<EcashController>().makeInvoiceForChat();
       if (result.$1 == null || result.$2 == null) {
         return;
       }

@@ -19,10 +19,19 @@ import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/payment_result.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart'
+    show WalletTransactionBase;
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat/utils.dart';
+import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
+import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
 
 class EcashDBVersion {
   static const int v0 = 0; // not initial version
@@ -140,9 +149,8 @@ class EcashController extends GetxController {
     }
     if (unitPrice == 0) return null;
 
-    final cim = await EcashUtils.getCashuA(amount: unitPrice, mints: [mint]);
-
-    return cim.token;
+    final tx = await EcashUtils.getCashuToken(amount: unitPrice, mints: [mint]);
+    return tx.token;
   }
 
   Future<void> _initCashuMints() async {
@@ -508,7 +516,7 @@ class EcashController extends GetxController {
   ]) async {
     try {
       final cashu = await RustAPI.decodeToken(encodedToken: str);
-      Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
+      await Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
     } catch (e) {
       logger.e('Failed to process Cashu string: $e');
       if (callback == null) {
@@ -521,8 +529,8 @@ class EcashController extends GetxController {
   /// Pay to lightning invoice or LNURL.
   /// Returns [CashuPaymentResult] for Cashu payments or [NwcPaymentResult] for NWC payments.
   /// [input] can be: lnbc invoice, lnurl, or lightning address (email format).
-  FutureOr<PaymentResult?> payToLightning(
-    String? input, {
+  FutureOr<PaymentResult?> payToLightning({
+    String? input,
     bool isPay = false,
   }) async {
     if (input != null) {
@@ -573,5 +581,87 @@ class EcashController extends GetxController {
     } catch (e) {
       logger.e('Failed to check transaction status', error: e);
     }
+  }
+
+  Future<String?> proccessMakeLnInvoice({
+    int? amount,
+    String? description,
+    bool getString = false,
+  }) async {
+    final tx = await Get.bottomSheet<WalletTransactionBase?>(
+      ignoreSafeArea: false,
+      isScrollControlled: !GetPlatform.isDesktop,
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(amount: amount, description: description),
+    );
+
+    if (tx == null) return null;
+    if (getString) {
+      return tx.invoice;
+    }
+    if (tx.rawData is Transaction) {
+      await Get.to(
+        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+      await Get.find<EcashController>().requestPageRefresh();
+      return null;
+    }
+
+    // Handle NWC invoice result
+    if (tx.rawData is TransactionResult) {
+      final nwcUri =
+          tx.walletId ?? (await WalletSelectionStorage.loadWallet()).id;
+      await Get.to(
+        () => NwcTransactionPage(
+          transaction: tx.rawData as TransactionResult,
+          nwcUri: nwcUri,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+    return null;
+  }
+
+  Future<(String?, String?)> makeInvoiceForChat() async {
+    final tx = await Get.bottomSheet<WalletTransactionBase?>(
+      ignoreSafeArea: false,
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(),
+    );
+    if (tx == null) return (null, null);
+
+    final dynamic invoice = tx.rawData;
+    if (invoice == null) return (null, null);
+
+    final cim = CashuInfoModel();
+    late String token;
+    if (invoice is Transaction) {
+      token = invoice.token;
+      cim
+        ..amount = invoice.amount.toInt()
+        ..token = invoice.token
+        ..mint = invoice.mintUrl
+        ..status = invoice.status
+        ..hash = invoice.id
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
+          invoice.timestamp.toInt() * 1000,
+        );
+    } else if (invoice is MakeInvoiceResponse) {
+      token = invoice.invoice;
+      cim
+        ..amount = invoice.amountSat
+        ..token = invoice.invoice
+        ..mint = tx.walletId ?? ''
+        ..hash = invoice.paymentHash
+        ..status = TransactionStatus.pending;
+    }
+    return (token, cim.toString());
   }
 }

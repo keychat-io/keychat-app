@@ -41,6 +41,25 @@ class CashuWalletProvider implements WalletProvider {
   }
 
   @override
+  Future<WalletBase?> refreshWallet(String walletId) async {
+    // For Cashu, refresh the specific mint balance
+    await _ecashController.getBalance();
+    _ecashController.getBalanceByMint(walletId);
+
+    // Return the updated wallet
+    final mintBalance = _ecashController.mintBalances.firstWhereOrNull(
+      (mb) => mb.mint == walletId,
+    );
+    if (mintBalance == null) return null;
+
+    return CashuWallet(
+      mintBalance: mintBalance,
+      supportsMint: _ecashController.supportMint(mintBalance.mint),
+      supportsMelt: _ecashController.supportMelt(mintBalance.mint),
+    );
+  }
+
+  @override
   Future<bool> addWallet(String connectionString) async {
     await _ecashController.addMintUrl(connectionString);
     return true;

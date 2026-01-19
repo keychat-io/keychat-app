@@ -39,20 +39,4 @@ class CashuInfoModel {
       ..token = ct.token
       ..mint = ct.mintUrl;
   }
-
-  Transaction toCashuTransaction() {
-    final ct = Transaction(
-      id: id ?? '',
-      status: status,
-      amount: BigInt.from(amount),
-      token: token,
-      mintUrl: mint,
-      io: TransactionDirection.outgoing,
-      timestamp: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
-      kind: TransactionKind.cashu,
-      fee: BigInt.from(0),
-      metadata: {},
-    );
-    return ct;
-  }
 }

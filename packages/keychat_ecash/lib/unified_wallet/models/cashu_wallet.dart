@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:keychat/global.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -35,7 +36,7 @@ class CashuWallet extends WalletBase {
   IconData get icon => CupertinoIcons.bitcoin_circle;
 
   @override
-  Color get primaryColor => const Color(0xfff2a900); // Bitcoin orange
+  Color get primaryColor => KeychatGlobal.bitcoinColor;
 
   @override
   String get subtitle => mintBalance.mint;
@@ -65,9 +66,12 @@ class CashuWallet extends WalletBase {
 
 /// Cashu transaction wrapper
 class CashuWalletTransaction extends WalletTransactionBase {
-  CashuWalletTransaction({required this.transaction});
+  CashuWalletTransaction({required this.transaction, this.walletId});
 
   final Transaction transaction;
+
+  @override
+  String? walletId;
 
   @override
   String get id => transaction.id;

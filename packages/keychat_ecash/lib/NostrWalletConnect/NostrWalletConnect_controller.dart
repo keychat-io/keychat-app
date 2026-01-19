@@ -220,7 +220,7 @@ class NostrWalletConnectController extends GetxController {
         }
         if (!invoice.startsWith('lnbc')) return;
         final tx = await ecashController.payToLightning(
-          invoice,
+          input: invoice,
           isPay: true,
         );
         late Map toSendMessage;

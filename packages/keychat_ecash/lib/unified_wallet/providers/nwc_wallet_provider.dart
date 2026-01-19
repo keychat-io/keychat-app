@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
@@ -33,6 +34,21 @@ class NwcWalletProvider implements WalletProvider {
   @override
   Future<void> refresh() async {
     await _nwcController.reloadConnections();
+  }
+
+  @override
+  Future<WalletBase?> refreshWallet(String walletId) async {
+    // For NWC, refresh the specific connection's balance
+    await _nwcController.getBalance(walletId);
+
+    // Return the updated wallet
+    final connections = _nwcController.activeConnections.toList();
+    final connection = connections.firstWhereOrNull(
+      (c) => c.info.uri == walletId,
+    );
+    if (connection == null) return null;
+
+    return NwcWallet(connection: connection);
   }
 
   @override

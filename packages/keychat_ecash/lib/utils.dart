@@ -6,17 +6,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
-import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/wallet_selection_storage.dart';
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
+import 'package:ndk/ndk.dart' show MakeInvoiceResponse;
 
 enum EcashTokenSymbol { sat, usdt }
 
@@ -76,7 +71,7 @@ class EcashUtils {
     }
   }
 
-  static Future<CashuInfoModel?> handleReceiveToken({
+  static Future<Transaction?> handleReceiveToken({
     required String token,
     bool retry = false,
     int? messageId,
@@ -90,14 +85,13 @@ class EcashUtils {
     try {
       decoded = await rust_cashu.decodeToken(encodedToken: token);
     } catch (e, s) {
-      await EasyLoading.dismiss();
       final msg = Utils.getErrorMessage(e);
       await EasyLoading.showError('Error: $msg');
       logger.e('receive error $msg', error: e, stackTrace: s);
       return null;
     }
     if (!isValidEcashToken(decoded.unit.toString())) {
-      EasyLoading.showError(
+      await EasyLoading.showError(
         'Error! Invalid token symbol.',
         duration: const Duration(seconds: 2),
       );
@@ -110,14 +104,14 @@ class EcashUtils {
     }
     await EasyLoading.dismiss();
     var isAddingMint = false;
-    return Get.dialog<CashuInfoModel>(
+    return Get.dialog<Transaction>(
       StatefulBuilder(
         builder: (context, setState) => CupertinoAlertDialog(
           title: const Text('Add Mint Server?'),
           content: Text(decoded.mint),
           actions: [
             CupertinoDialogAction(
-              onPressed: isAddingMint ? null : () => Get.back<CashuInfoModel>(),
+              onPressed: isAddingMint ? null : Get.back,
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
@@ -139,7 +133,7 @@ class EcashUtils {
                           'Add Failed: $msg',
                           duration: const Duration(seconds: 3),
                         );
-                        Get.back<CashuInfoModel>();
+                        Get.back();
                         return;
                       }
 
@@ -149,7 +143,7 @@ class EcashUtils {
                         messageId: messageId,
                       );
 
-                      Get.back<CashuInfoModel>(result: res);
+                      Get.back<Transaction>(result: res);
                     },
               child: isAddingMint
                   ? const CupertinoActivityIndicator()
@@ -164,16 +158,13 @@ class EcashUtils {
   static bool isValidEcashToken(String unit) =>
       true; // unit == 'sat' || unit == 'usdt';
 
-  static Future<CashuInfoModel?> _processReceive({
+  static Future<Transaction?> _processReceive({
     required String token,
     bool retry = false,
     int? messageId,
   }) async {
     try {
-      final model = await RustAPI.receiveToken(encodedToken: token);
-      Get.find<EcashController>()
-        ..getBalance()
-        ..getRecentTransactions();
+      final model = await rust_cashu.receiveToken(encodedToken: token);
       if (messageId != null) {
         await MessageService.instance.updateMessageCashuStatus(messageId);
       }
@@ -258,7 +249,7 @@ Please restore your ecash wallet from mint server to resolve this issue.
     return msg;
   }
 
-  static Future<CashuInfoModel> getCashuA({
+  static Future<Transaction> getCashuToken({
     required int amount,
     required List<String> mints,
     String token = 'sat',
@@ -271,11 +262,10 @@ Please restore your ecash wallet from mint server to resolve this issue.
         break;
       }
     }
-    final ct = await rust_cashu.send(
+    return rust_cashu.send(
       amount: BigInt.from(amount),
       activeMint: filledMint,
     );
-    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Future<CashuInfoModel> getStamp({
@@ -409,107 +399,5 @@ Restoring...''',
         ),
       );
     }
-  }
-
-  static String getInvoiceString(dynamic invoice) {
-    if (invoice is Transaction) {
-      return invoice.token;
-    } else if (invoice is MakeInvoiceResponse) {
-      return invoice.invoice;
-    }
-    if (invoice is String) {
-      return invoice;
-    }
-    throw Exception('Unknown invoice type');
-  }
-
-  static Future<String?> proccessMakeLnInvoice({
-    int? amount,
-    String? description,
-    bool getString = false,
-  }) async {
-    final res = await Get.bottomSheet(
-      ignoreSafeArea: false,
-      isScrollControlled: !GetPlatform.isDesktop,
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(amount: amount, description: description),
-    );
-
-    if (res == null) return null;
-    if (res.$1 == null) return null;
-    final dynamic result = res.$1;
-    if (getString) {
-      return getInvoiceString(result);
-    }
-    if (result is Transaction) {
-      await Get.to(
-        () => LightningTransactionPage(transaction: result),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      await Get.find<EcashController>().requestPageRefresh();
-      return null;
-    }
-
-    // Handle NWC invoice result
-    if (result is MakeInvoiceResponse) {
-      final tx = TransactionResult(
-        type: 'incoming',
-        invoice: result.invoice,
-        amount: result.amountSat * 1000,
-        description: result.description,
-        createdAt: result.createdAt,
-        feesPaid: result.feesPaid,
-        paymentHash: result.paymentHash,
-        preimage: result.preimage,
-      );
-      final selected = await WalletSelectionStorage.loadWallet();
-      await Get.to(
-        () => NwcTransactionPage(transaction: tx, nwcUri: selected.id),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
-    return null;
-  }
-
-  static Future<(String?, String?)> makeInvoiceForChat() async {
-    final res = await Get.bottomSheet(
-      ignoreSafeArea: false,
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(),
-    );
-    if (res == null) return (null, null);
-    if (res.$1 == null) return (null, null);
-    final dynamic invoice = res.$1;
-    if (invoice == null) return (null, null);
-
-    final cim = CashuInfoModel();
-    late String token;
-    if (invoice is Transaction) {
-      token = invoice.token;
-      cim
-        ..amount = invoice.amount.toInt()
-        ..token = invoice.token
-        ..mint = invoice.mintUrl
-        ..status = invoice.status
-        ..hash = invoice.id
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
-          invoice.timestamp.toInt() * 1000,
-        );
-    } else if (invoice is MakeInvoiceResponse) {
-      token = invoice.invoice;
-      cim
-        ..amount = invoice.amountSat
-        ..token = invoice.invoice
-        ..mint = res.$2?.toString() ?? ''
-        ..hash = invoice.paymentHash
-        ..status = TransactionStatus.pending;
-    }
-    return (token, cim.toString());
   }
 }

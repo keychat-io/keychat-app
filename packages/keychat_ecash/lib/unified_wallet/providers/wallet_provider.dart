@@ -12,6 +12,10 @@ abstract class WalletProvider {
   /// Refresh wallet data (balances, etc.)
   Future<void> refresh();
 
+  /// Refresh a specific wallet's data (balance, transactions)
+  /// Returns the updated wallet
+  Future<WalletBase?> refreshWallet(String walletId);
+
   /// Add a new wallet connection
   /// Returns true if successful, throws on error
   Future<bool> addWallet(String connectionString);

@@ -4,11 +4,9 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class RustAPI {
-  static Future<CashuInfoModel> receiveToken({
-    required String encodedToken,
+  static Future<CashuInfoModel> converTransactionToCIM({
+    required Transaction ct,
   }) async {
-    final ct = await rust_cashu.receiveToken(encodedToken: encodedToken);
-
     return CashuInfoModel()
       ..id = ct.id
       ..status = TransactionStatus.success

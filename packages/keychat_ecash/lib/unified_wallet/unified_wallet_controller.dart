@@ -121,6 +121,34 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
+  /// Refresh only the currently selected wallet's balance and transactions
+  /// If [wallet] is provided, refresh that wallet instead of the selected one
+  Future<void> refreshSelectedWallet([WalletBase? wallet]) async {
+    final targetWallet = wallet ?? selectedWallet;
+    if (targetWallet == null) return;
+
+    final provider = _getProviderForProtocol(targetWallet.protocol);
+    if (provider == null) return;
+
+    try {
+      // Refresh the provider's data for this wallet and get updated wallet
+      final updatedWallet = await provider.refreshWallet(targetWallet.id);
+
+      // Update the wallet in the list if refresh was successful
+      if (updatedWallet != null) {
+        final index = wallets.indexWhere((w) => w.id == targetWallet.id);
+        if (index != -1) {
+          wallets[index] = updatedWallet;
+        }
+      }
+
+      // Reload transactions for the target wallet
+      await loadTransactionsForSelected(wallet: targetWallet);
+    } catch (e, s) {
+      logger.e('Failed to refresh selected wallet', error: e, stackTrace: s);
+    }
+  }
+
   /// Select a wallet by index
   void selectWallet(int index) {
     if (index < 0 || index >= wallets.length) return;
@@ -129,9 +157,13 @@ class UnifiedWalletController extends GetxController {
   }
 
   /// Load transactions for the currently selected wallet
-  Future<void> loadTransactionsForSelected({int limit = _pageSize}) async {
-    final wallet = selectedWallet;
-    if (wallet == null) {
+  /// If [wallet] is provided, load transactions for that wallet instead
+  Future<void> loadTransactionsForSelected({
+    int limit = _pageSize,
+    WalletBase? wallet,
+  }) async {
+    final targetWallet = wallet ?? selectedWallet;
+    if (targetWallet == null) {
       transactions.clear();
       hasMoreTransactions.value = false;
       return;
@@ -140,7 +172,7 @@ class UnifiedWalletController extends GetxController {
     isTransactionsLoading.value = true;
     hasMoreTransactions.value = true;
     try {
-      final provider = _getProviderForProtocol(wallet.protocol);
+      final provider = _getProviderForProtocol(targetWallet.protocol);
       if (provider == null) {
         transactions.clear();
         hasMoreTransactions.value = false;
@@ -148,7 +180,7 @@ class UnifiedWalletController extends GetxController {
       }
 
       final txList = await provider.getTransactions(
-        wallet.id,
+        targetWallet.id,
         limit: limit,
       );
       transactions.value = txList;

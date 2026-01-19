@@ -464,7 +464,7 @@ class CashuPage extends GetView<EcashController> {
                 title: const Text('Receive from Lightning Wallet'),
                 onPressed: (context) async {
                   Get.back<void>();
-                  EcashUtils.proccessMakeLnInvoice();
+                  Get.find<EcashController>().proccessMakeLnInvoice();
                 },
               ),
               SettingsTile.navigation(
@@ -507,9 +507,7 @@ class CashuPage extends GetView<EcashController> {
                 title: const Text('Send to Lightning Wallet'),
                 onPressed: (context) async {
                   Get.back<void>();
-                  await Get.find<EcashController>().payToLightning(
-                    null,
-                  );
+                  await Get.find<EcashController>().payToLightning();
                   unawaited(
                     controller.getRecentTransactions(),
                   );
@@ -525,7 +523,7 @@ class CashuPage extends GetView<EcashController> {
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(4)),
                     ),
-                    const CashuSendPage(isRoom: false),
+                    const CashuSendPage(),
                   );
                   await Get.find<EcashController>().getRecentTransactions();
                 },

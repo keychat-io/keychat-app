@@ -1,15 +1,12 @@
-import 'package:keychat/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 
 class CashuSendPage extends StatefulWidget {
-  const CashuSendPage({required this.isRoom, super.key});
-  final bool isRoom;
+  const CashuSendPage({super.key});
 
   @override
   _CashuSendPageState createState() => _CashuSendPageState();
@@ -113,8 +110,8 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 EasyLoading.showToast('Insufficient balance');
                                 return;
                               }
-                              EasyLoading.show(status: 'Generating...');
-                              final cashuInfoModel = await EcashUtils.getCashuA(
+                              await EasyLoading.show(status: 'Generating...');
+                              final tx = await EcashUtils.getCashuToken(
                                 amount: amount,
                                 mints: [selectedMint],
                               );
@@ -122,25 +119,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                               await EasyLoading.showToast(
                                 'Success',
                               );
-                              await ecashController.getBalance();
-                              await ecashController.getRecentTransactions();
-
-                              if (widget.isRoom) {
-                                Get.back(result: cashuInfoModel);
-                                return;
-                              }
-                              if (Get.isBottomSheetOpen ?? false) {
-                                Get.back<void>();
-                              }
-                              Get.to(
-                                () => CashuTransactionPage(
-                                  transaction:
-                                      cashuInfoModel.toCashuTransaction(),
-                                ),
-                                id: GetPlatform.isDesktop
-                                    ? GetXNestKey.ecash
-                                    : null,
-                              );
+                              Get.back(result: tx);
                             } catch (e, s) {
                               await EcashUtils.ecashErrorHandle(e, s);
                             } finally {

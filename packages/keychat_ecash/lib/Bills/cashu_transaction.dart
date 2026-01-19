@@ -188,35 +188,18 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                               const Duration(milliseconds: 2000), () async {
                             try {
                               EasyLoading.show(status: 'Receiving...');
-                              final cm = await RustAPI.receiveToken(
+                              final tx1 = await rust_cashu.receiveToken(
                                 encodedToken: tx.token,
                               );
-                              if (cm.status == TransactionStatus.success) {
-                                EasyLoading.showSuccess('Success');
-                                final tx1 = Transaction(
-                                  id: tx.id,
-                                  status: cm.status,
-                                  io: tx.io,
-                                  timestamp: tx.timestamp,
-                                  amount: tx.amount,
-                                  mintUrl: tx.mintUrl,
-                                  token: tx.token,
-                                  kind: TransactionKind.cashu,
-                                  fee: tx.fee,
-                                  metadata: {},
-                                );
-                                Get.find<EcashController>()
-                                  ..getBalance()
-                                  ..getRecentTransactions();
-                                setState(() {
-                                  tx = tx1;
-                                });
-                              }
+                              EasyLoading.showSuccess('Received');
+                              setState(() {
+                                tx = tx1;
+                              });
                             } catch (e) {
-                              EasyLoading.dismiss();
+                              await EasyLoading.dismiss();
                               final msg = Utils.getErrorMessage(e);
-
-                              EasyLoading.showToast(msg);
+                              await EasyLoading.showToast(msg);
+                              logger.e('Error receiving ecash: $msg', error: e);
                             }
                           });
                         },

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' show Transaction;
+import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
 
 /// Enum representing different wallet protocols/types
 enum WalletProtocol {
@@ -55,6 +57,8 @@ abstract class WalletTransactionBase {
   /// Unique transaction ID
   String get id;
 
+  String? get walletId;
+
   /// Amount in satoshis (positive for incoming, negative for outgoing)
   int get amountSats;
 
@@ -75,6 +79,16 @@ abstract class WalletTransactionBase {
 
   /// Raw underlying transaction data
   dynamic get rawData;
+
+  String? get invoice {
+    if (rawData is Transaction) {
+      return (rawData as Transaction).token;
+    } else if (rawData is TransactionResult) {
+      return (rawData as TransactionResult).invoice;
+    }
+
+    return null;
+  }
 }
 
 /// Unified transaction status

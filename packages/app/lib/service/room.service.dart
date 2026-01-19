@@ -603,6 +603,10 @@ class RoomService extends BaseChatService {
     if (realMessage == null && reply != null) {
       realMessageContent = content;
     }
+    if (content.isEmpty &&
+        (realMessageContent == null || realMessageContent.isEmpty)) {
+      throw Exception('message content is empty');
+    }
     await checkWebsocketConnect();
 
     if (room.type == RoomType.group) {

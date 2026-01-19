@@ -32,10 +32,10 @@ class NwcWallet extends WalletBase {
   bool get isBalanceLoading => connection.balance == null;
 
   @override
-  IconData get icon => CupertinoIcons.bolt;
+  IconData get icon => CupertinoIcons.bitcoin_circle;
 
   @override
-  Color get primaryColor => const Color(0xFF9945FF); // Purple for NWC
+  Color get primaryColor => KeychatGlobal.bitcoinColor;
 
   @override
   String get subtitle => _extractWalletName(connection.info.uri);
@@ -72,9 +72,12 @@ class NwcWallet extends WalletBase {
 
 /// NWC transaction wrapper
 class NwcWalletTransaction extends WalletTransactionBase {
-  NwcWalletTransaction({required this.transaction});
+  NwcWalletTransaction({required this.transaction, this.walletId});
 
   final TransactionResult transaction;
+
+  @override
+  final String? walletId;
 
   @override
   String get id => transaction.paymentHash;

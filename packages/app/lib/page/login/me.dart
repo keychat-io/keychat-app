@@ -14,9 +14,8 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/page/setting/app_general_setting.dart';
 import 'package:keychat/page/setting/more_chat_setting.dart';
 import 'package:keychat/utils.dart';
+import 'package:keychat_ecash/bitcoin_wallet_main.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
-import 'package:keychat_nwc/nwc/nwc_page.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,24 +104,11 @@ class _MinePageState extends State<MinePage> {
                       CupertinoIcons.bitcoin,
                       color: Color(0xfff2a900),
                     ),
-                    value: Text(
-                      '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}',
-                    ),
+
                     onPressed: (context) async {
-                      Get.toNamed(Routes.ecash);
+                      await Get.to(BitcoinWalletMain.new);
                     },
-                    title: const Text('Cashu Wallet'),
-                  ),
-                  SettingsTile.navigation(
-                    leading: SvgPicture.asset(
-                      'assets/images/logo/nwc.svg',
-                      width: 24,
-                      height: 24,
-                    ),
-                    onPressed: (context) async {
-                      Get.to(() => const NwcPage());
-                    },
-                    title: const Text('Nostr Wallet Connect'),
+                    title: const Text('Bitcoin Wallets'),
                   ),
                 ],
               ),

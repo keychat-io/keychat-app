@@ -88,13 +88,6 @@ class SelectMint extends StatelessWidget {
                   return Obx(() {
                     final sections = <SettingsSection>[
                       SettingsSection(
-                        title: const Text(
-                          'Ecash Mints',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                         tiles: ecashController.mintBalances
                             .map(
                               (e) => SettingsTile(

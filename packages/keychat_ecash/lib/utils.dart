@@ -172,6 +172,17 @@ class EcashUtils {
       if (messageId != null) {
         await MessageService.instance.updateMessageCashuStatus(messageId);
       }
+
+      // Refresh balance and transactions after receiving
+      try {
+        final unifiedController = Utils.getOrPutGetxController(
+          create: UnifiedWalletController.new,
+        );
+        await unifiedController.refreshSelectedWallet();
+      } catch (e) {
+        logger.e('Failed to refresh after receiving', error: e);
+      }
+
       await EasyLoading.showToast(
         'Received ${model.amount} ${EcashTokenSymbol.sat.name}',
       );

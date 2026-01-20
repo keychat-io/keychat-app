@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 
 class CashuSendPage extends StatefulWidget {
   const CashuSendPage({super.key});
@@ -34,7 +37,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
         decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: Column(
           children: [
-            AppBar(title: const Text('Send Sat(Cashu)')),
+            AppBar(title: const Text('Pay Ecash(Cashu)')),
             Obx(
               () => SelectMint(ecashController.latestMintUrl.value,
                   (String mint) {
@@ -115,6 +118,18 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 amount: amount,
                                 mints: [selectedMint],
                               );
+
+                              // Refresh balance and transactions
+                              try {
+                                final unifiedController =
+                                    Utils.getOrPutGetxController(
+                                  create: UnifiedWalletController.new,
+                                );
+                                await unifiedController.refreshSelectedWallet();
+                              } catch (e) {
+                                logger.e('Failed to refresh after sending',
+                                    error: e);
+                              }
 
                               await EasyLoading.showToast(
                                 'Success',

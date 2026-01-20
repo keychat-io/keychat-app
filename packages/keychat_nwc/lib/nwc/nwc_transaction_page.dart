@@ -44,9 +44,9 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
   void initState() {
     super.initState();
     _isPaid = _status == TransactionStatus.success;
-    if (_status == TransactionStatus.pending) {
-      _startPolling();
-    }
+    // if (_status == TransactionStatus.pending) {
+    //   _startPolling();
+    // }
   }
 
   void _startPolling() {
@@ -80,10 +80,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
           if (!silent) EasyLoading.showSuccess('Payment Received!');
 
           // Refresh controller
-          try {
-            controller.refreshBalances();
-            controller.fetchTransactionsForCurrent();
-          } catch (_) {}
+          controller.fetchTransactionsForCurrent();
         }
       } else {
         if (!silent) EasyLoading.showToast('Not paid yet');
@@ -192,13 +189,10 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
             if (widget.transaction.description != null &&
                 widget.transaction.description!.isNotEmpty)
               Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    widget.transaction.description!,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
+                child: Text(
+                  widget.transaction.description!,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
                 ),
               ),
             if (_status == TransactionStatus.pending &&

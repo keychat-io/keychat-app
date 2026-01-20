@@ -6,6 +6,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 
 class PayToLnurl extends StatefulWidget {
   const PayToLnurl(this.data, this.input, {super.key});
@@ -21,9 +22,14 @@ class _PayToLnurlState extends State<PayToLnurl> {
   late TextEditingController amountController;
   late Map<String, dynamic> data;
   late EcashController ecashController;
+  late UnifiedWalletController unifiedWalletController;
+
   @override
   void initState() {
     ecashController = Get.find<EcashController>();
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
     data = widget.data;
     amountController = TextEditingController();
     super.initState();
@@ -142,9 +148,15 @@ class _PayToLnurlState extends State<PayToLnurl> {
                     final pic = Utils.getOrPutGetxController(
                       create: PayInvoiceController.new,
                     );
+                    final selectedWallet =
+                        unifiedWalletController.selectedWallet;
+                    if (selectedWallet == null) {
+                      EasyLoading.showError('No wallet selected');
+                      return;
+                    }
                     final tx = await pic.confirmToPayInvoice(
                       invoice: pr,
-                      walletSelection: ecashController.selectedWallet.value,
+                      walletSelection: selectedWallet,
                       isPay: true,
                     );
                     Get.back(result: tx);

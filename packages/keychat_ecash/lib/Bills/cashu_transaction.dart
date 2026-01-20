@@ -126,7 +126,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                   direction: Axis.vertical,
                   spacing: 16,
                   children: [
-                    OutlinedButton.icon(
+                    FilledButton.icon(
                       icon: const Icon(CupertinoIcons.doc_on_doc),
                       style: ButtonStyle(
                         minimumSize: WidgetStateProperty.all(

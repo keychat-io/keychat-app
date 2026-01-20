@@ -34,14 +34,10 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
       elevation: 0.2,
       child: ListTile(
         title: Obx(() {
-          final selectedWallet = ecashController.selectedWallet.value;
+          final selectedWallet = unifiedWalletController.selectedWallet;
 
-          // Find the wallet from unifiedWalletController
-          final wallet = unifiedWalletController.wallets.firstWhereOrNull(
-            (w) => w.id == selectedWallet.id,
-          );
-
-          if (wallet == null || unifiedWalletController.isLoading.value) {
+          if (selectedWallet == null ||
+              unifiedWalletController.isLoading.value) {
             return const Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
@@ -52,14 +48,16 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
             );
           }
 
-          if (wallet.isBalanceLoading) {
+          if (selectedWallet.isBalanceLoading) {
             return const Text('Loading...');
           }
 
-          return Text('${wallet.balanceSats} ${EcashTokenSymbol.sat.name}');
+          return Text(
+              '${selectedWallet.balanceSats} ${EcashTokenSymbol.sat.name}');
         }),
         subtitle: Obx(() {
-          final selectedWallet = ecashController.selectedWallet.value;
+          final selectedWallet = unifiedWalletController.selectedWallet;
+          if (selectedWallet == null) return const Text('');
           return Text(
             selectedWallet.displayName,
             overflow: TextOverflow.ellipsis,
@@ -144,14 +142,14 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                 }
 
                 final currentSelectedWallet =
-                    ecashController.selectedWallet.value;
+                    unifiedWalletController.selectedWallet;
 
                 return ListView.builder(
                   shrinkWrap: true,
                   itemCount: wallets.length,
                   itemBuilder: (context, index) {
                     final wallet = wallets[index];
-                    final isSelected = wallet.id == currentSelectedWallet.id;
+                    final isSelected = currentSelectedWallet?.id == wallet.id;
 
                     return ListTile(
                       leading: Icon(
@@ -190,16 +188,8 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                         ],
                       ),
                       onTap: () async {
-                        // Update ecashController which is the source of truth
-                        await ecashController.updateSelectedWallet(wallet);
-
-                        // Also update unifiedWalletController to keep it in sync
-                        final walletIndex = unifiedWalletController.wallets
-                            .indexWhere((w) => w.id == wallet.id);
-                        if (walletIndex != -1) {
-                          unifiedWalletController.selectWallet(walletIndex);
-                        }
-
+                        // Update unified wallet controller (single source of truth)
+                        await unifiedWalletController.selectWallet(index);
                         Get.back<void>();
                       },
                     );

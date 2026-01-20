@@ -56,62 +56,64 @@ class CreateInvoicePage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Obx(
-          () => (ecashController.selectedWallet.value.protocol ==
-                          WalletProtocol.cashu &&
-                      ecashController.supportMint(
-                        ecashController.selectedWallet.value.id,
-                      )) ||
-                  ecashController.selectedWallet.value.protocol ==
-                      WalletProtocol.nwc
-              ? SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: Obx(
-                    () => FilledButton(
-                      onPressed: isLoading.value
-                          ? null
-                          : () async {
-                              if (isLoading.value) return;
-                              try {
-                                isLoading.value = true;
-                                await controller.handleCreateInvoice();
-                              } finally {
-                                isLoading.value = false;
-                              }
-                            },
-                      child: isLoading.value
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+          () {
+            final selectedWallet =
+                controller.unifiedWalletController.selectedWallet;
+            if (selectedWallet == null) return const SizedBox.shrink();
+
+            return (selectedWallet.protocol == WalletProtocol.cashu &&
+                        ecashController.supportMint(selectedWallet.id)) ||
+                    selectedWallet.protocol == WalletProtocol.nwc
+                ? SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: Obx(
+                      () => FilledButton(
+                        onPressed: isLoading.value
+                            ? null
+                            : () async {
+                                if (isLoading.value) return;
+                                try {
+                                  isLoading.value = true;
+                                  await controller.handleCreateInvoice();
+                                } finally {
+                                  isLoading.value = false;
+                                }
+                              },
+                        child: isLoading.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : const Text('Make Invoice'),
-                    ),
-                  ),
-                )
-              : SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: FilledButton(
-                    onPressed: null,
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                        (Set<WidgetState> states) {
-                          if (states.contains(WidgetState.disabled)) {
-                            return Colors.grey;
-                          }
-                          return MaterialTheme.lightScheme().primary;
-                        },
+                              )
+                            : const Text('Make Invoice'),
                       ),
                     ),
-                    child: const Text('Disable By Mint Server'),
-                  ),
-                ),
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: FilledButton(
+                      onPressed: null,
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.disabled)) {
+                              return Colors.grey;
+                            }
+                            return MaterialTheme.lightScheme().primary;
+                          },
+                        ),
+                      ),
+                      child: const Text('Disable By Mint Server'),
+                    ),
+                  );
+          },
         ),
       ],
     );

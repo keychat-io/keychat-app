@@ -3,7 +3,6 @@ import 'dart:convert' show jsonEncode;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
@@ -11,8 +10,6 @@ import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat_nwc/active_nwc_connection.dart';
 import 'package:keychat_nwc/nwc_connection_info.dart';
 import 'package:keychat_nwc/nwc_connection_storage.dart';
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
 import 'package:ndk/ndk.dart';

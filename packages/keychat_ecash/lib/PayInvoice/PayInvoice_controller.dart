@@ -10,14 +10,11 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
-import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
-import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
-import 'package:keychat_nwc/nwc/NWC_controller.dart';
+import 'package:keychat_ecash/unified_wallet/index.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:ndk/ndk.dart' show TransactionResult;
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
 
 class PayInvoiceController extends GetxController {
   PayInvoiceController({this.invoice, this.invoiceInfo});
@@ -95,19 +92,18 @@ class PayInvoiceController extends GetxController {
     rust_cashu.InvoiceInfo ii,
     bool isPay,
   ) async {
-    final nwcController =
-        Utils.getOrPutGetxController(create: NwcController.new);
-
     try {
+      final nwcController =
+          Utils.getOrPutGetxController(create: NwcController.new);
+      await nwcController.waitForLoading();
       EasyLoading.show(status: 'Processing...');
 
       // Use NWC to pay invoice
       final active = nwcController.activeConnections.firstWhereOrNull(
         (c) => c.info.uri == nwcUri,
       );
-
       if (active == null) {
-        EasyLoading.showError('NWC connection not found');
+        await EasyLoading.showError('NWC connection not found');
         return null;
       }
 
@@ -115,18 +111,16 @@ class PayInvoiceController extends GetxController {
       if (active.balance != null) {
         final balanceSat = (active.balance!.balanceMsats / 1000).floor();
         if (balanceSat < ii.amount.toInt()) {
-          EasyLoading.showError('Not Enough Funds');
+          await EasyLoading.showError('Not Enough Funds');
           return null;
         }
       }
 
-      // Pay invoice through NWC
       final ndk = nwcController.ndk;
       final result =
           await ndk.nwc.payInvoice(active.connection, invoice: invoice);
 
-      logger.i('PayInvoiceController: NWC payment successful');
-      EasyLoading.showSuccess('Success');
+      await EasyLoading.showSuccess('Success');
 
       textController.clear();
 
@@ -144,16 +138,12 @@ class PayInvoiceController extends GetxController {
           preimage: result.preimage,
           paymentHash: 'none',
         ),
-        walletId: nwcUri,
+        walletId: active.info.uri,
       );
       return tx;
     } catch (e, s) {
       logger.e('NWC payment error', error: e, stackTrace: s);
       await EasyLoading.showError('Payment Failed: $e');
-    } finally {
-      Future<void>.delayed(const Duration(seconds: 2)).then((value) async {
-        await EasyLoading.dismiss();
-      });
     }
     return null;
   }
@@ -201,23 +191,13 @@ class PayInvoiceController extends GetxController {
               CupertinoDialogAction(
                 isDefaultAction: true,
                 onPressed: () async {
-                  Get.back<void>(); // close dialog
-                  final res = await _payWithNwc(
-                    walletSelection.id,
-                    invoice,
-                    ii,
-                    isPay,
-                  );
-                  if (res == null) return;
-                  if (Get.isBottomSheetOpen ?? false) {
-                    Get.back<void>(); // close bottom sheet
-                  }
-                  await Get.to<void>(
-                    () => NwcTransactionPage(
-                      transaction: res.rawData,
-                      nwcUri: walletSelection.id,
+                  Get.back(
+                    result: await _payWithNwc(
+                      walletSelection.id,
+                      invoice,
+                      ii,
+                      isPay,
                     ),
-                    id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
                   );
                 },
                 child: const Text('Confirm'),

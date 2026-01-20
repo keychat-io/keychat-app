@@ -64,7 +64,6 @@ class CashuWallet extends WalletBase {
   }
 }
 
-/// Cashu transaction wrapper
 class CashuWalletTransaction extends WalletTransactionBase {
   CashuWalletTransaction({required this.transaction, this.walletId});
 

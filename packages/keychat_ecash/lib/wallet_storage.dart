@@ -4,7 +4,7 @@ import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_nwc/nwc/NWC_controller.dart';
+import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_nwc/utils.dart';
 import 'package:keychat/utils.dart' show Utils;
 import 'package:get/get.dart';

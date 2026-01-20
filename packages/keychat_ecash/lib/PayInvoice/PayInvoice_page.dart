@@ -10,6 +10,7 @@ import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
 import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class PayInvoicePage extends StatefulWidget {
@@ -29,11 +30,16 @@ class PayInvoicePage extends StatefulWidget {
 
 class _PayInvoicePageState extends State<PayInvoicePage> {
   late EcashController ecashController;
+  late UnifiedWalletController unifiedWalletController;
   late PayInvoiceController controller;
+
   @override
   void initState() {
     controller = Get.put(PayInvoiceController(invoice: widget.invoce));
     ecashController = Get.find<EcashController>();
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
     ecashController.getBalance();
     super.initState();
   }
@@ -177,102 +183,121 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                 ),
               ),
               Obx(
-                () => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: (ecashController.selectedWallet.value.protocol ==
-                                  WalletProtocol.cashu &&
-                              ecashController.supportMint(
-                                ecashController.selectedWallet.value.id,
-                              )) ||
-                          ecashController.selectedWallet.value.protocol ==
-                              WalletProtocol.nwc
-                      ? SizedBox(
-                          width: GetPlatform.isDesktop ? 200 : double.infinity,
-                          height: 44,
-                          child: FilledButton(
-                            onPressed: controller.isLoading.value
-                                ? null
-                                : () async {
-                                    if (GetPlatform.isMobile) {
-                                      await HapticFeedback.lightImpact();
-                                    }
-                                    try {
-                                      final input =
-                                          controller.textController.text.trim();
-                                      controller.isLoading.value = true;
-                                      // lnurl
-                                      if (isEmail(
-                                            input,
-                                          ) ||
-                                          input
-                                              .toUpperCase()
-                                              .startsWith('LNURL')) {
-                                        try {
-                                          final tx =
-                                              await controller.lnurlPayFirst(
-                                            input,
-                                          );
-                                          if (tx != null) {
-                                            Get.back(result: tx);
+                () {
+                  final selectedWallet = unifiedWalletController.selectedWallet;
+                  if (selectedWallet == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: (selectedWallet.protocol == WalletProtocol.cashu &&
+                                ecashController
+                                    .supportMint(selectedWallet.id)) ||
+                            selectedWallet.protocol == WalletProtocol.nwc
+                        ? SizedBox(
+                            width:
+                                GetPlatform.isDesktop ? 200 : double.infinity,
+                            height: 44,
+                            child: FilledButton(
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : () async {
+                                      if (GetPlatform.isMobile) {
+                                        await HapticFeedback.lightImpact();
+                                      }
+                                      try {
+                                        final input = controller
+                                            .textController.text
+                                            .trim();
+                                        controller.isLoading.value = true;
+                                        // lnurl
+                                        if (isEmail(
+                                              input,
+                                            ) ||
+                                            input
+                                                .toUpperCase()
+                                                .startsWith('LNURL')) {
+                                          try {
+                                            final tx =
+                                                await controller.lnurlPayFirst(
+                                              input,
+                                            );
+                                            if (tx != null) {
+                                              Get.back(result: tx);
+                                            }
+                                          } catch (e, s) {
+                                            await EasyLoading.showError(
+                                              e.toString(),
+                                            );
+                                            logger.e(e.toString(),
+                                                stackTrace: s);
                                           }
-                                        } catch (e, s) {
-                                          await EasyLoading.showError(
-                                            e.toString(),
-                                          );
-                                          logger.e(e.toString(), stackTrace: s);
+                                          return;
                                         }
-                                        return;
+                                        // invoice
+                                        final selectedWallet =
+                                            unifiedWalletController
+                                                .selectedWallet;
+                                        if (selectedWallet == null) {
+                                          await EasyLoading.showError(
+                                              'No wallet selected');
+                                          return;
+                                        }
+
+                                        final tx = await controller
+                                            .confirmToPayInvoice(
+                                          invoice: controller
+                                              .textController.text
+                                              .trim(),
+                                          walletSelection: selectedWallet,
+                                          isPay: widget.isPay,
+                                        );
+
+                                        if (tx != null) {
+                                          Get.back(result: tx);
+                                        }
+                                      } finally {
+                                        controller.isLoading.value = false;
                                       }
-                                      // invoice
-                                      final tx =
-                                          await controller.confirmToPayInvoice(
-                                        invoice: controller.textController.text
-                                            .trim(),
-                                        walletSelection: ecashController
-                                            .selectedWallet.value,
-                                        isPay: widget.isPay,
-                                      );
-                                      if (tx != null) {
-                                        Get.back(result: tx);
-                                      }
-                                    } finally {
-                                      controller.isLoading.value = false;
-                                    }
-                                  },
-                            child: controller.isLoading.value
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                    },
+                              child: controller.isLoading.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                : const Text('Pay Invoice'),
-                          ),
-                        )
-                      : SizedBox(
-                          width: GetPlatform.isDesktop ? 200 : double.infinity,
-                          height: 44,
-                          child: FilledButton(
-                            onPressed: null,
-                            style: ButtonStyle(
-                              backgroundColor:
-                                  WidgetStateProperty.resolveWith<Color>(
-                                (Set<WidgetState> states) {
-                                  if (states.contains(WidgetState.disabled)) {
-                                    return Colors.grey;
-                                  }
-                                  return MaterialTheme.lightScheme().primary;
-                                },
-                              ),
+                                    )
+                                  : const Text('Pay Invoice'),
                             ),
-                            child: const Text('Disable By Mint Server'),
+                          )
+                        : SizedBox(
+                            width:
+                                GetPlatform.isDesktop ? 200 : double.infinity,
+                            height: 44,
+                            child: FilledButton(
+                              onPressed: null,
+                              style: ButtonStyle(
+                                backgroundColor:
+                                    WidgetStateProperty.resolveWith<Color>(
+                                  (Set<WidgetState> states) {
+                                    if (states.contains(WidgetState.disabled)) {
+                                      return Colors.grey;
+                                    }
+                                    return MaterialTheme.lightScheme().primary;
+                                  },
+                                ),
+                              ),
+                              child: const Text('Disable By Mint Server'),
+                            ),
                           ),
-                        ),
-                ),
+                  );
+                },
               ),
             ],
           ),

@@ -3,10 +3,7 @@ import 'package:keychat/global.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat/desktop/wallet_main_desktop.dart';
 import 'package:keychat_ecash/bitcoin_wallet_main.dart';
-import 'package:keychat_ecash/cashu_page.dart';
-import 'package:keychat_nwc/nwc/nwc_page.dart';
 
 class DeskEcash extends GetView<DesktopController> {
   const DeskEcash({super.key});
@@ -20,16 +17,7 @@ class DeskEcash extends GetView<DesktopController> {
         if (settings.name == '/bitcoin_wallets') {
           return GetPageRoute(page: BitcoinWalletMain.new);
         }
-        if (settings.name == '/ecash') {
-          return GetPageRoute(page: WalletMainDesktop.new);
-        }
-        // Standalone routes for individual pages
-        if (settings.name == '/cashu') {
-          return GetPageRoute(page: CashuPage.new);
-        }
-        if (settings.name == '/nwc') {
-          return GetPageRoute(page: NwcPage.new);
-        }
+
         return null;
       },
     );

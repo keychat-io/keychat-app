@@ -5,6 +5,7 @@ import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/providers/cashu_wallet_provider.dart';
 import 'package:keychat_ecash/unified_wallet/providers/nwc_wallet_provider.dart';
 import 'package:keychat_ecash/unified_wallet/providers/wallet_provider.dart';
+import 'package:keychat_ecash/wallet_storage.dart';
 
 /// Unified controller for managing multiple wallet types
 class UnifiedWalletController extends GetxController {
@@ -38,8 +39,11 @@ class UnifiedWalletController extends GetxController {
 
   /// Get the currently selected wallet (null if none)
   WalletBase? get selectedWallet {
-    if (selectedIndex.value < 0 || selectedIndex.value >= wallets.length) {
+    if (wallets.isEmpty) {
       return null;
+    }
+    if (selectedIndex.value < 0 || selectedIndex.value >= wallets.length) {
+      return wallets[0];
     }
     return wallets[selectedIndex.value];
   }
@@ -61,8 +65,28 @@ class UnifiedWalletController extends GetxController {
     _providers.add(CashuWalletProvider());
     _providers.add(NwcWalletProvider());
 
-    // Initial load
-    loadAllWallets();
+    // Initial load and restore saved wallet selection
+    _initializeWallets();
+  }
+
+  /// Initialize wallets and restore saved selection
+  Future<void> _initializeWallets() async {
+    await loadAllWallets();
+    await _restoreSavedWalletSelection();
+  }
+
+  /// Restore the previously saved wallet selection
+  Future<void> _restoreSavedWalletSelection() async {
+    try {
+      final savedWallet = await WalletStorage.loadWallet();
+      final index = wallets.indexWhere((w) => w.id == savedWallet.id);
+      if (index != -1) {
+        selectedIndex.value = index;
+        await loadTransactionsForSelected();
+      }
+    } catch (e, s) {
+      logger.e('Failed to restore saved wallet', error: e, stackTrace: s);
+    }
   }
 
   /// Register a new wallet provider (for future extensibility)
@@ -93,11 +117,23 @@ class UnifiedWalletController extends GetxController {
           );
         }
       }
+      // Store the currently selected wallet ID before updating
+      final currentWalletId = selectedWallet?.id;
+
       wallets.value = allWallets;
 
-      // Ensure selected index is valid
-      if (selectedIndex.value >= wallets.length) {
-        selectedIndex.value = wallets.isEmpty ? 0 : wallets.length - 1;
+      // Try to restore the previously selected wallet
+      if (currentWalletId != null) {
+        final newIndex = wallets.indexWhere((w) => w.id == currentWalletId);
+        if (newIndex != -1) {
+          selectedIndex.value = newIndex;
+        } else {
+          // Previously selected wallet no longer exists, select first available
+          _ensureValidSelectedIndex();
+        }
+      } else {
+        // No previous selection, ensure valid index
+        _ensureValidSelectedIndex();
       }
 
       // Load transactions for selected wallet
@@ -149,11 +185,21 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
-  /// Select a wallet by index
-  void selectWallet(int index) {
-    if (index < 0 || index >= wallets.length) return;
-    selectedIndex.value = index;
-    loadTransactionsForSelected();
+  /// Select a wallet by index and save the selection
+  Future<void> selectWallet(int index) async {
+    if (wallets.isEmpty) return;
+
+    // Clamp index to valid range
+    final validIndex = index.clamp(0, wallets.length - 1);
+    selectedIndex.value = validIndex;
+
+    // Save the selection to storage
+    final wallet = selectedWallet;
+    if (wallet != null) {
+      await WalletStorage.saveWallet(wallet);
+    }
+
+    await loadTransactionsForSelected();
   }
 
   /// Load transactions for the currently selected wallet
@@ -261,12 +307,40 @@ class UnifiedWalletController extends GetxController {
 
     try {
       EasyLoading.show(status: 'Removing wallet...');
+
+      // Find the index of the wallet being removed
+      final removingIndex = wallets.indexWhere((w) => w.id == wallet.id);
+
+      // If we're removing the currently selected wallet, adjust selection
+      if (removingIndex != -1 && removingIndex == selectedIndex.value) {
+        if (wallets.length > 1) {
+          // Select the next wallet, or previous if this is the last one
+          selectedIndex.value = removingIndex < wallets.length - 1
+              ? removingIndex
+              : removingIndex - 1;
+        } else {
+          // This is the only wallet, will be 0 after removal
+          selectedIndex.value = 0;
+        }
+      }
+
       await provider.removeWallet(wallet.id);
       await loadAllWallets();
       EasyLoading.showSuccess('Wallet removed');
     } catch (e, s) {
       logger.e('Failed to remove wallet', error: e, stackTrace: s);
       EasyLoading.showError('Failed to remove wallet: $e');
+    }
+  }
+
+  /// Ensure selected index is within valid range
+  void _ensureValidSelectedIndex() {
+    if (wallets.isEmpty) {
+      selectedIndex.value = 0;
+    } else if (selectedIndex.value < 0) {
+      selectedIndex.value = 0;
+    } else if (selectedIndex.value >= wallets.length) {
+      selectedIndex.value = wallets.length - 1;
     }
   }
 

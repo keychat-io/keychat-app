@@ -56,7 +56,6 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late IndicatorController indicatorController;
-  late final Rx<WalletBase> selectedWallet;
 
   @override
   Future<void> onInit() async {
@@ -64,26 +63,8 @@ class EcashController extends GetxController {
     nameController = TextEditingController();
     indicatorController = IndicatorController();
 
-    // Initialize selectedWallet with default Cashu wallet
-    selectedWallet = Rx(
-      CashuWallet(
-        mintBalance: MintBalanceClass(
-          KeychatGlobal.defaultCashuMintURL,
-          EcashTokenSymbol.sat.name,
-          0,
-        ),
-      ),
-    );
-
     super.onInit();
-    initSelectedWallet();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
-  }
-
-  Future<WalletBase> initSelectedWallet() async {
-    final wallet = await WalletStorage.loadWallet();
-    selectedWallet.value = wallet;
-    return wallet;
   }
 
   /// Wait for initialization to complete, with a maximum timeout of 10 seconds
@@ -113,14 +94,6 @@ class EcashController extends GetxController {
     });
 
     return completer.future;
-  }
-
-  Future<void> updateSelectedWallet(WalletBase wallet) async {
-    if (wallet.protocol == WalletProtocol.cashu) {
-      latestMintUrl.value = wallet.id;
-    }
-    selectedWallet.value = wallet;
-    await WalletStorage.saveWallet(wallet);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -541,15 +514,22 @@ class EcashController extends GetxController {
     String? input,
     bool isPay = false,
   }) async {
+    WalletTransactionBase? result;
     if (input != null) {
       if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-        return await Get.bottomSheet<WalletTransactionBase?>(
+        result = await Get.bottomSheet<WalletTransactionBase?>(
+          ignoreSafeArea: false,
+          isScrollControlled: true,
           clipBehavior: Clip.antiAlias,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
           ),
           PayInvoicePage(invoce: input, isPay: isPay, showScanButton: false),
         );
+        if (result != null) {
+          await _refreshAfterTransaction();
+        }
+        return result;
       }
       try {
         await rust_cashu.decodeInvoice(encodedInvoice: input);
@@ -558,8 +538,10 @@ class EcashController extends GetxController {
         return null;
       }
     }
-    return await Get.bottomSheet<WalletTransactionBase?>(
+    result = await Get.bottomSheet<WalletTransactionBase?>(
       clipBehavior: Clip.antiAlias,
+      ignoreSafeArea: false,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
@@ -569,6 +551,22 @@ class EcashController extends GetxController {
         showScanButton: !isPay,
       ),
     );
+    if (result != null) {
+      await _refreshAfterTransaction();
+    }
+    return result;
+  }
+
+  /// Refresh balance and transactions after a transaction
+  Future<void> _refreshAfterTransaction() async {
+    try {
+      final unifiedController = Utils.getOrPutGetxController(
+        create: UnifiedWalletController.new,
+      );
+      await unifiedController.refreshSelectedWallet();
+    } catch (e) {
+      logger.e('Failed to refresh after transaction', error: e);
+    }
   }
 
   /// Get the preimage from a payment result.
@@ -598,7 +596,7 @@ class EcashController extends GetxController {
   }) async {
     final tx = await Get.bottomSheet<WalletTransactionBase?>(
       ignoreSafeArea: false,
-      isScrollControlled: !GetPlatform.isDesktop,
+      isScrollControlled: true,
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -607,6 +605,10 @@ class EcashController extends GetxController {
     );
 
     if (tx == null) return null;
+
+    // Refresh after creating invoice
+    await _refreshAfterTransaction();
+
     if (getString) {
       return tx.invoice;
     }
@@ -622,6 +624,7 @@ class EcashController extends GetxController {
     // Handle NWC invoice result
     if (tx.rawData is TransactionResult) {
       final nwcUri = tx.walletId ?? (await WalletStorage.loadWallet()).id;
+
       await Get.to(
         () => NwcTransactionPage(
           transaction: tx.rawData as TransactionResult,
@@ -660,11 +663,11 @@ class EcashController extends GetxController {
         ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
           invoice.timestamp.toInt() * 1000,
         );
-    } else if (invoice is MakeInvoiceResponse) {
-      token = invoice.invoice;
+    } else if (invoice is TransactionResult) {
+      token = invoice.invoice ?? '';
       cim
         ..amount = invoice.amountSat
-        ..token = invoice.invoice
+        ..token = token
         ..mint = tx.walletId ?? ''
         ..hash = invoice.paymentHash
         ..status = TransactionStatus.pending;

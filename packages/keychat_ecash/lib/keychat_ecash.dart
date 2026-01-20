@@ -1,10 +1,7 @@
 export './EcashSetting/EcashSetting_page.dart';
-export './cashu_page.dart';
 export './cashu_receive.dart';
 export './cashu_send.dart';
-export './unified_wallet/models/wallet_base.dart';
-export './unified_wallet/models/cashu_wallet.dart';
-export './unified_wallet/models/nwc_wallet.dart';
+export './unified_wallet/index.dart';
 export './utils.dart';
 export 'ecash_controller.dart';
 export 'red_pocket_cashu.dart';

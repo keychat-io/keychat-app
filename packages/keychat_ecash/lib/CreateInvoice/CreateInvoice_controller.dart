@@ -16,11 +16,15 @@ class CreateInvoiceController extends GetxController {
   final String? defaultDescription;
 
   EcashController ecashController = Get.find<EcashController>();
+  late UnifiedWalletController unifiedWalletController;
   late TextEditingController textController;
   late TextEditingController descController;
 
   @override
   void onInit() {
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
     textController = TextEditingController();
     descController = TextEditingController();
     if (defaultAmount != null) {
@@ -86,13 +90,20 @@ If payment fails, please contact the mint server.''',
     try {
       EasyLoading.show(status: 'Generating...');
       final description = descController.text.trim();
+      final selectedWallet = unifiedWalletController.selectedWallet;
+
+      if (selectedWallet == null) {
+        EasyLoading.showError('No wallet selected');
+        return;
+      }
+
       // Handle NWC wallet
-      if (ecashController.selectedWallet.value.protocol == WalletProtocol.nwc) {
+      if (selectedWallet.protocol == WalletProtocol.nwc) {
         final nwcController = Utils.getOrPutGetxController(
           create: NwcController.new,
         );
         final active = nwcController.activeConnections.firstWhereOrNull(
-          (c) => c.info.uri == ecashController.selectedWallet.value.id,
+          (c) => c.info.uri == selectedWallet.id,
         );
 
         if (active == null) {
@@ -118,7 +129,7 @@ If payment fails, please contact the mint server.''',
         );
         final tx = NwcWalletTransaction(
           transaction: trr,
-          walletId: active.connection.uri.toUri(),
+          walletId: active.info.uri,
         );
         Get.back(
           result: tx,
@@ -129,13 +140,13 @@ If payment fails, please contact the mint server.''',
       // Handle Cashu mint: Transaction
       final tr = await rust_cashu.requestMint(
         amount: BigInt.from(amount),
-        activeMint: ecashController.selectedWallet.value.id,
+        activeMint: selectedWallet.id,
       );
       await EasyLoading.showToast('Create Successfully');
       textController.clear();
       final tx = CashuWalletTransaction(
         transaction: tr,
-        walletId: ecashController.selectedWallet.value.id,
+        walletId: selectedWallet.id,
       );
       Get.back(result: tx);
     } catch (e, s) {

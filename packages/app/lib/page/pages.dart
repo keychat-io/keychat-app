@@ -55,7 +55,6 @@ class Pages {
       name: Routes.roomSettingPayToRelay,
       page: () => const PayToRelayPage(),
     ),
-    GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashSetting, page: () => const EcashSettingPage()),
   ];
 }

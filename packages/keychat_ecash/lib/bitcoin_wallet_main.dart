@@ -171,164 +171,105 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     });
   }
 
-  /// Build Cashu wallet actions (4 buttons in 2 groups)
+  /// Build Cashu wallet actions (3 buttons: Pay Ecash, Receive Ecash, More)
   Widget _buildCashuActions(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 600;
-
     // Pay uses red/orange tones, Receive uses green tones
     const payColor = Colors.redAccent;
     const receiveColor = Colors.green;
 
-    if (isWideScreen) {
-      // PC/Tablet: Horizontal layout
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Pay group
-          _buildActionButton(
+    return Row(
+      children: [
+        // Pay Ecash
+        Expanded(
+          child: _buildActionButton(
             context,
-            icon: CupertinoIcons.bitcoin_circle,
+            icon: CupertinoIcons.arrow_up_right,
             label: 'Pay Ecash',
             color: payColor,
             onTap: _handlePayEcash,
+            expanded: true,
           ),
-          const SizedBox(width: 12),
-          _buildActionButton(
+        ),
+        const SizedBox(width: 12),
+        // Receive Ecash
+        Expanded(
+          child: _buildActionButton(
             context,
-            icon: CupertinoIcons.bolt,
-            label: 'Pay Lightning',
-            color: payColor,
-            onTap: _handlePayLightning,
-          ),
-          const SizedBox(width: 24),
-          // Receive group
-          _buildActionButton(
-            context,
-            icon: CupertinoIcons.bitcoin_circle,
+            icon: CupertinoIcons.arrow_down_left,
             label: 'Receive Ecash',
             color: receiveColor,
             onTap: _handleReceiveEcash,
+            expanded: true,
           ),
-          const SizedBox(width: 12),
-          _buildActionButton(
-            context,
-            icon: CupertinoIcons.bolt,
-            label: 'Receive Lightning',
-            color: receiveColor,
-            onTap: _handleReceiveLightning,
-          ),
-          const SizedBox(width: 24),
-          // Settings
-          _buildActionButton(
-            context,
-            icon: CupertinoIcons.settings,
-            color: Colors.grey,
-            onTap: _navigateToSettings,
-          ),
-        ],
-      );
-    } else {
-      // Mobile: 2x2 Grid layout
-      return Row(
-        children: [
-          // Pay column
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        ),
+        const SizedBox(width: 12),
+        // More menu
+        _buildActionButton(
+          context,
+          icon: CupertinoIcons.ellipsis_circle,
+          label: 'More',
+          color: Colors.grey,
+          onTap: _showMoreMenu,
+        ),
+      ],
+    );
+  }
+
+  /// Show more menu with Lightning and Settings options
+  void _showMoreMenu() {
+    Get.bottomSheet<void>(
+      CupertinoActionSheet(
+        title: const Text('More Options'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handlePayLightning();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Pay',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall!
-                            .color
-                            ?.withAlpha(160),
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildCompactActionButton(
-                      context,
-                      icon: CupertinoIcons.bitcoin_circle,
-                      label: 'Ecash',
-                      color: payColor,
-                      onTap: _handlePayEcash,
-                    ),
-                    _buildCompactActionButton(
-                      context,
-                      icon: CupertinoIcons.bolt,
-                      label: 'Lightning',
-                      color: payColor,
-                      onTap: _handlePayLightning,
-                    ),
-                  ],
-                ),
+                Icon(CupertinoIcons.bolt, color: Colors.redAccent),
+                SizedBox(width: 8),
+                Text('Pay to Lightning'),
               ],
             ),
           ),
-          Container(
-            width: 1,
-            height: 60,
-            color: Theme.of(context).dividerColor,
-          ),
-          // Receive column
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handleReceiveLightning();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Receive',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall!
-                            .color
-                            ?.withAlpha(160),
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildCompactActionButton(
-                      context,
-                      icon: CupertinoIcons.bitcoin_circle,
-                      label: 'Ecash',
-                      color: receiveColor,
-                      onTap: _handleReceiveEcash,
-                    ),
-                    _buildCompactActionButton(
-                      context,
-                      icon: CupertinoIcons.bolt,
-                      label: 'Lightning',
-                      color: receiveColor,
-                      onTap: _handleReceiveLightning,
-                    ),
-                  ],
-                ),
+                Icon(CupertinoIcons.bolt, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Receive from Lightning'),
               ],
             ),
           ),
-          Container(
-            width: 1,
-            height: 60,
-            color: Theme.of(context).dividerColor,
-          ),
-          // Settings column
-          _buildCompactActionButton(
-            context,
-            icon: CupertinoIcons.settings,
-            label: 'Settings',
-            color: Colors.grey,
-            onTap: _navigateToSettings,
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _navigateToSettings();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.settings, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('Settings'),
+              ],
+            ),
           ),
         ],
-      );
-    }
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   /// Build NWC wallet actions (2 buttons)
@@ -414,42 +355,6 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     return expanded ? button : button;
   }
 
-  /// Build a compact action button (for mobile 2x2 grid)
-  Widget _buildCompactActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: color.withAlpha(30),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Handle Pay Ecash action
   Future<void> _handlePayEcash() async {
     final tx = await Get.bottomSheet<Transaction>(
@@ -470,18 +375,16 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
       ),
       id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
     );
-
-    await controller.refreshSelectedWallet();
   }
 
   /// Handle Pay Lightning action
-  void _handlePayLightning() {
-    Get.find<EcashController>().payToLightning();
+  Future<void> _handlePayLightning() async {
+    await Get.find<EcashController>().payToLightning();
   }
 
   /// Handle Receive Lightning action
-  void _handleReceiveLightning() {
-    Get.find<EcashController>().proccessMakeLnInvoice();
+  Future<void> _handleReceiveLightning() async {
+    await Get.find<EcashController>().proccessMakeLnInvoice();
   }
 
   Future<void> _handleReceiveEcash() async {
@@ -511,15 +414,13 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
-          onPressed: Get.back,
+          onPressed: () => Get.back<void>(),
           child: const Text('Cancel'),
         ),
       ),
     );
     if (input == null || input.isEmpty) return;
-    final tx = await EcashUtils.handleReceiveToken(token: input);
-    if (tx == null) return;
-    await controller.refreshSelectedWallet();
+    await EcashUtils.handleReceiveToken(token: input);
   }
 
   /// Total balance display section

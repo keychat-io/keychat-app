@@ -38,4 +38,15 @@ abstract class WalletProvider {
 
   /// Total balance across all wallets of this type
   int get totalBalance;
+
+  Future<WalletTransactionBase?> payLightningInvoice(
+    String walletId,
+    String invoice,
+  );
+
+  Future<String?> createInvoice(
+    String walletId,
+    int amountSats,
+    String? description,
+  );
 }

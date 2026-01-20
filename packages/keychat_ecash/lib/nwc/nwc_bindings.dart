@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 
 class NwcBindings implements Bindings {
   @override

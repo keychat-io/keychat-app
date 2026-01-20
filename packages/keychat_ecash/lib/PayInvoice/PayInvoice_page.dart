@@ -40,7 +40,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
     unifiedWalletController = Utils.getOrPutGetxController(
       create: UnifiedWalletController.new,
     );
-    ecashController.getBalance();
     super.initState();
   }
 
@@ -185,9 +184,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
               Obx(
                 () {
                   final selectedWallet = unifiedWalletController.selectedWallet;
-                  if (selectedWallet == null) {
-                    return const SizedBox.shrink();
-                  }
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -230,8 +226,10 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                             await EasyLoading.showError(
                                               e.toString(),
                                             );
-                                            logger.e(e.toString(),
-                                                stackTrace: s);
+                                            logger.e(
+                                              e.toString(),
+                                              stackTrace: s,
+                                            );
                                           }
                                           return;
                                         }
@@ -239,11 +237,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         final selectedWallet =
                                             unifiedWalletController
                                                 .selectedWallet;
-                                        if (selectedWallet == null) {
-                                          await EasyLoading.showError(
-                                              'No wallet selected');
-                                          return;
-                                        }
 
                                         final tx = await controller
                                             .confirmToPayInvoice(

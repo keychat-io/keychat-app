@@ -1,4 +1,4 @@
-import 'package:keychat_nwc/utils.dart';
+import 'package:keychat/global.dart';
 
 class NwcConnectionInfo {
   NwcConnectionInfo({
@@ -6,9 +6,9 @@ class NwcConnectionInfo {
     this.name,
     this.weight = 0,
   }) {
-    if (!uri.startsWith(NwcUtils.nwcPrefix)) {
+    if (!uri.startsWith(KeychatGlobal.nwcPrefix)) {
       throw ArgumentError(
-        'Invalid NWC URI: must start with ${NwcUtils.nwcPrefix}',
+        'Invalid NWC URI: must start with ${KeychatGlobal.nwcPrefix}',
       );
     }
   }

@@ -59,7 +59,6 @@ class CreateInvoicePage extends StatelessWidget {
           () {
             final selectedWallet =
                 controller.unifiedWalletController.selectedWallet;
-            if (selectedWallet == null) return const SizedBox.shrink();
 
             return (selectedWallet.protocol == WalletProtocol.cashu &&
                         ecashController.supportMint(selectedWallet.id)) ||

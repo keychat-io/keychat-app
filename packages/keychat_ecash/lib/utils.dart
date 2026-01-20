@@ -54,7 +54,8 @@ class EcashUtils {
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
-        unawaited(Get.find<EcashController>().requestPageRefresh());
+        // TODO: refresh balance
+
         _activeChecks.remove(tx.id);
         return;
       }

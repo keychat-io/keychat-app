@@ -1951,7 +1951,7 @@ img {
           return 'Error: Invoice is empty';
         }
         try {
-          final tr = await ecashController.payToLightning(
+          final tr = await ecashController.dialogToPayInvoice(
             input: lnbc,
             isPay: true,
           );
@@ -1979,11 +1979,13 @@ img {
               ? int.parse(source['defaultAmount'] as String)
               : 0;
           final invoiceAmount = amount > 0 ? amount : defaultAmount;
-          return Get.find<EcashController>().proccessMakeLnInvoice(
-            amount: invoiceAmount,
-            description: source['description'] as String? ?? '',
-            getString: true,
-          );
+          final res = await Get.find<UnifiedWalletController>()
+              .dialogToMakeInvoice(
+                amount: invoiceAmount,
+                description: source['description'] as String? ?? '',
+              );
+          if (res == null) return null;
+          return res.invoice;
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
         }
@@ -2227,11 +2229,11 @@ img {
       // lightning invoice
       if (urlString.startsWith('lightning:')) {
         final input = urlString.replaceFirst('lightning:', '');
-        await ecashController.payToLightning(input: input, isPay: true);
+        await ecashController.dialogToPayInvoice(input: input, isPay: true);
         return true;
       }
       if (urlString.startsWith('lnbc')) {
-        await ecashController.payToLightning(input: urlString, isPay: true);
+        await ecashController.dialogToPayInvoice(input: urlString, isPay: true);
         return true;
       }
       // Handle Bitcoin URIs

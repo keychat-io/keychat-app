@@ -55,7 +55,7 @@ class LightningUtils {
           ln.status == TransactionStatus.failed ||
           (now > expiryTs && expiryTs > 0)) {
         callback(ln);
-        Get.find<EcashController>().requestPageRefresh();
+        // TODO: refresh balance
         pendingTaskMap.remove(tx.id);
         return;
       }

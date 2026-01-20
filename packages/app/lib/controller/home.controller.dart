@@ -852,7 +852,7 @@ class HomeController extends GetxController
   }
 
   Future<void> _handleAppLinkLightning(String input) async {
-    await Get.find<EcashController>().payToLightning(
+    await Get.find<EcashController>().dialogToPayInvoice(
       input: input,
       isPay: true,
     );

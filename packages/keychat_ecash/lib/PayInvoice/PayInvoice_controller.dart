@@ -7,20 +7,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:ndk/ndk.dart' show TransactionResult;
 
 class PayInvoiceController extends GetxController {
   PayInvoiceController({this.invoice, this.invoiceInfo});
   final String? invoice;
   final rust_cashu.InvoiceInfo? invoiceInfo;
   late TextEditingController textController;
+  late UnifiedWalletController unifiedWalletController;
   RxString selectedInvoice = ''.obs;
   final RxBool isLoading = false.obs;
 
@@ -28,6 +26,9 @@ class PayInvoiceController extends GetxController {
   void onInit() {
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
 
     textController.addListener(() {
       EasyThrottle.throttle('invoice', const Duration(milliseconds: 1000),
@@ -49,111 +50,12 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<CashuWalletTransaction?> _payWithCashu(
-    String mint,
-    String invoice,
-    rust_cashu.InvoiceInfo ii,
-    bool isPay,
-  ) async {
-    final cc = Get.find<EcashController>();
-
-    if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
-      await EasyLoading.showToast('Not Enough Funds');
-      return null;
-    }
-    try {
-      EasyLoading.show(status: 'Processing...');
-      final tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
-      logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
-      EasyLoading.showSuccess('Success');
-
-      textController.clear();
-      unawaited(cc.requestPageRefresh());
-      if (!isPay) {
-        if (GetPlatform.isDesktop) {
-          await Get.bottomSheet<void>(
-            LightningTransactionPage(transaction: tx),
-          );
-        } else {
-          await Get.to<void>(() => LightningTransactionPage(transaction: tx));
-        }
-      }
-      return CashuWalletTransaction(transaction: tx, walletId: mint);
-    } catch (e, s) {
-      final msg = await EcashUtils.ecashErrorHandle(e, s);
-      EasyLoading.showError(msg);
-    }
-    return null;
-  }
-
-  FutureOr<NwcWalletTransaction?> _payWithNwc(
-    String nwcUri,
-    String invoice,
-    rust_cashu.InvoiceInfo ii,
-    bool isPay,
-  ) async {
-    try {
-      final nwcController =
-          Utils.getOrPutGetxController(create: NwcController.new);
-      await nwcController.waitForLoading();
-      EasyLoading.show(status: 'Processing...');
-
-      // Use NWC to pay invoice
-      final active = nwcController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == nwcUri,
-      );
-      if (active == null) {
-        await EasyLoading.showError('NWC connection not found');
-        return null;
-      }
-
-      // Check balance
-      if (active.balance != null) {
-        final balanceSat = (active.balance!.balanceMsats / 1000).floor();
-        if (balanceSat < ii.amount.toInt()) {
-          await EasyLoading.showError('Not Enough Funds');
-          return null;
-        }
-      }
-
-      final ndk = nwcController.ndk;
-      final result =
-          await ndk.nwc.payInvoice(active.connection, invoice: invoice);
-
-      await EasyLoading.showSuccess('Success');
-
-      textController.clear();
-
-      // Refresh NWC balance
-      await nwcController.refreshNwcBalances([active]);
-
-      final tx = NwcWalletTransaction(
-        transaction: TransactionResult(
-          type: 'outgoing',
-          invoice: invoice,
-          amount: ii.amount.toInt() * 1000,
-          description: ii.memo,
-          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          feesPaid: result.feesPaid ~/ 1000,
-          preimage: result.preimage,
-          paymentHash: 'none',
-        ),
-        walletId: active.info.uri,
-      );
-      return tx;
-    } catch (e, s) {
-      logger.e('NWC payment error', error: e, stackTrace: s);
-      await EasyLoading.showError('Payment Failed: $e');
-    }
-    return null;
-  }
-
   /// Pay a lightning invoice and return the payment result.
   /// Returns [CashuWalletTransaction] for Cashu payments or [NwcWalletTransaction] for NWC payments.
   FutureOr<WalletTransactionBase?> confirmToPayInvoice({
     required String invoice,
     required WalletBase walletSelection,
-    bool isPay = false, // pay invoice, then return
+    bool isPay = false, // pay invoice directly without confirmation dialog
   }) async {
     if (invoice.isEmpty) {
       await EasyLoading.showToast('Please enter a valid invoice');
@@ -163,82 +65,50 @@ class PayInvoiceController extends GetxController {
     if (invoice.startsWith('lightning:')) {
       invoice = invoice.replaceFirst('lightning:', '');
     }
+
     try {
-      final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+      // Decode invoice to get amount for confirmation dialog
+      final invoiceInfo = await rust_cashu.decodeInvoice(
+        encodedInvoice: invoice,
+      );
 
-      // Handle NWC payment
-      if (walletSelection.protocol == WalletProtocol.nwc) {
-        if (isPay) {
-          return await _payWithNwc(
-            walletSelection.id,
-            invoice,
-            ii,
-            isPay,
-          );
-        }
-        return await Get.dialog<NwcWalletTransaction?>(
-          CupertinoAlertDialog(
-            title: const Text('Pay Invoice'),
-            content: Text(
-              '${ii.amount} ${EcashTokenSymbol.sat.name}',
-              style: Theme.of(Get.context!).textTheme.titleLarge,
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Get.back<NwcWalletTransaction?>(),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () async {
-                  Get.back(
-                    result: await _payWithNwc(
-                      walletSelection.id,
-                      invoice,
-                      ii,
-                      isPay,
-                    ),
-                  );
-                },
-                child: const Text('Confirm'),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // Handle Cashu payment
+      // If isPay is true, pay directly without confirmation
       if (isPay) {
-        return await _payWithCashu(
+        final tx = await unifiedWalletController.payLightningInvoiceWithWallet(
           walletSelection.id,
           invoice,
-          ii,
-          isPay,
         );
+        if (tx != null) {
+          textController.clear();
+        }
+        return tx;
       }
-      return await Get.dialog<CashuWalletTransaction?>(
+
+      // Show confirmation dialog before payment
+      return await Get.dialog<WalletTransactionBase?>(
         CupertinoAlertDialog(
           title: const Text('Pay Invoice'),
           content: Text(
-            '${ii.amount} ${EcashTokenSymbol.sat.name}',
+            '${invoiceInfo.amount} ${EcashTokenSymbol.sat.name}',
             style: Theme.of(Get.context!).textTheme.titleLarge,
           ),
           actions: [
             CupertinoDialogAction(
-              onPressed: () => Get.back<CashuWalletTransaction?>(),
+              onPressed: () => Get.back<WalletTransactionBase?>(),
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
-                Get.back(
-                  result: await _payWithCashu(
-                    walletSelection.id,
-                    invoice,
-                    ii,
-                    isPay,
-                  ),
+                final tx =
+                    await unifiedWalletController.payLightningInvoiceWithWallet(
+                  walletSelection.id,
+                  invoice,
                 );
+                if (tx != null) {
+                  textController.clear();
+                }
+                Get.back(result: tx);
               },
               child: const Text('Confirm'),
             ),

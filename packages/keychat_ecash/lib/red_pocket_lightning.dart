@@ -1,3 +1,4 @@
+import 'package:keychat/global.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat/models/message.dart';
 import 'package:keychat/service/message.service.dart';
@@ -12,7 +13,7 @@ import 'package:keychat_ecash/status_enum.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_nwc/index.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 
 class RedPocketLightning extends StatefulWidget {
   const RedPocketLightning({required this.message, super.key});
@@ -100,7 +101,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                         return;
                       }
                       final tx =
-                          await Get.find<EcashController>().payToLightning(
+                          await Get.find<EcashController>().dialogToPayInvoice(
                         input: _cashuInfoModel.token,
                         isPay: true,
                       );
@@ -159,7 +160,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
       EasyLoading.showError('No id found');
       return;
     }
-    if (_cashuInfoModel.mint.startsWith(NwcUtils.nwcPrefix)) {
+    if (_cashuInfoModel.mint.startsWith(KeychatGlobal.nwcPrefix)) {
       final nwcController =
           Utils.getOrPutGetxController(create: NwcController.new);
       final res = await nwcController.lookupInvoice(

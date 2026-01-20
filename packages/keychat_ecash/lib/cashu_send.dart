@@ -119,21 +119,15 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 mints: [selectedMint],
                               );
 
-                              // Refresh balance and transactions
-                              try {
-                                final unifiedController =
-                                    Utils.getOrPutGetxController(
-                                  create: UnifiedWalletController.new,
-                                );
-                                await unifiedController.refreshSelectedWallet();
-                              } catch (e) {
-                                logger.e('Failed to refresh after sending',
-                                    error: e);
-                              }
-
+                              final unifiedController =
+                                  Utils.getOrPutGetxController(
+                                create: UnifiedWalletController.new,
+                              );
+                              await unifiedController.refreshSelectedWallet();
                               await EasyLoading.showToast(
                                 'Success',
                               );
+
                               Get.back(result: tx);
                             } catch (e, s) {
                               await EcashUtils.ecashErrorHandle(e, s);

@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
-import 'package:keychat_nwc/active_nwc_connection.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart';
 import 'package:ndk/ndk.dart';
 
@@ -126,5 +126,5 @@ class NwcWalletTransaction extends WalletTransactionBase {
       transaction.feesPaid != null ? transaction.feesPaid! ~/ 1000 : null;
 
   @override
-  bool get isSuccess => true; // NWC payment is always success if returned
+  bool get isSuccess => status == WalletTransactionStatus.success;
 }

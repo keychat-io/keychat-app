@@ -1,6 +1,17 @@
+import 'package:flutter/material.dart'
+    show BorderRadius, Clip, Radius, RoundedRectangleBorder;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
+import 'package:keychat_ecash/keychat_ecash.dart'
+    show CashuWalletTransaction, MintBalanceClass, NwcWalletTransaction;
+import 'package:keychat_ecash/unified_wallet/index.dart'
+    show CashuWallet, CashuWalletTransaction, NwcWalletTransaction;
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart'
+    show CashuWalletTransaction;
+import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart'
+    show NwcWalletTransaction;
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/providers/cashu_wallet_provider.dart';
 import 'package:keychat_ecash/unified_wallet/providers/nwc_wallet_provider.dart';
@@ -38,9 +49,17 @@ class UnifiedWalletController extends GetxController {
   static const int _pageSize = 20;
 
   /// Get the currently selected wallet (null if none)
-  WalletBase? get selectedWallet {
+  WalletBase get selectedWallet {
     if (wallets.isEmpty) {
-      return null;
+      return CashuWallet(
+        mintBalance: MintBalanceClass(
+          KeychatGlobal.defaultCashuMintURL,
+          'sat',
+          0,
+        ),
+        supportsMint: false,
+        supportsMelt: false,
+      );
     }
     if (selectedIndex.value < 0 || selectedIndex.value >= wallets.length) {
       return wallets[0];
@@ -118,21 +137,16 @@ class UnifiedWalletController extends GetxController {
         }
       }
       // Store the currently selected wallet ID before updating
-      final currentWalletId = selectedWallet?.id;
+      final currentWalletId = selectedWallet.id;
 
       wallets.value = allWallets;
 
       // Try to restore the previously selected wallet
-      if (currentWalletId != null) {
-        final newIndex = wallets.indexWhere((w) => w.id == currentWalletId);
-        if (newIndex != -1) {
-          selectedIndex.value = newIndex;
-        } else {
-          // Previously selected wallet no longer exists, select first available
-          _ensureValidSelectedIndex();
-        }
+      final newIndex = wallets.indexWhere((w) => w.id == currentWalletId);
+      if (newIndex != -1) {
+        selectedIndex.value = newIndex;
       } else {
-        // No previous selection, ensure valid index
+        // Previously selected wallet no longer exists, select first available
         _ensureValidSelectedIndex();
       }
 
@@ -161,7 +175,6 @@ class UnifiedWalletController extends GetxController {
   /// If [wallet] is provided, refresh that wallet instead of the selected one
   Future<void> refreshSelectedWallet([WalletBase? wallet]) async {
     final targetWallet = wallet ?? selectedWallet;
-    if (targetWallet == null) return;
 
     final provider = _getProviderForProtocol(targetWallet.protocol);
     if (provider == null) return;
@@ -195,9 +208,7 @@ class UnifiedWalletController extends GetxController {
 
     // Save the selection to storage
     final wallet = selectedWallet;
-    if (wallet != null) {
-      await WalletStorage.saveWallet(wallet);
-    }
+    await WalletStorage.saveWallet(wallet);
 
     await loadTransactionsForSelected();
   }
@@ -209,11 +220,6 @@ class UnifiedWalletController extends GetxController {
     WalletBase? wallet,
   }) async {
     final targetWallet = wallet ?? selectedWallet;
-    if (targetWallet == null) {
-      transactions.clear();
-      hasMoreTransactions.value = false;
-      return;
-    }
 
     isTransactionsLoading.value = true;
     hasMoreTransactions.value = true;
@@ -245,7 +251,6 @@ class UnifiedWalletController extends GetxController {
     if (isLoadingMore.value || !hasMoreTransactions.value) return;
 
     final wallet = selectedWallet;
-    if (wallet == null) return;
 
     final provider = _getProviderForProtocol(wallet.protocol);
     if (provider == null) return;
@@ -369,5 +374,157 @@ class UnifiedWalletController extends GetxController {
     return wallets
         .where((w) => w.protocol == protocol)
         .fold<int>(0, (sum, w) => sum + w.balanceSats);
+  }
+
+  // ============================================================
+  // Unified Payment APIs
+  // ============================================================
+
+  /// Pay a lightning invoice using the currently selected wallet.
+  ///
+  /// Returns [WalletTransactionBase] on success, null on failure or cancellation.
+  /// The returned type will be [CashuWalletTransaction] or [NwcWalletTransaction]
+  /// depending on the selected wallet protocol.
+  Future<WalletTransactionBase?> payLightningInvoice(String invoice) async {
+    final wallet = selectedWallet;
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) {
+      await EasyLoading.showError('Wallet provider not found');
+      return null;
+    }
+
+    final result = await provider.payLightningInvoice(wallet.id, invoice);
+    if (result != null) {
+      await refreshSelectedWallet();
+    }
+    return result;
+  }
+
+  /// Pay a lightning invoice using a specific wallet.
+  ///
+  /// [walletId] - The wallet ID to use for payment
+  /// [invoice] - The lightning invoice string (lnbc...)
+  Future<WalletTransactionBase?> payLightningInvoiceWithWallet(
+    String walletId,
+    String invoice,
+  ) async {
+    final wallet = wallets.firstWhereOrNull((w) => w.id == walletId);
+    if (wallet == null) {
+      EasyLoading.showError('Wallet not found');
+      return null;
+    }
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) {
+      EasyLoading.showError('Wallet provider not found');
+      return null;
+    }
+
+    final result = await provider.payLightningInvoice(walletId, invoice);
+    if (result != null) {
+      await refreshSelectedWallet(wallet);
+    }
+    return result;
+  }
+
+  /// Create a lightning invoice using the currently selected wallet.
+  ///
+  /// Returns the invoice string (bolt11) on success, null on failure.
+  Future<String?> createInvoice(int amountSats, {String? description}) async {
+    final wallet = selectedWallet;
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) {
+      EasyLoading.showError('Wallet provider not found');
+      return null;
+    }
+
+    return provider.createInvoice(wallet.id, amountSats, description);
+  }
+
+  /// Create a lightning invoice using a specific wallet.
+  ///
+  /// [walletId] - The wallet ID to use
+  /// [amountSats] - Amount in satoshis
+  /// [description] - Optional invoice description
+  Future<String?> createInvoiceWithWallet(
+    String walletId,
+    int amountSats, {
+    String? description,
+  }) async {
+    final wallet = wallets.firstWhereOrNull((w) => w.id == walletId);
+    if (wallet == null) {
+      EasyLoading.showError('Wallet not found');
+      return null;
+    }
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) {
+      EasyLoading.showError('Wallet provider not found');
+      return null;
+    }
+
+    return provider.createInvoice(walletId, amountSats, description);
+  }
+
+  /// Create a lightning invoice and return full transaction details.
+  ///
+  /// This is useful when you need the full transaction object for UI display.
+  /// Returns [WalletTransactionBase] on success, null on failure.
+  Future<WalletTransactionBase?> createInvoiceWithTransaction(
+    int amountSats, {
+    String? description,
+  }) async {
+    final wallet = selectedWallet;
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) {
+      await EasyLoading.showError('Wallet provider not found');
+      return null;
+    }
+
+    // Use protocol-specific method that returns transaction
+    if (provider is CashuWalletProvider) {
+      return provider.createInvoiceWithTransaction(
+        wallet.id,
+        amountSats,
+        description,
+      );
+    } else if (provider is NwcWalletProvider) {
+      return provider.createInvoiceWithTransaction(
+        wallet.id,
+        amountSats,
+        description,
+      );
+    }
+
+    // Fallback: just create invoice (no transaction returned)
+    await provider.createInvoice(wallet.id, amountSats, description);
+    return null;
+  }
+
+  /// Check if the selected wallet supports lightning payments
+  bool get canPayLightning => selectedWallet.supportsLightning;
+
+  /// Check if the selected wallet can send payments
+  bool get canSend => selectedWallet.canSend;
+
+  /// Check if the selected wallet can receive payments
+  bool get canReceive => selectedWallet.canReceive;
+
+  Future<WalletTransactionBase?> dialogToMakeInvoice({
+    int? amount,
+    String? description,
+  }) async {
+    return Get.bottomSheet<WalletTransactionBase?>(
+      ignoreSafeArea: false,
+      isScrollControlled: true,
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      CreateInvoicePage(amount: amount, description: description),
+    );
   }
 }

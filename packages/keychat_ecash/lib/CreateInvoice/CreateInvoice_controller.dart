@@ -4,18 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
-import 'package:ndk/ndk.dart' show TransactionResult;
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class CreateInvoiceController extends GetxController {
   CreateInvoiceController({this.defaultAmount, this.defaultDescription});
   final int? defaultAmount;
   final String? defaultDescription;
 
-  EcashController ecashController = Get.find<EcashController>();
   late UnifiedWalletController unifiedWalletController;
   late TextEditingController textController;
   late TextEditingController descController;
@@ -47,16 +42,16 @@ class CreateInvoiceController extends GetxController {
   // WalletTransaction
   Future<void> handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
-      HapticFeedback.lightImpact();
+      await HapticFeedback.lightImpact();
     }
     final amountString = textController.text.trim();
     if (amountString.isEmpty) {
-      EasyLoading.showToast('Please input amount');
+      await EasyLoading.showToast('Please input amount');
       return;
     }
     final amount = int.parse(amountString);
     if (amount == 0) {
-      EasyLoading.showToast('Amount should > 0');
+      await EasyLoading.showToast('Amount should > 0');
       return;
     }
 
@@ -88,67 +83,18 @@ If payment fails, please contact the mint server.''',
     }
 
     try {
-      EasyLoading.show(status: 'Generating...');
       final description = descController.text.trim();
-      final selectedWallet = unifiedWalletController.selectedWallet;
 
-      if (selectedWallet == null) {
-        EasyLoading.showError('No wallet selected');
-        return;
-      }
-
-      // Handle NWC wallet
-      if (selectedWallet.protocol == WalletProtocol.nwc) {
-        final nwcController = Utils.getOrPutGetxController(
-          create: NwcController.new,
-        );
-        final active = nwcController.activeConnections.firstWhereOrNull(
-          (c) => c.info.uri == selectedWallet.id,
-        );
-
-        if (active == null) {
-          EasyLoading.showError('NWC connection not found');
-          return;
-        }
-
-        final response = await nwcController.ndk.nwc.makeInvoice(
-          active.connection,
-          amountSats: amount,
-          description: description,
-        );
-        await EasyLoading.showSuccess('Invoice created');
-        final trr = TransactionResult(
-          type: 'incoming',
-          invoice: response.invoice,
-          amount: response.amountSat * 1000,
-          description: response.description,
-          createdAt: response.createdAt,
-          feesPaid: response.feesPaid,
-          paymentHash: response.paymentHash,
-          preimage: response.preimage,
-        );
-        final tx = NwcWalletTransaction(
-          transaction: trr,
-          walletId: active.info.uri,
-        );
-        Get.back(
-          result: tx,
-        ); // MakeInvoiceResponse
-        return;
-      }
-
-      // Handle Cashu mint: Transaction
-      final tr = await rust_cashu.requestMint(
-        amount: BigInt.from(amount),
-        activeMint: selectedWallet.id,
+      // Use unified wallet controller to create invoice
+      final tx = await unifiedWalletController.createInvoiceWithTransaction(
+        amount,
+        description: description.isNotEmpty ? description : null,
       );
-      await EasyLoading.showToast('Create Successfully');
-      textController.clear();
-      final tx = CashuWalletTransaction(
-        transaction: tr,
-        walletId: selectedWallet.id,
-      );
-      Get.back(result: tx);
+
+      if (tx != null) {
+        textController.clear();
+        Get.back(result: tx);
+      }
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);

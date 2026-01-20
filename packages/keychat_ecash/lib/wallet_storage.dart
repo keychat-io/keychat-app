@@ -1,11 +1,11 @@
+import 'package:keychat/global.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
-import 'package:keychat_nwc/utils.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat/utils.dart' show Utils;
 import 'package:get/get.dart';
 
@@ -71,7 +71,7 @@ class WalletStorage {
     }
 
     // Determine type by URI format
-    final isNwc = secureId.startsWith(NwcUtils.nwcPrefix);
+    final isNwc = secureId.startsWith(KeychatGlobal.nwcPrefix);
 
     // Validate that the wallet still exists
     if (!isNwc) {
@@ -89,11 +89,7 @@ class WalletStorage {
           create: NwcController.new,
         );
 
-        // Wait for NWC connections to load if needed
-        if (nwcController.isLoading.value) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-        }
-
+        await nwcController.waitForLoading();
         final connection = nwcController.activeConnections.firstWhereOrNull(
           (conn) => conn.info.uri == secureId,
         );

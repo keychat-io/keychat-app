@@ -22,9 +22,10 @@ import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_nwc/nwc/nwc_setting_page.dart';
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
+import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
+import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:ndk/ndk.dart';
 
 /// Unified Bitcoin Wallet page that integrates Cashu and NWC wallets
 class BitcoinWalletMain extends StatefulWidget {
@@ -148,7 +149,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
   Widget _buildBottomBar(BuildContext context) {
     return Obx(() {
       final wallet = controller.selectedWallet;
-      final protocol = wallet?.protocol ?? WalletProtocol.cashu;
+      final protocol = wallet.protocol ?? WalletProtocol.cashu;
 
       return SafeArea(
         child: Container(
@@ -366,9 +367,6 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
     if (tx == null) return;
 
-    if (Get.isBottomSheetOpen ?? false) {
-      Get.back<void>();
-    }
     await Get.to<void>(
       () => CashuTransactionPage(
         transaction: tx,
@@ -379,12 +377,38 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
 
   /// Handle Pay Lightning action
   Future<void> _handlePayLightning() async {
-    await Get.find<EcashController>().payToLightning();
+    final tx = await Get.find<EcashController>().dialogToPayInvoice();
+    if (tx == null) return;
+    await Get.to<void>(
+      () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
   }
 
   /// Handle Receive Lightning action
   Future<void> _handleReceiveLightning() async {
-    await Get.find<EcashController>().proccessMakeLnInvoice();
+    final tx = await controller.dialogToMakeInvoice();
+    if (tx == null) return;
+    // Handle NWC invoice result
+    if (tx.rawData is TransactionResult) {
+      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
+
+      await Get.to(
+        () => NwcTransactionPage(
+          transaction: tx.rawData as TransactionResult,
+          nwcUri: nwcUri,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+      return;
+    }
+    // Handle Cashu Lightning invoice result
+    if (tx.rawData is Transaction) {
+      await Get.to(
+        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
   }
 
   Future<void> _handleReceiveEcash() async {
@@ -686,18 +710,16 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
               ),
               Obx(() {
                 final wallet = controller.selectedWallet;
-                if (wallet != null) {
-                  return Text(
-                    wallet.displayName,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall!
-                              .color
-                              ?.withAlpha(160),
-                        ),
-                  );
-                }
+                return Text(
+                  wallet.displayName,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall!
+                            .color
+                            ?.withAlpha(160),
+                      ),
+                );
                 return const SizedBox.shrink();
               }),
             ],

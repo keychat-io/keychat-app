@@ -1516,6 +1516,21 @@ Init File: $time \n
       return '[$url]($url)';
     });
   }
+
+  static Future<T> withRetry<T>(
+    Future<T> Function() fn, {
+    int maxAttempts = 3,
+  }) async {
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (i == maxAttempts - 1) rethrow;
+        await Future.delayed(Duration(seconds: 1 << i));
+      }
+    }
+    throw Exception('Max retry attempts reached');
+  }
 }
 
 // Add this helper controller class at the end of the file

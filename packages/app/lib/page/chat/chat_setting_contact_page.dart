@@ -256,7 +256,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                       return;
                                     }
                                     await Get.find<EcashController>()
-                                        .payToLightning(
+                                        .dialogToPayInvoice(
                                           input: cc.roomContact.value.lightning,
                                           isPay: true,
                                         );

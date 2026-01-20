@@ -138,8 +138,7 @@ class HomeSidebarX extends GetView<DesktopController> {
               'loadCashuABalance',
               const Duration(seconds: 1),
               () {
-                Utils.getGetxController<EcashController>()
-                    ?.requestPageRefresh();
+                //TODO: refresh balance
               },
             );
           },

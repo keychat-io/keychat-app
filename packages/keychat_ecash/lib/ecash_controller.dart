@@ -27,8 +27,8 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
-import 'package:ndk/ndk.dart' show MakeInvoiceResponse, TransactionResult;
+import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
+import 'package:ndk/ndk.dart' show TransactionResult;
 
 class EcashDBVersion {
   static const int v0 = 0; // not initial version
@@ -234,7 +234,7 @@ class EcashController extends GetxController {
         (await rust_cashu.getPendingTransactionsCount()).toInt();
   }
 
-  Future<Map> getBalance() async {
+  Future<Map<String, int>> getBalance() async {
     isBalanceLoading.value = true;
     try {
       final res = await rust_cashu.getBalances();
@@ -329,9 +329,12 @@ class EcashController extends GetxController {
     return total;
   }
 
-  Map getBalanceByMints(List<String> mints, [String token = 'sat']) {
+  Map<String, int> getBalanceByMints(
+    List<String> mints, [
+    String token = 'sat',
+  ]) {
     if (mints.isEmpty) return {};
-    final Map res = {};
+    final res = <String, int>{};
 
     for (final item in mintBalances) {
       if (mints.contains(item.mint) && item.token == token) {
@@ -484,8 +487,8 @@ class EcashController extends GetxController {
       await LightningUtils.instance
           .checkPendings(pendings)
           .timeout(const Duration(minutes: 3));
-      // ignore: empty_catches
     } catch (e) {
+      logger.e('Failed to check and update pending transactions: $e');
     } finally {
       isInitialized.value = true;
     }
@@ -510,14 +513,13 @@ class EcashController extends GetxController {
   /// Pay to lightning invoice or LNURL.
   /// Returns [CashuWalletTransaction] for Cashu payments or [NwcWalletTransaction] for NWC payments.
   /// [input] can be: lnbc invoice, lnurl, or lightning address (email format).
-  FutureOr<WalletTransactionBase?> payToLightning({
+  FutureOr<WalletTransactionBase?> dialogToPayInvoice({
     String? input,
     bool isPay = false,
   }) async {
-    WalletTransactionBase? result;
     if (input != null) {
       if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-        result = await Get.bottomSheet<WalletTransactionBase?>(
+        return await Get.bottomSheet<WalletTransactionBase?>(
           ignoreSafeArea: false,
           isScrollControlled: true,
           clipBehavior: Clip.antiAlias,
@@ -526,10 +528,6 @@ class EcashController extends GetxController {
           ),
           PayInvoicePage(invoce: input, isPay: isPay, showScanButton: false),
         );
-        if (result != null) {
-          await _refreshAfterTransaction();
-        }
-        return result;
       }
       try {
         await rust_cashu.decodeInvoice(encodedInvoice: input);
@@ -538,7 +536,7 @@ class EcashController extends GetxController {
         return null;
       }
     }
-    result = await Get.bottomSheet<WalletTransactionBase?>(
+    return await Get.bottomSheet<WalletTransactionBase?>(
       clipBehavior: Clip.antiAlias,
       ignoreSafeArea: false,
       isScrollControlled: true,
@@ -551,22 +549,6 @@ class EcashController extends GetxController {
         showScanButton: !isPay,
       ),
     );
-    if (result != null) {
-      await _refreshAfterTransaction();
-    }
-    return result;
-  }
-
-  /// Refresh balance and transactions after a transaction
-  Future<void> _refreshAfterTransaction() async {
-    try {
-      final unifiedController = Utils.getOrPutGetxController(
-        create: UnifiedWalletController.new,
-      );
-      await unifiedController.refreshSelectedWallet();
-    } catch (e) {
-      logger.e('Failed to refresh after transaction', error: e);
-    }
   }
 
   /// Get the preimage from a payment result.
@@ -587,53 +569,6 @@ class EcashController extends GetxController {
     } catch (e) {
       logger.e('Failed to check transaction status', error: e);
     }
-  }
-
-  Future<String?> proccessMakeLnInvoice({
-    int? amount,
-    String? description,
-    bool getString = false,
-  }) async {
-    final tx = await Get.bottomSheet<WalletTransactionBase?>(
-      ignoreSafeArea: false,
-      isScrollControlled: true,
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(amount: amount, description: description),
-    );
-
-    if (tx == null) return null;
-
-    // Refresh after creating invoice
-    await _refreshAfterTransaction();
-
-    if (getString) {
-      return tx.invoice;
-    }
-    if (tx.rawData is Transaction) {
-      await Get.to(
-        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      await Get.find<EcashController>().requestPageRefresh();
-      return null;
-    }
-
-    // Handle NWC invoice result
-    if (tx.rawData is TransactionResult) {
-      final nwcUri = tx.walletId ?? (await WalletStorage.loadWallet()).id;
-
-      await Get.to(
-        () => NwcTransactionPage(
-          transaction: tx.rawData as TransactionResult,
-          nwcUri: nwcUri,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
-    return null;
   }
 
   Future<(String?, String?)> makeInvoiceForChat() async {

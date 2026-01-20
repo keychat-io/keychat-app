@@ -4,8 +4,8 @@ import 'package:get/get.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart' show formatTime;
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
-import 'package:keychat_nwc/nwc/nwc_transaction_page.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
 import 'package:ndk/ndk.dart';
 
 class TransactionsListPage extends StatefulWidget {

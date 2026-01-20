@@ -57,8 +57,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
                   'loadCashuABalance',
                   const Duration(seconds: 1),
                   () {
-                    Utils.getGetxController<EcashController>()
-                        ?.requestPageRefresh();
+                    // TODO: refresh balance
                   },
                 );
               }

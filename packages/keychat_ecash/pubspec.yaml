@@ -14,7 +14,6 @@ dependencies:
   timer_builder: ^2.0.0
   keychat: ^1.36.5
   keychat_rust_ffi_plugin: 1.0.0
-  keychat_nwc: 1.0.0
   flutter_easyloading: ^3.0.5
   easy_debounce: ^2.0.3
   get: ^4.7.2
@@ -25,3 +24,6 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_svg: ^2.2.0
   custom_refresh_indicator: ^4.0.1
+  ndk: ^0.6.0
+  qr_flutter: ^4.1.0
+  flutter_secure_storage: ^10.0.0

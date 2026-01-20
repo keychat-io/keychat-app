@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
 import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart'

@@ -47,7 +47,14 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
   Widget build(BuildContext context) {
     final maxWidth = Get.width * (Get.width > 500 ? 0.4 : 1) - 32;
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: const Text('Cashu Transaction')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          widget.transaction.io == TransactionDirection.outgoing
+              ? 'Send via Cashu'
+              : 'Receive via Cashu',
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsetsGeometry.symmetric(horizontal: 8),
         child: Center(

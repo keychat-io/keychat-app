@@ -32,7 +32,7 @@ class NostrWalletConnectController extends GetxController {
       const Secp256k1SimpleAccount(pubkey: '', prikey: '').obs;
   RxString nwcUri = ''.obs;
   Set<String> subscribeSuccessRelays = {};
-  RxSet subscribeAndOnlineRelays = <String>{}.obs;
+  RxSet<String> subscribeAndOnlineRelays = <String>{}.obs;
   RxList<NWCLog> logs = <NWCLog>[].obs;
   String subId13194 = '';
   RxBool featureStatus = false.obs;
@@ -219,7 +219,7 @@ class NostrWalletConnectController extends GetxController {
           invoice = invoice.replaceFirst('lightning:', '');
         }
         if (!invoice.startsWith('lnbc')) return;
-        final tx = await ecashController.payToLightning(
+        final tx = await ecashController.dialogToPayInvoice(
           input: invoice,
           isPay: true,
         );

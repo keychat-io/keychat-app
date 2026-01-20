@@ -6,7 +6,6 @@ environment:
 workspace:
   - packages/app
   - packages/keychat_ecash
-  - packages/keychat_nwc
   - packages/keychat_rust_ffi_plugin
 
 dev_dependencies:

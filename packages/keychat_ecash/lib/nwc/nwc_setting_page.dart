@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keychat/utils.dart' show DesktopContainer;
-import 'package:keychat_nwc/active_nwc_connection.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/active_nwc_connection.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:ndk/ndk.dart';
 
 class NwcSettingPage extends GetView<NwcController> {

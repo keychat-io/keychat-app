@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:keychat_nwc/nwc_connection_info.dart';
+import 'package:keychat_ecash/nwc/nwc_connection_info.dart';
 
 class NwcConnectionStorage {
   NwcConnectionStorage({FlutterSecureStorage? storage})

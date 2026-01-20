@@ -31,7 +31,6 @@ dependencies:
   json_annotation: ^4.9.0
   keychat_rust_ffi_plugin: 1.0.0
   keychat_ecash: 1.0.0
-  keychat_nwc: 1.0.0
   isar_community: 3.3.0
   isar_community_flutter_libs: 3.3.0
   share_plus: ^12.0.0

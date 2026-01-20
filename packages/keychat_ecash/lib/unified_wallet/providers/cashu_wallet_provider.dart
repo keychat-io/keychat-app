@@ -1,8 +1,11 @@
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/providers/wallet_provider.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 /// Cashu wallet provider implementation
@@ -67,8 +70,7 @@ class CashuWalletProvider implements WalletProvider {
 
   @override
   Future<void> removeWallet(String walletId) async {
-    // TODO: Implement mint removal in EcashController if needed
-    throw UnimplementedError('Mint removal not yet implemented');
+    await rust_cashu.removeMint(url: walletId);
   }
 
   @override
@@ -94,5 +96,78 @@ class CashuWalletProvider implements WalletProvider {
     // Cashu mints are HTTP(S) URLs
     return connectionString.startsWith('http://') ||
         connectionString.startsWith('https://');
+  }
+
+  @override
+  Future<WalletTransactionBase?> payLightningInvoice(
+    String walletId,
+    String invoice,
+  ) async {
+    try {
+      // Validate invoice
+      final invoiceInfo = await rust_cashu.decodeInvoice(
+        encodedInvoice: invoice,
+      );
+
+      // Check balance
+      if (_ecashController.getBalanceByMint(walletId) <
+          invoiceInfo.amount.toInt()) {
+        await EasyLoading.showToast('Not Enough Funds');
+        return null;
+      }
+
+      EasyLoading.show(status: 'Processing...');
+      final tx = await rust_cashu.melt(invoice: invoice, activeMint: walletId);
+      logger.i('CashuWalletProvider: payLightningInvoice success: $tx');
+      await EasyLoading.showSuccess('Success');
+
+      return CashuWalletTransaction(transaction: tx, walletId: walletId);
+    } catch (e, s) {
+      final msg = await EcashUtils.ecashErrorHandle(e, s);
+      await EasyLoading.showError(msg);
+      return null;
+    }
+  }
+
+  @override
+  Future<String?> createInvoice(
+    String walletId,
+    int amountSats,
+    String? description,
+  ) async {
+    try {
+      EasyLoading.show(status: 'Generating...');
+      final tx = await rust_cashu.requestMint(
+        amount: BigInt.from(amountSats),
+        activeMint: walletId,
+      );
+      await EasyLoading.showSuccess('Invoice created');
+      return tx.token;
+    } catch (e, s) {
+      logger.e('Failed to create invoice', error: e, stackTrace: s);
+      await EasyLoading.showError('Failed to create invoice: $e');
+      return null;
+    }
+  }
+
+  /// Create invoice and return the full transaction
+  Future<CashuWalletTransaction?> createInvoiceWithTransaction(
+    String walletId,
+    int amountSats,
+    String? description,
+  ) async {
+    try {
+      EasyLoading.show(status: 'Generating...');
+      final tx = await rust_cashu.requestMint(
+        amount: BigInt.from(amountSats),
+        activeMint: walletId,
+      );
+      await EasyLoading.showSuccess('Invoice created');
+      return CashuWalletTransaction(transaction: tx, walletId: walletId);
+    } catch (e, s) {
+      logger.e('Failed to create invoice', error: e, stackTrace: s);
+      await EasyLoading.showError('Failed to create invoice: $e');
+      return null;
+    }
   }
 }

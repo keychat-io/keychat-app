@@ -10,8 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_nwc/nwc/nwc_controller.dart';
-import 'package:keychat_nwc/utils.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -101,13 +100,13 @@ class QrScanService {
       final cleanInvoice = trimmedStr.startsWith('lightning:')
           ? trimmedStr.replaceFirst('lightning:', '')
           : trimmedStr;
-      ecashController.payToLightning(input: cleanInvoice);
+      ecashController.dialogToPayInvoice(input: cleanInvoice);
       return;
     }
 
     // Handle LNURL and email addresses
     if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
-      await Get.find<EcashController>().payToLightning(
+      await Get.find<EcashController>().dialogToPayInvoice(
         input: trimmedStr,
         isPay: true,
       );
@@ -128,7 +127,7 @@ class QrScanService {
       );
       return;
     }
-    if (str.startsWith(NwcUtils.nwcPrefix)) {
+    if (str.startsWith(KeychatGlobal.nwcPrefix)) {
       await Utils.getOrPutGetxController(
         create: NwcController.new,
       ).addConnection(str);
@@ -179,7 +178,7 @@ class QrScanService {
       final decoded = bip21.decode(str);
       final lightningInvoice = decoded.lightningInvoice;
       if (lightningInvoice != null && lightningInvoice.isNotEmpty) {
-        await ecashController.payToLightning(input: lightningInvoice);
+        await ecashController.dialogToPayInvoice(input: lightningInvoice);
         return;
       }
     } catch (e) {

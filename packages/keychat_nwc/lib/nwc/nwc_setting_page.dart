@@ -186,8 +186,8 @@ class NwcSettingPage extends GetView<NwcController> {
     );
   }
 
-  void _showDeleteDialog() {
-    Get.dialog(
+  Future<void> _showDeleteDialog() async {
+    final confirmed = await Get.dialog<bool>(
       CupertinoAlertDialog(
         title: const Text('Delete Connection?'),
         content: const Text(
@@ -197,22 +197,23 @@ class NwcSettingPage extends GetView<NwcController> {
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () {
-              Get.back<void>();
+              Get.back<bool>(result: false);
             },
             child: const Text('Cancel'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              await controller.deleteConnection(connection.info.uri);
-              Get.back<void>(); // Close dialog
-              Get.back<void>(); // Close settings page
+              Get.back<bool>(result: true); // Close settings page
             },
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+    if (!(confirmed ?? false)) return;
+    await controller.deleteConnection(connection.info.uri);
+    Get.back<bool>(result: true);
   }
 
   List<Widget> _buildInfoSection(BuildContext context, GetInfoResponse info) {

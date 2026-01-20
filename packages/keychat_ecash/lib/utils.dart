@@ -9,6 +9,7 @@ import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:ndk/ndk.dart' show MakeInvoiceResponse;
@@ -126,6 +127,9 @@ class EcashUtils {
                       try {
                         EasyLoading.show(status: 'Processing');
                         await ec.addMintUrl(decoded.mint);
+                        await Utils.getOrPutGetxController(
+                          create: UnifiedWalletController.new,
+                        ).loadAllWallets();
                       } catch (e, s) {
                         final msg = Utils.getErrorMessage(e);
                         logger.e(msg, error: e, stackTrace: s);

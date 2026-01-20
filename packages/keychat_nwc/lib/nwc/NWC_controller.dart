@@ -17,6 +17,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
 import 'package:ndk/ndk.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:easy_debounce/easy_throttle.dart';
 
 class NwcController extends GetxController {
   late Ndk ndk;
@@ -86,7 +87,7 @@ class NwcController extends GetxController {
       }
       refreshList();
       // Fetch balances in background
-      await refreshBalances();
+      await refreshNwcBalances();
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -128,7 +129,9 @@ class NwcController extends GetxController {
     logger.i('Loaded ${activeConnections.length} NWC connections');
   }
 
-  Future<void> refreshBalances([List<ActiveNwcConnection>? connections]) async {
+  Future<void> refreshNwcBalances([
+    List<ActiveNwcConnection>? connections,
+  ]) async {
     isLoading.value = true;
     try {
       for (final connection in connections ?? activeConnections) {
@@ -137,10 +140,51 @@ class NwcController extends GetxController {
           activeConnections.refresh(); // Update UI for this specific connection
         } catch (e) {
           logger.e('Error refreshing balance for ${connection.info.uri}: $e');
+          EasyThrottle.throttle(
+              'refreshNwcBalances', const Duration(seconds: 5), () async {
+            // Check if error is permission-related
+            if (e.toString().toLowerCase().contains('not in permissions')) {
+              await _handlePermissionError(connection.info.uri, e.toString());
+            }
+          });
         }
       }
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _handlePermissionError(String uri, String errorMessage) async {
+    final shouldReconnect = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Connection Disconnected'),
+        content: const Text(
+          'The NWC connection has been disconnected. '
+          'Would you like to reconnect?',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Get.back(result: true),
+            child: const Text('Reconnect'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+
+    if (shouldReconnect ?? false) {
+      try {
+        await reloadConnections();
+      } catch (e) {
+        logger.e('Error handling permission reconnection: $e');
+        EasyLoading.showError('Failed to remove connection');
+      }
     }
   }
 

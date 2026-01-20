@@ -151,7 +151,86 @@ class _MintServerPageState extends State<MintServerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(mintInfo?.name ?? widget.server.mint)),
+      appBar: AppBar(
+        title: Text(mintInfo?.name ?? widget.server.mint),
+        actions: [
+          MenuAnchor(
+            builder: (
+              BuildContext context,
+              MenuController controller,
+              Widget? child,
+            ) {
+              return IconButton(
+                onPressed: () {
+                  if (controller.isOpen) {
+                    controller.close();
+                  } else {
+                    controller.open();
+                  }
+                },
+                icon: const Icon(Icons.more_vert),
+              );
+            },
+            menuChildren: <Widget>[
+              MenuItemButton(
+                onPressed: () {
+                  Clipboard.setData(
+                    ClipboardData(text: widget.server.mint),
+                  );
+                  EasyLoading.showToast('Copied');
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.copy, size: 20),
+                    SizedBox(width: 12),
+                    Text('Copy Mint URL'),
+                  ],
+                ),
+              ),
+              MenuItemButton(
+                onPressed: () async {
+                  try {
+                    final ec = Get.find<EcashController>();
+                    if (ec.mintBalances.length == 1) {
+                      EasyLoading.showError("Can't delete the last mint");
+                      return;
+                    }
+                    EasyLoading.show(status: 'Processing');
+
+                    final balance = ec.getBalanceByMint(widget.server.mint);
+                    if (balance > 0) {
+                      EasyLoading.showError('Please withdraw first');
+                      return;
+                    }
+                    if (balance == 0) {
+                      await rust_cashu.removeMint(url: widget.server.mint);
+                    }
+                    await EasyLoading.showToast('Successfully');
+                    Get.back(
+                      result: true,
+                      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+                    );
+                  } catch (e, s) {
+                    final msg = Utils.getErrorMessage(e);
+                    logger.e(e.toString(), error: e, stackTrace: s);
+                    await EasyLoading.showError(msg);
+                  }
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.delete, color: Colors.red, size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      'Delete Mint',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -248,8 +327,6 @@ class _MintServerPageState extends State<MintServerPage> {
                       // NUTS section
                       if (mintInfo?.nuts != null && mintInfo!.nuts!.isNotEmpty)
                         _buildNutsSection(),
-
-                      deleteSection(),
                     ],
                   ),
                 ),
@@ -386,43 +463,5 @@ class _MintServerPageState extends State<MintServerPage> {
     }
 
     return buffer.toString();
-  }
-
-  SettingsSection deleteSection() {
-    return SettingsSection(
-      tiles: [
-        SettingsTile(
-          title: const Text('Delete Mint', style: TextStyle(color: Colors.red)),
-          onPressed: (context) async {
-            try {
-              final ec = Get.find<EcashController>();
-              if (ec.mintBalances.length == 1) {
-                EasyLoading.showError("Can't delete the last mint");
-                return;
-              }
-              EasyLoading.show(status: 'Processing');
-
-              final balance = ec.getBalanceByMint(widget.server.mint);
-              if (balance > 0) {
-                EasyLoading.showError('Please withdraw first');
-                return;
-              }
-              if (balance == 0) {
-                await rust_cashu.removeMint(url: widget.server.mint);
-              }
-              await ec.getBalance();
-              EasyLoading.showToast('Successfully');
-              Get.back(id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
-            } catch (e, s) {
-              EasyLoading.dismiss();
-              final msg = Utils.getErrorMessage(e);
-
-              logger.e(e.toString(), error: e, stackTrace: s);
-              EasyLoading.showError(msg);
-            }
-          },
-        ),
-      ],
-    );
   }
 }

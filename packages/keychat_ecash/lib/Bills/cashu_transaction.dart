@@ -126,6 +126,19 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                   direction: Axis.vertical,
                   spacing: 16,
                   children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(CupertinoIcons.doc_on_doc),
+                      style: ButtonStyle(
+                        minimumSize: WidgetStateProperty.all(
+                          Size(maxWidth, 48),
+                        ),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: tx.token));
+                        EasyLoading.showToast('Copied to clipboard');
+                      },
+                      label: const Text('Copy Token'),
+                    ),
                     if (tx.status != TransactionStatus.success)
                       OutlinedButton(
                         style: ButtonStyle(

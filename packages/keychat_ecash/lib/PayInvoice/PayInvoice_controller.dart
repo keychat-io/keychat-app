@@ -131,7 +131,7 @@ class PayInvoiceController extends GetxController {
       textController.clear();
 
       // Refresh NWC balance
-      await nwcController.refreshBalances([active]);
+      await nwcController.refreshNwcBalances([active]);
 
       final tx = NwcWalletTransaction(
         transaction: TransactionResult(

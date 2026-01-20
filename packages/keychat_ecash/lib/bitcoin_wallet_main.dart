@@ -735,37 +735,37 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
 
   /// Add wallet card
   Widget _buildAddCard(BuildContext context) {
-    return Builder(
-      builder: (BuildContext context) {
-        return Container(
-          width: MediaQuery.of(context).size.width / 2,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.onSurface.withAlpha(10),
-                Theme.of(context).colorScheme.onSurface.withAlpha(40),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(CupertinoIcons.add_circled, size: 48),
-                onPressed: () => _showAddWalletDialog(context),
-              ),
-              Text(
-                'Add Wallet',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+    return GestureDetector(
+      child: Container(
+        width: MediaQuery.of(context).size.width / 2,
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.onSurface.withAlpha(10),
+              Theme.of(context).colorScheme.onSurface.withAlpha(40),
             ],
           ),
-        );
-      },
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(CupertinoIcons.add_circled, size: 48),
+              onPressed: () => _showAddWalletDialog(context),
+            ),
+            Text(
+              'Add Wallet',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            textSmallGray(context, 'Supports Cashu or NWC wallets'),
+          ],
+        ),
+      ),
+      onTap: () => _showAddWalletDialog(context),
     );
   }
 
@@ -1048,17 +1048,21 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
   }
 
   /// Handle wallet card tap - navigate to wallet details
-  void _onWalletCardTap(WalletBase wallet) {
+  Future<void> _onWalletCardTap(WalletBase wallet) async {
+    bool? deleted;
     if (wallet is CashuWallet) {
-      Get.to<void>(
+      deleted = await Get.to<bool>(
         () => MintServerPage(wallet.rawData),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     } else if (wallet is NwcWallet) {
-      Get.to<void>(
+      deleted = await Get.to<bool>(
         () => NwcSettingPage(connection: wallet.rawData),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
+    }
+    if (deleted ?? false) {
+      await controller.refreshAll();
     }
   }
 

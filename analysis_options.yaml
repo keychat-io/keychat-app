@@ -11,7 +11,7 @@ include: package:very_good_analysis/analysis_options.yaml
 analyzer:
   errors:
     # invalid_annotation_target: warning
-    argument_type_not_assignable: warning
+    # argument_type_not_assignable: warning
     unnecessary_statements: error
   exclude: [
       packages/**/*.g.dart

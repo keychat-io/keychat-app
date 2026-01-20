@@ -352,7 +352,7 @@ class Room extends Equatable {
       // await database.roomMembers.filter().roomIdEqualTo(id).deleteAll();
       for (final user in list) {
         user['roomId'] = id;
-        final rm = RoomMember.fromJson(user);
+        final rm = RoomMember.fromJson(user as Map<String, dynamic>);
         final exist = await database.roomMembers
             .filter()
             .roomIdEqualTo(id)
@@ -392,7 +392,7 @@ class Room extends Equatable {
         rm = user;
       } else {
         user['roomId'] = id;
-        rm = RoomMember.fromJson(user);
+        rm = RoomMember.fromJson(user as Map<String, dynamic>);
       }
       final exist = await database.roomMembers
           .filter()
@@ -591,7 +591,8 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
     try {
       final Map config = jsonDecode(botLocalConfig!) as Map<String, dynamic>;
       bmd = BotMessageData.fromJson(
-        config[MessageMediaType.botPricePerMessageRequest.name],
+        config[MessageMediaType.botPricePerMessageRequest.name]
+            as Map<String, dynamic>,
       );
     } catch (e) {
       return null;

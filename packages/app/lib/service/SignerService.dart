@@ -140,7 +140,7 @@ class SignerService {
       );
       final randomSecp256k1 = await rust_nostr.generateSecp256K1();
       final encrypteSecondRes = await rust_nostr.encryptNip44(
-        content: res['event'],
+        content: res['event'] as String,
         senderKeys: randomSecp256k1.prikey,
         receiverPubkey: to,
       );
@@ -204,24 +204,24 @@ class SignerService {
         pubKey: event.pubkey,
         id: event.id,
       );
-      final subEvent = jsonDecode(res['signature']);
+      final subEvent = jsonDecode(res['signature'] as String);
       final res2 = await SignerService.instance.amber.nip44Decrypt(
-        ciphertext: subEvent['content'],
+        ciphertext: subEvent['content'] as String,
         currentUser: to,
-        pubKey: subEvent['pubkey'],
-        id: subEvent['id'],
+        pubKey: subEvent['pubkey'] as String,
+        id: subEvent['id'] as String,
       );
-      final plainEvent = jsonDecode(res2['signature']);
+      final plainEvent = jsonDecode(res2['signature'] as String);
       final tags = (plainEvent['tags'] as List)
           .map((e) => (e as List).map((e2) => e2.toString()).toList())
           .toList();
       final resEvent = NostrEventModel(
-        plainEvent['id'],
-        plainEvent['pubkey'],
-        plainEvent['created_at'].toInt(),
-        plainEvent['kind'].toInt(),
+        plainEvent['id'] as String,
+        plainEvent['pubkey'] as String,
+        plainEvent['created_at'] as int,
+        plainEvent['kind'] as int,
         tags,
-        plainEvent['content'],
+        plainEvent['content'] as String,
         '',
         verify: false,
       );

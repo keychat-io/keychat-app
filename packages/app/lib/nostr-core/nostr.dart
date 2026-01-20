@@ -113,7 +113,7 @@ class NostrAPI {
   }
 
   Future<void> _proccessEOSE(Relay relay, List res) async {
-    subscriptionIdEose.add(res[1]);
+    subscriptionIdEose.add(res[1] as String);
     final key = '${StorageKeyString.lastMessageAt}:${relay.url}';
     final lastMessageAt = Storage.getIntOrZero(key);
     if (lastMessageAt == 0) return;
@@ -280,7 +280,7 @@ class NostrAPI {
       );
     }
     final event = NostrEventModel.fromJson(
-      jsonDecode(encryptedEvent),
+      jsonDecode(encryptedEvent) as Map<String, dynamic>,
       verify: false,
     );
 
@@ -380,7 +380,7 @@ class NostrAPI {
     String? realMessage,
   }) async {
     final event = NostrEventModel.fromJson(
-      jsonDecode(encryptedEvent),
+      jsonDecode(encryptedEvent) as Map<String, dynamic>,
       verify: false,
     );
     final relays = await Get.find<WebsocketService>().writeNostrEvent(

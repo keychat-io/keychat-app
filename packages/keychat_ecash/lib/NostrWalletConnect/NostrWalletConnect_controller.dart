@@ -59,12 +59,12 @@ class NostrWalletConnectController extends GetxController {
     loggerNoLine.d('initNostrConnectWallet: $map');
     if (loadFromCache && map.keys.isNotEmpty) {
       client.value = Secp256k1SimpleAccount(
-        pubkey: map['client']['pubkey'],
-        prikey: map['client']['prikey'],
+        pubkey: map['client']['pubkey'] as String,
+        prikey: map['client']['prikey'] as String,
       );
       service.value = Secp256k1SimpleAccount(
-        pubkey: map['service']['pubkey'],
-        prikey: map['service']['prikey'],
+        pubkey: map['service']['pubkey'] as String,
+        prikey: map['service']['prikey'] as String,
       );
       featureStatus.value = map['status'] == 1;
       subscribeSuccessRelays.clear();

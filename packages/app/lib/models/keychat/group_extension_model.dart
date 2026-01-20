@@ -11,11 +11,11 @@ class GroupExtension {
 
   factory GroupExtension.fromMap(Map<String, dynamic> map) {
     return GroupExtension(
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      admins: List<String>.from(map['admins'] ?? []),
-      relays: List<String>.from(map['relays'] ?? []),
-      status: map['status'] ?? RoomStatus.enabled,
+      name: map['name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      admins: List<String>.from(map['admins'] as List<dynamic>? ?? []),
+      relays: List<String>.from(map['relays'] as List<dynamic>? ?? []),
+      status: map['status'] as String? ?? RoomStatus.enabled.name,
     );
   }
   final String name;

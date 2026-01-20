@@ -51,9 +51,9 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     for (var i = 0; i < users.length; i++) {
       final contact = users[i];
       if (contact['isCheck'] == true) {
-        selectAccounts[contact['pubkey']] = contact['name'] as String;
+        selectAccounts[contact['pubkey'] as String] = contact['name'] as String;
         selectUsers.add(contact);
-        selectedMessages.add(contact['message']);
+        selectedMessages.add(contact['message'] as Message);
       }
     }
 
@@ -94,8 +94,12 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     for (var i = 0; i < widget.messages.length; i++) {
       try {
         final message = widget.messages[i];
-        final km = KeychatMessage.fromJson(jsonDecode(message.content));
-        final gir = GroupInvitationRequestModel.fromJson(jsonDecode(km.name!));
+        final km = KeychatMessage.fromJson(
+          jsonDecode(message.content) as Map<String, dynamic>,
+        );
+        final gir = GroupInvitationRequestModel.fromJson(
+          jsonDecode(km.name!) as Map<String, dynamic>,
+        );
         final npub = rust_nostr.getBech32PubkeyByHex(hex: gir.myPubkey);
         contacts.add({
           'pubkey': gir.myPubkey,
@@ -154,16 +158,19 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
           itemBuilder: (context, index) {
             final user = users[index];
             return ListTile(
-              leading: Utils.getRandomAvatar(user['pubkey']),
+              leading: Utils.getRandomAvatar(user['pubkey'] as String),
               title: Text(
-                user['name'],
+                user['name'] as String,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               dense: true,
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                  Text(
+                    user['npubkey'] as String,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (widget.room.groupType == GroupType.mls &&
                       user['mlsPK'] == null)
                     Text(
@@ -179,7 +186,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
               trailing: (user['isAdmin'] == true || user['exist'] == true
                   ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
                   : Checkbox(
-                      value: user['isCheck'],
+                      value: user['isCheck'] as bool? ?? false,
                       onChanged:
                           widget.room.groupType == GroupType.mls &&
                               user['mlsPK'] == null

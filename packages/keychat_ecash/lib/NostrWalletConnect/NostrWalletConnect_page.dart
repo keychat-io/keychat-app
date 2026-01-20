@@ -52,7 +52,8 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                   ? Wrap(
                       direction: Axis.vertical,
                       children: controller.subscribeAndOnlineRelays
-                          .map((value) => textSmallGray(context, value))
+                          .map((value) =>
+                              textSmallGray(context, value as String))
                           .toList(),
                     )
                   : (controller.featureStatus.value

@@ -83,7 +83,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
         items: _files.map((file) {
           return Builder(
             builder: (BuildContext context) {
-              return _getStackWidget(file);
+              return _getStackWidget(file as File);
             },
           );
         }).toList(),
@@ -138,9 +138,9 @@ class _NewPageState extends State<SlidesImageViewWidget> {
 
                   SharePlus.instance.share(
                     ShareParams(
-                      files: [XFile(_files[_currentIndex].path)],
+                      files: [XFile((_files[_currentIndex] as File).path)],
                       subject: FileService.instance.getDisplayFileName(
-                        _files[_currentIndex].path,
+                        (_files[_currentIndex] as File).path,
                       ),
                       sharePositionOrigin:
                           box!.localToGlobal(Offset.zero) & box.size,

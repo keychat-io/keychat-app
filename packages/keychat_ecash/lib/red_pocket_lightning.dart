@@ -162,9 +162,8 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
     if (_cashuInfoModel.mint.startsWith(NwcUtils.nwcPrefix)) {
       final nwcController =
           Utils.getOrPutGetxController(create: NwcController.new);
-      await nwcController.waitForLoading();
       final res = await nwcController.lookupInvoice(
-        _cashuInfoModel.mint,
+        uri: _cashuInfoModel.mint,
         invoice: _cashuInfoModel.token,
       );
       if (res != null) {

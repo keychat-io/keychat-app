@@ -20,7 +20,7 @@ import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_ecash/wallet_selection_storage.dart';
+import 'package:keychat_ecash/wallet_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat/utils.dart';
@@ -81,7 +81,7 @@ class EcashController extends GetxController {
   }
 
   Future<WalletBase> initSelectedWallet() async {
-    final wallet = await WalletSelectionStorage.loadWallet();
+    final wallet = await WalletStorage.loadWallet();
     selectedWallet.value = wallet;
     return wallet;
   }
@@ -120,7 +120,7 @@ class EcashController extends GetxController {
       latestMintUrl.value = wallet.id;
     }
     selectedWallet.value = wallet;
-    await WalletSelectionStorage.saveWallet(wallet);
+    await WalletStorage.saveWallet(wallet);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -145,7 +145,8 @@ class EcashController extends GetxController {
 
     var unitPrice = 0;
     for (final price in fuc.prices) {
-      if (fileSize >= price['min'] && fileSize <= price['max']) {
+      if (fileSize >= (price['min'] as int) &&
+          fileSize <= (price['max'] as int)) {
         unitPrice = price['price'] as int? ?? 0;
         break;
       }
@@ -282,7 +283,11 @@ class EcashController extends GetxController {
           existLatestMint = true;
         }
         localMints.add(
-          MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]),
+          MintBalanceClass(
+            item,
+            EcashTokenSymbol.sat.name,
+            resMap[item] as int,
+          ),
         );
         total += resMap[item] as int;
       }
@@ -616,8 +621,7 @@ class EcashController extends GetxController {
 
     // Handle NWC invoice result
     if (tx.rawData is TransactionResult) {
-      final nwcUri =
-          tx.walletId ?? (await WalletSelectionStorage.loadWallet()).id;
+      final nwcUri = tx.walletId ?? (await WalletStorage.loadWallet()).id;
       await Get.to(
         () => NwcTransactionPage(
           transaction: tx.rawData as TransactionResult,

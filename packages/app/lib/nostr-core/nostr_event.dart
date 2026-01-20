@@ -117,13 +117,13 @@ class NostrEventModel {
         .map((e) => (e as List<dynamic>).map((e) => e as String).toList())
         .toList();
     return NostrEventModel(
-      json['id'],
-      json['pubkey'],
-      json['created_at'],
-      json['kind'],
+      json['id'] as String,
+      json['pubkey'] as String,
+      json['created_at'] as int,
+      json['kind'] as int,
       tags,
-      json['content'],
-      json['sig'],
+      json['content'] as String,
+      json['sig'] as String,
       verify: verify,
     )..toIdPubkey = json['toIdPubkey'] as String?;
   }
@@ -168,13 +168,13 @@ class NostrEventModel {
         .toList();
 
     return NostrEventModel(
-      json['id'],
-      json['pubkey'],
-      json['created_at'],
-      json['kind'],
+      json['id'] as String,
+      json['pubkey'] as String,
+      json['created_at'] as int,
+      json['kind'] as int,
       tags,
-      json['content'],
-      json['sig'],
+      json['content'] as String,
+      json['sig'] as String,
       subscriptionId: subscriptionId,
       verify: verify,
     );

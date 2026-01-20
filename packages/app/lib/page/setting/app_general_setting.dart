@@ -183,8 +183,10 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                           children: hc.defaultTabConfig.entries
                               .map(
                                 (entry) => ListTile(
-                                  leading: Radio<int>(value: entry.value),
-                                  title: Text(entry.key),
+                                  leading: Radio<int>(
+                                    value: entry.value as int,
+                                  ),
+                                  title: Text(entry.key as String),
                                 ),
                               )
                               .toList(),

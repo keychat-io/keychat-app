@@ -489,16 +489,8 @@ class _ChatPage2State extends State<ChatPage> {
 
                           buttonItems.add(
                             ContextMenuButtonItem(
-                              onPressed: () {
-                                controller.handlePasteboard().catchError((
-                                  error,
-                                  stackTrace,
-                                ) {
-                                  loggerNoLine.e(
-                                    'Error pasting clipboard content: $error',
-                                    stackTrace: stackTrace,
-                                  );
-                                });
+                              onPressed: () async {
+                                await controller.handlePasteboard();
                                 editableTextState.hideToolbar();
                               },
                               type: ContextMenuButtonType.paste,
@@ -643,18 +635,18 @@ class _ChatPage2State extends State<ChatPage> {
                     tiles: controller.botCommands
                         .map(
                           (element) => SettingsTile(
-                            title: Text(element['name']),
+                            title: Text(element['name'] as String),
                             value: Flexible(
                               child: textSmallGray(
                                 context,
-                                element['description'],
+                                element['description'] as String,
                                 overflow: TextOverflow.clip,
                               ),
                             ),
                             onPressed: (context) async {
                               RoomService.instance.sendMessage(
                                 controller.roomObs.value,
-                                element['name'],
+                                element['name'] as String,
                               );
                               Get.back<void>();
                             },
@@ -667,7 +659,9 @@ class _ChatPage2State extends State<ChatPage> {
                       title: const Text('Selected Local Config'),
                       tiles: [
                         SettingsTile(
-                          title: Text(botPricePerMessageRequest['name']),
+                          title: Text(
+                            botPricePerMessageRequest['name'] as String,
+                          ),
                           trailing: Text(
                             '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message',
                           ),

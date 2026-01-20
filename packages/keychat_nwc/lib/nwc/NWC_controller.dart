@@ -324,6 +324,29 @@ class NwcController extends GetxController {
     }
   }
 
+  Future<LookupInvoiceResponse?> lookupInvoice({
+    required String uri,
+    String? invoice,
+    String? paymentHash,
+  }) async {
+    try {
+      final active = _activeConnections[uri];
+      if (active == null) {
+        throw Exception('NWC Connection not found: $uri');
+      }
+
+      await waitForLoading();
+      return await ndk.nwc.lookupInvoice(
+        active.connection,
+        invoice: invoice,
+        paymentHash: paymentHash,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to lookup invoice: $e');
+      return null;
+    }
+  }
+
   TransactionStatus getTransactionStatus(TransactionResult transaction) {
     if (transaction.preimage != null && transaction.preimage!.isNotEmpty) {
       return TransactionStatus.success;

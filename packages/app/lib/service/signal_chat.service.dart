@@ -333,7 +333,9 @@ class SignalChatService extends BaseChatService {
       return;
     }
 
-    final model = QRUserModel.fromJson(jsonDecode(keychatMessage.name!));
+    final model = QRUserModel.fromJson(
+      jsonDecode(keychatMessage.name!) as Map<String, dynamic>,
+    );
     if (room.version > model.time) {
       logger.e("The message's version is too old, skip");
       if (failedCallback != null) {
@@ -561,7 +563,7 @@ ${relays.join('\n')}
     );
     final decryptedContent = utf8.decode(plaintext);
     final prekeyMessageModel = PrekeyMessageModel.fromJson(
-      jsonDecode(decryptedContent),
+      jsonDecode(decryptedContent) as Map<String, dynamic>,
     );
     logger.i(
       'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash',
@@ -612,7 +614,9 @@ ${relays.join('\n')}
 
     KeychatMessage? km;
     try {
-      km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+      km = KeychatMessage.fromJson(
+        jsonDecode(prekeyMessageModel.message) as Map<String, dynamic>,
+      );
       // ignore: empty_catches
     } catch (e) {}
     if (km != null) {

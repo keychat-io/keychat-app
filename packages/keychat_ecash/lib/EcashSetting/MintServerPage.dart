@@ -32,21 +32,21 @@ class MintInfo {
     List<MintContactInfo>? contactList;
     if (json['contact'] != null) {
       contactList = (json['contact'] as List)
-          .map((item) => MintContactInfo.fromJson(item))
+          .map((item) => MintContactInfo.fromJson(item as Map<String, dynamic>))
           .toList();
     }
 
     return MintInfo(
-      name: json['name'],
-      pubkey: json['pubkey'],
-      version: json['version'],
-      description: json['description'],
-      descriptionLong: json['description_long'],
+      name: json['name'] as String?,
+      pubkey: json['pubkey'] as String?,
+      version: json['version'] as String?,
+      description: json['description'] as String?,
+      descriptionLong: json['description_long'] as String?,
       contact: contactList,
-      motd: json['motd'],
-      iconUrl: json['icon_url'],
-      time: json['time'],
-      nuts: json['nuts'],
+      motd: json['motd'] as String?,
+      iconUrl: json['icon_url'] as String?,
+      time: json['time'] as int?,
+      nuts: json['nuts'] as Map<String, dynamic>?,
     );
   }
   final String? name;
@@ -66,8 +66,8 @@ class MintContactInfo {
 
   factory MintContactInfo.fromJson(Map<String, dynamic> json) {
     return MintContactInfo(
-      method: json['method'],
-      info: json['info'],
+      method: json['method'] as String,
+      info: json['info'] as String,
     );
   }
   final String method;
@@ -112,14 +112,14 @@ class _MintServerPageState extends State<MintServerPage> {
         logger.d('Mint info: $data');
         MintInfo? info;
         try {
-          info = MintInfo.fromJson(data);
+          info = MintInfo.fromJson(data as Map<String, dynamic>);
           if (info.nuts != null) {
             info.nuts!.forEach((key, value) {
               if (key == '4') {
                 if (value['disabled'] == false) {
                   for (final item in (value['methods'] as Iterable)) {
                     if (item['unit'] != null && item['description'] == true) {
-                      currency.add(item['unit']);
+                      currency.add(item['unit'] as String);
                     }
                   }
                 }

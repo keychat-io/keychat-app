@@ -19,12 +19,27 @@ import 'package:get/get.dart';
 class WalletStorage {
   static const String _secureKey = 'secure_ecash_wallet_selection';
 
-  /// Load wallet selection
+  /// Load the user's previously selected wallet from secure storage.
+  ///
+  /// Returns the last wallet the user selected, or a default Cashu wallet
+  /// if no previous selection exists. The wallet is reconstructed by:
+  /// 1. Reading the wallet ID from secure storage
+  /// 2. Determining the wallet type (Cashu or NWC) from the ID format
+  /// 3. Looking up the wallet details in the appropriate controller
+  /// 4. Creating a CashuWallet or NwcWallet instance
+  ///
+  /// Fallback behavior:
+  /// - If no saved selection: returns first wallet with non-zero balance
+  /// - If no wallets have balance: returns default wallet for latest mint
+  /// - If saved wallet no longer exists: returns default wallet
   static Future<WalletBase> loadWallet() async {
     return _loadWallet(_secureKey);
   }
 
-  /// Save wallet selection
+  /// Save the user's wallet selection to secure storage.
+  ///
+  /// Only the wallet ID is persisted; the full wallet object is reconstructed
+  /// on load by querying the appropriate controller.
   static Future<void> saveWallet(WalletBase wallet) async {
     await _saveWallet(_secureKey, wallet);
   }

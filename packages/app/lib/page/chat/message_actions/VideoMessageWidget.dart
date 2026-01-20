@@ -31,7 +31,9 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     super.initState();
     appFolder = Utils.appFolder.path;
     try {
-      final mfi = MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
+      final mfi = MsgFileInfo.fromJson(
+        jsonDecode(widget.message.realMessage!) as Map<String, dynamic>,
+      );
       _init(mfi);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);

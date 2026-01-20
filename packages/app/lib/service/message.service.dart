@@ -596,7 +596,9 @@ $content'''
     try {
       late CashuInfoModel cim;
       if (model.isMeSend && model.realMessage != null) {
-        cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
+        cim = CashuInfoModel.fromJson(
+          jsonDecode(model.realMessage!) as Map<String, dynamic>,
+        );
       } else {
         cim = await RustAPI.decodeToken(encodedToken: model.content);
         cim.id = null; // local id
@@ -613,7 +615,9 @@ $content'''
     try {
       late CashuInfoModel cim;
       if (model.isMeSend && model.realMessage != null) {
-        cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
+        cim = CashuInfoModel.fromJson(
+          jsonDecode(model.realMessage!) as Map<String, dynamic>,
+        );
       } else {
         var invoice = model.content;
         if (invoice.startsWith('lightning:')) {

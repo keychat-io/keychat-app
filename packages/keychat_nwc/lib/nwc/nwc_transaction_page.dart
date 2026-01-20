@@ -67,8 +67,9 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
       if (!silent) EasyLoading.show(status: 'Checking...');
       final controller = Get.find<NwcController>();
       final lookup = await controller.lookupInvoice(
-        widget.nwcUri,
+        uri: widget.nwcUri,
         invoice: widget.transaction.invoice,
+        paymentHash: widget.transaction.paymentHash,
       );
       if (lookup != null && lookup.preimage.isNotEmpty) {
         if (mounted) {

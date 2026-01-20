@@ -1075,8 +1075,8 @@ class _WebviewTabState extends State<WebviewTab> {
         await Future.delayed(const Duration(milliseconds: 500));
 
         await tabController.inAppWebViewController!.scrollTo(
-          x: savedPosition['scrollX'] ?? 0,
-          y: savedPosition['scrollY'] ?? 0,
+          x: (savedPosition['scrollX'] as int?) ?? 0,
+          y: (savedPosition['scrollY'] as int?) ?? 0,
         );
       } catch (e) {
         logger.e('Failed to restore scroll position: $e');
@@ -1300,7 +1300,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'blobFileDownload') {
-      _downloadBlob(data[1], data[2]);
+      _downloadBlob(data[1] as String, data[2] as String);
       return null;
     }
 
@@ -1330,8 +1330,9 @@ class _WebviewTabState extends State<WebviewTab> {
                 kind: event['kind'] as int,
                 tags: (event['tags'] as List)
                     .map(
-                      (e) =>
-                          List<String>.from(e.map((item) => item.toString())),
+                      (e) => List<String>.from(
+                        (e as List).map((item) => item.toString()),
+                      ),
                     )
                     .toList(),
               ),
@@ -1350,7 +1351,11 @@ class _WebviewTabState extends State<WebviewTab> {
           createdAt: event['created_at'] as int,
           kind: event['kind'] as int,
           tags: (event['tags'] as List)
-              .map((e) => List<String>.from(e.map((item) => item.toString())))
+              .map(
+                (e) => List<String>.from(
+                  (e as List).map((item) => item.toString()),
+                ),
+              )
               .toList(),
         );
 
@@ -1371,7 +1376,9 @@ class _WebviewTabState extends State<WebviewTab> {
           receiverPubkey: to,
           content: plaintext,
         );
-        final model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
+        final model = NostrEventModel.fromJson(
+          jsonDecode(encryptedEvent) as Map<String, dynamic>,
+        );
         return model.content;
       case 'nip04Decrypt':
         final from = data[1] as String;

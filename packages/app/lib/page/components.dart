@@ -157,8 +157,8 @@ void showModalBottomSheetKeyChatFetures(BuildContext context) {
     ws.add(
       ListTile(
         leading: CircleAvatar(child: Text((i + 1).toString())),
-        title: Text(futuresTitle[i]),
-        subtitle: Text(futuresSubtitle[i]),
+        title: Text(futuresTitle[i] as String),
+        subtitle: Text(futuresSubtitle[i] as String),
       ),
     );
   }

@@ -48,7 +48,7 @@ class MlsGroupService extends BaseChatService {
     final userNameMap = <String, String>{};
     final keyPackages = <String>[];
     for (final user in toUsers) {
-      userNameMap[user['pubkey']] = user['name'] as String;
+      userNameMap[user['pubkey'] as String] = user['name'] as String;
       final pk = user['mlsPK'] as String?;
       if (pk != null) {
         final valid = await checkPkIsValid(groupRoom, pk);
@@ -153,7 +153,7 @@ class MlsGroupService extends BaseChatService {
 
     final result = <String, String>{};
     for (final user in toUsers) {
-      result[user['pubkey']] = user['name'] as String;
+      result[user['pubkey'] as String] = user['name'] as String;
     }
 
     await _sendInviteMessage(

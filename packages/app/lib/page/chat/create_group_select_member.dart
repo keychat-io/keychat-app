@@ -63,7 +63,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
-        pubkeys.add(contact['pubkey']);
+        pubkeys.add(contact['pubkey'] as String);
       }
     }
     final result = await MlsGroupService.instance.getKeyPackagesFromRelay(
@@ -189,7 +189,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     }
     if (groupType == GroupType.sendAll) {
       return Checkbox(
-        value: user['isCheck'],
+        value: user['isCheck'] as bool? ?? false,
         onChanged: (isCheck) {
           user['isCheck'] = isCheck;
           setState(() {});
@@ -220,7 +220,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     }
     // user['mlsPK'] = snapshot.data;
     return Checkbox(
-      value: user['isCheck'],
+      value: user['isCheck'] as bool? ?? false,
       onChanged: (isCheck) {
         user['isCheck'] = isCheck;
         setState(() {});

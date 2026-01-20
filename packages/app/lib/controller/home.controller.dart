@@ -290,7 +290,7 @@ class HomeController extends GetxController
         ),
       );
       if (response.statusCode == 200) {
-        config = jsonDecode(response.data) as Map<String, dynamic>;
+        config = jsonDecode(response.data as String) as Map<String, dynamic>;
       } else {}
     } catch (e) {
       logger.e('Failed to get config: $url - ${(e as DioException).message}');
@@ -301,12 +301,12 @@ class HomeController extends GetxController
     final recommendUrls = config['browserRecommend'] as List;
     recommendWebstore.value = recommendUrls
         .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-          final categories = List<String>.from(item['categories']);
+          final categories = List<String>.from(item['categories'] as Iterable);
           for (final type in categories) {
             if (acc[type] == null) {
               acc[type] = [];
             }
-            acc[type]!.add(item);
+            acc[type]!.add(item as Map<String, dynamic>);
           }
           return acc;
         });

@@ -549,7 +549,9 @@ class RoomService extends BaseChatService {
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
         try {
-          reply = MsgReply.fromJson(jsonDecode(km.name!));
+          reply = MsgReply.fromJson(
+            jsonDecode(km.name!) as Map<String, dynamic>,
+          );
           if (km.msg != null) {
             content = km.msg!;
           }
@@ -686,7 +688,9 @@ class RoomService extends BaseChatService {
   }) async {
     BotClientMessageModel? cmm;
     try {
-      cmm = BotClientMessageModel.fromJson(jsonDecode(message));
+      cmm = BotClientMessageModel.fromJson(
+        jsonDecode(message) as Map<String, dynamic>,
+      );
       // ignore: empty_catches
     } catch (e) {}
     if (cmm == null) {

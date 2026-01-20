@@ -275,7 +275,9 @@ class GroupService extends BaseChatService {
         }
       case KeyChatEventKinds.dm:
         if (ext != null) {
-          toSaveMsg.reply = MsgReply.fromJson(jsonDecode(ext));
+          toSaveMsg.reply = MsgReply.fromJson(
+            jsonDecode(ext) as Map<String, dynamic>,
+          );
         }
       default:
     }
@@ -330,7 +332,7 @@ class GroupService extends BaseChatService {
               encryptType: MessageEncryptType.nip17,
               sent: SendStatusType.success,
               content: roomProfile.toString(),
-              realMessage: groupInviteMsg[0],
+              realMessage: groupInviteMsg[0] as String,
               persist: false,
             );
           } catch (e, s) {
@@ -365,7 +367,7 @@ class GroupService extends BaseChatService {
         mediaType: MessageMediaType.groupInvite,
         requestConfrim: RequestConfrimEnum.request,
         content: roomProfile.toString(),
-        realMessage: groupInviteMsg[0],
+        realMessage: groupInviteMsg[0] as String,
       );
       return;
     }
@@ -408,7 +410,7 @@ class GroupService extends BaseChatService {
           ? MessageEncryptType.signal
           : MessageEncryptType.nip17,
       isSystem: true,
-      content: groupInviteMsg[0],
+      content: groupInviteMsg[0] as String,
       createdAt: timestampToDateTime(event.createdAt),
       rawEvents: [event.toString()],
     );
@@ -427,7 +429,9 @@ class GroupService extends BaseChatService {
   }) async {
     switch (km.type) {
       case KeyChatEventKinds.groupInvite:
-        final roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
+        final roomProfile = RoomProfile.fromJson(
+          jsonDecode(km.msg!) as Map<String, dynamic>,
+        );
         final realMessage = km.name ?? '[]';
 
         return processInvite(
@@ -440,7 +444,9 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupRemoveSingleMember:
         return _processGroupRemoveSingleMember(room, km, event);
       case KeyChatEventKinds.groupSendToAllMessage:
-        final gm = GroupMessage.fromJson(jsonDecode(km.msg!));
+        final gm = GroupMessage.fromJson(
+          jsonDecode(km.msg!) as Map<String, dynamic>,
+        );
 
         final groupRoom = await RoomService.instance.getRoomByIdentity(
           gm.pubkey,

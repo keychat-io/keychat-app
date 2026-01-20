@@ -100,7 +100,10 @@ class GroupInviteConfirmPage extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Utils.getRandomAvatar(members[index].idPubkey),
-                            Text(members[index].name),
+                            Text(
+                              members[index].name ??
+                                  getPublicKeyDisplay(members[index].idPubkey),
+                            ),
                           ],
                         ),
                       );

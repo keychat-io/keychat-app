@@ -36,7 +36,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
             // members = members.length > 10 ? members.sublist(0, 10) : members;
             // int membersCount = members.length;
             final toJoinUserMap = Map<String, String>.from(
-              list[1],
+              list[1] as Map<String, dynamic>,
             ).map(MapEntry.new);
 
             Get.dialog(

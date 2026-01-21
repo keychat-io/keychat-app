@@ -1938,13 +1938,19 @@ img {
 
         final signature = data[1] as String;
         final message = data[2] as String;
-        final isValid = await rust_nostr.verifySchnorr(
-          pubkey: identity.secp256k1PKHex,
-          content: message,
-          sig: signature,
-          hash: true,
-        );
-        return isValid;
+        try {
+          final isValid = await rust_nostr.verifySchnorr(
+            pubkey: identity.secp256k1PKHex,
+            content: message,
+            sig: signature,
+            hash: true,
+          );
+          await EasyLoading.showSuccess('Result: $isValid');
+          return isValid;
+        } catch (e) {
+          await EasyLoading.showError('Result: false');
+          return false;
+        }
       case 'sendPayment':
         final lnbc = data[1] as String?;
         if (lnbc == null || lnbc.isEmpty) {
@@ -1985,7 +1991,7 @@ img {
                 description: source['description'] as String? ?? '',
               );
           if (res == null) return null;
-          return res.invoice;
+          return {'paymentRequest': res.invoice};
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
         }

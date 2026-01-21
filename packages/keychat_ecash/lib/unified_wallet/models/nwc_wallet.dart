@@ -103,8 +103,17 @@ class NwcWalletTransaction extends WalletTransactionBase {
   @override
   WalletTransactionStatus get status {
     // NWC doesn't have explicit status, infer from settledAt
-    if (transaction.settledAt != null) {
+    if (transaction.state == 'settled' || transaction.settledAt != null) {
       return WalletTransactionStatus.success;
+    }
+    // Check if pending transaction has expired
+    if (transaction.expiresAt != null) {
+      final now = DateTime.now();
+      final expiryDate =
+          DateTime.fromMillisecondsSinceEpoch(transaction.expiresAt! * 1000);
+      if (now.isAfter(expiryDate)) {
+        return WalletTransactionStatus.expired;
+      }
     }
     return WalletTransactionStatus.pending;
   }

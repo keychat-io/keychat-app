@@ -25,6 +25,9 @@ class NwcController extends GetxController {
   final RxBool isInitialized = false.obs;
   final RxInt currentIndex = 0.obs;
 
+  /// Flag to indicate if any NWC connection has failed due to permission error
+  final RxBool hasFailedConnection = false.obs;
+
   /// Computed total balance across all connections
   int get totalSats {
     return activeConnections.fold<int>(
@@ -142,6 +145,9 @@ class NwcController extends GetxController {
   }
 
   Future<void> _handlePermissionError(String uri, String errorMessage) async {
+    // Mark connection as failed
+    hasFailedConnection.value = true;
+
     final shouldReconnect = await Get.dialog<bool>(
       CupertinoAlertDialog(
         title: const Text('Connection Disconnected'),
@@ -221,6 +227,9 @@ class NwcController extends GetxController {
       // Reinitialize NDK and load connections
       await _loadConnections();
       // fetchTransactionsForCurrent();
+
+      // Reset failed connection flag after successful reload
+      hasFailedConnection.value = false;
     } catch (e) {
       logger.e('Failed to reload connections: $e');
       EasyLoading.showError('Failed to reload connections');

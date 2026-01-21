@@ -9,6 +9,7 @@ import 'package:keychat/app.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart'
     show CashuWalletTransaction, MintBalanceClass;
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_storage.dart';
 
@@ -84,8 +85,31 @@ class UnifiedWalletController extends GetxController {
 
   /// Initialize wallets and restore saved selection
   Future<void> _initializeWallets() async {
+    // Check if NWC has failed connections and reload if needed
+    await _checkAndReloadNwcIfNeeded();
+
     await loadAllWallets();
     await _restoreSavedWalletSelection();
+  }
+
+  /// Check if NWC has failed connections and reload if needed
+  Future<void> _checkAndReloadNwcIfNeeded() async {
+    try {
+      // Try to get NwcController if it exists
+      final nwcController =
+          Utils.getOrPutGetxController(create: NwcController.new);
+
+      if (nwcController.hasFailedConnection.value) {
+        logger.i('Detected failed NWC connection, reloading...');
+        await nwcController.reloadConnections();
+      }
+    } catch (e, s) {
+      logger.e(
+        'Failed to check/reload NWC connections',
+        error: e,
+        stackTrace: s,
+      );
+    }
   }
 
   /// Restore the previously saved wallet selection

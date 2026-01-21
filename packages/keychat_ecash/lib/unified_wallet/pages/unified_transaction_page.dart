@@ -102,6 +102,11 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
       case 'success':
         return TransactionStatus.success;
       case 'pending':
+        final expiresAt = nwcTx!.expiresAt ?? 0;
+        if (expiresAt > 0 &&
+            DateTime.now().millisecondsSinceEpoch > expiresAt * 1000) {
+          return TransactionStatus.expired;
+        }
         return TransactionStatus.pending;
       case 'failed':
         return TransactionStatus.failed;
@@ -599,7 +604,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
                 _buildSecondaryInfo(
                   context,
                   'Status',
-                  _getStatusText(_status),
+                  nwcTx?.state?.toLowerCase() ?? _getStatusText(_status),
                 ),
 
                 const SizedBox(height: 8),
@@ -649,7 +654,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
 
   int _getTimestamp() {
     if (isCashu) {
-      return cashuTx!.timestamp.toInt();
+      return cashuTx!.timestamp.toInt() * 1000;
     } else {
       return nwcTx!.createdAt * 1000;
     }

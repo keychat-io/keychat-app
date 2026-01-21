@@ -150,10 +150,7 @@ class _PayToLnurlState extends State<PayToLnurl> {
                     );
                     final selectedWallet =
                         unifiedWalletController.selectedWallet;
-                    if (selectedWallet == null) {
-                      EasyLoading.showError('No wallet selected');
-                      return;
-                    }
+
                     final tx = await pic.confirmToPayInvoice(
                       invoice: pr,
                       walletSelection: selectedWallet,

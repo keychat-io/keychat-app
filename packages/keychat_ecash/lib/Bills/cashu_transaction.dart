@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +101,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                     child: Center(
                       child: Utils.genQRImage(
                         tx.token,
-                        size: maxWidth,
+                        size: min(maxWidth, 300),
                       ),
                     ),
                   ),

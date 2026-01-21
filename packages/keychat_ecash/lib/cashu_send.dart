@@ -123,7 +123,9 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                   Utils.getOrPutGetxController(
                                 create: UnifiedWalletController.new,
                               );
-                              await unifiedController.refreshSelectedWallet();
+                              await unifiedController.refreshSelectedWallet(
+                                unifiedController.getWalletById(selectedMint),
+                              );
                               await EasyLoading.showToast(
                                 'Success',
                               );

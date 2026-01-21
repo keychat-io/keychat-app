@@ -73,12 +73,7 @@ class WalletStorage {
         final nwcController = Utils.getOrPutGetxController(
           create: NwcController.new,
         );
-
-        // Wait for NWC connections to load if needed
-        if (nwcController.isLoading.value) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-        }
-
+        await nwcController.waitForLoading();
         final connection = nwcController.activeConnections.firstWhereOrNull(
           (conn) => conn.info.uri == secureId,
         );

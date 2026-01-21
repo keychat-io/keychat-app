@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
-import './CreateInvoice_controller.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
 
 class CreateInvoiceBindings implements Bindings {
-    @override
-    void dependencies() {
-        Get.put(CreateInvoiceController());
-    }
+  @override
+  void dependencies() {
+    Get.put(CreateInvoiceController());
+  }
 }

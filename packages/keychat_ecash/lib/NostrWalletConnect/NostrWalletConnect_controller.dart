@@ -247,8 +247,8 @@ class NostrWalletConnectController extends GetxController {
             toSendMessage = {
               'result_type': 'pay_invoice',
               'result': {
-                'preimage': ecashController.getPreimage(tx),
-                'fees_paid': ecashController.getFee(tx),
+                'preimage': tx.preimage,
+                'fees_paid': tx.fee,
               },
             };
           }

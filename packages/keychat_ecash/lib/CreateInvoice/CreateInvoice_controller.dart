@@ -49,7 +49,13 @@ class CreateInvoiceController extends GetxController {
       await EasyLoading.showToast('Please input amount');
       return;
     }
-    final amount = int.parse(amountString);
+    var amount = 0;
+    try {
+      amount = int.parse(amountString);
+    } catch (e) {
+      await EasyLoading.showToast('Input is invalid');
+      return;
+    }
     if (amount == 0) {
       await EasyLoading.showToast('Amount should > 0');
       return;

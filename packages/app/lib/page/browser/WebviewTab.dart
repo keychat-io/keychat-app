@@ -1958,7 +1958,7 @@ img {
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
-          return ecashController.getPreimage(tr);
+          return tr.preimage;
         } catch (e) {
           final msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';

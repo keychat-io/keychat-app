@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart'
     show BorderRadius, Clip, Radius, RoundedRectangleBorder;
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart'
-    show CashuWalletTransaction, MintBalanceClass, NwcWalletTransaction;
+    show CashuWalletTransaction, MintBalanceClass;
 import 'package:keychat_ecash/unified_wallet/index.dart'
-    show CashuWallet, CashuWalletTransaction, NwcWalletTransaction;
+    show CashuWallet, CashuWalletTransaction;
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart'
     show CashuWalletTransaction;
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart'
@@ -171,6 +174,10 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
+  WalletBase? getWalletById(String uri) {
+    return wallets.firstWhereOrNull((w) => w.id == uri);
+  }
+
   /// Refresh only the currently selected wallet's balance and transactions
   /// If [wallet] is provided, refresh that wallet instead of the selected one
   Future<void> refreshSelectedWallet([WalletBase? wallet]) async {
@@ -288,19 +295,20 @@ class UnifiedWalletController extends GetxController {
     }
 
     if (matchingProvider == null) {
-      EasyLoading.showError('Unsupported wallet type');
+      await EasyLoading.showError('Unsupported wallet type');
       return false;
     }
 
     try {
-      EasyLoading.show(status: 'Adding wallet...');
+      await EasyLoading.show(status: 'Adding wallet...');
       await matchingProvider.addWallet(connectionString);
+      await matchingProvider.refresh();
       await loadAllWallets();
-      EasyLoading.showSuccess('Wallet added');
+      await EasyLoading.showSuccess('Wallet added');
       return true;
     } catch (e, s) {
       logger.e('Failed to add wallet', error: e, stackTrace: s);
-      EasyLoading.showError('Failed to add wallet: $e');
+      await EasyLoading.showError(e.toString());
       return false;
     }
   }
@@ -311,27 +319,11 @@ class UnifiedWalletController extends GetxController {
     if (provider == null) return;
 
     try {
-      EasyLoading.show(status: 'Removing wallet...');
-
-      // Find the index of the wallet being removed
-      final removingIndex = wallets.indexWhere((w) => w.id == wallet.id);
-
-      // If we're removing the currently selected wallet, adjust selection
-      if (removingIndex != -1 && removingIndex == selectedIndex.value) {
-        if (wallets.length > 1) {
-          // Select the next wallet, or previous if this is the last one
-          selectedIndex.value = removingIndex < wallets.length - 1
-              ? removingIndex
-              : removingIndex - 1;
-        } else {
-          // This is the only wallet, will be 0 after removal
-          selectedIndex.value = 0;
-        }
-      }
-
+      await EasyLoading.show(status: 'Removing wallet...');
+      selectedIndex.value = 0;
       await provider.removeWallet(wallet.id);
       await loadAllWallets();
-      EasyLoading.showSuccess('Wallet removed');
+      await EasyLoading.showSuccess('Wallet removed');
     } catch (e, s) {
       logger.e('Failed to remove wallet', error: e, stackTrace: s);
       EasyLoading.showError('Failed to remove wallet: $e');
@@ -396,7 +388,8 @@ class UnifiedWalletController extends GetxController {
 
     final result = await provider.payLightningInvoice(wallet.id, invoice);
     if (result != null) {
-      await refreshSelectedWallet();
+      await HapticFeedback.mediumImpact();
+      unawaited(refreshSelectedWallet(getWalletById(wallet.id)));
     }
     return result;
   }
@@ -417,55 +410,16 @@ class UnifiedWalletController extends GetxController {
 
     final provider = _getProviderForProtocol(wallet.protocol);
     if (provider == null) {
-      EasyLoading.showError('Wallet provider not found');
+      await EasyLoading.showError('Wallet provider not found');
       return null;
     }
 
     final result = await provider.payLightningInvoice(walletId, invoice);
     if (result != null) {
-      await refreshSelectedWallet(wallet);
+      await HapticFeedback.mediumImpact();
+      unawaited(refreshSelectedWallet(wallet));
     }
     return result;
-  }
-
-  /// Create a lightning invoice using the currently selected wallet.
-  ///
-  /// Returns the invoice string (bolt11) on success, null on failure.
-  Future<String?> createInvoice(int amountSats, {String? description}) async {
-    final wallet = selectedWallet;
-
-    final provider = _getProviderForProtocol(wallet.protocol);
-    if (provider == null) {
-      EasyLoading.showError('Wallet provider not found');
-      return null;
-    }
-
-    return provider.createInvoice(wallet.id, amountSats, description);
-  }
-
-  /// Create a lightning invoice using a specific wallet.
-  ///
-  /// [walletId] - The wallet ID to use
-  /// [amountSats] - Amount in satoshis
-  /// [description] - Optional invoice description
-  Future<String?> createInvoiceWithWallet(
-    String walletId,
-    int amountSats, {
-    String? description,
-  }) async {
-    final wallet = wallets.firstWhereOrNull((w) => w.id == walletId);
-    if (wallet == null) {
-      EasyLoading.showError('Wallet not found');
-      return null;
-    }
-
-    final provider = _getProviderForProtocol(wallet.protocol);
-    if (provider == null) {
-      EasyLoading.showError('Wallet provider not found');
-      return null;
-    }
-
-    return provider.createInvoice(walletId, amountSats, description);
   }
 
   /// Create a lightning invoice and return full transaction details.
@@ -504,20 +458,11 @@ class UnifiedWalletController extends GetxController {
     return null;
   }
 
-  /// Check if the selected wallet supports lightning payments
-  bool get canPayLightning => selectedWallet.supportsLightning;
-
-  /// Check if the selected wallet can send payments
-  bool get canSend => selectedWallet.canSend;
-
-  /// Check if the selected wallet can receive payments
-  bool get canReceive => selectedWallet.canReceive;
-
   Future<WalletTransactionBase?> dialogToMakeInvoice({
     int? amount,
     String? description,
   }) async {
-    return Get.bottomSheet<WalletTransactionBase?>(
+    final res = await Get.bottomSheet<WalletTransactionBase?>(
       ignoreSafeArea: false,
       isScrollControlled: true,
       clipBehavior: Clip.hardEdge,
@@ -526,5 +471,9 @@ class UnifiedWalletController extends GetxController {
       ),
       CreateInvoicePage(amount: amount, description: description),
     );
+    if (res != null) {
+      await HapticFeedback.mediumImpact();
+    }
+    return res;
   }
 }

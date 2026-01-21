@@ -124,24 +124,12 @@ class EcashUtils {
                       setState(() {
                         isAddingMint = true;
                       });
-
-                      try {
-                        EasyLoading.show(status: 'Processing');
-                        await ec.addMintUrl(decoded.mint);
-                        await Utils.getOrPutGetxController(
-                          create: UnifiedWalletController.new,
-                        ).loadAllWallets();
-                      } catch (e, s) {
-                        final msg = Utils.getErrorMessage(e);
-                        logger.e(msg, error: e, stackTrace: s);
-                        EasyLoading.showError(
-                          'Add Failed: $msg',
-                          duration: const Duration(seconds: 3),
-                        );
-                        Get.back();
-                        return;
-                      }
-
+                      await Utils.getOrPutGetxController(
+                        create: UnifiedWalletController.new,
+                      ).addWallet(decoded.mint);
+                      setState(() {
+                        isAddingMint = false;
+                      });
                       final res = await _processReceive(
                         token: token,
                         retry: retry,
@@ -179,7 +167,9 @@ class EcashUtils {
         final unifiedController = Utils.getOrPutGetxController(
           create: UnifiedWalletController.new,
         );
-        await unifiedController.refreshSelectedWallet();
+        await unifiedController.refreshSelectedWallet(
+          unifiedController.getWalletById(model.mintUrl),
+        );
       } catch (e) {
         logger.e('Failed to refresh after receiving', error: e);
       }

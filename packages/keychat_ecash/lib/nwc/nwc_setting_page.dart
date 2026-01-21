@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
 import 'package:keychat/utils.dart' show DesktopContainer;
 import 'package:keychat_ecash/nwc/active_nwc_connection.dart';
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
@@ -204,7 +206,9 @@ class NwcSettingPage extends GetView<NwcController> {
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              Get.back<bool>(result: true); // Close settings page
+              Get.back<bool>(
+                result: true,
+              ); // Close settings page
             },
             child: const Text('Delete'),
           ),
@@ -212,8 +216,16 @@ class NwcSettingPage extends GetView<NwcController> {
       ),
     );
     if (!(confirmed ?? false)) return;
-    await controller.deleteConnection(connection.info.uri);
-    Get.back<bool>(result: true);
+    try {
+      final deleted = await controller.deleteConnection(connection.info.uri);
+      await EasyLoading.showToast('Wallet deleted');
+      Get.back(
+        result: deleted,
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    } catch (e) {
+      await EasyLoading.showError(e.toString());
+    }
   }
 
   List<Widget> _buildInfoSection(BuildContext context, GetInfoResponse info) {

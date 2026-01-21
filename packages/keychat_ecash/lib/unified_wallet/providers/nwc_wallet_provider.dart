@@ -22,7 +22,7 @@ class NwcWalletProvider implements WalletProvider {
   WalletProtocol get protocol => WalletProtocol.nwc;
 
   @override
-  bool get isLoading => _nwcController.isLoading.value;
+  bool get isLoading => _nwcController.isInitialized.value;
 
   @override
   int get totalBalance => _nwcController.totalSats;

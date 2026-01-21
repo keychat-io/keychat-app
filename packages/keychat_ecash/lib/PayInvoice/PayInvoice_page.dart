@@ -55,9 +55,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Send to Lightning Wallet',
-          style: Theme.of(context).textTheme.bodyMedium,
+        title: const Text(
+          'Pay to Lightning',
         ),
         actions: [
           if (widget.showScanButton &&

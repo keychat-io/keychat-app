@@ -219,6 +219,21 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
               direction: Axis.vertical,
               spacing: 16,
               children: [
+                FilledButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(
+                        text: widget.transaction.invoice.toString(),
+                      ),
+                    );
+                    EasyLoading.showToast('Copied');
+                  },
+                  style: ButtonStyle(
+                    minimumSize: WidgetStateProperty.all(Size(maxWidth, 48)),
+                  ),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy Invoice'),
+                ),
                 if (_status == TransactionStatus.pending)
                   OutlinedButton(
                     style: ButtonStyle(
@@ -245,21 +260,6 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                     },
                     child: const Text('Pay with Lightning wallet'),
                   ),
-                FilledButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(
-                        text: widget.transaction.invoice.toString(),
-                      ),
-                    );
-                    EasyLoading.showToast('Copied');
-                  },
-                  style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(Size(maxWidth, 48)),
-                  ),
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy Invoice'),
-                ),
                 const SizedBox(height: 8),
               ],
             ),

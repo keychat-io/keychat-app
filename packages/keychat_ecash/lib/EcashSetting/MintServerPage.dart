@@ -202,10 +202,8 @@ class _MintServerPageState extends State<MintServerPage> {
                       EasyLoading.showError('Please withdraw first');
                       return;
                     }
-                    if (balance == 0) {
-                      await rust_cashu.removeMint(url: widget.server.mint);
-                    }
-                    await EasyLoading.showToast('Successfully');
+                    await rust_cashu.removeMint(url: widget.server.mint);
+                    await EasyLoading.showToast('Wallet deleted');
                     Get.back(
                       result: true,
                       id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,

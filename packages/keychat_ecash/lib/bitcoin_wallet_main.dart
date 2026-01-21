@@ -149,7 +149,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
   Widget _buildBottomBar(BuildContext context) {
     return Obx(() {
       final wallet = controller.selectedWallet;
-      final protocol = wallet.protocol ?? WalletProtocol.cashu;
+      final protocol = wallet.protocol;
 
       return SafeArea(
         child: Container(
@@ -379,10 +379,27 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
   Future<void> _handlePayLightning() async {
     final tx = await Get.find<EcashController>().dialogToPayInvoice();
     if (tx == null) return;
-    await Get.to<void>(
-      () => LightningTransactionPage(transaction: tx.rawData as Transaction),
-      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-    );
+
+    // Handle NWC payment result
+    if (tx.rawData is TransactionResult) {
+      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
+      await Get.to<void>(
+        () => NwcTransactionPage(
+          transaction: tx.rawData as TransactionResult,
+          nwcUri: nwcUri,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+      return;
+    }
+
+    // Handle Cashu Lightning payment result
+    if (tx.rawData is Transaction) {
+      await Get.to<void>(
+        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
   }
 
   /// Handle Receive Lightning action
@@ -393,7 +410,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     if (tx.rawData is TransactionResult) {
       final nwcUri = tx.walletId ?? controller.selectedWallet.id;
 
-      await Get.to(
+      await Get.to<void>(
         () => NwcTransactionPage(
           transaction: tx.rawData as TransactionResult,
           nwcUri: nwcUri,
@@ -404,7 +421,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     }
     // Handle Cashu Lightning invoice result
     if (tx.rawData is Transaction) {
-      await Get.to(
+      await Get.to<void>(
         () => LightningTransactionPage(transaction: tx.rawData as Transaction),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
@@ -537,8 +554,8 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     final isSelected = controller.selectedIndex.value == index;
 
     return GestureDetector(
-      onTap: () {
-        controller.selectWallet(index);
+      onTap: () async {
+        await controller.selectWallet(index);
       },
       child: Stack(
         children: [
@@ -686,7 +703,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
               'Add Wallet',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            textSmallGray(context, 'Supports Cashu or NWC wallets'),
+            textSmallGray(context, 'Cashu or NWC wallet'),
           ],
         ),
       ),
@@ -720,7 +737,6 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
                             ?.withAlpha(160),
                       ),
                 );
-                return const SizedBox.shrink();
               }),
             ],
           ),
@@ -883,7 +899,10 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         children: [
           // Protocol badge
           _buildTransactionProtocolBadge(transaction.protocol),
-          const SizedBox(width: 4),
+          // // Transaction type badge for Cashu (Ecash/Lightning)
+          // if (transaction is CashuWalletTransaction)
+          //   _buildTransactionTypeBadge(transaction),
+          // const SizedBox(width: 4),
           // Status and time
           Expanded(
             child: textSmallGray(
@@ -907,6 +926,31 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
 
     return Container(
       margin: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  /// Transaction type badge for Cashu (Ecash/Lightning)
+  Widget _buildTransactionTypeBadge(CashuWalletTransaction transaction) {
+    final isLightning = transaction.rawData.kind == TransactionKind.ln;
+    final (label, color) = isLightning
+        ? ('Lightning', KeychatGlobal.bitcoinColor)
+        : ('Ecash', KeychatGlobal.secondaryColor);
+
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withAlpha(50),
@@ -985,6 +1029,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
       );
     }
     if (deleted ?? false) {
+      await controller.selectWallet(0);
       await controller.refreshAll();
     }
   }
@@ -1023,7 +1068,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
 
   /// Show dialog to add a new wallet
   Future<void> _showAddWalletDialog(BuildContext context) async {
-    await Get.bottomSheet<void>(
+    final result = await Get.bottomSheet<String>(
       CupertinoActionSheet(
         title: const Text('Add Wallet'),
         message: const Text(
@@ -1032,23 +1077,20 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         actions: [
           CupertinoActionSheetAction(
             onPressed: () async {
-              Get.back<void>();
               final scanned = await QrScanService.instance.handleQRScan();
-              if (scanned != null && scanned.isNotEmpty) {
-                await _processWalletInput(scanned);
-              }
+              Get.back(result: scanned);
             },
             child: const Text('Scan QR Code'),
           ),
           CupertinoActionSheetAction(
             onPressed: () async {
-              Get.back<void>();
               final data = await Clipboard.getData(Clipboard.kTextPlain);
               if (data?.text != null && data!.text!.isNotEmpty) {
-                await _processWalletInput(data.text!);
-              } else {
-                EasyLoading.showError('Clipboard is empty');
+                Get.back(result: data.text);
+                return;
               }
+              await EasyLoading.showError('Clipboard is empty');
+              Get.back();
             },
             child: const Text('Paste from Clipboard'),
           ),
@@ -1059,6 +1101,9 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         ),
       ),
     );
+    if (result != null && result.isNotEmpty) {
+      await _processWalletInput(result);
+    }
   }
 
   /// Process wallet input and add appropriate wallet type
@@ -1069,7 +1114,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     final walletType = controller.detectWalletType(trimmedInput);
 
     if (walletType == null) {
-      EasyLoading.showError(
+      await EasyLoading.showError(
         'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
       );
       return;

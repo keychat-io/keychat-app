@@ -22,7 +22,6 @@ class NwcController extends GetxController {
 
   final RxList<ActiveNwcConnection> activeConnections =
       <ActiveNwcConnection>[].obs;
-  final RxBool isLoading = false.obs;
   final RxBool isInitialized = false.obs;
   final RxInt currentIndex = 0.obs;
 
@@ -73,7 +72,6 @@ class NwcController extends GetxController {
   }
 
   Future<void> _loadConnections() async {
-    isLoading.value = true;
     try {
       await _initNdk();
       final savedConnections = await _storage.getAll();
@@ -84,7 +82,6 @@ class NwcController extends GetxController {
       // Fetch balances in background
       await refreshNwcBalances();
     } finally {
-      isLoading.value = false;
       isInitialized.value = true;
     }
   }
@@ -127,25 +124,20 @@ class NwcController extends GetxController {
   Future<void> refreshNwcBalances([
     List<ActiveNwcConnection>? connections,
   ]) async {
-    isLoading.value = true;
-    try {
-      for (final connection in connections ?? activeConnections) {
-        try {
-          await _refreshBalance(connection.info.uri);
-          activeConnections.refresh(); // Update UI for this specific connection
-        } catch (e) {
-          logger.e('Error refreshing balance for ${connection.info.uri}: $e');
-          EasyThrottle.throttle(
-              'refreshNwcBalances', const Duration(seconds: 5), () async {
-            // Check if error is permission-related
-            if (e.toString().toLowerCase().contains('not in permissions')) {
-              await _handlePermissionError(connection.info.uri, e.toString());
-            }
-          });
-        }
+    for (final connection in connections ?? activeConnections) {
+      try {
+        await _refreshBalance(connection.info.uri);
+        activeConnections.refresh(); // Update UI for this specific connection
+      } catch (e) {
+        logger.e('Error refreshing balance for ${connection.info.uri}: $e');
+        EasyThrottle.throttle('refreshNwcBalances', const Duration(seconds: 5),
+            () async {
+          // Check if error is permission-related
+          if (e.toString().toLowerCase().contains('not in permissions')) {
+            await _handlePermissionError(connection.info.uri, e.toString());
+          }
+        });
       }
-    } finally {
-      isLoading.value = false;
     }
   }
 
@@ -219,7 +211,6 @@ class NwcController extends GetxController {
 
   /// Reload connections by reconnecting NDK and re-executing _loadConnections
   Future<void> reloadConnections() async {
-    isLoading.value = true;
     isInitialized.value = false;
     try {
       await ndk.destroy();
@@ -234,34 +225,20 @@ class NwcController extends GetxController {
       logger.e('Failed to reload connections: $e');
       EasyLoading.showError('Failed to reload connections');
     } finally {
-      isLoading.value = false;
       isInitialized.value = true;
     }
   }
 
   Future<void> addConnection(String uri) async {
-    try {
-      isLoading.value = true;
-
-      // Check if already exists
-      if (_activeConnections.containsKey(uri)) {
-        throw Exception('Connection already active');
-      }
-
-      final info = NwcConnectionInfo(uri: uri);
-      await _storage.add(info);
-      await _connectAndAdd(info);
-      refreshList();
-      await EasyLoading.showSuccess('NWC Connection added');
-      if (Get.isDialogOpen ?? false) {
-        Get.back(); // Close dialog
-      }
-    } catch (e, s) {
-      logger.e(e, stackTrace: s);
-      EasyLoading.showError(e.toString());
-    } finally {
-      isLoading.value = false;
+    // Check if already exists
+    if (_activeConnections.containsKey(uri)) {
+      throw Exception('Connection already active');
     }
+
+    final info = NwcConnectionInfo(uri: uri);
+    await _storage.add(info);
+    await _connectAndAdd(info);
+    refreshList();
   }
 
   Future<void> updateConnectionName(String uri, String newName) async {
@@ -286,17 +263,16 @@ class NwcController extends GetxController {
     }
   }
 
-  Future<void> deleteConnection(String uri) async {
+  Future<bool> deleteConnection(String uri) async {
     try {
-      isLoading.value = true;
       await _storage.delete(uri);
       _activeConnections.remove(uri);
       refreshList();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to delete connection: $e');
-    } finally {
-      isLoading.value = false;
+      await EasyLoading.showError('Failed to delete connection: $e');
+      return false;
     }
+    return true;
   }
 
   void updateCurrentIndex(int index) {

@@ -36,8 +36,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
         title: Obx(() {
           final selectedWallet = unifiedWalletController.selectedWallet;
 
-          if (selectedWallet == null ||
-              unifiedWalletController.isLoading.value) {
+          if (unifiedWalletController.isLoading.value) {
             return const Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
@@ -53,11 +52,11 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
           }
 
           return Text(
-              '${selectedWallet.balanceSats} ${EcashTokenSymbol.sat.name}');
+            '${selectedWallet.balanceSats} ${EcashTokenSymbol.sat.name}',
+          );
         }),
         subtitle: Obx(() {
           final selectedWallet = unifiedWalletController.selectedWallet;
-          if (selectedWallet == null) return const Text('');
           return Text(
             selectedWallet.displayName,
             overflow: TextOverflow.ellipsis,
@@ -87,7 +86,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -149,7 +148,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                   itemCount: wallets.length,
                   itemBuilder: (context, index) {
                     final wallet = wallets[index];
-                    final isSelected = currentSelectedWallet?.id == wallet.id;
+                    final isSelected = currentSelectedWallet.id == wallet.id;
 
                     return ListTile(
                       leading: Icon(
@@ -197,6 +196,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
                 );
               }),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

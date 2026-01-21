@@ -7,7 +7,6 @@ import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/websocket.service.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,17 +16,13 @@ import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
-import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_ecash/wallet_storage.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
 import 'package:ndk/ndk.dart' show TransactionResult;
 
 class EcashDBVersion {
@@ -55,13 +50,11 @@ class EcashController extends GetxController {
   Identity? currentIdentity;
   late ScrollController scrollController;
   late TextEditingController nameController;
-  late IndicatorController indicatorController;
 
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
-    indicatorController = IndicatorController();
 
     super.onInit();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
@@ -225,7 +218,6 @@ class EcashController extends GetxController {
   void onClose() {
     nameController.dispose();
     scrollController.dispose();
-    indicatorController.dispose();
     super.onClose();
   }
 
@@ -427,6 +419,10 @@ class EcashController extends GetxController {
   }
 
   Future<void> addMintUrl(String mint) async {
+    final uri = Uri.tryParse(mint);
+    if (uri == null) {
+      throw Exception('Invalid mint URL');
+    }
     await rust_cashu.addMint(url: mint);
     mints.value = await rust_cashu.getMints();
     mints.refresh();
@@ -550,12 +546,6 @@ class EcashController extends GetxController {
       ),
     );
   }
-
-  /// Get the preimage from a payment result.
-  String? getPreimage(WalletTransactionBase? result) => result?.preimage;
-
-  /// Get the fee paid from a payment result in sats.
-  int? getFee(WalletTransactionBase? result) => result?.fee;
 
   Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
     final originalStatus = transaction.status;

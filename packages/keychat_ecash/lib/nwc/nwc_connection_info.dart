@@ -11,6 +11,16 @@ class NwcConnectionInfo {
         'Invalid NWC URI: must start with ${KeychatGlobal.nwcPrefix}',
       );
     }
+    // Validate URI format
+    try {
+      final parsed = Uri.parse(uri);
+      if (parsed.host.isEmpty && parsed.path.isEmpty) {
+        throw ArgumentError('Invalid NWC URI: malformed URI structure');
+      }
+    } catch (e) {
+      if (e is ArgumentError) rethrow;
+      throw ArgumentError('Invalid NWC URI: $e');
+    }
   }
 
   factory NwcConnectionInfo.fromJson(Map<String, dynamic> json) {

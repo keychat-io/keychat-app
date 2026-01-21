@@ -42,7 +42,6 @@ class _ResetPinPageState extends State<ResetPinPage> {
   }
 
   Future<void> _checkExistingPin() async {
-    // await SecureStorage.instance.deletePinCode(); // TODO
     final hasPin = await SecureStorage.instance.hasPinCode();
     setState(() {
       _hasExistingPin = hasPin;

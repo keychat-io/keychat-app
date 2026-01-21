@@ -785,15 +785,14 @@ class GroupService extends BaseChatService {
     // final queue = Queue(parallel: 5);
     final enables = (await groupRoom.getEnableMembers()).values.toList();
     final invitings = await groupRoom.getInvitingMembers();
-    final todo = collection.Queue.from([...enables, ...invitings]);
+    final tasks = collection.Queue.from([...enables, ...invitings]);
     km.name = jsonEncode([realMessage, identity.secp256k1PKHex]);
     final events = <NostrEventModel>[];
-    final membersLength = todo.length;
+    final membersLength = tasks.length;
 
     for (var i = 0; i < membersLength; i++) {
       // queue.add(() async {
-      //   if (todo.isEmpty) return;
-      final rm = todo.removeFirst() as RoomMember;
+      final rm = tasks.removeFirst() as RoomMember;
       if (identity.secp256k1PKHex == rm.idPubkey) continue;
       try {
         final memberRoom = await RoomService.instance.getOrCreateRoomByIdentity(
@@ -856,13 +855,13 @@ class GroupService extends BaseChatService {
     bool save = true,
   }) async {
     final queue = Queue(parallel: 5);
-    final todo = collection.Queue.from(toUsers);
-    final membersLength = todo.length;
+    final tasks = collection.Queue.from(toUsers);
+    final membersLength = tasks.length;
     final identity = groupRoom.getIdentity();
     for (var i = 0; i < membersLength; i++) {
       queue.add(() async {
-        if (todo.isEmpty) return;
-        final idPubkey = todo.removeFirst() as String;
+        if (tasks.isEmpty) return;
+        final idPubkey = tasks.removeFirst() as String;
         final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: idPubkey);
         if (identity.secp256k1PKHex == hexPubkey) return;
         var room = await roomService.getRoomByIdentity(hexPubkey, identity.id);

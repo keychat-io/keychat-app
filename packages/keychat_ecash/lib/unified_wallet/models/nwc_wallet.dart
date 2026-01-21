@@ -127,4 +127,7 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   bool get isSuccess => status == WalletTransactionStatus.success;
+
+  @override
+  String get paymentHash => transaction.paymentHash;
 }

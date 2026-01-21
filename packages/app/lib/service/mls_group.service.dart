@@ -943,7 +943,7 @@ class MlsGroupService extends BaseChatService {
             waitTimeToFill: true,
           );
           ws.sendReqToRelays(Close(req.reqId).serialize());
-          // TODOcheck the kp is used?
+          // TODO: check the kp is used?
           if (list.isNotEmpty) {
             final event = list[0];
             final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;

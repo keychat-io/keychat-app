@@ -42,25 +42,14 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
         CupertinoTabScaffold(
           controller: homeController.cupertinoTabController,
           tabBar: CupertinoTabBar(
-            onTap: (int index) {
+            onTap: (int index) async {
               setState(() {
                 _selectedIndex = index;
               });
               if (EasyLoading.isShow) {
-                EasyLoading.dismiss();
+                await EasyLoading.dismiss();
               }
-              if (GetPlatform.isMobile) {
-                HapticFeedback.lightImpact();
-              }
-              if (index == pages.length - 1) {
-                EasyThrottle.throttle(
-                  'loadCashuABalance',
-                  const Duration(seconds: 1),
-                  () {
-                    // TODO: refresh balance
-                  },
-                );
-              }
+              await HapticFeedback.lightImpact();
             },
             iconSize: 26,
             currentIndex: _selectedIndex,

@@ -131,6 +131,8 @@ abstract class WalletTransactionBase {
   /// Returns the preimage of the payment if available
   String? get preimage;
 
+  String get paymentHash;
+
   /// Returns the fee paid for the payment in sats if available
   int? get fee;
 

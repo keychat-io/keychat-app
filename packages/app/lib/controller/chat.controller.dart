@@ -700,22 +700,30 @@ class ChatController extends GetxController {
 
   Future<void> _handleSendLightning() async {
     try {
-      final result = await Get.find<EcashController>().makeInvoiceForChat();
-      if (result.$1 == null || result.$2 == null) {
-        return;
-      }
-      logger.d('invoice: ${result.$1}, cashuInfo: ${result.$2}');
+      final tx = await Get.find<UnifiedWalletController>()
+          .dialogToMakeInvoice();
+
+      if (tx == null) return;
+
+      if (tx.rawData == null || tx.invoice == null) return;
+
+      final cim = CashuInfoModel()
+        ..amount = tx.amountSats
+        ..token = tx.invoice!
+        ..mint = tx.walletId ?? ''
+        ..hash = tx.paymentHash
+        ..status = TransactionStatus.pending;
       await RoomService.instance.sendMessage(
         roomObs.value,
-        result.$1!,
-        realMessage: result.$2,
+        cim.token,
+        realMessage: cim.toString(),
         mediaType: MessageMediaType.lightningInvoice,
       );
       hideAdd.value = true; // close features section
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showError(msg);
+      await EasyLoading.showError(msg);
     }
   }
 

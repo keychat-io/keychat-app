@@ -9,16 +9,7 @@ import 'package:keychat/app.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart'
     show CashuWalletTransaction, MintBalanceClass;
-import 'package:keychat_ecash/unified_wallet/index.dart'
-    show CashuWallet, CashuWalletTransaction;
-import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart'
-    show CashuWalletTransaction;
-import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart'
-    show NwcWalletTransaction;
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
-import 'package:keychat_ecash/unified_wallet/providers/cashu_wallet_provider.dart';
-import 'package:keychat_ecash/unified_wallet/providers/nwc_wallet_provider.dart';
-import 'package:keychat_ecash/unified_wallet/providers/wallet_provider.dart';
+import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_storage.dart';
 
 /// Unified controller for managing multiple wallet types

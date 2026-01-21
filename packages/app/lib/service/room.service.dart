@@ -756,12 +756,12 @@ class RoomService extends BaseChatService {
     MessageMediaType? mediaType,
   }) async {
     final queue = Queue(parallel: 5);
-    final todo = collection.Queue.from(rooms);
-    final membersLength = todo.length;
+    final tasks = collection.Queue.from(rooms);
+    final membersLength = tasks.length;
     for (var i = 0; i < membersLength; i++) {
       queue.add(() async {
-        if (todo.isEmpty) return;
-        final room = todo.removeFirst() as Room;
+        if (tasks.isEmpty) return;
+        final room = tasks.removeFirst() as Room;
         if (room.toMainPubkey == identity.secp256k1PKHex) return;
         await RoomService.instance.sendMessage(
           room,
@@ -851,7 +851,6 @@ class RoomService extends BaseChatService {
       case GroupType.kdf:
         throw Exception('not support');
       case GroupType.common:
-        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }

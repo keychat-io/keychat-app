@@ -54,8 +54,7 @@ class EcashUtils {
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
-        // TODO: refresh balance
-
+        unawaited(Get.find<UnifiedWalletController>().refreshSelectedWallet());
         _activeChecks.remove(tx.id);
         return;
       }

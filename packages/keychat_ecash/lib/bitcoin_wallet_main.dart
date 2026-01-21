@@ -6,24 +6,17 @@ import 'package:flutter/services.dart' show Clipboard;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat/global.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/qrscan.service.dart';
-import 'package:keychat/utils.dart' show DesktopContainer, Utils, formatTime;
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_page.dart';
 import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/cashu_send.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
-import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
-import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
-import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
-import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
+import 'package:keychat_ecash/unified_wallet/index.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:ndk/ndk.dart';
 
@@ -384,9 +377,9 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     if (tx.rawData is TransactionResult) {
       final nwcUri = tx.walletId ?? controller.selectedWallet.id;
       await Get.to<void>(
-        () => NwcTransactionPage(
-          transaction: tx.rawData as TransactionResult,
-          nwcUri: nwcUri,
+        () => UnifiedTransactionPage(
+          nwcTransaction: tx.rawData as TransactionResult,
+          walletId: nwcUri,
         ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
@@ -396,7 +389,10 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     // Handle Cashu Lightning payment result
     if (tx.rawData is Transaction) {
       await Get.to<void>(
-        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+        () => UnifiedTransactionPage(
+          cashuTransaction: tx.rawData as Transaction,
+          walletId: (tx.rawData as Transaction).mintUrl,
+        ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     }
@@ -411,9 +407,9 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
       final nwcUri = tx.walletId ?? controller.selectedWallet.id;
 
       await Get.to<void>(
-        () => NwcTransactionPage(
-          transaction: tx.rawData as TransactionResult,
-          nwcUri: nwcUri,
+        () => UnifiedTransactionPage(
+          nwcTransaction: tx.rawData as TransactionResult,
+          walletId: nwcUri,
         ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
@@ -422,7 +418,10 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     // Handle Cashu Lightning invoice result
     if (tx.rawData is Transaction) {
       await Get.to<void>(
-        () => LightningTransactionPage(transaction: tx.rawData as Transaction),
+        () => UnifiedTransactionPage(
+          cashuTransaction: tx.rawData as Transaction,
+          walletId: (tx.rawData as Transaction).mintUrl,
+        ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     }
@@ -553,100 +552,102 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     final gradientColors = _getWalletGradientColors(wallet);
     final isSelected = controller.selectedIndex.value == index;
 
-    return GestureDetector(
-      onTap: () async {
-        await controller.selectWallet(index);
-      },
-      child: Stack(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: gradientColors,
-              ),
-              border: isSelected
-                  ? Border.all(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )
-                  : null,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          await controller.selectWallet(index);
+        },
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradientColors,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Protocol icon and badge
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(
-                          wallet.icon,
-                          color: wallet.primaryColor,
-                          size: 42,
-                        ),
-                        _buildProtocolBadge(wallet.protocol),
-                      ],
-                    ),
-                  ),
-                  // Wallet name/URL
-                  Text(
-                    wallet.displayName,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall!
-                              .color
-                              ?.withAlpha(160),
-                        ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Balance
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (wallet.isBalanceLoading)
-                        const SizedBox(
-                          width: 60,
-                          height: 28,
-                          child: CupertinoActivityIndicator(),
-                        )
-                      else
-                        RichText(
-                          text: TextSpan(
-                            text: wallet.balanceSats.toString(),
-                            children: const <TextSpan>[
-                              TextSpan(
-                                text: ' sat',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
-                            style: TextStyle(
-                              height: 1.3,
-                              fontSize: 28,
-                              color:
-                                  Theme.of(context).textTheme.bodyLarge!.color,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      IconButton(
-                        onPressed: () => _onWalletCardTap(wallet),
-                        icon: const Icon(CupertinoIcons.right_chevron),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            // Always show border to prevent layout shift
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
             ),
           ),
-        ],
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Protocol icon and badge
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(
+                        wallet.icon,
+                        color: wallet.primaryColor,
+                        size: 42,
+                      ),
+                      _buildProtocolBadge(wallet.protocol),
+                    ],
+                  ),
+                ),
+                // Wallet name/URL
+                Text(
+                  wallet.displayName,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall!
+                            .color
+                            ?.withAlpha(160),
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // Balance
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (wallet.isBalanceLoading)
+                      const SizedBox(
+                        width: 60,
+                        height: 28,
+                        child: CupertinoActivityIndicator(),
+                      )
+                    else
+                      RichText(
+                        text: TextSpan(
+                          text: wallet.balanceSats.toString(),
+                          children: const <TextSpan>[
+                            TextSpan(
+                              text: ' sat',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                          style: TextStyle(
+                            height: 1.3,
+                            fontSize: 28,
+                            color: Theme.of(context).textTheme.bodyLarge!.color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    IconButton(
+                      onPressed: () => _onWalletCardTap(wallet),
+                      icon: const Icon(CupertinoIcons.right_chevron),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1041,28 +1042,31 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
       final isLightning = tx.kind == TransactionKind.ln;
 
       if (isLightning) {
+        // Use unified page for Cashu Lightning transactions
         Get.to<void>(
-          () => LightningTransactionPage(transaction: tx),
+          () => UnifiedTransactionPage(
+            cashuTransaction: tx,
+            walletId: tx.mintUrl,
+          ),
           id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
         );
       } else {
+        // Use Cashu-specific page for Ecash transactions
         Get.to<void>(
           () => CashuTransactionPage(transaction: tx),
           id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
         );
       }
     } else if (transaction is NwcWalletTransaction) {
-      // Get the current selected wallet to obtain the NWC URI
+      // Use unified page for NWC Lightning transactions
       final wallet = controller.selectedWallet;
-      if (wallet is NwcWallet) {
-        Get.to<void>(
-          () => NwcTransactionPage(
-            nwcUri: wallet.id,
-            transaction: transaction.rawData,
-          ),
-          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-        );
-      }
+      Get.to<void>(
+        () => UnifiedTransactionPage(
+          nwcTransaction: transaction.rawData,
+          walletId: wallet is NwcWallet ? wallet.id : null,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
     }
   }
 

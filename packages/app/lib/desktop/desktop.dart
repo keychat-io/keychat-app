@@ -133,15 +133,7 @@ class HomeSidebarX extends GetView<DesktopController> {
               size: iconSize,
             );
           },
-          onTap: () {
-            EasyThrottle.throttle(
-              'loadCashuABalance',
-              const Duration(seconds: 1),
-              () {
-                //TODO: refresh balance
-              },
-            );
-          },
+          onTap: () {},
         ),
         const SidebarXItem(icon: CupertinoIcons.person),
       ],

@@ -560,43 +560,4 @@ class EcashController extends GetxController {
       logger.e('Failed to check transaction status', error: e);
     }
   }
-
-  Future<(String?, String?)> makeInvoiceForChat() async {
-    final tx = await Get.bottomSheet<WalletTransactionBase?>(
-      ignoreSafeArea: false,
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(),
-    );
-    if (tx == null) return (null, null);
-
-    final dynamic invoice = tx.rawData;
-    if (invoice == null) return (null, null);
-
-    final cim = CashuInfoModel();
-    late String token;
-    if (invoice is Transaction) {
-      token = invoice.token;
-      cim
-        ..amount = invoice.amount.toInt()
-        ..token = invoice.token
-        ..mint = invoice.mintUrl
-        ..status = invoice.status
-        ..hash = invoice.id
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
-          invoice.timestamp.toInt() * 1000,
-        );
-    } else if (invoice is TransactionResult) {
-      token = invoice.invoice ?? '';
-      cim
-        ..amount = invoice.amountSat
-        ..token = token
-        ..mint = tx.walletId ?? ''
-        ..hash = invoice.paymentHash
-        ..status = TransactionStatus.pending;
-    }
-    return (token, cim.toString());
-  }
 }

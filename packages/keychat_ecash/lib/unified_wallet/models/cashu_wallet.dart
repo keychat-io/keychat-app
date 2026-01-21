@@ -119,4 +119,7 @@ class CashuWalletTransaction extends WalletTransactionBase {
 
   @override
   bool get isSuccess => transaction.status == TransactionStatus.success;
+
+  @override
+  String get paymentHash => transaction.id;
 }

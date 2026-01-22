@@ -353,9 +353,9 @@ class NostrAPI {
         additionalTags: additionalTags,
       );
     }
-    return _sendAndSaveGiftMessage(
-      toPubkey ?? room.toMainPubkey,
-      sourceContent,
+    return sendAndSaveNostrEvent(
+      to: toPubkey ?? room.toMainPubkey,
+      plainContent: sourceContent,
       room: room,
       encryptedEvent: encryptedEvent,
       from: identity.secp256k1PKHex,
@@ -367,9 +367,9 @@ class NostrAPI {
     );
   }
 
-  Future<SendMessageResponse> _sendAndSaveGiftMessage(
-    String to,
-    String sourceContent, {
+  Future<SendMessageResponse> sendAndSaveNostrEvent({
+    required String to,
+    required String plainContent,
     required String encryptedEvent,
     required String from,
     required Room room,
@@ -402,7 +402,7 @@ class NostrAPI {
       to: to,
       isSystem: isSystem ?? false,
       senderPubkey: room.myIdPubkey,
-      content: sourceContent,
+      content: plainContent,
       realMessage: realMessage,
       isRead: true,
       isMeSend: true,

@@ -81,34 +81,29 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                 child: Form(
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
+                    spacing: 16,
                     children: [
                       const SelectMintAndNwc(),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                        child: TextField(
-                          controller: controller.textController,
-                          textInputAction: TextInputAction.done,
-                          maxLines: 2,
-                          style: const TextStyle(fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: 'Lightning Invoice or address',
-                            hintText: 'Lightning invoice or address',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.paste),
-                              onPressed: () async {
-                                final clipboardData = await Clipboard.getData(
-                                  Clipboard.kTextPlain,
-                                );
-                                if (clipboardData?.text != null) {
-                                  controller.textController.text =
-                                      clipboardData!.text!;
-                                }
-                              },
-                            ),
+                      TextField(
+                        controller: controller.textController,
+                        textInputAction: TextInputAction.done,
+                        maxLines: 3,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Lightning Invoice or address',
+                          hintText: 'Lightning invoice or address',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.paste),
+                            onPressed: () async {
+                              final clipboardData = await Clipboard.getData(
+                                Clipboard.kTextPlain,
+                              );
+                              if (clipboardData?.text != null) {
+                                controller.textController.text =
+                                    clipboardData!.text!;
+                              }
+                            },
                           ),
                         ),
                       ),

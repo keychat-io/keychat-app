@@ -322,11 +322,9 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            bottom:
-                GetPlatform.isAndroid ||
-                multiWebviewController.bottomSafeHosts.contains(
-                  WebUri(widget.initUrl).host,
-                ),
+            bottom: multiWebviewController.bottomSafeHosts.contains(
+              WebUri(widget.initUrl).host,
+            ),
             child: Column(
               children: [
                 Expanded(

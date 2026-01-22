@@ -204,7 +204,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                 onPressed: (_) => _showDistributorPicker(),
               ),
               SettingsTile(
-                title: const Text('Endpoint'),
+                title: const Text('Endpoint Info'),
                 onPressed: (context) async {
                   if (_currentEndpoint?.url == null) return;
                   await Clipboard.setData(
@@ -212,11 +212,49 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   );
                   await EasyLoading.showSuccess('Copied to clipboard');
                 },
-                description: Text(
-                  _currentEndpoint?.url ?? 'None',
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      'Server: ${_currentEndpoint?.url}',
+                    ),
+                    if (_currentEndpoint?.pubKeySet?.auth != null) ...[
+                      Text(
+                        'auth: ${_currentEndpoint!.pubKeySet!.auth}',
+                      ),
+                      Text(
+                        'pubKey: ${_currentEndpoint!.pubKeySet!.pubKey}',
+                      ),
+
+                      const Text(
+                        'Web Push: https://www.rfc-editor.org/rfc/rfc8291',
+                      ),
+                      OutlinedButton(
+                        onPressed: () async {
+                          if (_currentEndpoint == null) return;
+                          final endpointInfo = StringBuffer()
+                            ..writeln(
+                              'Server: ${_currentEndpoint!.url}',
+                            );
+                          if (_currentEndpoint!.pubKeySet?.auth != null) {
+                            endpointInfo
+                              ..writeln(
+                                'auth: ${_currentEndpoint!.pubKeySet!.auth}',
+                              )
+                              ..writeln(
+                                'pubKey: ${_currentEndpoint!.pubKeySet!.pubKey}',
+                              );
+                          }
+                          await Clipboard.setData(
+                            ClipboardData(text: endpointInfo.toString()),
+                          );
+                          await EasyLoading.showSuccess('Copied to clipboard');
+                        },
+                        child: const Text('Copy Endpoint Info'),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],

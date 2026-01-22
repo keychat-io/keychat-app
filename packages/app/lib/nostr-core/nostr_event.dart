@@ -87,7 +87,6 @@ class NostrEventModel {
     List<List<String>> tags = const <List<String>>[],
     String content = '',
     String sig = '',
-    String? subscriptionId,
     bool verify = false,
   }) {
     return NostrEventModel(

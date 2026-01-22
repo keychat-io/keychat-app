@@ -84,7 +84,7 @@ class SignerService {
         eventJson: eventJson,
         id: id,
       );
-      logger.i(res);
+      logger.i('signed: $res');
       return res['event'] as String?;
     } catch (e, s) {
       logger.e('signEvent error', error: e, stackTrace: s);

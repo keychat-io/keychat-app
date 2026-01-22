@@ -20,24 +20,8 @@ import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:ndk/ndk.dart';
 
-class BitcoinWalletMain extends StatefulWidget {
+class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   const BitcoinWalletMain({super.key});
-
-  @override
-  State<BitcoinWalletMain> createState() => _BitcoinWalletMainState();
-}
-
-class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
-  late UnifiedWalletController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = Utils.getOrPutGetxController(
-      create: UnifiedWalletController.new,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,13 +50,20 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
           if (controller.isLoading.value && controller.wallets.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-
+          final indicatorController = IndicatorController();
           return CustomRefreshIndicator(
-            onRefresh: _handleRefresh,
+            controller: indicatorController,
+            onRefresh: () async {
+              if (indicatorController.side == IndicatorSide.top) {
+                // Pull down - refresh all
+                await controller.refreshAll();
+              } else if (indicatorController.side == IndicatorSide.bottom) {
+                // Pull up - load more
+                await controller.loadMoreTransactions();
+              }
+            },
             trigger: IndicatorTrigger.bothEdges,
             builder: (context, child, indicatorController) {
-              // Track current side for onRefresh callback
-              _currentIndicatorSide = indicatorController.side;
               return Stack(
                 children: [
                   child,
@@ -115,25 +106,84 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
   }
 
-  /// Current indicator side for determining refresh action
-  IndicatorSide? _currentIndicatorSide;
+  /// Build a single action button (for wide screens and NWC)
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    String? label,
+    bool expanded = false,
+  }) {
+    final button = Material(
+      color: color.withAlpha(30),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 20),
+              if (label != null) const SizedBox(width: 6),
+              if (label != null)
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
 
-  /// Handle refresh based on trigger direction
-  Future<void> _handleRefresh() async {
-    if (_currentIndicatorSide == IndicatorSide.top) {
-      // Pull down - refresh all
-      await controller.refreshAll();
-    } else if (_currentIndicatorSide == IndicatorSide.bottom) {
-      // Pull up - load more
-      await controller.loadMoreTransactions();
-    }
+    return expanded ? button : button;
   }
 
-  void _navigateToSettings() {
-    Get.to<void>(
-      () => const EcashSettingPage(),
-      binding: EcashSettingBindings(),
-      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+  /// Add wallet card
+  Widget _buildAddCard(BuildContext context) {
+    return GestureDetector(
+      child: Container(
+        width: MediaQuery.of(context).size.width / 2,
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.onSurface.withAlpha(10),
+              Theme.of(context).colorScheme.onSurface.withAlpha(40),
+            ],
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(CupertinoIcons.add_circled, size: 48),
+              onPressed: () => _showAddWalletDialog(context),
+            ),
+            Text(
+              'Add Wallet',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            textSmallGray(context, 'Cashu or NWC wallet'),
+          ],
+        ),
+      ),
+      onTap: () => _showAddWalletDialog(context),
     );
   }
 
@@ -207,60 +257,68 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
   }
 
-  /// Show more menu with Lightning and Settings options
-  void _showMoreMenu() {
-    Get.bottomSheet<void>(
-      CupertinoActionSheet(
-        title: const Text('More Options'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _handlePayLightning();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.bolt, color: Colors.redAccent),
-                SizedBox(width: 8),
-                Text('Pay to Lightning'),
-              ],
+  /// Build load more indicator widget (static indicator in list)
+  Widget _buildLoadMoreIndicator(BuildContext context) {
+    return Obx(() {
+      // Loading more state - handled by pull indicator now
+      if (controller.isLoadingMore.value) {
+        return const SizedBox.shrink();
+      }
+
+      // No more data state
+      if (!controller.hasMoreTransactions.value) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: Text(
+              'No more data',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+                fontSize: 14,
+              ),
             ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _handleReceiveLightning();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.bolt, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Receive from Lightning'),
-              ],
+        );
+      }
+
+      // Has more data - show hint text
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: Text(
+            'Pull up to load more',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+              fontSize: 12,
             ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _navigateToSettings();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.settings, color: Colors.grey),
-                SizedBox(width: 8),
-                Text('Settings'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Get.back<void>(),
-          child: const Text('Cancel'),
         ),
-      ),
+      );
+    });
+  }
+
+  /// Build bottom pull-up load more indicator widget
+  Widget _buildLoadMorePullIndicator(IndicatorController indicatorController) {
+    // Don't show if no more data
+    if (!controller.hasMoreTransactions.value) {
+      return const SizedBox.shrink();
+    }
+
+    final value = indicatorController.value.clamp(0.0, 1.5);
+    return Container(
+      height: 60 * value,
+      alignment: Alignment.center,
+      child: indicatorController.isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              CupertinoIcons.arrow_up,
+              size: 24 * value,
+              color: Colors.grey,
+            ),
     );
   }
 
@@ -306,162 +364,48 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
   }
 
-  /// Build a single action button (for wide screens and NWC)
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    String? label,
-    bool expanded = false,
-  }) {
-    final button = Material(
-      color: color.withAlpha(30),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 20),
-              if (label != null) const SizedBox(width: 6),
-              if (label != null)
-                Flexible(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-            ],
-          ),
+  /// Protocol badge widget
+  Widget _buildProtocolBadge(WalletProtocol protocol) {
+    final (label, color) = switch (protocol) {
+      WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
+      WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
-
-    return expanded ? button : button;
   }
 
-  Future<void> _handlePayEcash() async {
-    final tx = await Get.bottomSheet<Transaction>(
-      clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      const PayEcashPage(),
+  /// Build top refresh indicator widget
+  Widget _buildRefreshIndicator(IndicatorController indicatorController) {
+    final value = indicatorController.value.clamp(0.0, 1.5);
+    return Container(
+      height: 60 * value,
+      alignment: Alignment.center,
+      child: indicatorController.isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              CupertinoIcons.arrow_down,
+              size: 24 * value,
+              color: Colors.grey,
+            ),
     );
-    if (tx == null) return;
-
-    await Get.to<void>(
-      () => CashuTransactionPage(
-        transaction: tx,
-      ),
-      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-    );
-  }
-
-  /// Handle Pay Lightning action
-  Future<void> _handlePayLightning() async {
-    final tx = await Get.find<EcashController>().dialogToPayInvoice();
-    if (tx == null) return;
-
-    // Handle NWC payment result
-    if (tx.rawData is TransactionResult) {
-      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          nwcTransaction: tx.rawData as TransactionResult,
-          walletId: nwcUri,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      return;
-    }
-
-    // Handle Cashu Lightning payment result
-    if (tx.rawData is Transaction) {
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          cashuTransaction: tx.rawData as Transaction,
-          walletId: (tx.rawData as Transaction).mintUrl,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
-  }
-
-  /// Handle Receive Lightning action
-  Future<void> _handleReceiveLightning() async {
-    final tx = await controller.dialogToMakeInvoice();
-    if (tx == null) return;
-    // Handle NWC invoice result
-    if (tx.rawData is TransactionResult) {
-      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
-
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          nwcTransaction: tx.rawData as TransactionResult,
-          walletId: nwcUri,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      return;
-    }
-    // Handle Cashu Lightning invoice result
-    if (tx.rawData is Transaction) {
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          cashuTransaction: tx.rawData as Transaction,
-          walletId: (tx.rawData as Transaction).mintUrl,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
-  }
-
-  Future<void> _handleReceiveEcash() async {
-    final input = await Get.bottomSheet<String>(
-      CupertinoActionSheet(
-        title: const Text('Receive Ecash'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              final scanned = await QrScanService.instance.handleQRScan();
-              if (scanned != null && scanned.isNotEmpty) {
-                Get.back(result: scanned);
-              }
-            },
-            child: const Text('Scan QR Code'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              final data = await Clipboard.getData(Clipboard.kTextPlain);
-              if (data?.text != null && data!.text!.isNotEmpty) {
-                Get.back(result: data.text);
-              } else {
-                EasyLoading.showError('Clipboard is empty');
-              }
-            },
-            child: const Text('Paste from Clipboard'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Get.back<void>(),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
-    if (input == null || input.isEmpty) return;
-    await EcashUtils.handleReceiveToken(token: input);
   }
 
   /// Total balance display section
@@ -515,33 +459,198 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
   }
 
-  /// Wallet cards carousel
-  Widget _buildWalletCarousel(BuildContext context) {
-    return Obx(
-      () => Padding(
-        padding: const EdgeInsets.only(left: 10),
-        child: CarouselSlider(
-          options: CarouselOptions(
-            height: 160,
-            padEnds: false,
-            viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.45,
-            enableInfiniteScroll: false,
-            onPageChanged: (index, reason) {
-              if (index < controller.wallets.length) {
-                controller.selectWallet(index);
-              }
-            },
+  /// Protocol badge for transaction
+  Widget _buildTransactionProtocolBadge(WalletProtocol protocol) {
+    final (label, color) = switch (protocol) {
+      WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
+      WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  /// Transactions header
+  Widget _buildTransactionsHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Transactions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Obx(() {
+                final wallet = controller.selectedWallet;
+                return Text(
+                  wallet.displayName,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall!
+                            .color
+                            ?.withAlpha(160),
+                      ),
+                );
+              }),
+            ],
           ),
-          items: [
-            // Wallet cards
-            ...controller.wallets.asMap().entries.map((entry) {
-              final index = entry.key;
-              final wallet = entry.value;
-              return _buildWalletCard(context, wallet, index);
-            }),
-            // Add new wallet card
-            _buildAddCard(context),
-          ],
+        ],
+      ),
+    );
+  }
+
+  /// Transaction list widget
+  Widget _buildTransactionsList(BuildContext context) {
+    return Obx(() {
+      if (controller.isTransactionsLoading.value &&
+          controller.transactions.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (controller.transactions.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: Wrap(
+              direction: Axis.vertical,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Icon(
+                  Icons.folder_open_outlined,
+                  size: 36,
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+                ),
+                textSmallGray(context, 'No transactions'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          ...controller.transactions.map((transaction) {
+            return _buildTransactionTile(context, transaction);
+          }),
+          // Load more / No more data indicator
+          _buildLoadMoreIndicator(context),
+        ],
+      );
+    });
+  }
+
+  /// Transaction status icon
+  Widget _buildTransactionStatusIcon(WalletTransactionStatus status) {
+    return switch (status) {
+      WalletTransactionStatus.pending => const Icon(
+          CupertinoIcons.clock,
+          color: Colors.orange,
+          size: 18,
+        ),
+      WalletTransactionStatus.success => const Icon(
+          CupertinoIcons.checkmark_circle,
+          color: Colors.green,
+          size: 18,
+        ),
+      WalletTransactionStatus.failed => const Icon(
+          CupertinoIcons.xmark_circle,
+          color: Colors.red,
+          size: 18,
+        ),
+      WalletTransactionStatus.expired => const Icon(
+          CupertinoIcons.clock,
+          color: Colors.grey,
+          size: 18,
+        ),
+    };
+  }
+
+  /// Individual transaction tile
+  Widget _buildTransactionTile(
+    BuildContext context,
+    WalletTransactionBase transaction,
+  ) {
+    final isIncoming = transaction.isIncoming;
+    final amountText =
+        '${isIncoming ? '+' : '-'} ${transaction.amountSats.abs()}';
+
+    return ListTile(
+      key: Key(transaction.id + transaction.timestamp.toString()),
+      dense: true,
+      leading: Icon(
+        isIncoming
+            ? CupertinoIcons.arrow_down_left
+            : CupertinoIcons.arrow_up_right,
+        color: isIncoming ? Colors.green : Colors.red,
+      ),
+      title: Text(
+        amountText,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+      subtitle: Row(
+        children: [
+          // Protocol badge
+          _buildTransactionProtocolBadge(transaction.protocol),
+          // // Transaction type badge for Cashu (Ecash/Lightning)
+          // if (transaction is CashuWalletTransaction)
+          //   _buildTransactionTypeBadge(transaction),
+          // const SizedBox(width: 4),
+          // Status and time
+          Expanded(
+            child: textSmallGray(
+              context,
+              '${_getStatusText(transaction.status)} - ${formatTime(transaction.timestamp.millisecondsSinceEpoch)}',
+            ),
+          ),
+        ],
+      ),
+      trailing: _buildTransactionStatusIcon(transaction.status),
+      onTap: () => _onTransactionTap(transaction),
+    );
+  }
+
+  /// Transaction type badge for Cashu (Ecash/Lightning)
+  Widget _buildTransactionTypeBadge(CashuWalletTransaction transaction) {
+    final isLightning = transaction.rawData.kind == TransactionKind.ln;
+    final (label, color) = isLightning
+        ? ('Lightning', KeychatGlobal.bitcoinColor)
+        : ('Ecash', KeychatGlobal.secondaryColor);
+
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(50),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          color: color,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -653,346 +762,36 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     );
   }
 
-  /// Protocol badge widget
-  Widget _buildProtocolBadge(WalletProtocol protocol) {
-    final (label, color) = switch (protocol) {
-      WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
-      WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withAlpha(50),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  /// Add wallet card
-  Widget _buildAddCard(BuildContext context) {
-    return GestureDetector(
-      child: Container(
-        width: MediaQuery.of(context).size.width / 2,
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.onSurface.withAlpha(10),
-              Theme.of(context).colorScheme.onSurface.withAlpha(40),
-            ],
+  /// Wallet cards carousel
+  Widget _buildWalletCarousel(BuildContext context) {
+    return Obx(
+      () => Padding(
+        padding: const EdgeInsets.only(left: 10),
+        child: CarouselSlider(
+          options: CarouselOptions(
+            height: 160,
+            padEnds: false,
+            viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.45,
+            enableInfiniteScroll: false,
+            onPageChanged: (index, reason) {
+              if (index < controller.wallets.length) {
+                controller.selectWallet(index);
+              }
+            },
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(CupertinoIcons.add_circled, size: 48),
-              onPressed: () => _showAddWalletDialog(context),
-            ),
-            Text(
-              'Add Wallet',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            textSmallGray(context, 'Cashu or NWC wallet'),
+          items: [
+            // Wallet cards
+            ...controller.wallets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final wallet = entry.value;
+              return _buildWalletCard(context, wallet, index);
+            }),
+            // Add new wallet card
+            _buildAddCard(context),
           ],
         ),
       ),
-      onTap: () => _showAddWalletDialog(context),
     );
-  }
-
-  /// Transactions header
-  Widget _buildTransactionsHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Transactions',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Obx(() {
-                final wallet = controller.selectedWallet;
-                return Text(
-                  wallet.displayName,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodySmall!
-                            .color
-                            ?.withAlpha(160),
-                      ),
-                );
-              }),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Transaction list widget
-  Widget _buildTransactionsList(BuildContext context) {
-    return Obx(() {
-      if (controller.isTransactionsLoading.value &&
-          controller.transactions.isEmpty) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Center(child: CircularProgressIndicator()),
-        );
-      }
-
-      if (controller.transactions.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Center(
-            child: Wrap(
-              direction: Axis.vertical,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Icon(
-                  Icons.folder_open_outlined,
-                  size: 36,
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
-                ),
-                textSmallGray(context, 'No transactions'),
-              ],
-            ),
-          ),
-        );
-      }
-
-      return Column(
-        children: [
-          ...controller.transactions.map((transaction) {
-            return _buildTransactionTile(context, transaction);
-          }),
-          // Load more / No more data indicator
-          _buildLoadMoreIndicator(context),
-        ],
-      );
-    });
-  }
-
-  /// Build top refresh indicator widget
-  Widget _buildRefreshIndicator(IndicatorController indicatorController) {
-    final value = indicatorController.value.clamp(0.0, 1.5);
-    return Container(
-      height: 60 * value,
-      alignment: Alignment.center,
-      child: indicatorController.isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              CupertinoIcons.arrow_down,
-              size: 24 * value,
-              color: Colors.grey,
-            ),
-    );
-  }
-
-  /// Build bottom pull-up load more indicator widget
-  Widget _buildLoadMorePullIndicator(IndicatorController indicatorController) {
-    // Don't show if no more data
-    if (!controller.hasMoreTransactions.value) {
-      return const SizedBox.shrink();
-    }
-
-    final value = indicatorController.value.clamp(0.0, 1.5);
-    return Container(
-      height: 60 * value,
-      alignment: Alignment.center,
-      child: indicatorController.isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              CupertinoIcons.arrow_up,
-              size: 24 * value,
-              color: Colors.grey,
-            ),
-    );
-  }
-
-  /// Build load more indicator widget (static indicator in list)
-  Widget _buildLoadMoreIndicator(BuildContext context) {
-    return Obx(() {
-      // Loading more state - handled by pull indicator now
-      if (controller.isLoadingMore.value) {
-        return const SizedBox.shrink();
-      }
-
-      // No more data state
-      if (!controller.hasMoreTransactions.value) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Center(
-            child: Text(
-              'No more data',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
-                fontSize: 14,
-              ),
-            ),
-          ),
-        );
-      }
-
-      // Has more data - show hint text
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Center(
-          child: Text(
-            'Pull up to load more',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
-              fontSize: 12,
-            ),
-          ),
-        ),
-      );
-    });
-  }
-
-  /// Individual transaction tile
-  Widget _buildTransactionTile(
-    BuildContext context,
-    WalletTransactionBase transaction,
-  ) {
-    final isIncoming = transaction.isIncoming;
-    final amountText =
-        '${isIncoming ? '+' : '-'} ${transaction.amountSats.abs()}';
-
-    return ListTile(
-      key: Key(transaction.id + transaction.timestamp.toString()),
-      dense: true,
-      leading: Icon(
-        isIncoming
-            ? CupertinoIcons.arrow_down_left
-            : CupertinoIcons.arrow_up_right,
-        color: isIncoming ? Colors.green : Colors.red,
-      ),
-      title: Text(
-        amountText,
-        style: Theme.of(context).textTheme.bodyLarge,
-      ),
-      subtitle: Row(
-        children: [
-          // Protocol badge
-          _buildTransactionProtocolBadge(transaction.protocol),
-          // // Transaction type badge for Cashu (Ecash/Lightning)
-          // if (transaction is CashuWalletTransaction)
-          //   _buildTransactionTypeBadge(transaction),
-          // const SizedBox(width: 4),
-          // Status and time
-          Expanded(
-            child: textSmallGray(
-              context,
-              '${_getStatusText(transaction.status)} - ${formatTime(transaction.timestamp.millisecondsSinceEpoch)}',
-            ),
-          ),
-        ],
-      ),
-      trailing: _buildTransactionStatusIcon(transaction.status),
-      onTap: () => _onTransactionTap(transaction),
-    );
-  }
-
-  /// Protocol badge for transaction
-  Widget _buildTransactionProtocolBadge(WalletProtocol protocol) {
-    final (label, color) = switch (protocol) {
-      WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
-      WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
-    };
-
-    return Container(
-      margin: const EdgeInsets.only(right: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(50),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  /// Transaction type badge for Cashu (Ecash/Lightning)
-  Widget _buildTransactionTypeBadge(CashuWalletTransaction transaction) {
-    final isLightning = transaction.rawData.kind == TransactionKind.ln;
-    final (label, color) = isLightning
-        ? ('Lightning', KeychatGlobal.bitcoinColor)
-        : ('Ecash', KeychatGlobal.secondaryColor);
-
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(50),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  /// Transaction status icon
-  Widget _buildTransactionStatusIcon(WalletTransactionStatus status) {
-    return switch (status) {
-      WalletTransactionStatus.pending => const Icon(
-          CupertinoIcons.clock,
-          color: Colors.orange,
-          size: 18,
-        ),
-      WalletTransactionStatus.success => const Icon(
-          CupertinoIcons.checkmark_circle,
-          color: Colors.green,
-          size: 18,
-        ),
-      WalletTransactionStatus.failed => const Icon(
-          CupertinoIcons.xmark_circle,
-          color: Colors.red,
-          size: 18,
-        ),
-      WalletTransactionStatus.expired => const Icon(
-          CupertinoIcons.clock,
-          color: Colors.grey,
-          size: 18,
-        ),
-    };
   }
 
   String _getStatusText(WalletTransactionStatus status) {
@@ -1016,24 +815,125 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     ];
   }
 
-  /// Handle wallet card tap - navigate to wallet details
-  Future<void> _onWalletCardTap(WalletBase wallet) async {
-    bool? deleted;
-    if (wallet is CashuWallet) {
-      deleted = await Get.to<bool>(
-        () => MintServerPage(wallet.rawData),
+  Future<void> _handlePayEcash() async {
+    final tx = await Get.bottomSheet<Transaction>(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      const PayEcashPage(),
+    );
+    if (tx == null) return;
+
+    await Get.to<void>(
+      () => CashuTransactionPage(
+        transaction: tx,
+      ),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
+  }
+
+  /// Handle Pay Lightning action
+  Future<void> _handlePayLightning() async {
+    final tx = await Get.find<EcashController>().dialogToPayInvoice();
+    if (tx == null) return;
+
+    // Handle NWC payment result
+    if (tx.rawData is TransactionResult) {
+      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
+      await Get.to<void>(
+        () => UnifiedTransactionPage(
+          nwcTransaction: tx.rawData as TransactionResult,
+          walletId: nwcUri,
+        ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
-    } else if (wallet is NwcWallet) {
-      deleted = await Get.to<bool>(
-        () => NwcSettingPage(connection: wallet.rawData),
+      return;
+    }
+
+    // Handle Cashu Lightning payment result
+    if (tx.rawData is Transaction) {
+      await Get.to<void>(
+        () => UnifiedTransactionPage(
+          cashuTransaction: tx.rawData as Transaction,
+          walletId: (tx.rawData as Transaction).mintUrl,
+        ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     }
-    if (deleted ?? false) {
-      await controller.selectWallet(0);
-      await controller.refreshAll();
+  }
+
+  Future<void> _handleReceiveEcash() async {
+    final input = await Get.bottomSheet<String>(
+      CupertinoActionSheet(
+        title: const Text('Receive Ecash'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              final scanned = await QrScanService.instance.handleQRScan();
+              if (scanned != null && scanned.isNotEmpty) {
+                Get.back(result: scanned);
+              }
+            },
+            child: const Text('Scan QR Code'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              final data = await Clipboard.getData(Clipboard.kTextPlain);
+              if (data?.text != null && data!.text!.isNotEmpty) {
+                Get.back(result: data.text);
+              } else {
+                EasyLoading.showError('Clipboard is empty');
+              }
+            },
+            child: const Text('Paste from Clipboard'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+    if (input == null || input.isEmpty) return;
+    await EcashUtils.handleReceiveToken(token: input);
+  }
+
+  /// Handle Receive Lightning action
+  Future<void> _handleReceiveLightning() async {
+    final tx = await controller.dialogToMakeInvoice();
+    if (tx == null) return;
+    // Handle NWC invoice result
+    if (tx.rawData is TransactionResult) {
+      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
+
+      await Get.to<void>(
+        () => UnifiedTransactionPage(
+          nwcTransaction: tx.rawData as TransactionResult,
+          walletId: nwcUri,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+      return;
     }
+    // Handle Cashu Lightning invoice result
+    if (tx.rawData is Transaction) {
+      await Get.to<void>(
+        () => UnifiedTransactionPage(
+          cashuTransaction: tx.rawData as Transaction,
+          walletId: (tx.rawData as Transaction).mintUrl,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+  }
+
+  void _navigateToSettings() {
+    Get.to<void>(
+      () => const EcashSettingPage(),
+      binding: EcashSettingBindings(),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
   }
 
   /// Handle transaction tap - navigate to transaction details
@@ -1069,6 +969,43 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     }
+  }
+
+  /// Handle wallet card tap - navigate to wallet details
+  Future<void> _onWalletCardTap(WalletBase wallet) async {
+    bool? deleted;
+    if (wallet is CashuWallet) {
+      deleted = await Get.to<bool>(
+        () => MintServerPage(wallet.rawData),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    } else if (wallet is NwcWallet) {
+      deleted = await Get.to<bool>(
+        () => NwcSettingPage(connection: wallet.rawData),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+    if (deleted ?? false) {
+      await controller.selectWallet(0);
+      await controller.refreshAll();
+    }
+  }
+
+  /// Process wallet input and add appropriate wallet type
+  Future<void> _processWalletInput(String input) async {
+    final trimmedInput = input.trim();
+
+    // Detect wallet type
+    final walletType = controller.detectWalletType(trimmedInput);
+
+    if (walletType == null) {
+      await EasyLoading.showError(
+        'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
+      );
+      return;
+    }
+
+    await controller.addWallet(trimmedInput);
   }
 
   /// Show dialog to add a new wallet
@@ -1111,20 +1048,60 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     }
   }
 
-  /// Process wallet input and add appropriate wallet type
-  Future<void> _processWalletInput(String input) async {
-    final trimmedInput = input.trim();
-
-    // Detect wallet type
-    final walletType = controller.detectWalletType(trimmedInput);
-
-    if (walletType == null) {
-      await EasyLoading.showError(
-        'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
-      );
-      return;
-    }
-
-    await controller.addWallet(trimmedInput);
+  /// Show more menu with Lightning and Settings options
+  void _showMoreMenu() {
+    Get.bottomSheet<void>(
+      CupertinoActionSheet(
+        title: const Text('More Options'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handlePayLightning();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.bolt, color: Colors.redAccent),
+                SizedBox(width: 8),
+                Text('Pay to Lightning'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handleReceiveLightning();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.bolt, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Receive from Lightning'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _navigateToSettings();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.settings, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('Settings'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 }

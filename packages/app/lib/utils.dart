@@ -780,12 +780,13 @@ Init File: $time \n
   static T getOrPutGetxController<T extends GetxController>({
     required T Function() create,
     String? tag,
+    bool permanent = false,
   }) {
     try {
       final t = Get.find<T>(tag: tag);
       return t;
     } catch (e) {
-      return Get.put(create(), tag: tag);
+      return Get.put(create(), tag: tag, permanent: permanent);
     }
   }
 

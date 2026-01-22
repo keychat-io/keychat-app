@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
@@ -10,7 +11,6 @@ import 'package:keychat/page/browser/BrowserSetting.dart';
 import 'package:keychat/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:keychat/page/login/AccountSetting/AccountSetting_page.dart';
 import 'package:keychat/page/login/SelectModeToCreateID.dart';
-import 'package:keychat/page/routes.dart';
 import 'package:keychat/page/setting/app_general_setting.dart';
 import 'package:keychat/page/setting/more_chat_setting.dart';
 import 'package:keychat/utils.dart';
@@ -101,6 +101,12 @@ class _MinePageState extends State<MinePage> {
                     ),
 
                     onPressed: (context) async {
+                      unawaited(
+                        Utils.getOrPutGetxController(
+                          create: UnifiedWalletController.new,
+                          permanent: true,
+                        ).checkAndReloadNwcIfNeeded(),
+                      );
                       await Get.to(BitcoinWalletMain.new);
                     },
                     title: const Text('Bitcoin Wallets'),

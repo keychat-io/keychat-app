@@ -406,7 +406,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
             // Expiry information
             if (_status == TransactionStatus.pending && expiryTs > 0)
               Text(
-                'Expire At: ${formatTime(expiryTs * 1000)}',
+                'Expire At: ${formatTime(expiryTs)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),

@@ -138,46 +138,8 @@ class NwcController extends GetxController {
           // Check if error is permission-related
           if (e.toString().toLowerCase().contains('not in permissions')) {
             hasFailedConnection.value = true;
-            // await _handlePermissionError(connection.info.uri, e.toString());
           }
         });
-      }
-    }
-  }
-
-  Future<void> _handlePermissionError(String uri, String errorMessage) async {
-    // Mark connection as failed
-    hasFailedConnection.value = true;
-
-    final shouldReconnect = await Get.dialog<bool>(
-      CupertinoAlertDialog(
-        title: const Text('Connection Disconnected'),
-        content: const Text(
-          'The NWC connection has been disconnected. '
-          'Would you like to reconnect?',
-        ),
-        actions: [
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () => Get.back(result: true),
-            child: const Text('Reconnect'),
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    );
-
-    if (shouldReconnect ?? false) {
-      try {
-        await reloadConnections();
-      } catch (e) {
-        logger.e('Error handling permission reconnection: $e');
-        EasyLoading.showError('Failed to remove connection');
       }
     }
   }
@@ -224,13 +186,11 @@ class NwcController extends GetxController {
       // Clear existing connections
       _activeConnections.clear();
       activeConnections.clear();
+      hasFailedConnection.value = false;
 
       // Reinitialize NDK and load connections
       await _loadConnections();
       // fetchTransactionsForCurrent();
-
-      // Reset failed connection flag after successful reload
-      hasFailedConnection.value = false;
     } catch (e) {
       logger.e('Failed to reload connections: $e');
       EasyLoading.showError('Failed to reload connections');

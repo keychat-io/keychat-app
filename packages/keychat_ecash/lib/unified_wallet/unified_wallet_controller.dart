@@ -85,22 +85,17 @@ class UnifiedWalletController extends GetxController {
 
   /// Initialize wallets and restore saved selection
   Future<void> _initializeWallets() async {
-    // Check if NWC has failed connections and reload if needed
-    await _checkAndReloadNwcIfNeeded();
-
     await loadAllWallets();
     await _restoreSavedWalletSelection();
   }
 
   /// Check if NWC has failed connections and reload if needed
-  Future<void> _checkAndReloadNwcIfNeeded() async {
+  Future<void> checkAndReloadNwcIfNeeded() async {
     try {
       // Try to get NwcController if it exists
       final nwcController =
           Utils.getOrPutGetxController(create: NwcController.new);
-
       if (nwcController.hasFailedConnection.value) {
-        logger.i('Detected failed NWC connection, reloading...');
         await nwcController.reloadConnections();
       }
     } catch (e, s) {
@@ -479,7 +474,7 @@ class UnifiedWalletController extends GetxController {
   }) async {
     final res = await Get.bottomSheet<WalletTransactionBase?>(
       ignoreSafeArea: false,
-      isScrollControlled: true,
+      isScrollControlled: GetPlatform.isMobile,
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),

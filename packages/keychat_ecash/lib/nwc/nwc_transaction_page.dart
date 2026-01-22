@@ -251,6 +251,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                     ),
                     onPressed: () async {
                       final url = 'lightning:${widget.transaction.invoice}';
+                      logger.d(url);
                       final uri = Uri.parse(url);
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);

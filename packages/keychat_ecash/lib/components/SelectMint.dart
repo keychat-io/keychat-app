@@ -1,19 +1,22 @@
-import 'package:keychat/page/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/page/theme.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:settings_ui/settings_ui.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 
 class SelectMint extends StatelessWidget {
   SelectMint(this.mint, this.selectCallback, {super.key}) {
     selected.value = mint;
   }
   final String mint;
+  final RxString selected = ''.obs;
   final void Function(String) selectCallback;
-  RxString selected = ''.obs;
   final EcashController ecashController = Get.find<EcashController>();
 
   @override
@@ -28,7 +31,9 @@ class SelectMint extends StatelessWidget {
         ),
         subtitle: Obx(
           () => Text(
-            selected.value,
+            selected.value.isEmpty
+                ? 'Loading...'
+                : Uri.parse(selected.value).host,
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -62,7 +67,7 @@ class SelectMint extends StatelessWidget {
       }
     }
 
-    final mint = await Get.bottomSheet<String>(
+    final newSelectedMint = await Get.bottomSheet<String>(
       Container(
         decoration: BoxDecoration(
           color: Theme.of(Get.context!).scaffoldBackgroundColor,
@@ -72,106 +77,107 @@ class SelectMint extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Select Wallet',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(Get.context!).textTheme.titleLarge?.color,
-                ),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Wallet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(Get.context!).textTheme.titleLarge?.color,
+                    ),
+                  ),
+                  Obx(() {
+                    return IconButton(
+                      icon: isRefreshing.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              CupertinoIcons.refresh,
+                              color: MaterialTheme.lightScheme().primary,
+                            ),
+                      onPressed: isRefreshing.value ? null : handleRefresh,
+                    );
+                  }),
+                ],
               ),
             ),
             Flexible(
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return Obx(() {
-                    final sections = <SettingsSection>[
-                      SettingsSection(
-                        tiles: ecashController.mintBalances
-                            .map(
-                              (e) => SettingsTile(
-                                title: Text(e.mint),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      e.balance.toString(),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    if (e.mint == selected.value) ...[
-                                      const SizedBox(width: 8),
-                                      const Icon(
-                                        CupertinoIcons.check_mark,
-                                        color: Colors.green,
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                onPressed: (context) {
-                                  Get.back(result: e.mint);
-                                },
-                              ),
-                            )
-                            .toList(),
+              child: Obx(() {
+                if (ecashController.mintBalances.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(32),
+                    child: const Center(
+                      child: Text('No wallet available'),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: ecashController.mintBalances.length,
+                  itemBuilder: (context, index) {
+                    final mintBalance = ecashController.mintBalances[index];
+                    final isSelected = mintBalance.mint == selected.value;
+
+                    return ListTile(
+                      leading: Icon(
+                        CupertinoIcons.bitcoin_circle,
+                        color: KeychatGlobal.bitcoinColor,
                       ),
-                      SettingsSection(
-                        tiles: [
-                          SettingsTile(
-                            title: Obx(
-                              () => Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (isRefreshing.value)
-                                    const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  else
-                                    const Icon(
-                                      CupertinoIcons.refresh,
-                                      size: 16,
-                                    ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isRefreshing.value
-                                        ? 'Refreshing...'
-                                        : 'Refresh Balances',
-                                  ),
-                                ],
-                              ),
+                      title: Text(
+                        Uri.parse(mintBalance.mint).host,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(mintBalance.mint),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${mintBalance.balance} sat',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
                             ),
-                            onPressed: isRefreshing.value
-                                ? null
-                                : (context) => handleRefresh(),
                           ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              CupertinoIcons.check_mark_circled,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                          ],
                         ],
                       ),
-                    ];
-
-                    return SettingsList(
-                      platform: DevicePlatform.iOS,
-                      sections: sections,
+                      onTap: () {
+                        Get.back(result: mintBalance.mint);
+                      },
                     );
-                  });
-                },
-              ),
+                  },
+                );
+              }),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
 
-    if (mint != null) {
-      selected.value = mint;
-      selectCallback(mint);
+    if (newSelectedMint == null) return;
+    selected.value = newSelectedMint;
+
+    // save last used wallet
+    final wb = Utils.getOrPutGetxController(create: UnifiedWalletController.new)
+        .getWalletById(newSelectedMint);
+    if (wb != null) {
+      await WalletStorageSelection.saveWallet(wb);
     }
+    selectCallback(newSelectedMint);
   }
 }

@@ -11,7 +11,7 @@ import 'package:keychat_ecash/keychat_ecash.dart'
     show CashuWalletTransaction, MintBalanceClass;
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
-import 'package:keychat_ecash/wallet_storage.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 
 /// Unified controller for managing multiple wallet types
 class UnifiedWalletController extends GetxController {
@@ -115,7 +115,7 @@ class UnifiedWalletController extends GetxController {
   /// Restore the previously saved wallet selection
   Future<void> _restoreSavedWalletSelection() async {
     try {
-      final savedWallet = await WalletStorage.loadWallet();
+      final savedWallet = await WalletStorageSelection.loadWallet();
       final index = wallets.indexWhere((w) => w.id == savedWallet.id);
       if (index != -1) {
         selectedIndex.value = index;
@@ -230,7 +230,7 @@ class UnifiedWalletController extends GetxController {
 
     // Save the selection to storage
     final wallet = selectedWallet;
-    await WalletStorage.saveWallet(wallet);
+    await WalletStorageSelection.saveWallet(wallet);
 
     await loadTransactionsForSelected();
   }

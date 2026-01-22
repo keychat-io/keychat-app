@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +57,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                       }
                     }
                     await EasyLoading.dismiss();
+                    unawaited(Get.find<UnifiedWalletController>().refreshAll());
                     await Get.dialog(
                       CupertinoAlertDialog(
                         title: const Text('Receive Result'),
@@ -78,10 +81,6 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                         ],
                       ),
                     );
-
-                    Get.find<EcashController>()
-                      ..getBalance()
-                      ..getRecentTransactions();
                   } catch (e, s) {
                     EasyLoading.showToast('Receive failed');
                     logger.e(e.toString(), error: e, stackTrace: s);

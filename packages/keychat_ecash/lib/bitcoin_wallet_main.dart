@@ -20,7 +20,6 @@ import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:ndk/ndk.dart';
 
-/// Unified Bitcoin Wallet page that integrates Cashu and NWC wallets
 class BitcoinWalletMain extends StatefulWidget {
   const BitcoinWalletMain({super.key});
 
@@ -173,7 +172,6 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
 
     return Row(
       children: [
-        // Pay Ecash
         Expanded(
           child: _buildActionButton(
             context,
@@ -201,7 +199,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         _buildActionButton(
           context,
           icon: CupertinoIcons.ellipsis_circle,
-          label: 'More',
+          label: GetPlatform.isDesktop ? 'More' : null,
           color: Colors.grey,
           onTap: _showMoreMenu,
         ),
@@ -278,7 +276,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         Expanded(
           child: _buildActionButton(
             context,
-            icon: CupertinoIcons.bolt,
+            icon: CupertinoIcons.arrow_up_right,
             label: 'Pay Lightning',
             color: payColor,
             onTap: _handlePayLightning,
@@ -289,7 +287,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         Expanded(
           child: _buildActionButton(
             context,
-            icon: CupertinoIcons.bolt,
+            icon: CupertinoIcons.arrow_down_left,
             label: 'Receive Lightning',
             color: receiveColor,
             onTap: _handleReceiveLightning,
@@ -324,20 +322,24 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 20),
-              if (label != null) const SizedBox(width: 8),
+              if (label != null) const SizedBox(width: 6),
               if (label != null)
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
             ],
@@ -349,14 +351,13 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
     return expanded ? button : button;
   }
 
-  /// Handle Pay Ecash action
   Future<void> _handlePayEcash() async {
     final tx = await Get.bottomSheet<Transaction>(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CashuSendPage(),
+      const PayEcashPage(),
     );
     if (tx == null) return;
 
@@ -523,7 +524,7 @@ class _BitcoinWalletMainState extends State<BitcoinWalletMain> {
           options: CarouselOptions(
             height: 160,
             padEnds: false,
-            viewportFraction: 0.4,
+            viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.45,
             enableInfiniteScroll: false,
             onPageChanged: (index, reason) {
               if (index < controller.wallets.length) {

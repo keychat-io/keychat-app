@@ -676,7 +676,7 @@ class ChatController extends GetxController {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CashuSendPage(),
+      const PayEcashPage(),
     );
     if (tx == null) return;
     if (Get.isBottomSheetOpen ?? false) {
@@ -700,8 +700,9 @@ class ChatController extends GetxController {
 
   Future<void> _handleSendLightning() async {
     try {
-      final tx = await Get.find<UnifiedWalletController>()
-          .dialogToMakeInvoice();
+      final tx = await Utils.getOrPutGetxController(
+        create: UnifiedWalletController.new,
+      ).dialogToMakeInvoice();
 
       if (tx == null) return;
 

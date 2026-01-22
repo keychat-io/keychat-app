@@ -2,28 +2,22 @@ import 'dart:async' show Completer, FutureOr, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
-import 'package:keychat/app.dart';
-import 'package:keychat/rust_api.dart';
-import 'package:keychat/service/relay.service.dart';
-import 'package:keychat/service/secure_storage.dart';
-import 'package:keychat/service/websocket.service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/rust_api.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_ecash/cashu_receive.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
-import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:ndk/ndk.dart' show TransactionResult;
 
 class EcashDBVersion {
   static const int v0 = 0; // not initial version
@@ -41,20 +35,17 @@ class EcashController extends GetxController {
   RxList<MintBalanceClass> mintBalances = <MintBalanceClass>[].obs;
   RxInt btcPrice = 0.obs;
   RxInt totalSats = 0.obs;
-  RxString latestMintUrl = KeychatGlobal.defaultCashuMintURL.obs;
   RxInt pendingCount = 0.obs;
   RxList<MintCashu> mints = <MintCashu>[].obs;
-  RxList<Transaction> recentTransactions = <Transaction>[].obs;
-  RxBool isRecentTransactionsLoading = true.obs;
 
   Identity? currentIdentity;
   late ScrollController scrollController;
-  late TextEditingController nameController;
+  // late TextEditingController nameController;
 
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
-    nameController = TextEditingController();
+    // nameController = TextEditingController();
 
     super.onInit();
     Get.lazyPut(NostrWalletConnectController.new, fenix: true);
@@ -216,7 +207,6 @@ class EcashController extends GetxController {
 
   @override
   void onClose() {
-    nameController.dispose();
     scrollController.dispose();
     super.onClose();
   }
@@ -240,13 +230,7 @@ class EcashController extends GetxController {
       logger.i('cashu balance: $resMap');
       var total = 0;
       final localMints = <MintBalanceClass>[];
-      var existLatestMint = false;
-      var latestMintBalance = 0;
       for (final item in resMap.keys) {
-        if (latestMintUrl.value == item) {
-          latestMintBalance = resMap[item] as int;
-          existLatestMint = true;
-        }
         localMints.add(
           MintBalanceClass(
             item,
@@ -259,18 +243,7 @@ class EcashController extends GetxController {
       totalSats.value = total;
       totalSats.refresh();
       localMints.sort((a, b) => b.balance - a.balance);
-
       mintBalances.value = localMints.toList();
-
-      // set latest mint url
-      if (!existLatestMint || latestMintBalance == 0) {
-        for (final mb in localMints) {
-          if (mb.balance > 0) {
-            latestMintUrl.value = mb.mint;
-            break;
-          }
-        }
-      }
       return result;
     } finally {
       isBalanceLoading.value = false;
@@ -336,15 +309,6 @@ class EcashController extends GetxController {
     return res;
   }
 
-  int getIndexByDefaultMint() {
-    for (var i = 0; i < mintBalances.length; i++) {
-      if (mintBalances[i].mint == latestMintUrl.value) {
-        return i + 1;
-      }
-    }
-    return 1;
-  }
-
   Future<void> fetchBitcoinPrice() async {
     final dio = Dio()
       ..options = BaseOptions(
@@ -370,50 +334,12 @@ class EcashController extends GetxController {
     }
   }
 
-  Future<void> getRecentTransactions({int limit = 10}) async {
-    try {
-      isRecentTransactionsLoading.value = true;
-      final list = await rust_cashu.getTransactionsWithOffset(
-        offset: BigInt.zero,
-        limit: BigInt.from(limit),
-      );
-      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      recentTransactions.value = list;
-      recentTransactions.refresh();
-    } catch (e) {
-      logger.e('Failed to get recent transactions', error: e);
-    } finally {
-      isRecentTransactionsLoading.value = false;
-    }
-  }
-
-  void updateRecentTransaction(Transaction updatedTransaction) {
-    final index = recentTransactions.indexWhere(
-      (tx) => tx.id == updatedTransaction.id,
-    );
-    if (index != -1) {
-      recentTransactions[index] = updatedTransaction;
-      recentTransactions.refresh();
-    }
-  }
-
   Future<void> initMintUrl() async {
     mints.value = await rust_cashu.getMints();
     if (mints.isEmpty) {
       await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
-      latestMintUrl.value = KeychatGlobal.defaultCashuMintURL;
       mints.value = await rust_cashu.getMints();
       return;
-    }
-    // check latestMintUrl in mints
-    var existLastestMint = false;
-    for (final item in mints) {
-      if (item.url == latestMintUrl.value) {
-        existLastestMint = true;
-      }
-    }
-    if (!existLastestMint) {
-      latestMintUrl.value = mints[0].url;
     }
     await getBalance();
   }
@@ -545,19 +471,5 @@ class EcashController extends GetxController {
         showScanButton: !isPay,
       ),
     );
-  }
-
-  Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
-    final originalStatus = transaction.status;
-    try {
-      final updatedTx = await rust_cashu.checkTransaction(
-        id: transaction.id,
-      );
-      if (updatedTx.status != originalStatus) {
-        updateRecentTransaction(updatedTx);
-      }
-    } catch (e) {
-      logger.e('Failed to check transaction status', error: e);
-    }
   }
 }

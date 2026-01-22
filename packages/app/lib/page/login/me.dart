@@ -62,11 +62,6 @@ class _MinePageState extends State<MinePage> {
           platform: DevicePlatform.iOS,
           sections: [
             SettingsSection(
-              margin: const EdgeInsetsDirectional.only(
-                start: 16,
-                end: 16,
-                bottom: 16,
-              ),
               title: const Text('Chat / Browser ID'),
               tiles: [
                 ...getIDList(

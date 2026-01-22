@@ -12,7 +12,6 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart' show MakeInvoiceResponse;
 
 enum EcashTokenSymbol { sat, usdt }
 

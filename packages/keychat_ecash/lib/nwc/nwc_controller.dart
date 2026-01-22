@@ -137,7 +137,8 @@ class NwcController extends GetxController {
             () async {
           // Check if error is permission-related
           if (e.toString().toLowerCase().contains('not in permissions')) {
-            await _handlePermissionError(connection.info.uri, e.toString());
+            hasFailedConnection.value = true;
+            // await _handlePermissionError(connection.info.uri, e.toString());
           }
         });
       }

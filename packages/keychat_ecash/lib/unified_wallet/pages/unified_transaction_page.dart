@@ -438,10 +438,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   }
 
   String _getTitle() {
-    final protocolName = isCashu ? 'Lightning' : 'NWC';
-    return isIncoming
-        ? 'Receive $protocolName Payment'
-        : 'Send $protocolName Payment';
+    return isIncoming ? 'Receive Lightning Payment' : 'Send Lightning Payment';
   }
 
   Widget _getStatusIcon(TransactionStatus status) {
@@ -476,7 +473,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
 
         // Check/Refresh Status Button
         if (_status != TransactionStatus.success)
-          FilledButton.icon(
+          OutlinedButton.icon(
             onPressed: _isChecking
                 ? null
                 : () async {
@@ -500,7 +497,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
         if (isIncoming &&
             invoice != null &&
             _status == TransactionStatus.pending)
-          FilledButton.icon(
+          OutlinedButton.icon(
             onPressed: () async {
               final url = invoiceWithoutPrefix!;
               final uri = Uri.parse(url);

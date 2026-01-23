@@ -111,7 +111,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
         title: Text(
           widget.transaction.type == TransactionType.incoming.name
               ? 'Receive via NWC'
-              : 'Send via NWC',
+              : 'Pay via NWC',
         ),
       ),
       body: DesktopContainer(

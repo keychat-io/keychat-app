@@ -53,7 +53,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
         centerTitle: true,
         title: Text(
           widget.transaction.io == TransactionDirection.outgoing
-              ? 'Send via Cashu'
+              ? 'Pay via Cashu'
               : 'Receive via Cashu',
         ),
       ),

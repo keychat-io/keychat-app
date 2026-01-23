@@ -349,14 +349,27 @@ class NwcController extends GetxController {
 }
 
 class RustEventVerifier implements EventVerifier {
+  /// Convert Nip01Event to JSON string
+  String toJsonString(Nip01Event event) {
+    return jsonEncode({
+      'id': event.id,
+      'pubkey': event.pubKey,
+      'created_at': event.createdAt,
+      'kind': event.kind,
+      'tags': event.tags,
+      'content': event.content,
+      'sig': event.sig,
+    });
+  }
+
   @override
   Future<bool> verify(Nip01Event event) async {
     try {
-      await rust_nostr.verifyEvent(json: jsonEncode(event.toJson()));
+      await rust_nostr.verifyEvent(json: toJsonString(event));
       return true;
     } catch (e, s) {
       logger.e(
-        'Event verification failed: ${event.toJson()} , $e',
+        'Event verification failed: ${event.id} , $e',
         stackTrace: s,
       );
       return false;

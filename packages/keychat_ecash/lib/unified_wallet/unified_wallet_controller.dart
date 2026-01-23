@@ -152,6 +152,9 @@ class UnifiedWalletController extends GetxController {
       // Store the currently selected wallet ID before updating
       final currentWalletId = selectedWallet.id;
 
+      allWallets.sort(
+        (a, b) => b.balanceSats.compareTo(a.balanceSats),
+      );
       wallets.value = allWallets;
 
       // Try to restore the previously selected wallet

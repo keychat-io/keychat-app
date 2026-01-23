@@ -443,7 +443,7 @@ class EcashController extends GetxController {
       if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
         return await Get.bottomSheet<WalletTransactionBase?>(
           ignoreSafeArea: false,
-          isScrollControlled: true,
+          isScrollControlled: GetPlatform.isMobile,
           clipBehavior: Clip.antiAlias,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -461,7 +461,7 @@ class EcashController extends GetxController {
     return await Get.bottomSheet<WalletTransactionBase?>(
       clipBehavior: Clip.antiAlias,
       ignoreSafeArea: false,
-      isScrollControlled: true,
+      isScrollControlled: GetPlatform.isMobile,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),

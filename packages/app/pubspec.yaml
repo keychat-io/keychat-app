@@ -64,8 +64,8 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   avatar_plus: ^0.0.5
   intl: ^0.20.2
-  firebase_core: ^4.2.1
-  firebase_messaging: ^16.1.0
+  firebase_core: ^4.4.0
+  firebase_messaging: ^16.1.1
   async_queue: ^2.0.2
   url_launcher: ^6.3.2
   flutter_inappwebview: ^6.2.0-beta.2
@@ -81,7 +81,7 @@ dependencies:
   web_socket_client: ^0.2.1
   path: ^1.9.0
   sidebarx: ^0.17.2
-  background_downloader: ^9.4.0
+  background_downloader: ^9.5.2
   super_clipboard: ^0.9.1
   responsive_grid_list: ^1.4.1
   mime: ^2.0.0

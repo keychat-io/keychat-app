@@ -19,7 +19,7 @@ class CreateInvoicePage extends StatelessWidget {
     final controller = Get.put(CreateInvoiceController(defaultAmount: amount));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Make Invoice')),
+      appBar: AppBar(title: const Text('Receive Lightning')),
       resizeToAvoidBottomInset: false,
       body: Padding(
         padding: const EdgeInsets.all(16),

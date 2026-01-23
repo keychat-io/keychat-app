@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/qrscan.service.dart';
+import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_page.dart';
@@ -29,18 +30,23 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
         centerTitle: true,
         title: const Text('Bitcoin Wallets'),
         actions: [
-          IconButton(
-            onPressed: () async {
-              await controller.refreshAll();
-              await EasyLoading.showSuccess('Refreshed');
-            },
-            icon: const Icon(CupertinoIcons.refresh),
-          ),
+          if (GetPlatform.isDesktop)
+            IconButton(
+              onPressed: () async {
+                await controller.refreshAll();
+                await EasyLoading.showSuccess('Refreshed');
+              },
+              icon: const Icon(CupertinoIcons.refresh),
+            ),
           IconButton(
             onPressed: () {
               QrScanService.instance.handleQRScan(autoProcess: true);
             },
             icon: const Icon(CupertinoIcons.qrcode_viewfinder),
+          ),
+          IconButton(
+            onPressed: _navigateToSettings,
+            icon: const Icon(CupertinoIcons.settings),
           ),
         ],
       ),
@@ -214,7 +220,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     });
   }
 
-  /// Build Cashu wallet actions (3 buttons: Pay Ecash, Receive Ecash, More)
+  /// Build Cashu wallet actions (2 buttons: Pay, Receive)
   Widget _buildCashuActions(BuildContext context) {
     // Pay uses red/orange tones, Receive uses green tones
     const payColor = Colors.redAccent;
@@ -226,32 +232,23 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
           child: _buildActionButton(
             context,
             icon: CupertinoIcons.arrow_up_right,
-            label: 'Pay Ecash',
+            label: 'Pay',
             color: payColor,
-            onTap: _handlePayEcash,
+            onTap: _showPaymentMethodDialog,
             expanded: true,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         // Receive Ecash
         Expanded(
           child: _buildActionButton(
             context,
             icon: CupertinoIcons.arrow_down_left,
-            label: 'Receive Ecash',
+            label: 'Receive',
             color: receiveColor,
-            onTap: _handleReceiveEcash,
+            onTap: _showReceiveMethodDialog,
             expanded: true,
           ),
-        ),
-        const SizedBox(width: 12),
-        // More menu
-        _buildActionButton(
-          context,
-          icon: CupertinoIcons.ellipsis_circle,
-          label: GetPlatform.isDesktop ? 'More' : null,
-          color: Colors.grey,
-          onTap: _showMoreMenu,
         ),
       ],
     );
@@ -335,7 +332,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
           child: _buildActionButton(
             context,
             icon: CupertinoIcons.arrow_up_right,
-            label: 'Pay Lightning',
+            label: 'Pay',
             color: payColor,
             onTap: _handlePayLightning,
             expanded: true,
@@ -346,20 +343,12 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
           child: _buildActionButton(
             context,
             icon: CupertinoIcons.arrow_down_left,
-            label: 'Receive Lightning',
+            label: 'Receive',
             color: receiveColor,
             onTap: _handleReceiveLightning,
             expanded: true,
           ),
         ),
-        // const SizedBox(width: 16),
-        // _buildActionButton(
-        //   context,
-        //   icon: CupertinoIcons.settings,
-        //   label: 'Settings',
-        //   color: Colors.grey,
-        //   onTap: _navigateToSettings,
-        // ),
       ],
     );
   }
@@ -767,28 +756,32 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     return Obx(
       () => Padding(
         padding: const EdgeInsets.only(left: 10),
-        child: CarouselSlider(
-          options: CarouselOptions(
-            height: 160,
-            padEnds: false,
-            viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.45,
-            enableInfiniteScroll: false,
-            onPageChanged: (index, reason) {
-              if (index < controller.wallets.length) {
-                controller.selectWallet(index);
-              }
-            },
+        child: ScrollConfiguration(
+          behavior: MyCustomScrollBehavior(),
+          child: CarouselSlider(
+            disableGesture: false,
+            options: CarouselOptions(
+              height: 160,
+              padEnds: false,
+              viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.45,
+              enableInfiniteScroll: false,
+              onPageChanged: (index, reason) async {
+                if (index < controller.wallets.length) {
+                  await controller.selectWallet(index);
+                }
+              },
+            ),
+            items: [
+              // Wallet cards
+              ...controller.wallets.asMap().entries.map((entry) {
+                final index = entry.key;
+                final wallet = entry.value;
+                return _buildWalletCard(context, wallet, index);
+              }),
+              // Add new wallet card
+              _buildAddCard(context),
+            ],
           ),
-          items: [
-            // Wallet cards
-            ...controller.wallets.asMap().entries.map((entry) {
-              final index = entry.key;
-              final wallet = entry.value;
-              return _buildWalletCard(context, wallet, index);
-            }),
-            // Add new wallet card
-            _buildAddCard(context),
-          ],
         ),
       ),
     );
@@ -813,6 +806,64 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
         KeychatGlobal.bitcoinColor.withAlpha(100),
       Color((hash & 0xFFFFFF) | 0x40000000),
     ];
+  }
+
+  /// Show payment method selection dialog
+  Future<void> _showPaymentMethodDialog() async {
+    await Get.bottomSheet<void>(
+      CupertinoActionSheet(
+        title: const Text('Select Payment Type'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handlePayEcash();
+            },
+            child: const Text('Pay Ecash'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handlePayLightning();
+            },
+            child: const Text('Pay Lightning'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  /// Show receive method selection dialog
+  Future<void> _showReceiveMethodDialog() async {
+    await Get.bottomSheet<void>(
+      CupertinoActionSheet(
+        title: const Text('Select Receive Type'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handleReceiveEcash();
+            },
+            child: const Text('Receive Ecash'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+              _handleReceiveLightning();
+            },
+            child: const Text('Receive Lightning'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Get.back<void>(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   Future<void> _handlePayEcash() async {
@@ -1046,62 +1097,5 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     if (result != null && result.isNotEmpty) {
       await _processWalletInput(result);
     }
-  }
-
-  /// Show more menu with Lightning and Settings options
-  void _showMoreMenu() {
-    Get.bottomSheet<void>(
-      CupertinoActionSheet(
-        title: const Text('More Options'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _handlePayLightning();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.bolt, color: Colors.redAccent),
-                SizedBox(width: 8),
-                Text('Pay to Lightning'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _handleReceiveLightning();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.bolt, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Receive from Lightning'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back<void>();
-              _navigateToSettings();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.settings, color: Colors.grey),
-                SizedBox(width: 8),
-                Text('Settings'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Get.back<void>(),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
   }
 }

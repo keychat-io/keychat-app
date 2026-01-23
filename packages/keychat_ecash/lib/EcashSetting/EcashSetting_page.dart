@@ -25,11 +25,12 @@ class EcashSettingPage extends GetView<EcashSettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ecash Setting')),
+      appBar: AppBar(title: const Text('Wallet Setting')),
       body: SettingsList(
         platform: DevicePlatform.iOS,
         sections: [
           SettingsSection(
+            title: const Text('Ecash Wallet Settings'),
             tiles: [
               SettingsTile.navigation(
                 leading: const Icon(Icons.pending),
@@ -157,6 +158,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             ],
           ),
           SettingsSection(
+            title: const Text('Services as NWC Server'),
             tiles: [
               SettingsTile.navigation(
                 leading: SvgPicture.asset(

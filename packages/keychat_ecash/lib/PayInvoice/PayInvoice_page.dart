@@ -56,7 +56,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text(
-          'Pay to Lightning',
+          'Pay Lightning',
         ),
         actions: [
           if (widget.showScanButton &&
@@ -87,11 +87,12 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                       TextField(
                         controller: controller.textController,
                         textInputAction: TextInputAction.done,
-                        maxLines: 3,
+                        autofocus: widget.invoce == null,
+                        maxLines: 2,
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
-                          labelText: 'Lightning Invoice or address',
-                          hintText: 'Lightning invoice or address',
+                          labelText: 'Lightning invoice or LNURL address',
+                          hintText: 'Lightning invoice or LNURL address',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.paste),

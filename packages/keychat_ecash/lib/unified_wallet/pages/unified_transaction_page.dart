@@ -438,7 +438,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   }
 
   String _getTitle() {
-    return isIncoming ? 'Receive Lightning Payment' : 'Send Lightning Payment';
+    return isIncoming ? 'Receive Lightning' : 'Pay Lightning';
   }
 
   Widget _getStatusIcon(TransactionStatus status) {

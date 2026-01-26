@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 import 'dart:typed_data' show Uint8List;
 
+import 'package:convert/convert.dart' show hex;
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
@@ -19,7 +21,6 @@ import 'package:keychat/service/signal_chat_util.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:convert/convert.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -47,9 +48,7 @@ class SignalChatService extends BaseChatService {
     final cs = Get.find<ChatxService>();
     final kpa = await cs.getRoomKPA(room);
     if (kpa == null) {
-      throw Exception(
-        "The signal session has not yet been created. Waiting for your friend's approval. Or, you can go to: Security Settings -> reset signal session.",
-      );
+      throw SignalSessionNotCreatedException();
     }
     final message0 = message;
     final keypair = await room.getKeyPair();
@@ -96,8 +95,9 @@ class SignalChatService extends BaseChatService {
         since: DateTime.now().subtract(const Duration(seconds: 5)),
         kinds: [EventKinds.nip04],
       );
-      if (!room.isMute)
+      if (!room.isMute) {
         unawaited(NotifyService.instance.addPubkeys(toAddPubkeys));
+      }
     }
 
     final senderKey = await rust_nostr.generateSimple();
@@ -662,12 +662,15 @@ ${relays.join('\n')}
           final updatedRoom = await RoomService.instance.getRoomByIdOrFail(
             room.id,
           );
-          await RoomService.instance.refreshRoom(updatedRoom);
-          EasyLoading.showInfo('Request sent successfully.');
+          if (updatedRoom.status == RoomStatus.approving) {
+            updatedRoom.status = RoomStatus.requesting;
+          }
+          await RoomService.instance.updateRoomAndRefresh(updatedRoom);
+          await EasyLoading.showInfo('Request sent successfully.');
         } catch (e) {
           final msg = Utils.getErrorMessage(e);
           logger.e(msg, error: e);
-          EasyLoading.showToast('Failed to send request');
+          await EasyLoading.showToast('Failed to send request');
         }
       },
     );

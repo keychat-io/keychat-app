@@ -94,7 +94,9 @@ class NwcController extends GetxController {
       NdkConfig(
         eventVerifier: eventVerifier ?? RustEventVerifier(),
         cache: MemCacheManager(),
+        defaultBroadcastConsiderDonePercent: 0.5,
         logLevel: kDebugMode ? LogLevel.debug : LogLevel.error,
+        bootstrapRelays: Config.getEnvConfig('nostrRelays') as List<String>,
       ),
     );
   }

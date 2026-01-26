@@ -1,6 +1,8 @@
 import 'dart:convert' show jsonDecode;
 
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/service/message.service.dart';
 
 import 'package:keychat/service/mls_group.service.dart';
@@ -83,6 +85,14 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       }
       EasyLoading.showSuccess('Success');
       Get.back<void>();
+    } on ExpiredMembersException catch (e) {
+      EasyLoading.dismiss();
+      Get.dialog<void>(
+        ExpiredMembersDialog(
+          expiredMembers: e.expiredMembers,
+          room: await RoomService.instance.getRoomByIdOrFail(widget.room.id),
+        ),
+      );
     } catch (e, s) {
       EasyLoading.showError(e.toString());
       logger.e(e.toString(), error: e, stackTrace: s);

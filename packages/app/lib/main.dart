@@ -55,7 +55,9 @@ void main(List<String> args) async {
     enableLog: kDebugMode,
     logWriterCallback: _logWriterCallback,
     defaultPopGesture: true,
-    defaultTransition: Transition.cupertino,
+    defaultTransition: GetPlatform.isMobile
+        ? Transition.cupertino
+        : Transition.fade,
   );
   final initialRoute = await getInitRoute(isLogin: isLogin);
   final getMaterialApp = GetMaterialApp(

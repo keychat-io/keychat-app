@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
@@ -155,6 +157,14 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       }
       EasyLoading.showSuccess('Success');
       Get.back<void>();
+    } on ExpiredMembersException catch (e) {
+      EasyLoading.dismiss();
+      Get.dialog<void>(
+        ExpiredMembersDialog(
+          expiredMembers: e.expiredMembers,
+          room: await RoomService.instance.getRoomByIdOrFail(widget.room.id),
+        ),
+      );
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg);

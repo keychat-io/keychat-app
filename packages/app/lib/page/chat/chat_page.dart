@@ -14,6 +14,7 @@ import 'package:giphy_get/giphy_get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
@@ -990,6 +991,11 @@ class _ChatPage2State extends State<ChatPage> {
                     await RoomService.instance.updateRoomAndRefresh(
                       room,
                       refreshContact: true,
+                    );
+                  } on SignalSessionNotCreatedException catch (e) {
+                    Utils.showSignalSessionNotCreatedDialog(
+                      e,
+                      room: controller.roomObs.value,
                     );
                   } catch (e, s) {
                     final msg = Utils.getErrorMessage(e);

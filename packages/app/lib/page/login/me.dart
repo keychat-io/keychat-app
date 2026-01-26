@@ -108,6 +108,7 @@ class _MinePageState extends State<MinePage> {
                         ).checkAndReloadNwcIfNeeded(),
                       );
                       await Get.to(BitcoinWalletMain.new);
+                      Utils.hideKeyboard(Get.context!);
                     },
                     title: const Text('Bitcoin Wallets'),
                   ),

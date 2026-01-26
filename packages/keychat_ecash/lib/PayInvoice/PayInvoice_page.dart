@@ -261,7 +261,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         ),
                                       ),
                                     )
-                                  : const Text('Pay Invoice'),
+                                  : const Text('Confirm Pay'),
                             ),
                           )
                         : SizedBox(

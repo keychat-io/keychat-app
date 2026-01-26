@@ -1,9 +1,11 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/keychat/group_invitation_request_model.dart';
 import 'package:keychat/models/keychat/keychat_message.dart';
 import 'package:keychat/models/message.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/page/chat/invite_member_to_mls.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/message.service.dart';
@@ -128,6 +130,18 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                           );
 
                           EasyLoading.showSuccess('Success');
+                        } on ExpiredMembersException catch (e) {
+                          Get.back<void>();
+                          await Future<void>.delayed(
+                            const Duration(milliseconds: 100),
+                          );
+                          Get.dialog<void>(
+                            ExpiredMembersDialog(
+                              expiredMembers: e.expiredMembers,
+                              room: groupRoom,
+                            ),
+                          );
+                          return;
                         } catch (e, s) {
                           final msg = Utils.getErrorMessage(e);
                           EasyLoading.showError('Error: $msg');

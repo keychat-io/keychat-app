@@ -180,6 +180,11 @@ class PayInvoiceController extends GetxController {
       }
       return await Get.bottomSheet<WalletTransactionBase?>(
         ignoreSafeArea: false,
+        isScrollControlled: GetPlatform.isMobile,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+        ),
         PayToLnurl(data, input),
       );
     }

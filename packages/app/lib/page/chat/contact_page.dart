@@ -1,4 +1,5 @@
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/components.dart';
@@ -9,6 +10,7 @@ import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -210,6 +212,8 @@ class ContactPage extends StatelessWidget {
                           );
                           EasyLoading.showSuccess('Successfully added');
                         }
+                      } on SignalSessionNotCreatedException catch (e) {
+                        Utils.showSignalSessionNotCreatedDialog(e, room: room0);
                       } catch (e, s) {
                         EasyLoading.showError(
                           Utils.getErrorMessage(e),

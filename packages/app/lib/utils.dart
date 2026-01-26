@@ -20,12 +20,14 @@ import 'package:keychat/global.dart';
 import 'package:keychat/models/contact.dart';
 import 'package:keychat/models/identity.dart';
 import 'package:keychat/models/room.dart';
+import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/page/browser/SelectIdentityForward.dart';
 import 'package:keychat/page/dbSetup/db_setting.dart';
 import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/SignerService.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils/config.dart';
@@ -201,6 +203,35 @@ class MyOutput extends LogOutput {
 }
 
 class Utils {
+  /// Show dialog for SignalSessionNotCreatedException
+  /// If [room] is provided, shows a "Reset Session" button that navigates to chat settings
+  static Future<void> showSignalSessionNotCreatedDialog(
+    SignalSessionNotCreatedException exception, {
+    required Room room,
+  }) async {
+    final result = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Null Exception'),
+        content: Text(exception.toString()),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back<void>(),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              Get.back<void>(result: true);
+            },
+            child: const Text('Reset Session'),
+          ),
+        ],
+      ),
+    );
+    if (result != true) return;
+    await SignalChatService.instance.resetSignalSession(room);
+  }
+
   static bool isValidDomain(String domain) {
     final domainRegex = RegExp(
       r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$',

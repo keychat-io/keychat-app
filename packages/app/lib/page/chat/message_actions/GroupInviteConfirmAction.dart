@@ -1,6 +1,8 @@
 import 'dart:convert' show jsonDecode;
 
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
@@ -143,6 +145,16 @@ class GroupInviteConfirmAction extends StatelessWidget {
                         message.requestConfrim = RequestConfrimEnum.approved;
                         MessageService.instance.updateMessageAndRefresh(
                           message,
+                        );
+                      } on ExpiredMembersException catch (e) {
+                        await Future<void>.delayed(
+                          const Duration(milliseconds: 100),
+                        );
+                        Get.dialog<void>(
+                          ExpiredMembersDialog(
+                            expiredMembers: e.expiredMembers,
+                            room: groupRoom,
+                          ),
                         );
                       } catch (e, s) {
                         final msg = Utils.getErrorMessage(e);

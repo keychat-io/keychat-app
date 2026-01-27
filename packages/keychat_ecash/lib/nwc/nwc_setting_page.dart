@@ -167,16 +167,11 @@ class NwcSettingPage extends GetView<NwcController> {
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.copy, size: 20),
-                    onPressed: () {
-                      Clipboard.setData(
+                    onPressed: () async {
+                      await Clipboard.setData(
                         ClipboardData(text: connection.info.uri),
                       );
-                      Get.snackbar(
-                        'Copied',
-                        'Connection URI copied to clipboard',
-                        snackPosition: SnackPosition.BOTTOM,
-                        duration: const Duration(seconds: 2),
-                      );
+                      await EasyLoading.showSuccess('Copied');
                     },
                   ),
                 ],
@@ -289,14 +284,9 @@ class NwcSettingPage extends GetView<NwcController> {
                   label: 'Public Key',
                   value:
                       '${info.pubkey!.substring(0, 16)}...${info.pubkey!.substring(info.pubkey!.length - 16)}',
-                  onCopy: () {
-                    Clipboard.setData(ClipboardData(text: info.pubkey!));
-                    Get.snackbar(
-                      'Copied',
-                      'Public key copied to clipboard',
-                      snackPosition: SnackPosition.BOTTOM,
-                      duration: const Duration(seconds: 2),
-                    );
+                  onCopy: () async {
+                    await Clipboard.setData(ClipboardData(text: info.pubkey!));
+                    await EasyLoading.showSuccess('Copied');
                   },
                 ),
               ],

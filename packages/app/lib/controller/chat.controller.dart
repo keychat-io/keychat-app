@@ -14,11 +14,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/keychat/profile_request_model.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
@@ -621,7 +623,7 @@ class ChatController extends GetxController {
     }
     // signal group
     if (roomObs.value.isSendAllGroup) {
-      members.value = await roomObs.value.getMembers();
+      members.value = await roomObs.value.getSmallGroupMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
       await _fetchRoomMembersContact(members.values.toList());
       memberRooms = await roomObs.value.getEnableMemberRooms();
@@ -868,10 +870,33 @@ class ChatController extends GetxController {
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
-        Future.delayed(const Duration(seconds: 2)).then(
-          (value) => {
-            MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]),
-          },
+        unawaited(
+          Future.delayed(const Duration(seconds: 3)).then(
+            (value) async {
+              await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
+              final isAdmin = await roomObs.value.checkAdminByIdPubkey(
+                roomObs.value.getIdentity().secp256k1PKHex,
+              );
+              // Check if there are any users in expired status
+              if (isAdmin) {
+                try {
+                  await MlsGroupService.instance.existExpiredMember(
+                    roomObs.value,
+                  );
+                } on ExpiredMembersException catch (e) {
+                  logger.e(e.expiredMembers);
+                  await Get.dialog<void>(
+                    ExpiredMembersDialog(
+                      expiredMembers: e.expiredMembers,
+                      room: roomObs.value,
+                    ),
+                  );
+                } catch (e) {
+                  logger.e(e.toString());
+                }
+              }
+            },
+          ),
         );
       }
       return resetMembers();

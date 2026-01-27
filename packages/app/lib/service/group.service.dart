@@ -495,7 +495,7 @@ class GroupService extends BaseChatService {
     if (toUsers.isEmpty) throw Exception('no users to invite');
     final identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
-    final allMembers = (await groupRoom.getMembers()).values.toList();
+    final allMembers = (await groupRoom.getSmallGroupMembers()).values.toList();
     final toMembers = <RoomMember>[];
     final status = groupRoom.isSendAllGroup
         ? UserStatusType.invited
@@ -1057,7 +1057,7 @@ ${rm.idPubkey}
     Mykey? mykey,
     String? mlsWelcome,
   }) async {
-    final allMembers = (await groupRoom.getMembers()).values.toList();
+    final allMembers = (await groupRoom.getSmallGroupMembers()).values.toList();
 
     final roomMykey = groupRoom.mykey.value;
     final roomPubkey =
@@ -1075,13 +1075,6 @@ ${rm.idPubkey}
 
     if (mlsWelcome != null) {
       roomProfile.ext = mlsWelcome;
-    }
-    // shared signalId's QRCode
-    if (groupRoom.isKDFGroup && signalId != null) {
-      roomProfile.signalKeys = signalId.keys;
-      roomProfile.signalPubkey = signalId.pubkey;
-      roomProfile.signaliPrikey = signalId.prikey;
-      roomProfile.signalKeyId = signalId.signalKeyId;
     }
     return roomProfile;
   }

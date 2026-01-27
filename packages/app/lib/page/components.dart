@@ -73,13 +73,9 @@ SettingsTile settingInfoCopy(String title, String content, [Icon? icon]) {
     leading: icon,
     title: Text(title),
     value: textP(content),
-    onPressed: (context) {
-      Clipboard.setData(ClipboardData(text: title));
-      Get.snackbar(
-        'Success',
-        'Copied to clipboard',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    onPressed: (context) async {
+      await Clipboard.setData(ClipboardData(text: title));
+      await EasyLoading.showSuccess('Copied');
     },
   );
 }

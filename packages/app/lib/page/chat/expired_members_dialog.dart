@@ -31,7 +31,7 @@ class ExpiredMembersDialog extends StatelessWidget {
             'The following members have expired key packages:',
             style: TextStyle(fontSize: 14),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           ...expiredMembers.map(_buildMemberItem),
           const SizedBox(height: 8),
         ],
@@ -72,10 +72,11 @@ class ExpiredMembersDialog extends StatelessWidget {
 
   Widget _buildMemberItem(RoomMember member) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       leading: Utils.getRandomAvatar(
         member.idPubkey,
         contact: member.contact,
+        size: 40,
       ),
       title: Text(
         member.displayName,

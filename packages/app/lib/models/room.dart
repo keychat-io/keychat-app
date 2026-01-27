@@ -221,7 +221,8 @@ class Room extends Equatable {
         .findFirst();
   }
 
-  Future<Map<String, RoomMember>> getMembers() async {
+  // enable for signal group
+  Future<Map<String, RoomMember>> getSmallGroupMembers() async {
     final map = <String, RoomMember>{};
     final list = await DBProvider.database.roomMembers
         .filter()
@@ -535,22 +536,6 @@ class Room extends Equatable {
     return null;
   }
 
-  Future<Map<String, Room>> getActiveMemberRooms(Mykey mainMykey) async {
-    final memberRooms = <String, Room>{};
-    final rms = (await getMembers()).values.toList();
-    for (final rm in rms) {
-      if (rm.idPubkey == mainMykey.pubkey) continue;
-
-      final idRoom = await RoomService.instance.getOrCreateRoom(
-        rm.idPubkey,
-        mainMykey.pubkey,
-        RoomStatus.groupUser,
-      );
-      memberRooms[rm.idPubkey] = idRoom;
-    }
-    return memberRooms;
-  }
-
   Future<RoomMember?> getMemberByNostrPubkey(String pubkey) async {
     return DBProvider.database.roomMembers
         .filter()
@@ -561,21 +546,6 @@ class Room extends Equatable {
 
   int getDeviceIdForSignal() {
     return type == RoomType.common ? identityId : 10000 + id;
-  }
-
-  Future<void> incrMessageCountForMember(RoomMember member) async {
-    var changeMember = false;
-    if (member.status != UserStatusType.invited) {
-      member.status = UserStatusType.invited;
-      changeMember = true;
-    }
-    await DBProvider.database.writeTxn(() async {
-      member.messageCount++;
-      await DBProvider.database.roomMembers.put(member);
-    });
-    if (changeMember) {
-      RoomService.getController(id)?.resetMembers();
-    }
   }
 
   String getDebugInfo(String error) {

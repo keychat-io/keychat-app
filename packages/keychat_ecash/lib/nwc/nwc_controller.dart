@@ -230,7 +230,7 @@ class NwcController extends GetxController {
       refreshList();
       await EasyLoading.showSuccess('Connection name updated');
     } catch (e) {
-      await EasyLoading.showError('Failed to update name: $e');
+      await EasyLoading.showError(e.toString());
     }
   }
 
@@ -240,7 +240,7 @@ class NwcController extends GetxController {
       _activeConnections.remove(uri);
       refreshList();
     } catch (e) {
-      await EasyLoading.showError('Failed to delete connection: $e');
+      await EasyLoading.showError(e.toString());
       return false;
     }
     return true;
@@ -291,7 +291,7 @@ class NwcController extends GetxController {
       active.transactions = response;
       return response;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to list transactions: $e');
+      await EasyLoading.showError(e.toString());
       return null;
     }
   }
@@ -305,7 +305,7 @@ class NwcController extends GetxController {
 
       return await ndk.nwc.getInfo(active.connection);
     } catch (e) {
-      Get.snackbar('Error', 'Failed to get info: $e');
+      await EasyLoading.showError(e.toString());
       return null;
     }
   }
@@ -328,7 +328,7 @@ class NwcController extends GetxController {
         paymentHash: paymentHash,
       );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to lookup invoice: $e');
+      await EasyLoading.showError(e.toString());
       return null;
     }
   }

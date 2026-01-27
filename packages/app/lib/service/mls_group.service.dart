@@ -1462,6 +1462,8 @@ class MlsGroupService extends BaseChatService {
         expiredMembers.add(member);
       }
     }
+    if (expiredMembers.isEmpty) return;
+    // final expiredMembers = (await getMembers(room)).values.toList();
     throw ExpiredMembersException(expiredMembers);
   }
 }

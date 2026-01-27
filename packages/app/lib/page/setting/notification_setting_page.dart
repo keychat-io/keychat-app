@@ -274,6 +274,12 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),
+                onPressed: (_) async {
+                  if (_fcm?.isNotEmpty ?? false) {
+                    await Clipboard.setData(ClipboardData(text: _fcm ?? ''));
+                    await EasyLoading.showSuccess('Copied');
+                  }
+                },
               ),
             ],
           ),

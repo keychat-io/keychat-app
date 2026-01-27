@@ -12,6 +12,7 @@ import 'package:keychat_ecash/keychat_ecash.dart'
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 
 /// Unified controller for managing multiple wallet types
 class UnifiedWalletController extends GetxController {
@@ -221,6 +222,7 @@ class UnifiedWalletController extends GetxController {
   /// Select a wallet by index and save the selection
   Future<void> selectWallet(int index) async {
     if (wallets.isEmpty) return;
+    if (index == selectedIndex.value) return;
 
     // Clamp index to valid range
     final validIndex = index.clamp(0, wallets.length - 1);
@@ -229,7 +231,6 @@ class UnifiedWalletController extends GetxController {
     // Save the selection to storage
     final wallet = selectedWallet;
     await WalletStorageSelection.saveWallet(wallet);
-
     await loadTransactionsForSelected();
   }
 

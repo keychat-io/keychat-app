@@ -291,7 +291,17 @@ class NwcController extends GetxController {
       active.transactions = response;
       return response;
     } catch (e) {
-      await EasyLoading.showError(e.toString());
+      final msg = e.toString();
+      logger.e('nwc listTransactions: $msg');
+      if (msg.contains('not in permissions')) {
+        EasyThrottle.throttle('not_in_permissions', const Duration(seconds: 5),
+            () async {
+          await EasyLoading.showToast('ReConncteding...');
+          final nwcController =
+              Utils.getOrPutGetxController(create: NwcController.new);
+          await nwcController.reloadConnections();
+        });
+      }
       return null;
     }
   }

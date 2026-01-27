@@ -22,10 +22,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:permission_handler/permission_handler.dart';
 
 /// Push notification type
-enum PushType {
-  fcm,
-  unifiedpush,
-}
+enum PushType { fcm, unifiedpush }
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -122,9 +119,7 @@ class NotifyService {
     try {
       final res = await Dio().get(
         '${KeychatGlobal.notifycationServer}/hashcode',
-        queryParameters: {
-          'play_id': deviceId,
-        },
+        queryParameters: {'play_id': deviceId},
       );
       return hashcode == res.data['data'];
     } catch (e, s) {
@@ -205,9 +200,7 @@ class NotifyService {
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   /// Sync pubkeys to notification server
   /// Supports both FCM and UnifiedPush
-  Future<void> syncPubkeysToServer({
-    bool checkUpload = false,
-  }) async {
+  Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
     final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
@@ -232,14 +225,8 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      final hashcode = await calculateHash([
-        ...idPubkeys,
-        ...pubkeys2,
-      ]);
-      final hasUploaded = await checkHashcode(
-        deviceId,
-        hashcode,
-      );
+      final hashcode = await calculateHash([...idPubkeys, ...pubkeys2]);
+      final hasUploaded = await checkHashcode(deviceId, hashcode);
       if (hasUploaded) return;
     }
     final preToken = deviceId == oldToken ? '' : oldToken;
@@ -431,12 +418,10 @@ class NotifyService {
     logger.i('Setup FcmToken: $fcmToken');
     await Get.find<HomeController>().enableNotification();
     // Handle initial message if app was opened from notification
-    FirebaseMessaging.instance.getInitialMessage().then(
-      (initialMessage) async {
-        if (initialMessage == null) return;
-        await handleMessage(initialMessage);
-      },
-    );
+    FirebaseMessaging.instance.getInitialMessage().then((initialMessage) async {
+      if (initialMessage == null) return;
+      await handleMessage(initialMessage);
+    });
 
     // Setup FCM listeners
     _setupFCMListeners();
@@ -449,7 +434,9 @@ class NotifyService {
     if (currentPushType == PushType.unifiedpush) {
       return UnifiedPushService.instance.currentEndpoint?.url;
     }
-    return fcmToken ?? await _getFCMToken();
+    if (fcmToken != null) return fcmToken;
+    fcmToken = await _getFCMToken();
+    return fcmToken;
   }
 
   String? get deviceIdFromCache {
@@ -475,10 +462,7 @@ class NotifyService {
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/remove',
-        data: {
-          'deviceId': deviceId,
-          'pubkeys': pubkeys,
-        },
+        data: {'deviceId': deviceId, 'pubkeys': pubkeys},
       );
       logger.i('removePubkeys ($pushTypeString): ${res.data}');
       return true;

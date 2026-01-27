@@ -142,10 +142,10 @@ class HomeController extends GetxController
     final phraseIndexes = existsIdentity
         .map((element) => element.index)
         .toList();
-    final unusedIndex = List.generate(10, (index) => index).firstWhere(
-      (index) => !phraseIndexes.contains(index),
-      orElse: () => -1,
-    );
+    final unusedIndex = List.generate(
+      10,
+      (index) => index,
+    ).firstWhere((index) => !phraseIndexes.contains(index), orElse: () => -1);
     if (unusedIndex == -1) return;
     final secp256k1Accounts = await rust_nostr.importFromPhraseWith(
       phrase: mnemonic,
@@ -225,6 +225,7 @@ class HomeController extends GetxController
         }
         _pausedBefore = false;
       case AppLifecycleState.inactive:
+        resumed = false;
         if (GetPlatform.isMobile && statesForBlur.length >= 2) {
           if (statesForBlur[statesForBlur.length - 2] ==
               AppLifecycleState.resumed) {

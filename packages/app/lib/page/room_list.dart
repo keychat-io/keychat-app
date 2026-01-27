@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/desktop/DesktopController.dart';
-import 'package:keychat/page/RecommendBots/RecommendBots.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/new_friends_rooms.dart';
@@ -195,9 +194,7 @@ class RoomList extends GetView<HomeController> {
                     key: ObjectKey('${index}_room${room.id}'),
                     onTap: () async {
                       await Utils.toNamedRoom(room);
-                      await RoomService.instance.markAllRead(
-                        room,
-                      );
+                      await RoomService.instance.markAllRead(room);
                       if (GetPlatform.isMobile) {
                         Utils.hideKeyboard(Get.context!);
                       }
@@ -308,10 +305,7 @@ class RoomList extends GetView<HomeController> {
           child: CircleAvatar(
             radius: 26,
             backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-            child: const Icon(
-              CupertinoIcons.person_badge_plus_fill,
-              size: 26,
-            ),
+            child: const Icon(CupertinoIcons.person_badge_plus_fill, size: 26),
           ),
         ),
         title: Text(
@@ -360,10 +354,7 @@ class RoomList extends GetView<HomeController> {
           child: CircleAvatar(
             radius: 26,
             backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-            child: const Icon(
-              CupertinoIcons.person_badge_plus_fill,
-              size: 26,
-            ),
+            child: const Icon(CupertinoIcons.person_badge_plus_fill, size: 26),
           ),
         ),
         title: Text(
@@ -397,10 +388,7 @@ class RoomList extends GetView<HomeController> {
     final overlay =
         Overlay.of(context).context.findRenderObject()! as RenderBox;
     final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        e.globalPosition,
-        e.globalPosition,
-      ),
+      Rect.fromPoints(e.globalPosition, e.globalPosition),
       Offset.zero & overlay.size,
     );
     showMenu(

@@ -360,11 +360,7 @@ class ChatController extends GetxController {
       limit: 999,
     );
     if (unreads.isNotEmpty) {
-      unawaited(
-        RoomService.instance.markAllRead(
-          roomObs.value,
-        ),
-      );
+      unawaited(RoomService.instance.markAllRead(roomObs.value));
     }
     unreads.addAll(list);
     final mlist = sortMessageById(unreads.toList())
@@ -604,6 +600,7 @@ class ChatController extends GetxController {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
+    RoomService.instance.markAllRead(roomObs.value);
     // chatContentFocus.unfocus();
   }
 
@@ -1314,9 +1311,7 @@ class ChatController extends GetxController {
       await dio.download(
         gifUrl,
         filePath,
-        options: Options(
-          responseType: ResponseType.bytes,
-        ),
+        options: Options(responseType: ResponseType.bytes),
         onReceiveProgress: (int received, int total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
@@ -1331,11 +1326,7 @@ class ChatController extends GetxController {
       EasyLoading.showProgress(0.6, status: 'Encrypting and Uploading...');
 
       // Create XFile from downloaded file
-      final xfile = XFile(
-        filePath,
-        mimeType: 'image/gif',
-        name: fileName,
-      );
+      final xfile = XFile(filePath, mimeType: 'image/gif', name: fileName);
 
       // Use existing upload logic
       await FileService.instance.handleSendMediaFile(
@@ -1445,9 +1436,6 @@ class ChatController extends GetxController {
     if (list.length > 10) {
       list.removeAt(0);
     }
-    await Storage.setStringList(
-      StorageKeyString.recentEmojis,
-      list,
-    );
+    await Storage.setStringList(StorageKeyString.recentEmojis, list);
   }
 }

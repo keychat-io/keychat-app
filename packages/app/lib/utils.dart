@@ -1591,9 +1591,7 @@ class DesktopContainer extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 800),
         width: double.infinity,
-        padding: GetPlatform.isDesktop
-            ? const EdgeInsets.all(8)
-            : EdgeInsets.zero,
+        padding: EdgeInsets.zero,
         child: child,
       ),
     );

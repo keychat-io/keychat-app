@@ -116,8 +116,8 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
       ),
       body: DesktopContainer(
         child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -251,7 +251,6 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                     ),
                     onPressed: () async {
                       final url = 'lightning:${widget.transaction.invoice}';
-                      logger.d(url);
                       final uri = Uri.parse(url);
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);

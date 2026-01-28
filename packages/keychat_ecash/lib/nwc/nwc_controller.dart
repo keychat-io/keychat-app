@@ -266,6 +266,7 @@ class NwcController extends GetxController {
     }
   }
 
+  int reloadConnectionsTimes = 0;
   Future<ListTransactionsResponse?> listTransactions(
     String uri, {
     int? from,
@@ -289,6 +290,7 @@ class NwcController extends GetxController {
         unpaid: unpaid,
       );
       active.transactions = response;
+      reloadConnectionsTimes = 0;
       return response;
     } catch (e) {
       final msg = e.toString();
@@ -296,6 +298,8 @@ class NwcController extends GetxController {
       if (msg.contains('not in permissions')) {
         EasyThrottle.throttle('not_in_permissions', const Duration(seconds: 5),
             () async {
+          if (reloadConnectionsTimes >= 5) return;
+          reloadConnectionsTimes++;
           await EasyLoading.showToast('ReConncteding...');
           final nwcController =
               Utils.getOrPutGetxController(create: NwcController.new);

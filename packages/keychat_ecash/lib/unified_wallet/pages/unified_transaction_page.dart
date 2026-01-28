@@ -333,10 +333,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
       ),
       body: DesktopContainer(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
           children: [
-            const SizedBox(height: 16),
-            // Status and Amount
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 10,
@@ -499,7 +497,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
             _status == TransactionStatus.pending)
           OutlinedButton.icon(
             onPressed: () async {
-              final url = invoiceWithoutPrefix!;
+              if (invoice == null) return;
+              final url = 'lightning:$invoice';
               final uri = Uri.parse(url);
               final res = await canLaunchUrl(uri);
               if (!res) {
@@ -509,8 +508,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
               await launchUrl(uri);
             },
             icon: const Icon(Icons.open_in_new),
-            label: Text(
-              isNwc ? 'Pay with Lightning wallet' : 'Pay with Lightning wallet',
+            label: const Text(
+              'Pay with Lightning wallet',
             ),
           ),
       ],

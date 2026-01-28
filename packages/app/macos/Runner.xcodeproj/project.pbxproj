@@ -608,6 +608,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
+				"EXCLUDED_ARCHS[sdk=*]" = x86_64;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -768,6 +769,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
+				"EXCLUDED_ARCHS[sdk=*]" = x86_64;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -816,6 +818,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
+				"EXCLUDED_ARCHS[sdk=*]" = x86_64;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (

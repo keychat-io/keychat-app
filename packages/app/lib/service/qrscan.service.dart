@@ -2,15 +2,12 @@ import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/create_contact_page.dart';
-import 'package:keychat/page/components.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:bip21_uri/bip21_uri.dart' show bip21;
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -64,8 +61,7 @@ class QrScanService {
     );
 
     if (result == null || result.isEmpty || !autoProcess) return result;
-    debugPrint('Barcode detected: $result');
-
+    logger.d('Barcode detected: $result');
     try {
       await _processQRResult(result);
     } catch (e) {

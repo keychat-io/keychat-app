@@ -1,4 +1,4 @@
-import 'dart:io' show Directory, exit;
+import 'dart:io' show exit;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';

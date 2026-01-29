@@ -194,13 +194,13 @@ class SignalIdService {
 
     await rust_signal.storePrekeyApi(
       keyPair: keyPair,
-      prekeyId: keys['prekeyId'],
-      record: hex.decode(keys['prekeyRecord']),
+      prekeyId: keys['prekeyId'] as int,
+      record: hex.decode(keys['prekeyRecord'] as String),
     );
     await rust_signal.storeSignedKeyApi(
       keyPair: keyPair,
-      signedKeyId: keys['signedId'],
-      record: hex.decode(keys['signedRecord']),
+      signedKeyId: keys['signedId'] as int,
+      record: hex.decode(keys['signedRecord'] as String),
     );
 
     return signalId;

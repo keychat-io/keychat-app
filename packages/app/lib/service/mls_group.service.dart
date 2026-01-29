@@ -5,6 +5,7 @@ import 'dart:convert'
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/close.dart';
@@ -38,17 +39,12 @@ class MlsGroupService extends BaseChatService {
     List<Map<String, dynamic>> toUsers, [
     String? sender,
   ]) async {
-    final invalidPubkeys = await existExpiredMember(groupRoom);
-    if (invalidPubkeys.isNotEmpty) {
-      throw Exception(
-        "${invalidPubkeys.join(', ')} 's key package is expired, please remove them first",
-      );
-    }
+    await existExpiredMember(groupRoom);
     final identity = groupRoom.getIdentity();
     final userNameMap = <String, String>{};
     final keyPackages = <String>[];
     for (final user in toUsers) {
-      userNameMap[user['pubkey']] = user['name'] as String;
+      userNameMap[user['pubkey'] as String] = user['name'] as String;
       final pk = user['mlsPK'] as String?;
       if (pk != null) {
         final valid = await checkPkIsValid(groupRoom, pk);
@@ -153,7 +149,7 @@ class MlsGroupService extends BaseChatService {
 
     final result = <String, String>{};
     for (final user in toUsers) {
-      result[user['pubkey']] = user['name'] as String;
+      result[user['pubkey'] as String] = user['name'] as String;
     }
 
     await _sendInviteMessage(
@@ -943,7 +939,7 @@ class MlsGroupService extends BaseChatService {
             waitTimeToFill: true,
           );
           ws.sendReqToRelays(Close(req.reqId).serialize());
-          // TODOcheck the kp is used?
+          // TODO: check the kp is used?
           if (list.isNotEmpty) {
             final event = list[0];
             final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -1447,15 +1443,27 @@ class MlsGroupService extends BaseChatService {
     return false;
   }
 
-  Future<List<String>> existExpiredMember(Room room) async {
+  Future<void> existExpiredMember(Room room) async {
     final lifeTimes = await rust_mls.getGroupMembersWithLifetime(
       nostrId: room.myIdPubkey,
       groupId: room.toMainPubkey,
     );
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    return lifeTimes.entries
+    final expiredPubkeys = lifeTimes.entries
         .where((entry) => entry.value != null && entry.value!.toInt() < now)
         .map((entry) => entry.key)
         .toList();
+
+    if (expiredPubkeys.isEmpty) return;
+    final expiredMembers = <RoomMember>[];
+    for (final pubkey in expiredPubkeys) {
+      final member = await room.getMemberByIdPubkey(pubkey);
+      if (member != null) {
+        expiredMembers.add(member);
+      }
+    }
+    if (expiredMembers.isEmpty) return;
+    // final expiredMembers = (await getMembers(room)).values.toList();
+    throw ExpiredMembersException(expiredMembers);
   }
 }

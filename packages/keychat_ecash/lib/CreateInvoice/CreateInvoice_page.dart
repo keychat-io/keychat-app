@@ -2,66 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat/page/theme.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_controller.dart';
-import 'package:keychat_ecash/components/SelectMint.dart';
+import 'package:keychat_ecash/components/SelectMintAndNwc.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 
+// return: BaseWalletTransaction
 class CreateInvoicePage extends StatelessWidget {
-  CreateInvoicePage({this.amount, this.showSelectMint = true, super.key});
+  CreateInvoicePage({this.amount, this.description, super.key});
   final int? amount;
-  final bool showSelectMint;
+  final String? description;
   final RxBool isLoading = false.obs;
 
   @override
   Widget build(BuildContext context) {
-    final cashuController = Get.find<EcashController>();
+    final ecashController = Get.find<EcashController>();
     final controller = Get.put(CreateInvoiceController(defaultAmount: amount));
 
-    return SafeArea(
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          leading: Container(),
-          centerTitle: true,
-          title: Text(
-            'Receive From Lightning Wallet',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ),
-        body: Container(
-          padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
-          decoration:
-              BoxDecoration(color: Theme.of(context).colorScheme.surface),
-          child: Column(
-            children: [
-              if (showSelectMint)
-                SelectMint(controller.selectedMint.value, (String mint) {
-                  controller.selectedMint.value = mint;
-                }),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Form(
-                  child: Column(
-                    children: [
-                      TextField(
-                        style: const TextStyle(fontSize: 18),
-                        controller: controller.textController,
-                        keyboardType: TextInputType.number,
-                        // textInputAction: TextInputAction.done,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Input Amount',
-                          hintText: 'Amount',
-                          border: OutlineInputBorder(),
-                        ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Receive Lightning')),
+      resizeToAvoidBottomInset: false,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const SelectMintAndNwc(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Form(
+                child: Column(
+                  children: [
+                    TextField(
+                      style: const TextStyle(fontSize: 18),
+                      controller: controller.textController,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Input Amount',
+                        hintText: 'Amount',
+                        border: OutlineInputBorder(),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      style: const TextStyle(fontSize: 18),
+                      controller: controller.descController,
+                      keyboardType: TextInputType.text,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        hintText: 'Description (optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Obx(
-                () => cashuController.supportMint(controller.selectedMint.value)
+            ),
+            const SizedBox(height: 8),
+            Obx(
+              () {
+                final selectedWallet =
+                    controller.unifiedWalletController.selectedWallet;
+
+                return (selectedWallet.protocol == WalletProtocol.cashu &&
+                            ecashController.supportMint(selectedWallet.id)) ||
+                        selectedWallet.protocol == WalletProtocol.nwc
                     ? SizedBox(
-                        width: GetPlatform.isDesktop ? 200 : double.infinity,
+                        width: double.infinity,
                         height: 44,
                         child: Obx(
                           () => FilledButton(
@@ -69,7 +75,6 @@ class CreateInvoicePage extends StatelessWidget {
                                 ? null
                                 : () async {
                                     if (isLoading.value) return;
-
                                     try {
                                       isLoading.value = true;
                                       await controller.handleCreateInvoice();
@@ -88,12 +93,12 @@ class CreateInvoicePage extends StatelessWidget {
                                       ),
                                     ),
                                   )
-                                : const Text('Create Invoice'),
+                                : const Text('Make Invoice'),
                           ),
                         ),
                       )
                     : SizedBox(
-                        width: GetPlatform.isDesktop ? 200 : double.infinity,
+                        width: double.infinity,
                         height: 44,
                         child: FilledButton(
                           onPressed: null,
@@ -110,10 +115,10 @@ class CreateInvoicePage extends StatelessWidget {
                           ),
                           child: const Text('Disable By Mint Server'),
                         ),
-                      ),
-              ),
-            ],
-          ),
+                      );
+              },
+            ),
+          ],
         ),
       ),
     );

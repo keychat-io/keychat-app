@@ -73,13 +73,9 @@ SettingsTile settingInfoCopy(String title, String content, [Icon? icon]) {
     leading: icon,
     title: Text(title),
     value: textP(content),
-    onPressed: (context) {
-      Clipboard.setData(ClipboardData(text: title));
-      Get.snackbar(
-        'Success',
-        'Copied to clipboard',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    onPressed: (context) async {
+      await Clipboard.setData(ClipboardData(text: title));
+      await EasyLoading.showSuccess('Copied');
     },
   );
 }
@@ -157,8 +153,8 @@ void showModalBottomSheetKeyChatFetures(BuildContext context) {
     ws.add(
       ListTile(
         leading: CircleAvatar(child: Text((i + 1).toString())),
-        title: Text(futuresTitle[i]),
-        subtitle: Text(futuresSubtitle[i]),
+        title: Text(futuresTitle[i] as String),
+        subtitle: Text(futuresSubtitle[i] as String),
       ),
     );
   }
@@ -705,6 +701,27 @@ Widget pageLoadingSpinKit({String title = 'Loading...'}) {
         ),
         Text(title),
       ],
+    ),
+  );
+}
+
+Widget recommendedText([String text = 'Recommended']) {
+  return Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 8,
+      vertical: 2,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.green.withAlpha(50),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: Colors.green,
+      ),
     ),
   );
 }

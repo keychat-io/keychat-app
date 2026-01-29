@@ -147,7 +147,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
           ),
         );
       case menuScan:
-        await QrScanService.instance.handleQRScan();
+        await QrScanService.instance.handleQRScan(autoProcess: true);
       case menuNewGroup:
         await Get.bottomSheet<void>(
           const AddGroupPage(),

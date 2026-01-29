@@ -4,12 +4,11 @@ import 'package:keychat/app.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 enum NWCLogMethod { subscribe, receiveEvent, writeEvent, eose, notice, ok }
@@ -33,7 +32,7 @@ class NostrWalletConnectController extends GetxController {
       const Secp256k1SimpleAccount(pubkey: '', prikey: '').obs;
   RxString nwcUri = ''.obs;
   Set<String> subscribeSuccessRelays = {};
-  RxSet subscribeAndOnlineRelays = <String>{}.obs;
+  RxSet<String> subscribeAndOnlineRelays = <String>{}.obs;
   RxList<NWCLog> logs = <NWCLog>[].obs;
   String subId13194 = '';
   RxBool featureStatus = false.obs;
@@ -60,12 +59,12 @@ class NostrWalletConnectController extends GetxController {
     loggerNoLine.d('initNostrConnectWallet: $map');
     if (loadFromCache && map.keys.isNotEmpty) {
       client.value = Secp256k1SimpleAccount(
-        pubkey: map['client']['pubkey'],
-        prikey: map['client']['prikey'],
+        pubkey: map['client']['pubkey'] as String,
+        prikey: map['client']['prikey'] as String,
       );
       service.value = Secp256k1SimpleAccount(
-        pubkey: map['service']['pubkey'],
-        prikey: map['service']['prikey'],
+        pubkey: map['service']['pubkey'] as String,
+        prikey: map['service']['prikey'] as String,
       );
       featureStatus.value = map['status'] == 1;
       subscribeSuccessRelays.clear();
@@ -220,36 +219,26 @@ class NostrWalletConnectController extends GetxController {
           invoice = invoice.replaceFirst('lightning:', '');
         }
         if (!invoice.startsWith('lnbc')) return;
-        final tx = await ecashController.proccessPayLightningBill(
-          invoice,
+        final tx = await ecashController.dialogToPayInvoice(
+          input: invoice,
           isPay: true,
         );
         late Map toSendMessage;
         if (tx == null) {
-          try {
-            final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
-
-            // Print all fields of the invoice
-            loggerNoLine.d('paymentHash: ${ii.hash}');
-            loggerNoLine.d('description: ${ii.memo}');
-            loggerNoLine.d('expiry: ${ii.expiryTs}');
-            loggerNoLine.d('amount: ${ii.amount}');
-            loggerNoLine.d('mint: ${ii.mint}');
-            toSendMessage = {
-              'result_type': 'pay_invoice',
-              'error': {'code': 'PAYMENT_FAILED', 'message': 'User Cancel'},
-            };
-          } catch (e) {
-            toSendMessage = {
-              'result_type': 'pay_invoice',
-              'error': {
-                'code': 'PAYMENT_FAILED',
-                'message': 'Invoice decoded failed',
-              },
-            };
-          }
+          toSendMessage = {
+            'result_type': 'pay_invoice',
+            'error': {
+              'code': 'PAYMENT_FAILED',
+              'message': '',
+            },
+          };
         } else {
-          if (tx.status != TransactionStatus.success) {
+          // Check if Cashu payment failed
+          final isFailed = switch (tx) {
+            CashuWalletTransaction() => !tx.isSuccess,
+            _ => false,
+          };
+          if (isFailed) {
             toSendMessage = {
               'result_type': 'pay_invoice',
               'error': {'code': 'PAYMENT_FAILED', 'message': 'PAYMENT FAILED'},
@@ -258,8 +247,8 @@ class NostrWalletConnectController extends GetxController {
             toSendMessage = {
               'result_type': 'pay_invoice',
               'result': {
-                'preimage': tx.id,
-                'fees_paid': tx.fee.toInt(),
+                'preimage': tx.preimage,
+                'fees_paid': tx.fee,
               },
             };
           }

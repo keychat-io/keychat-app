@@ -1,9 +1,9 @@
-import 'package:get/get.dart';
+import 'dart:convert';
 import 'package:keychat/constants.dart';
-import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
+import 'package:keychat/service/SignerService.dart';
 import 'package:keychat/service/chat.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/room.service.dart';
@@ -79,6 +79,40 @@ class Nip4ChatService extends BaseChatService {
     MessageMediaType? mediaType,
   }) async {
     final identity = room.getIdentity();
+    if (identity.isFromSigner) {
+      final to = room.toMainPubkey;
+      final plaintext = message;
+      final ciphertext = await SignerService.instance.nip04Encrypt(
+        plaintext: plaintext,
+        currentUser: identity.secp256k1PKHex,
+        to: to,
+      );
+
+      final model = NostrEventModel.partial(
+        id: generate64RandomHexChars(),
+        pubkey: identity.secp256k1PKHex,
+        kind: 4,
+        content: ciphertext,
+        tags: [
+          ['p', to],
+        ],
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      );
+      final eventString = await SignerService.instance.signEvent(
+        eventJson: jsonEncode(model.toJson()),
+        pubkey: identity.secp256k1PKHex,
+      );
+      if (eventString == null) throw Exception('Sig is null');
+      return NostrAPI.instance.sendAndSaveNostrEvent(
+        to: room.toMainPubkey,
+        plainContent: plaintext,
+        from: identity.secp256k1PKHex,
+        encryptedEvent: eventString,
+        room: room,
+        mediaType: mediaType,
+        realMessage: realMessage,
+      );
+    }
     return NostrAPI.instance.sendEventMessage(
       room.toMainPubkey,
       message,
@@ -88,6 +122,7 @@ class Nip4ChatService extends BaseChatService {
       prikey: await identity.getSecp256k1SKHex(),
       from: identity.secp256k1PKHex,
       realMessage: realMessage,
+      mediaType: mediaType,
     );
   }
 }

@@ -13,7 +13,7 @@ class Request {
     subscriptionId = input[1] as String;
     filters = [];
     for (var i = 2; i < input.length; i++) {
-      filters.add(Filter.fromJson(input[i]));
+      filters.add(Filter.fromJson(input[i] as Map<String, dynamic>));
     }
   }
 

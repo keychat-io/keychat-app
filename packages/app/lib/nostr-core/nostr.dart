@@ -113,7 +113,7 @@ class NostrAPI {
   }
 
   Future<void> _proccessEOSE(Relay relay, List res) async {
-    subscriptionIdEose.add(res[1]);
+    subscriptionIdEose.add(res[1] as String);
     final key = '${StorageKeyString.lastMessageAt}:${relay.url}';
     final lastMessageAt = Storage.getIntOrZero(key);
     if (lastMessageAt == 0) return;
@@ -280,7 +280,7 @@ class NostrAPI {
       );
     }
     final event = NostrEventModel.fromJson(
-      jsonDecode(encryptedEvent),
+      jsonDecode(encryptedEvent) as Map<String, dynamic>,
       verify: false,
     );
 
@@ -353,9 +353,9 @@ class NostrAPI {
         additionalTags: additionalTags,
       );
     }
-    return _sendAndSaveGiftMessage(
-      toPubkey ?? room.toMainPubkey,
-      sourceContent,
+    return sendAndSaveNostrEvent(
+      to: toPubkey ?? room.toMainPubkey,
+      plainContent: sourceContent,
       room: room,
       encryptedEvent: encryptedEvent,
       from: identity.secp256k1PKHex,
@@ -367,9 +367,9 @@ class NostrAPI {
     );
   }
 
-  Future<SendMessageResponse> _sendAndSaveGiftMessage(
-    String to,
-    String sourceContent, {
+  Future<SendMessageResponse> sendAndSaveNostrEvent({
+    required String to,
+    required String plainContent,
     required String encryptedEvent,
     required String from,
     required Room room,
@@ -380,7 +380,7 @@ class NostrAPI {
     String? realMessage,
   }) async {
     final event = NostrEventModel.fromJson(
-      jsonDecode(encryptedEvent),
+      jsonDecode(encryptedEvent) as Map<String, dynamic>,
       verify: false,
     );
     final relays = await Get.find<WebsocketService>().writeNostrEvent(
@@ -402,7 +402,7 @@ class NostrAPI {
       to: to,
       isSystem: isSystem ?? false,
       senderPubkey: room.myIdPubkey,
-      content: sourceContent,
+      content: plainContent,
       realMessage: realMessage,
       isRead: true,
       isMeSend: true,

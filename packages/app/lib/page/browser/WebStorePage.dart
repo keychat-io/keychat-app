@@ -81,31 +81,31 @@ class _WebStorePageState extends State<WebStorePage> {
                           ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: entry.value.length,
+                            itemCount: (entry.value as List).length,
                             itemBuilder: (context, index) {
-                              final site = entry.value[index];
+                              final site = (entry.value as List)[index];
                               final url =
                                   (site['url1'] ?? site['url2']) as String;
                               return ListTile(
                                 dense: true,
                                 contentPadding: EdgeInsets.zero,
                                 leading: Utils.getNeworkImageOrDefault(
-                                  site['img'],
+                                  site['img'] as String,
                                 ),
                                 title: Text(
-                                  site['title'],
+                                  site['title'] as String,
                                   overflow: TextOverflow.fade,
                                   maxLines: 1,
                                 ),
                                 subtitle: textSmallGray(
                                   context,
-                                  site['description'],
+                                  site['description'] as String,
                                 ),
                                 onTap: () {
                                   Get.find<MultiWebviewController>()
                                       .launchWebview(
                                         initUrl: url,
-                                        defaultTitle: site['title'],
+                                        defaultTitle: site['title'] as String,
                                       );
                                   if (Get.isBottomSheetOpen ?? false) {
                                     Get.back<void>();
@@ -134,8 +134,8 @@ class _WebStorePageState extends State<WebStorePage> {
                                         onPressed: () async {
                                           await BrowserFavorite.add(
                                             url: url,
-                                            title: site['title'],
-                                            favicon: site['img'],
+                                            title: site['title'] as String,
+                                            favicon: site['img'] as String,
                                           );
                                           setState(() {
                                             exists = exists..add(url);

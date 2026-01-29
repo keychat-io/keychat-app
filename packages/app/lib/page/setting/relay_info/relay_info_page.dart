@@ -207,11 +207,13 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                       // ),
                       SettingsTile(
                         title: const Text('ID'),
-                        value: Text(controller.info['id'] ?? ''),
+                        value: Text(controller.info['id'] as String? ?? ''),
                         onPressed: (context) {
                           if (controller.info['id'] == null) return;
                           Clipboard.setData(
-                            ClipboardData(text: controller.info['id']),
+                            ClipboardData(
+                              text: controller.info['id'] as String? ?? '',
+                            ),
                           );
                           EasyLoading.showToast('Copied');
                         },
@@ -220,13 +222,15 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                         title: const Text('pubkey'),
                         value: Flexible(
                           child: Text(
-                            controller.info['pubkey'] ?? '',
+                            controller.info['pubkey'] as String? ?? '',
                           ),
                         ),
                         onPressed: (context) {
                           if (controller.info['pubkey'] == null) return;
                           Clipboard.setData(
-                            ClipboardData(text: controller.info['pubkey']),
+                            ClipboardData(
+                              text: controller.info['pubkey'] as String? ?? '',
+                            ),
                           );
                           EasyLoading.showToast('Copied');
                         },
@@ -239,17 +243,19 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                     tiles: [
                       SettingsTile(
                         title: const Text('contact'),
-                        value: Text(controller.info['contact'] ?? ''),
+                        value: Text(
+                          controller.info['contact'] as String? ?? '',
+                        ),
                       ),
                       SettingsTile(
                         title: const Text('Name'),
-                        value: Text(controller.info['name'] ?? ''),
+                        value: Text(controller.info['name'] as String? ?? ''),
                       ),
                       SettingsTile(
                         title: const Text('Description'),
                         value: Flexible(
                           child: Text(
-                            controller.info['description'] ?? '',
+                            controller.info['description'] as String? ?? '',
                           ),
                         ),
                       ),
@@ -266,13 +272,15 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                         title: const Text('Software'),
                         trailing: Flexible(
                           child: Text(
-                            controller.info['software'] ?? '',
+                            controller.info['software'] as String? ?? '',
                           ),
                         ),
                       ),
                       SettingsTile(
                         title: const Text('Version'),
-                        value: Text(controller.info['version'] ?? ''),
+                        value: Text(
+                          controller.info['version'] as String? ?? '',
+                        ),
                       ),
                     ],
                   ),
@@ -299,7 +307,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
         final publication = fees['publication'][0] as Map<String, dynamic>;
         final mints = <String>[];
         for (final m in (publication['method']['Cashu']['mints'] as Iterable)) {
-          mints.add(m);
+          mints.add(m as String);
         }
 
         list.add(

@@ -5,7 +5,8 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 ## 1.39.2+6494
 
-- Implement a Nostr Wallet Connect (NWC) wallet based on NIP-47.
+- Nostr Wallet Connect (NWC) wallet based on NIP-47.
+- Notification for macOS
 - Fix other bugs
 
 ## 1.38.1+6489

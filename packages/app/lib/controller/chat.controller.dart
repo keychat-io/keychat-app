@@ -598,11 +598,12 @@ class ChatController extends GetxController {
     }
   }
 
-  void processClickBlankArea() {
+  Future<void> processClickBlankArea() async {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
-    RoomService.instance.markAllRead(roomObs.value);
+    await RoomService.instance.markAllRead(roomObs.value);
+    await Get.find<HomeController>().resetBadge();
     // chatContentFocus.unfocus();
   }
 

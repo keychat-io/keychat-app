@@ -66,14 +66,18 @@ class ContactPage extends StatelessWidget {
                 ),
                 onPressed: (context) async {
                   if (contact.npubkey.isNotEmpty) {
-                    Clipboard.setData(ClipboardData(text: contact.npubkey));
+                    await Clipboard.setData(
+                      ClipboardData(text: contact.npubkey),
+                    );
+                    await EasyLoading.showSuccess('Copied to clipboard');
+
                     return;
                   }
                   final npubkey = rust_nostr.getBech32PubkeyByHex(
                     hex: contact.pubkey,
                   );
-                  Clipboard.setData(ClipboardData(text: npubkey));
-                  Get.back<void>();
+                  await Clipboard.setData(ClipboardData(text: npubkey));
+                  await EasyLoading.showSuccess('Copied to clipboard');
                 },
               ),
               if (model != null) fromQRCode(),

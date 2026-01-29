@@ -485,7 +485,7 @@ class HomeController extends GetxController
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
-    setUnreadCount(unReadSum);
+    await setUnreadCount(unReadSum);
 
     var initialIndex = 0;
     if (firstUnreadIndex == -1) {
@@ -646,7 +646,12 @@ class HomeController extends GetxController
     allUnReadCount.value = count;
     if (!isAppBadgeSupported) return;
     if (count == 0) return FlutterNewBadger.removeBadge();
-    FlutterNewBadger.setBadge(count);
+    await FlutterNewBadger.setBadge(count);
+  }
+
+  Future<void> resetBadge() async {
+    if (!isAppBadgeSupported) return;
+    await FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 
   void addUnreadCount() {

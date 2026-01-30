@@ -1,3 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -5,14 +11,10 @@ import 'package:keychat/page/browser/BrowserSetting.dart';
 import 'package:keychat/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:keychat/page/login/AccountSetting/AccountSetting_page.dart';
 import 'package:keychat/page/login/SelectModeToCreateID.dart';
-import 'package:keychat/page/routes.dart';
 import 'package:keychat/page/setting/app_general_setting.dart';
 import 'package:keychat/page/setting/more_chat_setting.dart';
 import 'package:keychat/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:keychat_ecash/bitcoin_wallet_main.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -60,11 +62,6 @@ class _MinePageState extends State<MinePage> {
           platform: DevicePlatform.iOS,
           sections: [
             SettingsSection(
-              margin: const EdgeInsetsDirectional.only(
-                start: 16,
-                end: 16,
-                bottom: 16,
-              ),
               title: const Text('Chat / Browser ID'),
               tiles: [
                 ...getIDList(
@@ -102,13 +99,18 @@ class _MinePageState extends State<MinePage> {
                       CupertinoIcons.bitcoin,
                       color: Color(0xfff2a900),
                     ),
-                    value: Text(
-                      '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}',
-                    ),
+
                     onPressed: (context) async {
-                      Get.toNamed(Routes.ecash);
+                      unawaited(
+                        Utils.getOrPutGetxController(
+                          create: UnifiedWalletController.new,
+                          permanent: true,
+                        ).checkAndReloadNwcIfNeeded(),
+                      );
+                      await Get.to(BitcoinWalletMain.new);
+                      Utils.hideKeyboard(Get.context!);
                     },
-                    title: const Text('Bitcoin Ecash'),
+                    title: const Text('Bitcoin Wallets'),
                   ),
                 ],
               ),

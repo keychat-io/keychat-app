@@ -14,11 +14,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/keychat/profile_request_model.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
@@ -27,7 +29,6 @@ import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
@@ -361,11 +362,7 @@ class ChatController extends GetxController {
       limit: 999,
     );
     if (unreads.isNotEmpty) {
-      unawaited(
-        RoomService.instance.markAllRead(
-          roomObs.value,
-        ),
-      );
+      unawaited(RoomService.instance.markAllRead(roomObs.value));
     }
     unreads.addAll(list);
     final mlist = sortMessageById(unreads.toList())
@@ -601,10 +598,12 @@ class ChatController extends GetxController {
     }
   }
 
-  void processClickBlankArea() {
+  Future<void> processClickBlankArea() async {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
+    await RoomService.instance.markAllRead(roomObs.value);
+    await Get.find<HomeController>().resetBadge();
     // chatContentFocus.unfocus();
   }
 
@@ -625,7 +624,7 @@ class ChatController extends GetxController {
     }
     // signal group
     if (roomObs.value.isSendAllGroup) {
-      members.value = await roomObs.value.getMembers();
+      members.value = await roomObs.value.getSmallGroupMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
       await _fetchRoomMembersContact(members.values.toList());
       memberRooms = await roomObs.value.getEnableMemberRooms();
@@ -672,16 +671,19 @@ class ChatController extends GetxController {
   }
 
   Future<void> _handleSendSats() async {
-    final cashuInfo = await Get.bottomSheet<CashuInfoModel>(
+    final tx = await Get.bottomSheet<Transaction>(
       clipBehavior: Clip.hardEdge,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CashuSendPage(true),
+      const PayEcashPage(),
     );
-    if (cashuInfo == null) return;
+    if (tx == null) return;
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
     try {
-      logger.d(cashuInfo.toString());
+      final cashuInfo = CashuInfoModel.fromRustModel(tx);
       await RoomService.instance.sendMessage(
         roomObs.value,
         cashuInfo.token,
@@ -692,33 +694,29 @@ class ChatController extends GetxController {
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showError(msg);
+      await EasyLoading.showError(msg);
     }
   }
 
   Future<void> _handleSendLightning() async {
-    final invoice = await Get.bottomSheet<Transaction>(
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-      ),
-      CreateInvoicePage(),
-    );
-    if (invoice == null) return;
-
     try {
+      final tx = await Utils.getOrPutGetxController(
+        create: UnifiedWalletController.new,
+      ).dialogToMakeInvoice();
+
+      if (tx == null) return;
+
+      if (tx.rawData == null || tx.invoice == null) return;
+
       final cim = CashuInfoModel()
-        ..amount = invoice.amount.toInt()
-        ..token = invoice.token
-        ..mint = invoice.mintUrl
-        ..status = invoice.status
-        ..hash = invoice.id
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
-          invoice.timestamp.toInt() * 1000,
-        );
+        ..amount = tx.amountSats
+        ..token = tx.invoice!
+        ..mint = tx.walletId ?? ''
+        ..hash = tx.paymentHash
+        ..status = TransactionStatus.pending;
       await RoomService.instance.sendMessage(
         roomObs.value,
-        invoice.token,
+        cim.token,
         realMessage: cim.toString(),
         mediaType: MessageMediaType.lightningInvoice,
       );
@@ -726,7 +724,7 @@ class ChatController extends GetxController {
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showError(msg);
+      await EasyLoading.showError(msg);
     }
   }
 
@@ -873,10 +871,33 @@ class ChatController extends GetxController {
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
-        Future.delayed(const Duration(seconds: 2)).then(
-          (value) => {
-            MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]),
-          },
+        unawaited(
+          Future.delayed(const Duration(seconds: 3)).then(
+            (value) async {
+              await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
+              final isAdmin = await roomObs.value.checkAdminByIdPubkey(
+                roomObs.value.getIdentity().secp256k1PKHex,
+              );
+              // Check if there are any users in expired status
+              if (isAdmin) {
+                try {
+                  await MlsGroupService.instance.existExpiredMember(
+                    roomObs.value,
+                  );
+                } on ExpiredMembersException catch (e) {
+                  logger.e(e.expiredMembers);
+                  await Get.dialog<void>(
+                    ExpiredMembersDialog(
+                      expiredMembers: e.expiredMembers,
+                      room: roomObs.value,
+                    ),
+                  );
+                } catch (e) {
+                  logger.e(e.toString());
+                }
+              }
+            },
+          ),
         );
       }
       return resetMembers();
@@ -1316,9 +1337,7 @@ class ChatController extends GetxController {
       await dio.download(
         gifUrl,
         filePath,
-        options: Options(
-          responseType: ResponseType.bytes,
-        ),
+        options: Options(responseType: ResponseType.bytes),
         onReceiveProgress: (int received, int total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
@@ -1333,11 +1352,7 @@ class ChatController extends GetxController {
       EasyLoading.showProgress(0.6, status: 'Encrypting and Uploading...');
 
       // Create XFile from downloaded file
-      final xfile = XFile(
-        filePath,
-        mimeType: 'image/gif',
-        name: fileName,
-      );
+      final xfile = XFile(filePath, mimeType: 'image/gif', name: fileName);
 
       // Use existing upload logic
       await FileService.instance.handleSendMediaFile(
@@ -1447,9 +1462,6 @@ class ChatController extends GetxController {
     if (list.length > 10) {
       list.removeAt(0);
     }
-    await Storage.setStringList(
-      StorageKeyString.recentEmojis,
-      list,
-    );
+    await Storage.setStringList(StorageKeyString.recentEmojis, list);
   }
 }

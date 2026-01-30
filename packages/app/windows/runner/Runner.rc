@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "keychat" "\0"
-            VALUE "LegalCopyright", "Copyright © KEYME PTE. LTD. 2025. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright © KEYME PTE. LTD. 2026. All rights reserved." "\0"
             VALUE "OriginalFilename", "Keychat.exe" "\0"
             VALUE "ProductName", "Keychat" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

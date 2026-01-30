@@ -1,30 +1,46 @@
 /// filter is a JSON object that determines what events will be sent in that subscription
 class Filter {
   /// Default constructor
-  Filter(
-      {this.ids,
-      this.authors,
-      this.kinds,
-      this.e,
-      this.p,
-      this.r,
-      this.t,
-      this.h,
-      this.since,
-      this.until,
-      this.limit});
+  Filter({
+    this.ids,
+    this.authors,
+    this.kinds,
+    this.e,
+    this.p,
+    this.r,
+    this.t,
+    this.h,
+    this.since,
+    this.until,
+    this.limit,
+  });
 
   /// Deserialize a filter from a JSON
   Filter.fromJson(Map<String, dynamic> json) {
-    ids = json['ids'] == null ? null : List<String>.from(json['ids']);
-    authors =
-        json['authors'] == null ? null : List<String>.from(json['authors']);
-    kinds = json['kinds'] == null ? null : List<int>.from(json['kinds']);
-    e = json['#e'] == null ? null : List<String>.from(json['#e']);
-    p = json['#p'] == null ? null : List<String>.from(json['#p']);
-    r = json['#r'] == null ? null : List<String>.from(json['#r']);
-    t = json['#t'] == null ? null : List<String>.from(json['#t']);
-    h = json['#h'] == null ? null : List<String>.from(json['#h']);
+    ids = json['ids'] == null
+        ? null
+        : List<String>.from(json['ids'] as List<dynamic>);
+    authors = json['authors'] == null
+        ? null
+        : List<String>.from(json['authors'] as List<dynamic>);
+    kinds = json['kinds'] == null
+        ? null
+        : List<int>.from(json['kinds'] as List<dynamic>);
+    e = json['#e'] == null
+        ? null
+        : List<String>.from(json['#e'] as List<dynamic>);
+    p = json['#p'] == null
+        ? null
+        : List<String>.from(json['#p'] as List<dynamic>);
+    r = json['#r'] == null
+        ? null
+        : List<String>.from(json['#r'] as List<dynamic>);
+    t = json['#t'] == null
+        ? null
+        : List<String>.from(json['#t'] as List<dynamic>);
+    h = json['#h'] == null
+        ? null
+        : List<String>.from(json['#h'] as List<dynamic>);
     since = json['since'] as int?;
     until = json['until'] as int?;
     limit = json['limit'] as int?;

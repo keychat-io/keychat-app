@@ -25,8 +25,8 @@ class _VideoPlayWidgetState extends State<VideoPlayPreviewWidget> {
             // _controller!.play();
             setState(() {});
           })
-          .catchError((e, s) {
-            logger.e(e.toString(), error: e, stackTrace: s);
+          .catchError((e) {
+            logger.e(e.toString(), error: e);
           });
     _controller!.addListener(() {
       if (_controller!.value.isCompleted) {

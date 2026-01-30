@@ -285,7 +285,7 @@ class MessageWidget extends StatelessWidget {
                   for (final item in ess) {
                     try {
                       final nem = NostrEventModel.fromJson(
-                        jsonDecode(item),
+                        jsonDecode(item) as Map<String, dynamic>,
                         verify: false,
                       );
                       await NostrEventStatus.deleteById(nem.id);
@@ -608,7 +608,9 @@ class MessageWidget extends StatelessWidget {
       );
     if (rawEvent == null) return (ess, event);
     try {
-      event = NostrEventModel.fromJson(jsonDecode(rawEvent));
+      event = NostrEventModel.fromJson(
+        jsonDecode(rawEvent) as Map<String, dynamic>,
+      );
       // ignore: empty_catches
     } catch (e) {}
     return (ess, event);
@@ -738,7 +740,9 @@ class MessageWidget extends StatelessWidget {
       );
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
-          final mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
+          final mfi = MsgFileInfo.fromJson(
+            jsonDecode(msg.realMessage!) as Map<String, dynamic>,
+          );
           subTitleChild = RoomUtil.getImageViewWidget(
             msg,
             cc,
@@ -871,7 +875,7 @@ class MessageWidget extends StatelessWidget {
                     message.mediaType == MessageMediaType.image ||
                     message.mediaType == MessageMediaType.video) {
                   final mfi = MsgFileInfo.fromJson(
-                    jsonDecode(message.realMessage!),
+                    jsonDecode(message.realMessage!) as Map<String, dynamic>,
                   );
                   if (mfi.localPath != null) {
                     final filePath = '${Utils.appFolder.path}${mfi.localPath}';
@@ -1305,7 +1309,7 @@ class MessageWidget extends StatelessWidget {
             ),
             onTap: () {
               final mfi = MsgFileInfo.fromJson(
-                jsonDecode(message.realMessage!),
+                jsonDecode(message.realMessage!) as Map<String, dynamic>,
               );
               if (mfi.status != FileStatus.decryptSuccess) {
                 EasyLoading.showToast('File not decrypted');

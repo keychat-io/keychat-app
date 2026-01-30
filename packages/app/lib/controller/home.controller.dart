@@ -35,7 +35,6 @@ import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/remote_config.dart' as remote_config;
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -126,6 +125,7 @@ class HomeController extends GetxController
   }
 
   // add identity AI and add AI contacts
+  @Deprecated('Remove AI identity')
   Future<void> createAIIdentity(
     List<Identity> existsIdentity,
     String idName,
@@ -142,10 +142,10 @@ class HomeController extends GetxController
     final phraseIndexes = existsIdentity
         .map((element) => element.index)
         .toList();
-    final unusedIndex = List.generate(10, (index) => index).firstWhere(
-      (index) => !phraseIndexes.contains(index),
-      orElse: () => -1,
-    );
+    final unusedIndex = List.generate(
+      10,
+      (index) => index,
+    ).firstWhere((index) => !phraseIndexes.contains(index), orElse: () => -1);
     if (unusedIndex == -1) return;
     final secp256k1Accounts = await rust_nostr.importFromPhraseWith(
       phrase: mnemonic,
@@ -225,6 +225,7 @@ class HomeController extends GetxController
         }
         _pausedBefore = false;
       case AppLifecycleState.inactive:
+        resumed = false;
         if (GetPlatform.isMobile && statesForBlur.length >= 2) {
           if (statesForBlur[statesForBlur.length - 2] ==
               AppLifecycleState.resumed) {
@@ -290,7 +291,7 @@ class HomeController extends GetxController
         ),
       );
       if (response.statusCode == 200) {
-        config = jsonDecode(response.data) as Map<String, dynamic>;
+        config = jsonDecode(response.data as String) as Map<String, dynamic>;
       } else {}
     } catch (e) {
       logger.e('Failed to get config: $url - ${(e as DioException).message}');
@@ -301,12 +302,12 @@ class HomeController extends GetxController
     final recommendUrls = config['browserRecommend'] as List;
     recommendWebstore.value = recommendUrls
         .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-          final categories = List<String>.from(item['categories']);
+          final categories = List<String>.from(item['categories'] as Iterable);
           for (final type in categories) {
             if (acc[type] == null) {
               acc[type] = [];
             }
-            acc[type]!.add(item);
+            acc[type]!.add(item as Map<String, dynamic>);
           }
           return acc;
         });
@@ -484,7 +485,7 @@ class HomeController extends GetxController
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
-    setUnreadCount(unReadSum);
+    await setUnreadCount(unReadSum);
 
     var initialIndex = 0;
     if (firstUnreadIndex == -1) {
@@ -543,8 +544,8 @@ class HomeController extends GetxController
     final mys = await loadRoomList(init: true);
     isAppBadgeSupported =
         GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
-    // Ecash Init
     if (mys.isNotEmpty) {
+      // Ecash Init
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists (without requesting permission on startup)
@@ -645,7 +646,12 @@ class HomeController extends GetxController
     allUnReadCount.value = count;
     if (!isAppBadgeSupported) return;
     if (count == 0) return FlutterNewBadger.removeBadge();
-    FlutterNewBadger.setBadge(count);
+    await FlutterNewBadger.setBadge(count);
+  }
+
+  Future<void> resetBadge() async {
+    if (!isAppBadgeSupported) return;
+    await FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 
   void addUnreadCount() {
@@ -852,18 +858,8 @@ class HomeController extends GetxController
   }
 
   Future<void> _handleAppLinkLightning(String input) async {
-    if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
-      await Get.bottomSheet(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-        ),
-        PayInvoicePage(invoce: input, showScanButton: false),
-      );
-      return;
-    }
-    await Get.find<EcashController>().proccessPayLightningBill(
-      input,
+    await Get.find<EcashController>().dialogToPayInvoice(
+      input: input,
       isPay: true,
     );
   }

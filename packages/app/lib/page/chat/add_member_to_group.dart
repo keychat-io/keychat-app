@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/expired_members_dialog.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
@@ -59,7 +61,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
-        pubkeys.add(contact['pubkey']);
+        pubkeys.add(contact['pubkey'] as String);
       }
     }
     final result = await MlsGroupService.instance.getKeyPackagesFromRelay(
@@ -93,7 +95,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     for (var i = 0; i < users.length; i++) {
       final contact = users[i];
       if (contact['isCheck'] == true) {
-        selectAccounts[contact['pubkey']] = contact['name'] as String;
+        selectAccounts[contact['pubkey'] as String] = contact['name'] as String;
         selectUsers.add(contact);
       }
     }
@@ -155,6 +157,14 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       }
       EasyLoading.showSuccess('Success');
       Get.back<void>();
+    } on ExpiredMembersException catch (e) {
+      EasyLoading.dismiss();
+      Get.dialog<void>(
+        ExpiredMembersDialog(
+          expiredMembers: e.expiredMembers,
+          room: await RoomService.instance.getRoomByIdOrFail(widget.room.id),
+        ),
+      );
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg);
@@ -228,7 +238,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     if (groupType == GroupType.sendAll) {
       return Checkbox(
-        value: user['isCheck'],
+        value: (user['isCheck'] as bool?) ?? false,
         onChanged: (isCheck) {
           user['isCheck'] = isCheck;
           setState(() {});
@@ -269,7 +279,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     // user['mlsPK'] = snapshot.data;
     return Checkbox(
-      value: user['isCheck'],
+      value: (user['isCheck'] as bool?) ?? false,
       onChanged: (isCheck) {
         user['isCheck'] = isCheck;
         setState(() {});

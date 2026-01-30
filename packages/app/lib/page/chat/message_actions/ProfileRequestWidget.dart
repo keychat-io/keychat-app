@@ -108,10 +108,10 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
     ProfileRequestModel map;
     try {
       final keychatMessage = KeychatMessage.fromJson(
-        jsonDecode(widget.message.content),
+        jsonDecode(widget.message.content) as Map<String, dynamic>,
       );
       map = ProfileRequestModel.fromJson(
-        jsonDecode(keychatMessage.name!),
+        jsonDecode(keychatMessage.name!) as Map<String, dynamic>,
       );
     } catch (e) {
       return widget.errorCallabck(text: widget.message.content);

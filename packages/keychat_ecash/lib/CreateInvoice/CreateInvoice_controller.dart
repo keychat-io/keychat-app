@@ -4,22 +4,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_ecash/unified_wallet/index.dart';
 
 class CreateInvoiceController extends GetxController {
-  CreateInvoiceController({this.defaultAmount});
+  CreateInvoiceController({this.defaultAmount, this.defaultDescription});
   final int? defaultAmount;
+  final String? defaultDescription;
 
-  EcashController ecashController = Get.find<EcashController>();
+  late UnifiedWalletController unifiedWalletController;
   late TextEditingController textController;
-  RxString selectedMint = ''.obs;
+  late TextEditingController descController;
+
   @override
   void onInit() {
-    selectedMint.value = ecashController.latestMintUrl.value;
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
     textController = TextEditingController();
+    descController = TextEditingController();
     if (defaultAmount != null) {
       textController.text = defaultAmount.toString();
+    }
+    if (defaultDescription != null) {
+      descController.text = defaultDescription!;
     }
     super.onInit();
   }
@@ -27,21 +34,30 @@ class CreateInvoiceController extends GetxController {
   @override
   void onClose() {
     textController.dispose();
+    descController.dispose();
     super.onClose();
   }
 
+  // Handle create invoice action
+  // WalletTransaction
   Future<void> handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
-      HapticFeedback.lightImpact();
+      await HapticFeedback.lightImpact();
     }
     final amountString = textController.text.trim();
     if (amountString.isEmpty) {
-      EasyLoading.showToast('Please input amount');
+      await EasyLoading.showToast('Please input amount');
       return;
     }
-    final amount = int.parse(amountString);
+    var amount = 0;
+    try {
+      amount = int.parse(amountString);
+    } catch (e) {
+      await EasyLoading.showToast('Input is invalid');
+      return;
+    }
     if (amount == 0) {
-      EasyLoading.showToast('Amount should > 0');
+      await EasyLoading.showToast('Amount should > 0');
       return;
     }
 
@@ -73,19 +89,22 @@ If payment fails, please contact the mint server.''',
     }
 
     try {
-      EasyLoading.show(status: 'Generating...');
-      final tr = await rust_cashu.requestMint(
-        amount: BigInt.from(amount),
-        activeMint: selectedMint.value,
+      final description = descController.text.trim();
+
+      // Use unified wallet controller to create invoice
+      final tx = await unifiedWalletController.createInvoiceWithTransaction(
+        amount,
+        description: description.isNotEmpty ? description : null,
       );
-      Get.find<EcashController>().getRecentTransactions();
-      EasyLoading.showToast('Create Successfully');
-      textController.clear();
-      Get.back(result: tr);
+
+      if (tx != null) {
+        textController.clear();
+        Get.back(result: tx);
+      }
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      EasyLoading.showToast(msg);
+      await EasyLoading.showToast(msg);
     }
   }
 }

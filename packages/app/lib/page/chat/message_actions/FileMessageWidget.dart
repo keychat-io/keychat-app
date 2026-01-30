@@ -29,7 +29,9 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
       if (widget.message.realMessage == null) {
         throw Exception('realMessage is null');
       }
-      final mfi = MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
+      final mfi = MsgFileInfo.fromJson(
+        jsonDecode(widget.message.realMessage!) as Map<String, dynamic>,
+      );
       setState(() {
         msgFileInfo = mfi;
       });
@@ -42,7 +44,7 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (decodeError ?? false || msgFileInfo == null) {
+    if (decodeError ?? (msgFileInfo == null)) {
       return widget.errorCallback(
         text: '[File Decode Error]: ${widget.message.content}',
       );

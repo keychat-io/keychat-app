@@ -2,14 +2,12 @@ import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/create_contact_page.dart';
-import 'package:keychat/page/components.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:bip21_uri/bip21_uri.dart' show bip21;
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
@@ -24,7 +22,7 @@ class QrScanService {
   static QrScanService? _instance;
   static QrScanService get instance => _instance ??= QrScanService._();
 
-  Future<String?> handleQRScan({bool autoProcess = true}) async {
+  Future<String?> handleQRScan({bool autoProcess = false}) async {
     if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
       EasyLoading.showToast('Not available on this devices');
       return null;
@@ -63,8 +61,7 @@ class QrScanService {
     );
 
     if (result == null || result.isEmpty || !autoProcess) return result;
-    debugPrint('Barcode detected: $result');
-
+    logger.d('Barcode detected: $result');
     try {
       await _processQRResult(result);
     } catch (e) {
@@ -99,17 +96,15 @@ class QrScanService {
       final cleanInvoice = trimmedStr.startsWith('lightning:')
           ? trimmedStr.replaceFirst('lightning:', '')
           : trimmedStr;
-      ecashController.proccessPayLightningBill(cleanInvoice);
+      ecashController.dialogToPayInvoice(input: cleanInvoice);
       return;
     }
 
     // Handle LNURL and email addresses
     if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
-      showModalBottomSheetWidget(
-        Get.context!,
-        '',
-        PayInvoicePage(invoce: trimmedStr),
-        showAppBar: false,
+      await Get.find<EcashController>().dialogToPayInvoice(
+        input: trimmedStr,
+        isPay: true,
       );
       return;
     }
@@ -126,6 +121,12 @@ class QrScanService {
         isScrollControlled: true,
         ignoreSafeArea: false,
       );
+      return;
+    }
+    if (str.startsWith(KeychatGlobal.nwcPrefix)) {
+      await Utils.getOrPutGetxController(
+        create: NwcController.new,
+      ).addConnection(str);
       return;
     }
 
@@ -173,7 +174,7 @@ class QrScanService {
       final decoded = bip21.decode(str);
       final lightningInvoice = decoded.lightningInvoice;
       if (lightningInvoice != null && lightningInvoice.isNotEmpty) {
-        await ecashController.proccessPayLightningBill(lightningInvoice);
+        await ecashController.dialogToPayInvoice(input: lightningInvoice);
         return;
       }
     } catch (e) {

@@ -549,7 +549,9 @@ class RoomService extends BaseChatService {
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
         try {
-          reply = MsgReply.fromJson(jsonDecode(km.name!));
+          reply = MsgReply.fromJson(
+            jsonDecode(km.name!) as Map<String, dynamic>,
+          );
           if (km.msg != null) {
             content = km.msg!;
           }
@@ -602,6 +604,10 @@ class RoomService extends BaseChatService {
     var realMessageContent = realMessage;
     if (realMessage == null && reply != null) {
       realMessageContent = content;
+    }
+    if (content.isEmpty &&
+        (realMessageContent == null || realMessageContent.isEmpty)) {
+      throw Exception('message content is empty');
     }
     await checkWebsocketConnect();
 
@@ -682,7 +688,9 @@ class RoomService extends BaseChatService {
   }) async {
     BotClientMessageModel? cmm;
     try {
-      cmm = BotClientMessageModel.fromJson(jsonDecode(message));
+      cmm = BotClientMessageModel.fromJson(
+        jsonDecode(message) as Map<String, dynamic>,
+      );
       // ignore: empty_catches
     } catch (e) {}
     if (cmm == null) {
@@ -748,12 +756,12 @@ class RoomService extends BaseChatService {
     MessageMediaType? mediaType,
   }) async {
     final queue = Queue(parallel: 5);
-    final todo = collection.Queue.from(rooms);
-    final membersLength = todo.length;
+    final tasks = collection.Queue.from(rooms);
+    final membersLength = tasks.length;
     for (var i = 0; i < membersLength; i++) {
       queue.add(() async {
-        if (todo.isEmpty) return;
-        final room = todo.removeFirst() as Room;
+        if (tasks.isEmpty) return;
+        final room = tasks.removeFirst() as Room;
         if (room.toMainPubkey == identity.secp256k1PKHex) return;
         await RoomService.instance.sendMessage(
           room,
@@ -843,7 +851,6 @@ class RoomService extends BaseChatService {
       case GroupType.kdf:
         throw Exception('not support');
       case GroupType.common:
-        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }

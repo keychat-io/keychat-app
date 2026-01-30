@@ -31,7 +31,9 @@ class SetRoomRelayAction extends StatelessWidget {
             const SizedBox(width: 30),
             FilledButton(
               onPressed: () async {
-                final relays = List<String>.from(jsonDecode(message.content));
+                final relays = List<String>.from(
+                  jsonDecode(message.content) as List<dynamic>,
+                );
                 if (relays.isEmpty) {
                   EasyLoading.showToast('Invalid relay url');
                   return;

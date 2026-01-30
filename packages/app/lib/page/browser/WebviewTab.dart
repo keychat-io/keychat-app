@@ -4,6 +4,20 @@ import 'dart:convert' show base64, jsonDecode;
 import 'dart:io';
 import 'dart:math' show Random;
 
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:background_downloader/background_downloader.dart';
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/models.dart';
@@ -23,24 +37,8 @@ import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:background_downloader/background_downloader.dart';
-import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
@@ -324,11 +322,9 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            bottom:
-                GetPlatform.isAndroid ||
-                multiWebviewController.bottomSafeHosts.contains(
-                  WebUri(widget.initUrl).host,
-                ),
+            bottom: multiWebviewController.bottomSafeHosts.contains(
+              WebUri(widget.initUrl).host,
+            ),
             child: Column(
               children: [
                 Expanded(
@@ -1077,8 +1073,8 @@ class _WebviewTabState extends State<WebviewTab> {
         await Future.delayed(const Duration(milliseconds: 500));
 
         await tabController.inAppWebViewController!.scrollTo(
-          x: savedPosition['scrollX'] ?? 0,
-          y: savedPosition['scrollY'] ?? 0,
+          x: (savedPosition['scrollX'] as int?) ?? 0,
+          y: (savedPosition['scrollY'] as int?) ?? 0,
         );
       } catch (e) {
         logger.e('Failed to restore scroll position: $e');
@@ -1302,7 +1298,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'blobFileDownload') {
-      _downloadBlob(data[1], data[2]);
+      _downloadBlob(data[1] as String, data[2] as String);
       return null;
     }
 
@@ -1332,8 +1328,9 @@ class _WebviewTabState extends State<WebviewTab> {
                 kind: event['kind'] as int,
                 tags: (event['tags'] as List)
                     .map(
-                      (e) =>
-                          List<String>.from(e.map((item) => item.toString())),
+                      (e) => List<String>.from(
+                        (e as List).map((item) => item.toString()),
+                      ),
                     )
                     .toList(),
               ),
@@ -1352,7 +1349,11 @@ class _WebviewTabState extends State<WebviewTab> {
           createdAt: event['created_at'] as int,
           kind: event['kind'] as int,
           tags: (event['tags'] as List)
-              .map((e) => List<String>.from(e.map((item) => item.toString())))
+              .map(
+                (e) => List<String>.from(
+                  (e as List).map((item) => item.toString()),
+                ),
+              )
               .toList(),
         );
 
@@ -1373,7 +1374,9 @@ class _WebviewTabState extends State<WebviewTab> {
           receiverPubkey: to,
           content: plaintext,
         );
-        final model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
+        final model = NostrEventModel.fromJson(
+          jsonDecode(encryptedEvent) as Map<String, dynamic>,
+        );
         return model.content;
       case 'nip04Decrypt':
         final from = data[1] as String;
@@ -1933,27 +1936,33 @@ img {
 
         final signature = data[1] as String;
         final message = data[2] as String;
-        final isValid = await rust_nostr.verifySchnorr(
-          pubkey: identity.secp256k1PKHex,
-          content: message,
-          sig: signature,
-          hash: true,
-        );
-        return isValid;
+        try {
+          final isValid = await rust_nostr.verifySchnorr(
+            pubkey: identity.secp256k1PKHex,
+            content: message,
+            sig: signature,
+            hash: true,
+          );
+          await EasyLoading.showSuccess('Result: $isValid');
+          return isValid;
+        } catch (e) {
+          await EasyLoading.showError('Result: false');
+          return false;
+        }
       case 'sendPayment':
         final lnbc = data[1] as String?;
         if (lnbc == null || lnbc.isEmpty) {
           return 'Error: Invoice is empty';
         }
         try {
-          final tr = await ecashController.proccessPayLightningBill(
-            lnbc,
+          final tr = await ecashController.dialogToPayInvoice(
+            input: lnbc,
             isPay: true,
           );
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
-          return tr.token;
+          return tr.preimage;
         } catch (e) {
           final msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
@@ -1974,17 +1983,15 @@ img {
               ? int.parse(source['defaultAmount'] as String)
               : 0;
           final invoiceAmount = amount > 0 ? amount : defaultAmount;
-          final result = await Get.bottomSheet<Transaction>(
-            ignoreSafeArea: false,
-            clipBehavior: Clip.antiAlias,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-            ),
-            CreateInvoicePage(amount: invoiceAmount),
-          );
-          if (result != null) {
-            return result.token;
-          }
+          final res =
+              await Utils.getOrPutGetxController(
+                create: UnifiedWalletController.new,
+              ).dialogToMakeInvoice(
+                amount: invoiceAmount,
+                description: source['description'] as String? ?? '',
+              );
+          if (res == null) return null;
+          return {'paymentRequest': res.invoice};
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
         }
@@ -2227,22 +2234,12 @@ img {
       }
       // lightning invoice
       if (urlString.startsWith('lightning:')) {
-        final str = urlString.replaceFirst('lightning:', '');
-        if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
-          await Get.bottomSheet<void>(
-            clipBehavior: Clip.antiAlias,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-            ),
-            PayInvoicePage(invoce: str, showScanButton: false),
-          );
-          return true;
-        }
-        await ecashController.proccessPayLightningBill(str, isPay: true);
+        final input = urlString.replaceFirst('lightning:', '');
+        await ecashController.dialogToPayInvoice(input: input, isPay: true);
         return true;
       }
       if (urlString.startsWith('lnbc')) {
-        await ecashController.proccessPayLightningBill(urlString, isPay: true);
+        await ecashController.dialogToPayInvoice(input: urlString, isPay: true);
         return true;
       }
       // Handle Bitcoin URIs

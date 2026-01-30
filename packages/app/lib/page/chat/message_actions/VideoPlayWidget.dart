@@ -35,9 +35,7 @@ class _VideoPlayWidgetState extends State<VideoPlayWidget> {
               isPause = !widget.autoPlay;
             });
           })
-          .catchError((e, s) {
-            logger.e(e.toString(), error: e, stackTrace: s);
-          });
+          .catchError((e, s) {});
     _controller!.addListener(() {
       if (_controller!.value.isCompleted) {
         setState(() {

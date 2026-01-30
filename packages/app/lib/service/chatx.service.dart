@@ -143,11 +143,17 @@ class ChatxService extends GetxService {
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'],
-      bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
-      bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
-      bobPrekeyId: keys['prekeyId'],
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])),
+      bobSignedId: keys['signedId'] as int,
+      bobSignedPublic: Uint8List.fromList(
+        hex.decode(keys['signedPublic'] as String),
+      ),
+      bobSigedSig: Uint8List.fromList(
+        hex.decode(keys['signedSignature'] as String),
+      ),
+      bobPrekeyId: keys['prekeyId'] as int,
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(keys['prekeyPubkey'] as String),
+      ),
     );
     return true;
   }
@@ -173,11 +179,17 @@ class ChatxService extends GetxService {
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'],
-      bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
-      bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
-      bobPrekeyId: keys['prekeyId'],
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])),
+      bobSignedId: keys['signedId'] as int,
+      bobSignedPublic: Uint8List.fromList(
+        hex.decode(keys['signedPublic'] as String),
+      ),
+      bobSigedSig: Uint8List.fromList(
+        hex.decode(keys['signedSignature'] as String),
+      ),
+      bobPrekeyId: keys['prekeyId'] as int,
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(keys['prekeyPubkey'] as String),
+      ),
     );
     return true;
   }

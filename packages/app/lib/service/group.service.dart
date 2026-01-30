@@ -275,7 +275,9 @@ class GroupService extends BaseChatService {
         }
       case KeyChatEventKinds.dm:
         if (ext != null) {
-          toSaveMsg.reply = MsgReply.fromJson(jsonDecode(ext));
+          toSaveMsg.reply = MsgReply.fromJson(
+            jsonDecode(ext) as Map<String, dynamic>,
+          );
         }
       default:
     }
@@ -330,7 +332,7 @@ class GroupService extends BaseChatService {
               encryptType: MessageEncryptType.nip17,
               sent: SendStatusType.success,
               content: roomProfile.toString(),
-              realMessage: groupInviteMsg[0],
+              realMessage: groupInviteMsg[0] as String,
               persist: false,
             );
           } catch (e, s) {
@@ -365,7 +367,7 @@ class GroupService extends BaseChatService {
         mediaType: MessageMediaType.groupInvite,
         requestConfrim: RequestConfrimEnum.request,
         content: roomProfile.toString(),
-        realMessage: groupInviteMsg[0],
+        realMessage: groupInviteMsg[0] as String,
       );
       return;
     }
@@ -408,7 +410,7 @@ class GroupService extends BaseChatService {
           ? MessageEncryptType.signal
           : MessageEncryptType.nip17,
       isSystem: true,
-      content: groupInviteMsg[0],
+      content: groupInviteMsg[0] as String,
       createdAt: timestampToDateTime(event.createdAt),
       rawEvents: [event.toString()],
     );
@@ -427,7 +429,9 @@ class GroupService extends BaseChatService {
   }) async {
     switch (km.type) {
       case KeyChatEventKinds.groupInvite:
-        final roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
+        final roomProfile = RoomProfile.fromJson(
+          jsonDecode(km.msg!) as Map<String, dynamic>,
+        );
         final realMessage = km.name ?? '[]';
 
         return processInvite(
@@ -440,7 +444,9 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupRemoveSingleMember:
         return _processGroupRemoveSingleMember(room, km, event);
       case KeyChatEventKinds.groupSendToAllMessage:
-        final gm = GroupMessage.fromJson(jsonDecode(km.msg!));
+        final gm = GroupMessage.fromJson(
+          jsonDecode(km.msg!) as Map<String, dynamic>,
+        );
 
         final groupRoom = await RoomService.instance.getRoomByIdentity(
           gm.pubkey,
@@ -489,7 +495,7 @@ class GroupService extends BaseChatService {
     if (toUsers.isEmpty) throw Exception('no users to invite');
     final identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
-    final allMembers = (await groupRoom.getMembers()).values.toList();
+    final allMembers = (await groupRoom.getSmallGroupMembers()).values.toList();
     final toMembers = <RoomMember>[];
     final status = groupRoom.isSendAllGroup
         ? UserStatusType.invited
@@ -779,15 +785,14 @@ class GroupService extends BaseChatService {
     // final queue = Queue(parallel: 5);
     final enables = (await groupRoom.getEnableMembers()).values.toList();
     final invitings = await groupRoom.getInvitingMembers();
-    final todo = collection.Queue.from([...enables, ...invitings]);
+    final tasks = collection.Queue.from([...enables, ...invitings]);
     km.name = jsonEncode([realMessage, identity.secp256k1PKHex]);
     final events = <NostrEventModel>[];
-    final membersLength = todo.length;
+    final membersLength = tasks.length;
 
     for (var i = 0; i < membersLength; i++) {
       // queue.add(() async {
-      //   if (todo.isEmpty) return;
-      final rm = todo.removeFirst() as RoomMember;
+      final rm = tasks.removeFirst() as RoomMember;
       if (identity.secp256k1PKHex == rm.idPubkey) continue;
       try {
         final memberRoom = await RoomService.instance.getOrCreateRoomByIdentity(
@@ -850,13 +855,13 @@ class GroupService extends BaseChatService {
     bool save = true,
   }) async {
     final queue = Queue(parallel: 5);
-    final todo = collection.Queue.from(toUsers);
-    final membersLength = todo.length;
+    final tasks = collection.Queue.from(toUsers);
+    final membersLength = tasks.length;
     final identity = groupRoom.getIdentity();
     for (var i = 0; i < membersLength; i++) {
       queue.add(() async {
-        if (todo.isEmpty) return;
-        final idPubkey = todo.removeFirst() as String;
+        if (tasks.isEmpty) return;
+        final idPubkey = tasks.removeFirst() as String;
         final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: idPubkey);
         if (identity.secp256k1PKHex == hexPubkey) return;
         var room = await roomService.getRoomByIdentity(hexPubkey, identity.id);
@@ -1052,7 +1057,7 @@ ${rm.idPubkey}
     Mykey? mykey,
     String? mlsWelcome,
   }) async {
-    final allMembers = (await groupRoom.getMembers()).values.toList();
+    final allMembers = (await groupRoom.getSmallGroupMembers()).values.toList();
 
     final roomMykey = groupRoom.mykey.value;
     final roomPubkey =
@@ -1070,13 +1075,6 @@ ${rm.idPubkey}
 
     if (mlsWelcome != null) {
       roomProfile.ext = mlsWelcome;
-    }
-    // shared signalId's QRCode
-    if (groupRoom.isKDFGroup && signalId != null) {
-      roomProfile.signalKeys = signalId.keys;
-      roomProfile.signalPubkey = signalId.pubkey;
-      roomProfile.signaliPrikey = signalId.prikey;
-      roomProfile.signalKeyId = signalId.signalKeyId;
     }
     return roomProfile;
   }

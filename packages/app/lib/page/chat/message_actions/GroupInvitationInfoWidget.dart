@@ -32,9 +32,11 @@ class GroupInvitationInfoWidget extends StatelessWidget {
     GroupInvitationModel map;
     try {
       final keychatMessage = KeychatMessage.fromJson(
-        jsonDecode(message.content),
+        jsonDecode(message.content) as Map<String, dynamic>,
       );
-      map = GroupInvitationModel.fromJson(jsonDecode(keychatMessage.name!));
+      map = GroupInvitationModel.fromJson(
+        jsonDecode(keychatMessage.name!) as Map<String, dynamic>,
+      );
     } catch (e) {
       return errorCallabck(text: message.content);
     }

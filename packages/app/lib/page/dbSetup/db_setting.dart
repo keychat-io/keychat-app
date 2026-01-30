@@ -345,7 +345,9 @@ class DbSetting {
       final file = File(filePath);
       final jsonData = await file.readAsString();
 
-      final allData = Map<String, String>.from(jsonDecode(jsonData));
+      final allData = Map<String, String>.from(
+        jsonDecode(jsonData) as Map<String, dynamic>,
+      );
 
       // write secure storage
       for (final entry in allData.entries) {

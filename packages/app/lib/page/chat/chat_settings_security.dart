@@ -28,7 +28,7 @@ class ChatSettingSecurity extends StatelessWidget {
             SettingsSection(
               title: const Text('Message Encrypt Protocol'),
               tiles: [
-                SettingsTile(
+                SettingsTile.navigation(
                   title: const Text('Encrypt mode'),
                   leading: const Icon(CupertinoIcons.lock),
                   value: Text(cc.roomObs.value.encryptMode.name.toUpperCase()),

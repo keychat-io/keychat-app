@@ -48,14 +48,6 @@
     </array>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
-    <key>FirebaseAppDelegateProxyEnabled</key>
-    <true/>
-    <key>FirebaseMessagingAutoInitEnabled</key>
-    <true/>
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.social-networking</string>
     <key>LSApplicationQueriesSchemes</key>
     <array>
       <string>lightning</string>
@@ -63,11 +55,6 @@
     </array>
     <key>LSMinimumSystemVersion</key>
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-    <key>NSAppTransportSecurity</key>
-    <dict>
-      <key>NSAllowsLocalNetworking</key>
-      <true/>
-    </dict>
     <key>NSCameraUsageDescription</key>
     <string>This app needs camera access to scan barcodes.</string>
     <key>NSHumanReadableCopyright</key>

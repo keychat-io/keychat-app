@@ -59,6 +59,8 @@ class KeychatGlobal {
   static int kdfGroupKeysExpired = 7;
   static String browserConfig = 'browserConfig';
   static String browserTextSize = 'browserTextSize';
+  static Color get bitcoinColor => const Color(0xFFF7931A);
+  static const String nwcPrefix = 'nostr+walletconnect://';
 }
 
 // for desktop nest routing

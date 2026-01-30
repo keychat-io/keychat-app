@@ -130,6 +130,11 @@ melos:
       description: "run app pub get only"
       run: cd packages/app && fvm flutter pub get
 
+    ios:
+      name: run_ios
+      description: "run app on ios device"
+      run: cd packages/app && flutter run -d 000 -v
+
     image:gen:
       name: gen_image
       description: "generate assets class"

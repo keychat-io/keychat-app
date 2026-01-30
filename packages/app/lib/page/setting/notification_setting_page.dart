@@ -5,7 +5,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/page/setting/UploadedPubkeys.dart';
-import 'package:keychat/page/widgets/notice_text_widget.dart';
 import 'package:keychat/service/notify.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/unifiedpush.service.dart';
@@ -13,6 +12,7 @@ import 'package:keychat/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:unifiedpush/unifiedpush.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Notification settings page with proper state management
 class NotificationSettingPage extends StatefulWidget {
@@ -102,7 +102,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Push Notifications')),
+      appBar: AppBar(title: const Text('Notifications')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildContent(context),
@@ -155,7 +155,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         ),
 
         // Push Type Selection (Android/Linux only)
-        if (isAndroidOrLinux && _isNotificationEnabled && _hasPermission)
+        if (isAndroidOrLinux)
           SettingsSection(
             title: const Text('Push Service'),
             tiles: [
@@ -168,7 +168,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onPressed: (_) async {
-                  if (GetPlatform.isLinux) {
+                  if (_pushType == PushType.fcm && GetPlatform.isLinux) {
                     EasyLoading.showInfo(
                       'On Linux, only UnifiedPush is supported.',
                     );
@@ -204,7 +204,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                 onPressed: (_) => _showDistributorPicker(),
               ),
               SettingsTile(
-                title: const Text('Endpoint'),
+                title: const Text('Endpoint Info'),
                 onPressed: (context) async {
                   if (_currentEndpoint?.url == null) return;
                   await Clipboard.setData(
@@ -212,11 +212,49 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
                   );
                   await EasyLoading.showSuccess('Copied to clipboard');
                 },
-                description: Text(
-                  _currentEndpoint?.url ?? 'None',
-                  maxLines: 5,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      'Server: ${_currentEndpoint?.url}',
+                    ),
+                    if (_currentEndpoint?.pubKeySet?.auth != null) ...[
+                      Text(
+                        'auth: ${_currentEndpoint!.pubKeySet!.auth}',
+                      ),
+                      Text(
+                        'pubKey: ${_currentEndpoint!.pubKeySet!.pubKey}',
+                      ),
+
+                      const Text(
+                        'Web Push: https://www.rfc-editor.org/rfc/rfc8291',
+                      ),
+                      OutlinedButton(
+                        onPressed: () async {
+                          if (_currentEndpoint == null) return;
+                          final endpointInfo = StringBuffer()
+                            ..writeln(
+                              'Server: ${_currentEndpoint!.url}',
+                            );
+                          if (_currentEndpoint!.pubKeySet?.auth != null) {
+                            endpointInfo
+                              ..writeln(
+                                'auth: ${_currentEndpoint!.pubKeySet!.auth}',
+                              )
+                              ..writeln(
+                                'pubKey: ${_currentEndpoint!.pubKeySet!.pubKey}',
+                              );
+                          }
+                          await Clipboard.setData(
+                            ClipboardData(text: endpointInfo.toString()),
+                          );
+                          await EasyLoading.showSuccess('Copied to clipboard');
+                        },
+                        child: const Text('Copy Endpoint Info'),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -230,12 +268,18 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
               SettingsTile(
                 title: const Text('FCM Token'),
                 value: Text(
-                  ((_fcm ?? 'none').length) > 6
-                      ? '${_fcm?.substring(0, 6)}...'
-                      : 'none',
+                  ((_fcm ?? '--').length) > 8
+                      ? '${_fcm?.substring(0, 8)}...'
+                      : '--',
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),
+                onPressed: (_) async {
+                  if (_fcm?.isNotEmpty ?? false) {
+                    await Clipboard.setData(ClipboardData(text: _fcm ?? ''));
+                    await EasyLoading.showSuccess('Copied');
+                  }
+                },
               ),
             ],
           ),
@@ -256,49 +300,92 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
     final result = await showCupertinoModalPopup<PushType>(
       context: context,
       builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: const Text('Select Push Type'),
-          message: const Text(
-            'FCM uses Google services.\nUnifiedPush is privacy-friendly but requires a distributor app.',
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          actions: [
-            CupertinoActionSheetAction(
-              isDefaultAction: _pushType == PushType.fcm,
-              onPressed: () => Navigator.pop(context, PushType.fcm),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.cloud),
-                  const SizedBox(width: 8),
-                  const Text('FCM (Firebase)'),
-                  if (_pushType == PushType.fcm) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Colors.green),
-                  ],
+                  // Header
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Select Push Service',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // FCM Option
+                  _buildPushTypeCard(
+                    context: context,
+                    icon: Icons.cloud,
+                    iconColor: Colors.orange,
+                    title: 'FCM (Firebase)',
+                    description:
+                        'Fast and reliable push notifications using Google Firebase Cloud Messaging',
+                    pros: [
+                      'Easy setup, works out of the box',
+                    ],
+                    cons: [
+                      'Requires Google Play Services',
+                    ],
+                    isSelected: _pushType == PushType.fcm,
+                    onTap: () => Navigator.pop(context, PushType.fcm),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // UnifiedPush Option
+                  _buildPushTypeCard(
+                    context: context,
+                    icon: Icons.shield_outlined,
+                    iconColor: Colors.green,
+                    title: 'UnifiedPush',
+                    description:
+                        'Privacy-friendly, open-source push notification system',
+                    pros: [
+                      'Privacy-focused & decentralized',
+                      'No Google services needed',
+                      'Open source',
+                    ],
+                    cons: [
+                      'Requires distributor app',
+                    ],
+                    isSelected: _pushType == PushType.unifiedpush,
+                    isRecommended: true,
+                    onTap: () => Navigator.pop(context, PushType.unifiedpush),
+                    footer: _buildUnifiedPushFooter(context),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Cancel button
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
                 ],
               ),
             ),
-            CupertinoActionSheetAction(
-              isDefaultAction: _pushType == PushType.unifiedpush,
-              onPressed: () => Navigator.pop(context, PushType.unifiedpush),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.shield),
-                  const SizedBox(width: 8),
-                  const Text('UnifiedPush'),
-                  if (_pushType == PushType.unifiedpush) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Colors.green),
-                  ],
-                ],
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
         );
       },
@@ -307,6 +394,194 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
     if (result != null && result != _pushType) {
       await _changePushType(result);
     }
+  }
+
+  Widget _buildPushTypeCard({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String description,
+    required List<String> pros,
+    required List<String> cons,
+    required bool isSelected,
+    required VoidCallback onTap,
+    bool isRecommended = false,
+    Widget? footer,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 28),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 24),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Pros
+            ...pros.map(
+              (pro) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.check, color: Colors.green, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        pro,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Cons
+            ...cons.map(
+              (con) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.orange,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        con,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            if (footer != null) ...[
+              const SizedBox(height: 8),
+              footer,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnifiedPushFooter(BuildContext context) {
+    final isLinux = GetPlatform.isLinux;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue[700], size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Distributor App Required',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue[700],
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (isLinux)
+            Text(
+              'For Linux, install: KUnifiedPush',
+              style: Theme.of(context).textTheme.bodySmall,
+            )
+          else
+            Text(
+              'Install one of: Ntfy, Sunup, or other UnifiedPush distributors',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () async {
+              await launchUrl(Uri.parse('https://unifiedpush.org/'));
+            },
+            child: Row(
+              children: [
+                Icon(Icons.open_in_new, size: 14, color: Colors.blue[700]),
+                const SizedBox(width: 4),
+                Text(
+                  'Learn more at unifiedpush.org',
+                  style: TextStyle(
+                    color: Colors.blue[700],
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Change push type

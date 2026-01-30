@@ -6,10 +6,10 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
-import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
@@ -53,7 +53,7 @@ class EcashUtils {
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
-        unawaited(Get.find<EcashController>().requestPageRefresh());
+        unawaited(Get.find<UnifiedWalletController>().refreshSelectedWallet());
         _activeChecks.remove(tx.id);
         return;
       }
@@ -71,7 +71,7 @@ class EcashUtils {
     }
   }
 
-  static Future<CashuInfoModel?> handleReceiveToken({
+  static Future<Transaction?> handleReceiveToken({
     required String token,
     bool retry = false,
     int? messageId,
@@ -79,19 +79,19 @@ class EcashUtils {
     final ec = Get.find<EcashController>();
 
     if (!retry) {
-      EasyLoading.show(status: 'Redeeming...');
+      await EasyLoading.show(status: 'Redeeming...');
     }
     late rust_cashu.TokenInfo decoded;
     try {
       decoded = await rust_cashu.decodeToken(encodedToken: token);
     } catch (e, s) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('Error: $e', duration: const Duration(seconds: 3));
-      logger.e('receive error 2', error: e, stackTrace: s);
+      final msg = Utils.getErrorMessage(e);
+      await EasyLoading.showError('Error: $msg');
+      logger.e('receive error $msg', error: e, stackTrace: s);
       return null;
     }
     if (!isValidEcashToken(decoded.unit.toString())) {
-      EasyLoading.showError(
+      await EasyLoading.showError(
         'Error! Invalid token symbol.',
         duration: const Duration(seconds: 2),
       );
@@ -104,14 +104,14 @@ class EcashUtils {
     }
     await EasyLoading.dismiss();
     var isAddingMint = false;
-    return Get.dialog<CashuInfoModel>(
+    return Get.dialog<Transaction>(
       StatefulBuilder(
         builder: (context, setState) => CupertinoAlertDialog(
           title: const Text('Add Mint Server?'),
           content: Text(decoded.mint),
           actions: [
             CupertinoDialogAction(
-              onPressed: isAddingMint ? null : () => Get.back<CashuInfoModel>(),
+              onPressed: isAddingMint ? null : Get.back,
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
@@ -122,28 +122,19 @@ class EcashUtils {
                       setState(() {
                         isAddingMint = true;
                       });
-
-                      try {
-                        EasyLoading.show(status: 'Processing');
-                        await ec.addMintUrl(decoded.mint);
-                      } catch (e, s) {
-                        final msg = Utils.getErrorMessage(e);
-                        logger.e(msg, error: e, stackTrace: s);
-                        EasyLoading.showError(
-                          'Add Failed: $msg',
-                          duration: const Duration(seconds: 3),
-                        );
-                        Get.back<CashuInfoModel>();
-                        return;
-                      }
-
+                      await Utils.getOrPutGetxController(
+                        create: UnifiedWalletController.new,
+                      ).addWallet(decoded.mint);
+                      setState(() {
+                        isAddingMint = false;
+                      });
                       final res = await _processReceive(
                         token: token,
                         retry: retry,
                         messageId: messageId,
                       );
 
-                      Get.back<CashuInfoModel>(result: res);
+                      Get.back<Transaction>(result: res);
                     },
               child: isAddingMint
                   ? const CupertinoActivityIndicator()
@@ -158,17 +149,29 @@ class EcashUtils {
   static bool isValidEcashToken(String unit) =>
       true; // unit == 'sat' || unit == 'usdt';
 
-  static Future<CashuInfoModel?> _processReceive({
+  static Future<Transaction?> _processReceive({
     required String token,
     bool retry = false,
     int? messageId,
   }) async {
     try {
-      final model = await RustAPI.receiveToken(encodedToken: token);
-      await Get.find<EcashController>().getBalance();
+      final model = await rust_cashu.receiveToken(encodedToken: token);
       if (messageId != null) {
         await MessageService.instance.updateMessageCashuStatus(messageId);
       }
+
+      // Refresh balance and transactions after receiving
+      try {
+        final unifiedController = Utils.getOrPutGetxController(
+          create: UnifiedWalletController.new,
+        );
+        await unifiedController.refreshSelectedWallet(
+          unifiedController.getWalletById(model.mintUrl),
+        );
+      } catch (e) {
+        logger.e('Failed to refresh after receiving', error: e);
+      }
+
       await EasyLoading.showToast(
         'Received ${model.amount} ${EcashTokenSymbol.sat.name}',
       );
@@ -250,7 +253,7 @@ Please restore your ecash wallet from mint server to resolve this issue.
     return msg;
   }
 
-  static Future<CashuInfoModel> getCashuA({
+  static Future<Transaction> getCashuToken({
     required int amount,
     required List<String> mints,
     String token = 'sat',
@@ -263,11 +266,10 @@ Please restore your ecash wallet from mint server to resolve this issue.
         break;
       }
     }
-    final ct = await rust_cashu.send(
+    return rust_cashu.send(
       amount: BigInt.from(amount),
       activeMint: filledMint,
     );
-    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Future<CashuInfoModel> getStamp({

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:keychat/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
@@ -55,14 +58,13 @@ class LightningUtils {
           ln.status == TransactionStatus.failed ||
           (now > expiryTs && expiryTs > 0)) {
         callback(ln);
-        Get.find<EcashController>().requestPageRefresh();
         pendingTaskMap.remove(tx.id);
+        unawaited(Get.find<UnifiedWalletController>().refreshSelectedWallet());
         return;
       }
       logger.d('Checking status: ${tx.id}');
       await Future.delayed(const Duration(seconds: 3));
     }
-
     logger.d('Check stopped for transaction: ${tx.id}');
   }
 

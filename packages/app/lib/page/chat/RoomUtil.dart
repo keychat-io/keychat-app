@@ -78,7 +78,9 @@ class RoomUtil {
 
     EasyLoading.show(status: 'Sending...');
 
-    final mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
+    final mfi = MsgFileInfo.fromJson(
+      jsonDecode(realMessage) as Map<String, dynamic>,
+    );
     for (final room in forwardRooms) {
       await RoomService.instance.sendMessage(
         room,
@@ -102,7 +104,9 @@ class RoomUtil {
     }
     try {
       EasyLoading.show(status: 'Sending...');
-      final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+      final mfi = MsgFileInfo.fromJson(
+        jsonDecode(message.realMessage!) as Map<String, dynamic>,
+      );
       for (final room in rooms) {
         await RoomService.instance.sendMessage(
           room,
@@ -363,7 +367,9 @@ Let's start an encrypted chat.''';
     }
     if (message.mediaType == MessageMediaType.image) {
       try {
-        final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+        final mfi = MsgFileInfo.fromJson(
+          jsonDecode(message.realMessage!) as Map<String, dynamic>,
+        );
         if (mfi.localPath != null) {
           return ImageMinPreviewWidget(mfi.localPath!);
         }
@@ -702,13 +708,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
         }
         return a.pin ? -1 : 1;
       }
-      if (a.unReadCount > 0 && b.unReadCount == 0) {
-        return -1;
-      }
-      if (a.unReadCount == 0 && b.unReadCount > 0) {
-        return 1;
-      }
-
       if (hc.roomLastMessage[a.id] == null) return 1;
       if (hc.roomLastMessage[b.id] == null) return -1;
       return hc.roomLastMessage[b.id]!.createdAt.compareTo(
@@ -759,7 +758,9 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
   ) {
     if (message.realMessage != null) {
       try {
-        final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+        final mfi = MsgFileInfo.fromJson(
+          jsonDecode(message.realMessage!) as Map<String, dynamic>,
+        );
         return getImageViewWidget(message, cc, mfi, errorCallback);
         // ignore: empty_catches
       } catch (e) {}

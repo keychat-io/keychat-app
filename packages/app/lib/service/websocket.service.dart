@@ -232,8 +232,9 @@ class WebsocketService extends GetxService {
 
   List<String> getOnlineSocketString() {
     final res = <String>[];
-    for (final rw in List.from(channels.values)) {
-      if (rw.channel != null && rw.isConnected() == true) {
+    // ignore: omit_local_variable_types
+    for (final RelayWebsocket rw in List.from(channels.values)) {
+      if (rw.channel != null && rw.isConnected()) {
         res.add(rw.relay.url);
       }
     }
@@ -327,7 +328,9 @@ class WebsocketService extends GetxService {
           final uri = Uri.parse(host);
           host = uri.host;
         }
-        relayMessageFeeModels[host] = RelayMessageFee.fromJson(entry.value);
+        relayMessageFeeModels[host] = RelayMessageFee.fromJson(
+          entry.value as Map<String, dynamic>,
+        );
       }
     }
 
@@ -341,7 +344,9 @@ class WebsocketService extends GetxService {
           final uri = Uri.parse(host);
           host = uri.host;
         }
-        relayFileFeeModels[host] = RelayFileFee.fromJson(entry.value);
+        relayFileFeeModels[host] = RelayFileFee.fromJson(
+          entry.value as Map<String, dynamic>,
+        );
       }
     }
   }
@@ -449,7 +454,7 @@ class WebsocketService extends GetxService {
       try {
         final list = jsonDecode(content) as List<dynamic>;
         if (list.length > 1 && list[1] != null) {
-          NostrAPI.instance.setOKCallback(list[1]['id'], callback);
+          NostrAPI.instance.setOKCallback(list[1]['id'] as String, callback);
         }
         // ignore: empty_catches
       } catch (e) {}

@@ -1,10 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/room.dart';
 import 'package:keychat/service/storage.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:sidebarx/sidebarx.dart';
 
 class DesktopController extends GetxController {
@@ -15,7 +15,6 @@ class DesktopController extends GetxController {
   RxDouble roomListWidth = 260.0.obs;
   RxDouble browserSidebarWidth = 180.0.obs;
   late HomeController hc;
-
   @override
   void onInit() {
     hc = Get.find<HomeController>();
@@ -27,6 +26,7 @@ class DesktopController extends GetxController {
       await hc.setSelectedTab(sidebarXController.selectedIndex);
     });
     super.onInit();
+
     unawaited(_loadRoomListWidth());
     unawaited(
       _loadBrowserSidebarWidth(),

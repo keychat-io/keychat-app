@@ -54,26 +54,27 @@ class LocalNotificationService {
   }
 
   /// Request notification permissions for iOS/macOS
-  Future<void> _requestPermissions() async {
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+  Future<bool> requestMacOSPermissions() async {
+    // await _notificationsPlugin
+    //     .resolvePlatformSpecificImplementation<
+    //       IOSFlutterLocalNotificationsPlugin
+    //     >()
+    //     ?.requestPermissions(
+    //       alert: true,
+    //       badge: true,
+    //       sound: true,
+    //     );
 
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          MacOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+    return (await _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin
+            >()
+            ?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            )) ??
+        false;
   }
 
   /// Create notification channel for Android
@@ -150,7 +151,7 @@ class LocalNotificationService {
     const platformDetails = NotificationDetails(
       android: androidDetails,
       // iOS: iOSDetails,
-      // macOS: macOSDetails,
+      macOS: macOSDetails,
       linux: linuxDetails,
     );
 
@@ -228,5 +229,25 @@ class LocalNotificationService {
       return androidImplementation.getActiveNotifications();
     }
     return [];
+  }
+
+  Future<bool> checkMacOSNotificationPermission() async {
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    final macOSImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >();
+
+    if (macOSImplementation != null) {
+      final granted = await macOSImplementation.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      return granted ?? false;
+    }
+    return false;
   }
 }

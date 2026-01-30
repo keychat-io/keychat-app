@@ -41,27 +41,33 @@ class RecommendBots extends StatelessWidget {
                   return Container();
                 }
                 return ListTile(
-                  leading: Utils.getAvatorByName(bot['name'], width: 50),
+                  leading: Utils.getAvatorByName(
+                    bot['name'] as String,
+                    width: 50,
+                  ),
                   key: Key('room:${bot['npub']}'),
                   onLongPress: () async {},
                   onTap: () async {},
                   title: Text(
-                    bot['name'],
+                    bot['name'] as String,
                     maxLines: 1,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  subtitle: textSmallGray(context, bot['description']),
+                  subtitle: textSmallGray(
+                    context,
+                    bot['description'] as String,
+                  ),
                   trailing: OutlinedButton(
                     onPressed: () async {
                       final hexPubkey = rust_nostr.getHexPubkeyByBech32(
-                        bech32: bot['npub'],
+                        bech32: bot['npub'] as String,
                       );
 
                       final room = await RoomService.instance.getOrCreateRoom(
                         hexPubkey,
                         identity.secp256k1PKHex,
                         RoomStatus.enabled,
-                        contactName: bot['name'],
+                        contactName: bot['name'] as String,
                         type: RoomType.bot,
                         identity: identity,
                       );

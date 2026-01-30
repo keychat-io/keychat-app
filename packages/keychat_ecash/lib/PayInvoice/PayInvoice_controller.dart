@@ -1,18 +1,16 @@
 import 'dart:async';
 
 import 'package:keychat/app.dart';
-import 'package:keychat/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class PayInvoiceController extends GetxController {
@@ -20,15 +18,17 @@ class PayInvoiceController extends GetxController {
   final String? invoice;
   final rust_cashu.InvoiceInfo? invoiceInfo;
   late TextEditingController textController;
-  RxString selectedMint = ''.obs;
+  late UnifiedWalletController unifiedWalletController;
   RxString selectedInvoice = ''.obs;
   final RxBool isLoading = false.obs;
 
   @override
   void onInit() {
-    selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
+    unifiedWalletController = Utils.getOrPutGetxController(
+      create: UnifiedWalletController.new,
+    );
 
     textController.addListener(() {
       EasyThrottle.throttle('invoice', const Duration(milliseconds: 1000),
@@ -50,88 +50,65 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<Transaction?> _confirmPayment(
-    String mint,
-    String invoice,
-    rust_cashu.InvoiceInfo ii,
-    bool isPay, {
-    Function? paidCallback,
-  }) async {
-    final cc = Get.find<EcashController>();
-
-    if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
-      await EasyLoading.showToast('Not Enough Funds');
-      return null;
-    }
-    try {
-      EasyLoading.show(status: 'Processing...');
-      final tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
-      logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
-      EasyLoading.showSuccess('Success');
-
-      textController.clear();
-      unawaited(cc.requestPageRefresh());
-      if (!isPay) {
-        if (GetPlatform.isDesktop) {
-          await Get.bottomSheet(LightningTransactionPage(transaction: tx));
-        } else {
-          await Get.to(() => LightningTransactionPage(transaction: tx));
-        }
-      }
-      return tx;
-    } catch (e, s) {
-      final msg = await EcashUtils.ecashErrorHandle(e, s);
-      if (msg.contains('11000') && paidCallback != null) {
-        (paidCallback as Function)();
-      }
-    }
-    return null;
-  }
-
-  FutureOr<Transaction?> confirmToPayInvoice({
+  /// Pay a lightning invoice and return the payment result.
+  /// Returns [CashuWalletTransaction] for Cashu payments or [NwcWalletTransaction] for NWC payments.
+  FutureOr<WalletTransactionBase?> confirmToPayInvoice({
     required String invoice,
-    required String mint,
-    bool isPay = false,
-    Function? paidCallback,
+    required WalletBase walletSelection,
+    bool isPay = false, // pay invoice directly without confirmation dialog
   }) async {
     if (invoice.isEmpty) {
-      EasyLoading.showToast('Please enter a valid invoice');
+      await EasyLoading.showToast('Please enter a valid invoice');
       return null;
     }
 
     if (invoice.startsWith('lightning:')) {
       invoice = invoice.replaceFirst('lightning:', '');
     }
-    try {
-      final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
+    try {
+      // Decode invoice to get amount for confirmation dialog
+      final invoiceInfo = await rust_cashu.decodeInvoice(
+        encodedInvoice: invoice,
+      );
+
+      // If isPay is true, pay directly without confirmation
       if (isPay) {
-        return await _confirmPayment(
-          mint,
+        final tx = await unifiedWalletController.payLightningInvoiceWithWallet(
+          walletSelection.id,
           invoice,
-          ii,
-          isPay,
-          paidCallback: paidCallback,
         );
+        if (tx != null) {
+          textController.clear();
+        }
+        return tx;
       }
-      return await Get.dialog(
+
+      // Show confirmation dialog before payment
+      return await Get.dialog<WalletTransactionBase?>(
         CupertinoAlertDialog(
           title: const Text('Pay Invoice'),
           content: Text(
-            '${ii.amount} ${EcashTokenSymbol.sat.name}',
+            '${invoiceInfo.amount} ${EcashTokenSymbol.sat.name}',
             style: Theme.of(Get.context!).textTheme.titleLarge,
           ),
           actions: [
             CupertinoDialogAction(
-              onPressed: Get.back,
+              onPressed: () => Get.back<WalletTransactionBase?>(),
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
-                Get.back(
-                  result: await _confirmPayment(mint, invoice, ii, isPay),
+                final tx =
+                    await unifiedWalletController.payLightningInvoiceWithWallet(
+                  walletSelection.id,
+                  invoice,
                 );
+                if (tx != null) {
+                  textController.clear();
+                }
+                Get.back(result: tx);
               },
               child: const Text('Confirm'),
             ),
@@ -146,7 +123,7 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<Transaction?> lnurlPayFirst(String input) async {
+  FutureOr<WalletTransactionBase?> lnurlPayFirst(String input) async {
     if (input.isEmpty) {
       return null;
     }
@@ -159,7 +136,7 @@ class PayInvoiceController extends GetxController {
       if (parts.length == 2) {
         host = 'https://${parts[1]}/.well-known/lnurlp/${parts[0]}';
         try {
-          final res = await Dio().get(host);
+          final res = await Dio().get<dynamic>(host);
           data = res.data as Map<String, dynamic>?;
           data?['domain'] = parts[1];
         } catch (e, s) {
@@ -177,7 +154,7 @@ class PayInvoiceController extends GetxController {
       //demo: LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS
       final url = rust_nostr.decodeBech32(content: input);
       try {
-        final res = await Dio().get(url);
+        final res = await Dio().get<dynamic>(url);
         data = res.data as Map<String, dynamic>?;
         data?['domain'] = Uri.parse(url).host;
       } catch (e, s) {
@@ -191,7 +168,6 @@ class PayInvoiceController extends GetxController {
         return null;
       }
     }
-
     if (host == null || data == null) {
       return null;
     }
@@ -202,11 +178,18 @@ class PayInvoiceController extends GetxController {
       if (Get.isBottomSheetOpen ?? false) {
         Get.back<void>();
       }
-      return await Get.bottomSheet<Transaction>(
+      return await Get.bottomSheet<WalletTransactionBase?>(
         ignoreSafeArea: false,
-        PayToLnurl(data),
+        isScrollControlled: GetPlatform.isMobile,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+        ),
+        PayToLnurl(data, input),
       );
     }
-    return null;
+    final errorMessage =
+        (data['reason'] as String?) ?? 'Unable to find valid user walle';
+    throw Exception(errorMessage);
   }
 }

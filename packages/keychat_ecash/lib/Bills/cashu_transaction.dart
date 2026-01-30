@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +49,14 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
   Widget build(BuildContext context) {
     final maxWidth = Get.width * (Get.width > 500 ? 0.4 : 1) - 32;
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: const Text('Cashu Transaction')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          widget.transaction.io == TransactionDirection.outgoing
+              ? 'Pay via Cashu'
+              : 'Receive via Cashu',
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsetsGeometry.symmetric(horizontal: 8),
         child: Center(
@@ -92,7 +101,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                     child: Center(
                       child: Utils.genQRImage(
                         tx.token,
-                        size: maxWidth,
+                        size: min(maxWidth, 300),
                       ),
                     ),
                   ),
@@ -126,6 +135,19 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                   direction: Axis.vertical,
                   spacing: 16,
                   children: [
+                    FilledButton.icon(
+                      icon: const Icon(CupertinoIcons.doc_on_doc),
+                      style: ButtonStyle(
+                        minimumSize: WidgetStateProperty.all(
+                          Size(maxWidth, 48),
+                        ),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: tx.token));
+                        EasyLoading.showToast('Copied to clipboard');
+                      },
+                      label: const Text('Copy Token'),
+                    ),
                     if (tx.status != TransactionStatus.success)
                       OutlinedButton(
                         style: ButtonStyle(
@@ -188,35 +210,18 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                               const Duration(milliseconds: 2000), () async {
                             try {
                               EasyLoading.show(status: 'Receiving...');
-                              final cm = await RustAPI.receiveToken(
+                              final tx1 = await rust_cashu.receiveToken(
                                 encodedToken: tx.token,
                               );
-                              if (cm.status == TransactionStatus.success) {
-                                EasyLoading.showSuccess('Success');
-                                final tx1 = Transaction(
-                                  id: tx.id,
-                                  status: cm.status,
-                                  io: tx.io,
-                                  timestamp: tx.timestamp,
-                                  amount: tx.amount,
-                                  mintUrl: tx.mintUrl,
-                                  token: tx.token,
-                                  kind: TransactionKind.cashu,
-                                  fee: tx.fee,
-                                  metadata: {},
-                                );
-                                Get.find<EcashController>()
-                                  ..getBalance()
-                                  ..getRecentTransactions();
-                                setState(() {
-                                  tx = tx1;
-                                });
-                              }
+                              EasyLoading.showSuccess('Received');
+                              setState(() {
+                                tx = tx1;
+                              });
                             } catch (e) {
-                              EasyLoading.dismiss();
+                              await EasyLoading.dismiss();
                               final msg = Utils.getErrorMessage(e);
-
-                              EasyLoading.showToast(msg);
+                              await EasyLoading.showToast(msg);
+                              logger.e('Error receiving ecash: $msg', error: e);
                             }
                           });
                         },

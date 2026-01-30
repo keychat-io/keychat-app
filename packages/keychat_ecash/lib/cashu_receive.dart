@@ -77,13 +77,13 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
                 Get.back<void>();
                 return;
               }
-              final model = await EcashUtils.handleReceiveToken(
+              await EcashUtils.handleReceiveToken(
                 token: widget.cashuinfo.token,
                 messageId: widget.messageId,
                 retry: true,
               );
 
-              Get.back(result: model);
+              Get.back();
             });
           },
         ),

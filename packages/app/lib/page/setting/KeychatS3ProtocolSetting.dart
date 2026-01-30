@@ -91,7 +91,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                         .map(
                           (price) => SettingsTile(
                             title: Text(
-                              '${FileService.instance.getFileSizeDisplay(price['min'])} < size < ${FileService.instance.getFileSizeDisplay(price['max'])}',
+                              '${FileService.instance.getFileSizeDisplay(price['min'] as int)} < size < ${FileService.instance.getFileSizeDisplay(price['max'] as int)}',
                             ),
                             value: Text(
                               '${price['price']} ${relayFileFee?.unit ?? 'sat'}',

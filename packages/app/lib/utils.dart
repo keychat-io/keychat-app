@@ -16,6 +16,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:keychat/desktop/DesktopController.dart';
+import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/global.dart';
 import 'package:keychat/models/contact.dart';
 import 'package:keychat/models/identity.dart';
@@ -26,6 +27,7 @@ import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/SignerService.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/signal_chat.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils/config.dart';
@@ -50,9 +52,7 @@ Logger logger = Logger(
 
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 
-String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
-  // Check if time is in seconds (< 10000000000) or milliseconds
-  final milliseconds = time < 10000000000 ? time * 1000 : time;
+String formatTime(int milliseconds, [String format = 'yyyy-MM-dd HH:mm:ss']) {
   final dateTime = DateTime.fromMillisecondsSinceEpoch(milliseconds);
   final dateFormat = DateFormat(format);
   return dateFormat.format(dateTime);
@@ -203,6 +203,35 @@ class MyOutput extends LogOutput {
 }
 
 class Utils {
+  /// Show dialog for SignalSessionNotCreatedException
+  /// If [room] is provided, shows a "Reset Session" button that navigates to chat settings
+  static Future<void> showSignalSessionNotCreatedDialog(
+    SignalSessionNotCreatedException exception, {
+    required Room room,
+  }) async {
+    final result = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Null Exception'),
+        content: Text(exception.toString()),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back<void>(),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              Get.back<void>(result: true);
+            },
+            child: const Text('Reset Session'),
+          ),
+        ],
+      ),
+    );
+    if (result != true) return;
+    await SignalChatService.instance.resetSignalSession(room);
+  }
+
   static bool isValidDomain(String domain) {
     final domainRegex = RegExp(
       r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$',
@@ -782,12 +811,13 @@ Init File: $time \n
   static T getOrPutGetxController<T extends GetxController>({
     required T Function() create,
     String? tag,
+    bool permanent = false,
   }) {
     try {
       final t = Get.find<T>(tag: tag);
       return t;
     } catch (e) {
-      return Get.put(create(), tag: tag);
+      return Get.put(create(), tag: tag, permanent: permanent);
     }
   }
 
@@ -1516,6 +1546,21 @@ Init File: $time \n
       return '[$url]($url)';
     });
   }
+
+  static Future<T> withRetry<T>(
+    Future<T> Function() fn, {
+    int maxAttempts = 3,
+  }) async {
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (i == maxAttempts - 1) rethrow;
+        await Future.delayed(Duration(seconds: 1 << i));
+      }
+    }
+    throw Exception('Max retry attempts reached');
+  }
 }
 
 // Add this helper controller class at the end of the file
@@ -1534,4 +1579,70 @@ class NotifySettingStatus {
   static const int enable = 1;
   static const int disable = -1;
   static const int notConfirm = 0;
+}
+
+class DesktopContainer extends StatelessWidget {
+  const DesktopContainer({required this.child, super.key});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        width: double.infinity,
+        padding: EdgeInsets.zero,
+        child: child,
+      ),
+    );
+  }
+}
+
+class BottomSheetContainer extends StatelessWidget {
+  const BottomSheetContainer({required this.children, this.title, super.key});
+  final List<Widget> children;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Container(
+      padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+      constraints: BoxConstraints(
+        maxWidth: GetPlatform.isDesktop ? 800 : double.infinity,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+      ),
+      child: Column(
+        children: [
+          if (GetPlatform.isDesktop && title != null)
+            AppBar(
+              leading: BackButton(
+                onPressed: Get.back,
+              ),
+              centerTitle: true,
+              title: Text(title!),
+            ),
+          ...children,
+        ],
+      ),
+    );
+    if (GetPlatform.isDesktop) return child;
+
+    return SafeArea(
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: title == null
+            ? null
+            : AppBar(
+                leading: BackButton(
+                  onPressed: Get.back,
+                ),
+                centerTitle: true,
+                title: Text(title!),
+              ),
+        body: child,
+      ),
+    );
+  }
 }

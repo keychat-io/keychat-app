@@ -34,10 +34,15 @@ class MessageService {
     // none text type: media, file, cashu...
     model = await _fillTypeForMessage(model, room.type == RoomType.bot);
 
-    var isCurrentPage = false;
+    var isCurrentPage = dbProvider.isCurrentPage(model.roomId);
     if (!model.isRead) {
-      isCurrentPage = dbProvider.isCurrentPage(model.roomId);
-      if (isCurrentPage) model.isRead = true;
+      if (isCurrentPage) {
+        if ((GetPlatform.isDesktop &&
+                Get.find<HomeController>().resumed == true) ||
+            GetPlatform.isMobile) {
+          model.isRead = true;
+        }
+      }
     }
 
     if (persist) {
@@ -71,6 +76,9 @@ class MessageService {
     hc.roomLastMessage[model.roomId] = model;
     hc.loadIdentityRoomList(model.identityId);
 
+    if (GetPlatform.isDesktop && !model.isRead) {
+      Get.find<HomeController>().addUnreadCount();
+    }
     // show snackbar in other page
     if (model.isRead ||
         isCurrentPage ||
@@ -83,12 +91,6 @@ class MessageService {
         ? (model.realMessage ?? model.content)
         : '[${model.mediaType.name}]';
 
-    if (GetPlatform.isDesktop) {
-      if (!Get.find<HomeController>().resumed) {
-        Get.find<HomeController>().addUnreadCount();
-      }
-      return;
-    }
     EasyThrottle.throttle(
       'newMessageSnackbar',
       const Duration(seconds: 2),
@@ -443,10 +445,7 @@ $content'''
         .findAllSync();
   }
 
-  Message? listLastestMessage({
-    required int roomId,
-    int limit = 1,
-  }) {
+  Message? listLastestMessage({required int roomId, int limit = 1}) {
     final database = DBProvider.database;
 
     return database.messages
@@ -596,7 +595,9 @@ $content'''
     try {
       late CashuInfoModel cim;
       if (model.isMeSend && model.realMessage != null) {
-        cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
+        cim = CashuInfoModel.fromJson(
+          jsonDecode(model.realMessage!) as Map<String, dynamic>,
+        );
       } else {
         cim = await RustAPI.decodeToken(encodedToken: model.content);
         cim.id = null; // local id
@@ -613,7 +614,9 @@ $content'''
     try {
       late CashuInfoModel cim;
       if (model.isMeSend && model.realMessage != null) {
-        cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
+        cim = CashuInfoModel.fromJson(
+          jsonDecode(model.realMessage!) as Map<String, dynamic>,
+        );
       } else {
         var invoice = model.content;
         if (invoice.startsWith('lightning:')) {

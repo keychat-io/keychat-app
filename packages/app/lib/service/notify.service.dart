@@ -14,6 +14,7 @@ import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/firebase_options.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/identity.service.dart';
+import 'package:keychat/service/local_notification_service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/unifiedpush.service.dart';
 import 'package:keychat/service/websocket.service.dart';
@@ -21,10 +22,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:permission_handler/permission_handler.dart';
 
 /// Push notification type
-enum PushType {
-  fcm,
-  unifiedpush,
-}
+enum PushType { fcm, unifiedpush }
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -45,7 +43,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotifyService {
-  // Avoid self instance
   // Avoid self instance
   NotifyService._();
   static NotifyService? _instance;
@@ -74,7 +71,7 @@ class NotifyService {
     List<String> toAddPubkeys, [
     List<String> toRemovePubkeys = const [],
   ]) async {
-    final deviceId = await this.deviceId;
+    final deviceId = deviceIdFromCache;
     if (deviceId == null) {
       logger.w('addPubkeys: No device ID available ($pushTypeString)');
       return false;
@@ -122,9 +119,7 @@ class NotifyService {
     try {
       final res = await Dio().get(
         '${KeychatGlobal.notifycationServer}/hashcode',
-        queryParameters: {
-          'play_id': deviceId,
-        },
+        queryParameters: {'play_id': deviceId},
       );
       return hashcode == res.data['data'];
     } catch (e, s) {
@@ -136,7 +131,7 @@ class NotifyService {
   /// Clear all registrations from notification server
   /// Supports both FCM and UnifiedPush
   Future<void> clearAll() async {
-    final deviceId = await this.deviceId;
+    final deviceId = deviceIdFromCache;
     if (deviceId == null) {
       logger.w('clearAll: No device ID available');
       return;
@@ -168,10 +163,8 @@ class NotifyService {
 
     try {
       if (GetPlatform.isMacOS) {
-        // macOS must use Firebase
-        final s = await FirebaseMessaging.instance.getNotificationSettings();
-        return s.authorizationStatus == AuthorizationStatus.authorized ||
-            s.authorizationStatus == AuthorizationStatus.provisional;
+        return await LocalNotificationService()
+            .checkMacOSNotificationPermission();
       } else {
         // Android and iOS use permission_handler
         final status = await Permission.notification.status;
@@ -191,37 +184,23 @@ class NotifyService {
       return false;
     }
 
+    if (GetPlatform.isMacOS) {
+      return LocalNotificationService().requestMacOSPermissions();
+    }
+    // Android/ iOS
     try {
-      // Try Firebase first
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        provisional: true,
-      );
-      logger.i('Notification Status: ${settings.authorizationStatus.name}');
-
-      return settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
-    } catch (e) {
-      // Fallback to permission_handler if Firebase fails
-      logger.w(
-        'Firebase permission request failed, using permission_handler',
-        error: e,
-      );
-      try {
-        final status = await Permission.notification.request();
-        return status.isGranted;
-      } catch (e2) {
-        logger.e('requestNotifyPermission error', error: e2);
-        return false;
-      }
+      final status = await Permission.notification.request();
+      return status.isGranted;
+    } catch (e2) {
+      logger.e('error', error: e2);
+      return false;
     }
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   /// Sync pubkeys to notification server
   /// Supports both FCM and UnifiedPush
-  Future<void> syncPubkeysToServer({
-    bool checkUpload = false,
-  }) async {
+  Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
     final isGrant = await checkAllNotifyPermission();
     if (!isGrant) return;
     final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
@@ -246,14 +225,8 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      final hashcode = await calculateHash([
-        ...idPubkeys,
-        ...pubkeys2,
-      ]);
-      final hasUploaded = await checkHashcode(
-        deviceId,
-        hashcode,
-      );
+      final hashcode = await calculateHash([...idPubkeys, ...pubkeys2]);
+      final hasUploaded = await checkHashcode(deviceId, hashcode);
       if (hasUploaded) return;
     }
     final preToken = deviceId == oldToken ? '' : oldToken;
@@ -379,8 +352,8 @@ class NotifyService {
         );
       }
       return apnsToken;
-    } catch (e) {
-      logger.e('getAPNSToken error: $e');
+    } catch (e, s) {
+      logger.e('getAPNSToken error: $e', stackTrace: s);
       return _getFCMTokenFromCache();
     }
   }
@@ -410,15 +383,6 @@ class NotifyService {
       logger.i('Notification disabled by user setting');
       return;
     }
-
-    // Initialize Firebase
-    try {
-      await _initializeFirebase();
-    } catch (e) {
-      logger.e('Failed to initialize Firebase', error: e);
-      return;
-    }
-
     // Check or request permission
     var hasPermission = false;
     if (requestPermission) {
@@ -429,6 +393,14 @@ class NotifyService {
 
     if (!hasPermission) {
       logger.i('Notification permission not granted');
+      return;
+    }
+
+    // Initialize Firebase
+    try {
+      await _initializeFirebase();
+    } catch (e) {
+      logger.e('Failed to initialize Firebase', error: e);
       return;
     }
 
@@ -446,12 +418,10 @@ class NotifyService {
     logger.i('Setup FcmToken: $fcmToken');
     await Get.find<HomeController>().enableNotification();
     // Handle initial message if app was opened from notification
-    FirebaseMessaging.instance.getInitialMessage().then(
-      (initialMessage) async {
-        if (initialMessage == null) return;
-        await handleMessage(initialMessage);
-      },
-    );
+    FirebaseMessaging.instance.getInitialMessage().then((initialMessage) async {
+      if (initialMessage == null) return;
+      await handleMessage(initialMessage);
+    });
 
     // Setup FCM listeners
     _setupFCMListeners();
@@ -464,7 +434,16 @@ class NotifyService {
     if (currentPushType == PushType.unifiedpush) {
       return UnifiedPushService.instance.currentEndpoint?.url;
     }
-    return fcmToken ?? await _getFCMToken();
+    if (fcmToken != null) return fcmToken;
+    fcmToken = await _getFCMToken();
+    return fcmToken;
+  }
+
+  String? get deviceIdFromCache {
+    if (currentPushType == PushType.unifiedpush) {
+      return UnifiedPushService.instance.currentEndpoint?.url;
+    }
+    return fcmToken;
   }
 
   String? _oldToken;
@@ -483,10 +462,7 @@ class NotifyService {
     try {
       final res = await Dio().post(
         '${KeychatGlobal.notifycationServer}/remove',
-        data: {
-          'deviceId': deviceId,
-          'pubkeys': pubkeys,
-        },
+        data: {'deviceId': deviceId, 'pubkeys': pubkeys},
       );
       logger.i('removePubkeys ($pushTypeString): ${res.data}');
       return true;

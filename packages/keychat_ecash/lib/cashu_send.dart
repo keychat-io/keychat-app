@@ -1,79 +1,127 @@
-import 'package:keychat/global.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/Bills/cashu_transaction.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/utils.dart' show Utils;
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
+import 'package:keychat_ecash/wallet_selection_storage.dart';
 
-class CashuSendPage extends StatefulWidget {
-  const CashuSendPage(this.isRoom, {super.key});
-  final bool isRoom;
+class PayEcashPage extends StatefulWidget {
+  const PayEcashPage({super.key});
 
   @override
-  _CashuSendPageState createState() => _CashuSendPageState();
+  _PayEcashPageState createState() => _PayEcashPageState();
 }
 
-class _CashuSendPageState extends State<CashuSendPage> {
+class _PayEcashPageState extends State<PayEcashPage> {
   late EcashController ecashController;
-  late String selectedMint;
+  String selectedMint = '';
   final RxBool isLoading = false.obs;
+  late TextEditingController textEditingController;
 
   @override
   void initState() {
     ecashController = Get.find<EcashController>();
-    ecashController.nameController.clear();
-    ecashController.getBalance();
-    selectedMint = ecashController.latestMintUrl.value;
+    textEditingController = TextEditingController();
+    unawaited(init());
     super.initState();
+  }
+
+  Future<void> init() async {
+    final mint = await WalletStorageSelection.getLasetMintWallet();
+    setState(() {
+      selectedMint = mint;
+    });
+  }
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: Column(
           children: [
-            Center(
-              child: Text(
-                'Send Sat(Cashu)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            Obx(
-              () => SelectMint(ecashController.latestMintUrl.value,
-                  (String mint) {
-                setState(() {
-                  selectedMint = mint;
-                  ecashController.latestMintUrl.value = mint;
-                });
-              }),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Form(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    child: TextField(
-                      style: const TextStyle(fontSize: 16),
-                      controller: ecashController.nameController,
-                      keyboardType: TextInputType.number,
-                      // textInputAction: TextInputAction.done,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Amount',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
+            AppBar(title: const Text('Pay Ecash(Cashu)')),
+            SelectMint(selectedMint, (newMint) {
+              selectedMint = newMint;
+            }),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: TextField(
+                style: const TextStyle(fontSize: 16),
+                controller: textEditingController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Amount',
+                  border: OutlineInputBorder(),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            if (kDebugMode)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Quick select: ',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [1, 5, 10, 100, 1024].map((amount) {
+                          return InkWell(
+                            onTap: () {
+                              textEditingController.text = amount.toString();
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainer,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                amount.toString(),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const Spacer(),
             Padding(
               padding: EdgeInsets.only(
                 bottom: Get.isBottomSheetOpen ?? true
@@ -96,7 +144,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 HapticFeedback.lightImpact();
                               }
                               final amountString =
-                                  ecashController.nameController.text.trim();
+                                  textEditingController.text.trim();
                               if (amountString.isEmpty) {
                                 EasyLoading.showToast('Please input amount');
                                 return;
@@ -118,34 +166,24 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                 EasyLoading.showToast('Insufficient balance');
                                 return;
                               }
-                              EasyLoading.show(status: 'Generating...');
-                              final cashuInfoModel = await EcashUtils.getCashuA(
+                              await EasyLoading.show(status: 'Generating...');
+                              final tx = await EcashUtils.getCashuToken(
                                 amount: amount,
                                 mints: [selectedMint],
                               );
 
+                              final unifiedController =
+                                  Utils.getOrPutGetxController(
+                                create: UnifiedWalletController.new,
+                              );
+                              await unifiedController.refreshSelectedWallet(
+                                unifiedController.getWalletById(selectedMint),
+                              );
                               await EasyLoading.showToast(
                                 'Success',
                               );
-                              await ecashController.getBalance();
-                              await ecashController.getRecentTransactions();
 
-                              if (widget.isRoom) {
-                                Get.back(result: cashuInfoModel);
-                                return;
-                              }
-                              if (Get.isBottomSheetOpen ?? false) {
-                                Get.back<void>();
-                              }
-                              Get.to(
-                                () => CashuTransactionPage(
-                                  transaction:
-                                      cashuInfoModel.toCashuTransaction(),
-                                ),
-                                id: GetPlatform.isDesktop
-                                    ? GetXNestKey.ecash
-                                    : null,
-                              );
+                              Get.back(result: tx);
                             } catch (e, s) {
                               await EcashUtils.ecashErrorHandle(e, s);
                             } finally {

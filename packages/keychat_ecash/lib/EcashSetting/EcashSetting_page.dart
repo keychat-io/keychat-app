@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,11 +25,12 @@ class EcashSettingPage extends GetView<EcashSettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ecash Setting')),
+      appBar: AppBar(title: const Text('Wallet Setting')),
       body: SettingsList(
         platform: DevicePlatform.iOS,
         sections: [
           SettingsSection(
+            title: const Text('Ecash Wallet Settings'),
             tiles: [
               SettingsTile.navigation(
                 leading: const Icon(Icons.pending),
@@ -42,7 +45,9 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                     for (final tx in list) {
                       if (tx.status == TransactionStatus.pending) {
                         try {
-                          await RustAPI.receiveToken(encodedToken: tx.token);
+                          await rust_cashu.receiveToken(
+                            encodedToken: tx.token,
+                          );
                           success++;
                         } catch (e, s) {
                           final msg = Utils.getErrorMessage(e);
@@ -52,7 +57,8 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                         }
                       }
                     }
-                    EasyLoading.dismiss();
+                    await EasyLoading.dismiss();
+                    unawaited(Get.find<UnifiedWalletController>().refreshAll());
                     await Get.dialog(
                       CupertinoAlertDialog(
                         title: const Text('Receive Result'),
@@ -76,10 +82,6 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                         ],
                       ),
                     );
-
-                    Get.find<EcashController>()
-                      ..getBalance()
-                      ..getRecentTransactions();
                   } catch (e, s) {
                     EasyLoading.showToast('Receive failed');
                     logger.e(e.toString(), error: e, stackTrace: s);
@@ -156,6 +158,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             ],
           ),
           SettingsSection(
+            title: const Text('Services as NWC Server'),
             tiles: [
               SettingsTile.navigation(
                 leading: SvgPicture.asset(

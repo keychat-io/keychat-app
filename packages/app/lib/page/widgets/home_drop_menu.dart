@@ -1,4 +1,5 @@
 import 'package:keychat/controller/home.controller.dart';
+import 'package:keychat/page/chat/create_bot_page.dart';
 import 'package:keychat/page/chat/create_contact_page.dart';
 import 'package:keychat/page/chat/create_group_page.dart';
 import 'package:keychat/page/components.dart';
@@ -17,6 +18,7 @@ class MenuItem {
 
 const menuAddContacts = 'Add Contact';
 const menuNewGroup = 'New Group';
+const menuAddBot = 'Add Bot';
 const menuScan = 'Scan';
 const menuMyQrcode = 'My QRCode';
 
@@ -42,6 +44,10 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
       text: menuNewGroup,
       icon: CupertinoIcons.group_solid,
     );
+    const addBot = MenuItem(
+      text: menuAddBot,
+      icon: CupertinoIcons.app_badge,
+    );
     const scan = MenuItem(
       text: menuScan,
       icon: CupertinoIcons.qrcode_viewfinder,
@@ -49,6 +55,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
     // MenuItem qrcode =
     //     const MenuItem(text: menuMyQrcode, icon: CupertinoIcons.qrcode);
     firstItems = [addContact, addGroup, scan];
+    // firstItems = [addContact, addGroup, addBot, scan];
 
     super.initState();
   }
@@ -151,6 +158,16 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
       case menuNewGroup:
         await Get.bottomSheet<void>(
           const AddGroupPage(),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+        );
+      case menuAddBot:
+        await Get.bottomSheet<void>(
+          const AddBotPage(),
           isScrollControlled: true,
           ignoreSafeArea: false,
           backgroundColor: Theme.of(context).colorScheme.surface,

@@ -579,7 +579,7 @@ class WebsocketService extends GetxService {
     if (connectedRelays.isEmpty) {
       throw Exception('No connected relay');
     }
-
+    logger.d('try write event: $roomId, $eventString, $connectedRelays');
     unawaited(
       _proccessWriteNostrEvent(
         event,

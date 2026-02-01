@@ -932,9 +932,6 @@ class ChatController extends GetxController {
       }
       return;
     }
-    if (roomObs.value.type == RoomType.bot) {
-      unawaited(_initBotInfo());
-    }
   }
 
   Contact getContactByPubkey(String pubkey) {

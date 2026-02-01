@@ -569,8 +569,8 @@ class NostrAPI {
     void Function(String error) failedCallback,
   ) async {
     final content = await decryptNip4Content(sourceEvent);
+    logger.e('decryptNip4Content: $content');
     if (content == null) {
-      logger.e('decryptNip4Content error: ${sourceEvent.id}');
       failedCallback('Nip04 ecrypt error');
       return;
     }

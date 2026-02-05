@@ -101,12 +101,12 @@ class _MinePageState extends State<MinePage> {
                     ),
 
                     onPressed: (context) async {
-                      unawaited(
-                        Utils.getOrPutGetxController(
-                          create: UnifiedWalletController.new,
-                          permanent: true,
-                        ).checkAndReloadNwcIfNeeded(),
+                      final controller = Utils.getOrPutGetxController(
+                        create: UnifiedWalletController.new,
+                        permanent: true,
                       );
+                      // Navigate immediately, controller will show loading state
+                      unawaited(controller.checkAndReloadNwcIfNeeded());
                       await Get.to(BitcoinWalletMain.new);
                       Utils.hideKeyboard(Get.context!);
                     },

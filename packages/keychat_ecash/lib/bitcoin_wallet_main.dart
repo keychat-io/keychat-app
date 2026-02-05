@@ -19,8 +19,8 @@ import 'package:keychat_ecash/lnd/lnd_setting_page.dart';
 import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_ecash/nwc/nwc_models.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart';
 
 class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   const BitcoinWalletMain({super.key});

@@ -9,9 +9,12 @@ resolution: workspace
 
 # Add regular dependencies here.
 dependencies:
+  collection: ^1.18.0
   dio: ^5.4.0
+  easy_debounce: ^2.0.3
   flutter:
     sdk: flutter
+  flutter_easyloading: ^3.0.5
+  get: ^4.7.3
   keychat: ^1.0.0
   keychat_rust_ffi_plugin: 1.0.0
-  ndk: ^0.7.0

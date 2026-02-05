@@ -5,9 +5,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/utils.dart' show DesktopContainer;
-import 'package:keychat_ecash/nwc/active_nwc_connection.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
-import 'package:ndk/ndk.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 
 class NwcSettingPage extends GetView<NwcController> {
   const NwcSettingPage({required this.connection, super.key});
@@ -252,21 +250,23 @@ class NwcSettingPage extends GetView<NwcController> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (info.alias.isNotEmpty) ...[
+              if (info.alias != null && info.alias!.isNotEmpty) ...[
                 _buildInfoRow(
                   context,
                   icon: Icons.label,
                   label: 'Alias',
-                  value: info.alias,
+                  value: info.alias!,
                 ),
                 const SizedBox(height: 12),
               ],
-              _buildInfoRow(
-                context,
-                icon: Icons.cloud,
-                label: 'Network',
-                value: info.network.plaintext,
-              ),
+              if (info.network != null) ...[
+                _buildInfoRow(
+                  context,
+                  icon: Icons.cloud,
+                  label: 'Network',
+                  value: info.network!,
+                ),
+              ],
               if (info.blockHeight != null) ...[
                 const SizedBox(height: 12),
                 _buildInfoRow(

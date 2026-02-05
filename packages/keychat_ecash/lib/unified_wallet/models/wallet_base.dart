@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:keychat_ecash/keychat_ecash.dart' show CashuWallet, NwcWallet;
-import 'package:keychat_ecash/unified_wallet/index.dart'
-    show CashuWallet, NwcWallet;
+import 'package:keychat_ecash/nwc/nwc_models.dart' show TransactionResult;
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart'
     show CashuWallet;
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart'
     show NwcWallet;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' show Transaction;
-import 'package:ndk/ndk.dart' show TransactionResult;
 
 /// Enum representing different wallet protocols/types.
 ///

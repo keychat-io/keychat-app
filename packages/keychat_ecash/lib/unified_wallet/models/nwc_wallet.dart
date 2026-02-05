@@ -1,13 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/nwc/index.dart';
-import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart';
-import 'package:ndk/ndk.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 
-/// NWC (Nostr Wallet Connect) wallet implementation
+/// NWC (Nostr Wallet Connect) wallet implementation.
 class NwcWallet extends WalletBase {
+  /// Creates a new NwcWallet.
   NwcWallet({required this.connection});
 
   final ActiveNwcConnection connection;
@@ -52,10 +50,10 @@ class NwcWallet extends WalletBase {
   @override
   ActiveNwcConnection get rawData => connection;
 
-  /// Max spending budget (if available)
+  /// Max spending budget (if available).
   int? get maxBudget => connection.balance?.maxAmount;
 
-  /// Extract wallet name from NWC URI
+  /// Extracts wallet name from NWC URI.
   String _extractWalletName(String uri) {
     try {
       // NWC URIs typically contain relay info
@@ -70,8 +68,9 @@ class NwcWallet extends WalletBase {
   }
 }
 
-/// NWC transaction wrapper
+/// NWC transaction wrapper.
 class NwcWalletTransaction extends WalletTransactionBase {
+  /// Creates a new NwcWalletTransaction.
   NwcWalletTransaction({required this.transaction, this.walletId});
 
   final TransactionResult transaction;
@@ -86,7 +85,7 @@ class NwcWalletTransaction extends WalletTransactionBase {
   int get amountSats {
     // NWC amounts are in millisats
     final amount = (transaction.amount / 1000).floor();
-    return transaction.type == TransactionType.incoming.name ? amount : -amount;
+    return transaction.type == TransactionType.incoming ? amount : -amount;
   }
 
   @override
@@ -119,7 +118,7 @@ class NwcWalletTransaction extends WalletTransactionBase {
   }
 
   @override
-  bool get isIncoming => transaction.type == TransactionType.incoming.name;
+  bool get isIncoming => transaction.type == TransactionType.incoming;
 
   @override
   WalletProtocol get protocol => WalletProtocol.nwc;

@@ -24,6 +24,7 @@ import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 typedef OnMessageReceived = void Function(int type, dynamic message);
@@ -193,6 +194,8 @@ class NostrAPI {
       case EventKinds.nip47:
         await Utils.getGetxController<NostrWalletConnectController>()
             ?.processEvent(relay, event);
+      case EventKinds.nwcResponse:
+        await _processNwcResponse(event, eventList);
       default:
         logger.i('revived: $eventList');
     }
@@ -207,6 +210,26 @@ class NostrAPI {
     //       pubkey: profile['pubkey'],
     //       petname: profile['petname']);
     // }
+  }
+
+  /// Processes NWC response events (kind 23195) and routes them to NwcController.
+  Future<void> _processNwcResponse(
+    NostrEventModel event,
+    List<dynamic> eventList,
+  ) async {
+    try {
+      final nwcController = Utils.getGetxController<NwcController>();
+      if (nwcController == null) {
+        logger.d('NwcController not found, skipping NWC response');
+        return;
+      }
+
+      // Convert event to map format for processing
+      final eventData = eventList[2] as Map<String, dynamic>;
+      await nwcController.processResponseEvent(eventData);
+    } catch (e, s) {
+      logger.e('Error processing NWC response', error: e, stackTrace: s);
+    }
   }
 
   Future<Request> syncContact(String pubkey) async {

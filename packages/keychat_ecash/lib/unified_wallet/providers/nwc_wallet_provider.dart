@@ -1,16 +1,14 @@
 import 'package:collection/collection.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat/global.dart';
-import 'package:keychat/utils.dart' show Utils;
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_models.dart';
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/unified_wallet/providers/wallet_provider.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:ndk/ndk.dart' show TransactionResult;
 
-/// NWC wallet provider implementation
+/// NWC wallet provider implementation.
 class NwcWalletProvider implements WalletProvider {
   NwcWalletProvider() {
     _nwcController = Utils.getOrPutGetxController(create: NwcController.new);
@@ -124,11 +122,17 @@ class NwcWalletProvider implements WalletProvider {
         }
       }
 
-      EasyLoading.show(status: 'Processing...');
-      final result = await _nwcController.ndk.nwc.payInvoice(
-        active.connection,
+      await EasyLoading.show(status: 'Processing...');
+      final result = await _nwcController.payInvoice(
+        uri: walletId,
         invoice: invoice,
       );
+
+      if (result == null) {
+        await EasyLoading.showError('Payment Failed');
+        return null;
+      }
+
       await EasyLoading.showSuccess('Success');
 
       // Refresh NWC balance
@@ -136,12 +140,12 @@ class NwcWalletProvider implements WalletProvider {
 
       return NwcWalletTransaction(
         transaction: TransactionResult(
-          type: 'outgoing',
+          type: TransactionType.outgoing,
           invoice: invoice,
           amount: invoiceInfo.amount.toInt() * 1000,
           description: invoiceInfo.memo,
           createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          feesPaid: result.feesPaid ~/ 1000,
+          feesPaid: result.feesPaid,
           preimage: result.preimage,
           paymentHash: 'none',
         ),
@@ -171,12 +175,18 @@ class NwcWalletProvider implements WalletProvider {
         return null;
       }
 
-      EasyLoading.show(status: 'Generating...');
-      final response = await _nwcController.ndk.nwc.makeInvoice(
-        active.connection,
+      await EasyLoading.show(status: 'Generating...');
+      final response = await _nwcController.makeInvoice(
+        uri: walletId,
         amountSats: amountSats,
-        description: description ?? '',
+        description: description,
       );
+
+      if (response == null) {
+        await EasyLoading.showError('Failed to create invoice');
+        return null;
+      }
+
       await EasyLoading.showSuccess('Invoice created');
       return response.invoice;
     } catch (e, s) {
@@ -186,7 +196,7 @@ class NwcWalletProvider implements WalletProvider {
     }
   }
 
-  /// Create invoice and return the full transaction
+  /// Creates an invoice and returns the full transaction.
   Future<NwcWalletTransaction?> createInvoiceWithTransaction(
     String walletId,
     int amountSats,
@@ -203,21 +213,27 @@ class NwcWalletProvider implements WalletProvider {
         return null;
       }
 
-      EasyLoading.show(status: 'Generating...');
-      final response = await _nwcController.ndk.nwc.makeInvoice(
-        active.connection,
+      await EasyLoading.show(status: 'Generating...');
+      final response = await _nwcController.makeInvoice(
+        uri: walletId,
         amountSats: amountSats,
-        description: description ?? '',
+        description: description,
       );
+
+      if (response == null) {
+        await EasyLoading.showError('Failed to create invoice');
+        return null;
+      }
+
       await EasyLoading.showSuccess('Invoice created');
 
       return NwcWalletTransaction(
         transaction: TransactionResult(
-          type: 'incoming',
+          type: TransactionType.incoming,
           invoice: response.invoice,
-          amount: response.amountSat * 1000,
+          amount: (response.amountSat ?? amountSats) * 1000,
           description: response.description,
-          createdAt: response.createdAt,
+          createdAt: response.createdAt ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
           feesPaid: response.feesPaid,
           paymentHash: response.paymentHash,
           preimage: response.preimage,

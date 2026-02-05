@@ -1,34 +1,27 @@
 import 'dart:async';
-import 'dart:convert' show jsonEncode;
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat_ecash/nwc/index.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
-import 'package:ndk/ndk.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:easy_debounce/easy_throttle.dart';
 
+/// Controller for managing NWC (Nostr Wallet Connect) connections.
 class NwcController extends GetxController {
-  late Ndk ndk;
   NwcConnectionStorage _storage = NwcConnectionStorage();
   final Map<String, ActiveNwcConnection> _activeConnections = {};
-  final QrScanService qrScanService = QrScanService.instance;
 
   final RxList<ActiveNwcConnection> activeConnections =
       <ActiveNwcConnection>[].obs;
   final RxBool isInitialized = false.obs;
   final RxInt currentIndex = 0.obs;
 
-  /// Flag to indicate if any NWC connection has failed due to permission error
+  /// Flag to indicate if any NWC connection has failed due to permission error.
   final RxBool hasFailedConnection = false.obs;
 
-  /// Computed total balance across all connections
+  /// Computed total balance across all connections.
   int get totalSats {
     return activeConnections.fold<int>(
       0,
@@ -36,17 +29,26 @@ class NwcController extends GetxController {
     );
   }
 
-  /// Inject storage for testing
+  /// Inject storage for testing.
   set storage(NwcConnectionStorage storage) => _storage = storage;
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
-    _loadConnections();
+    await _loadConnections();
   }
 
-  /// Wait for isLoading to become true, with a maximum timeout of 5 seconds
-  /// Returns true if isLoading became true, false if timeout
+  @override
+  void onClose() {
+    // Close all NWC client connections
+    for (final connection in _activeConnections.values) {
+      connection.client.close();
+    }
+    super.onClose();
+  }
+
+  /// Wait for isLoading to become true, with a maximum timeout of 10 seconds.
+  /// Returns true if isLoading became true, false if timeout.
   Future<bool> waitForLoading() async {
     if (isInitialized.value) {
       return true;
@@ -76,7 +78,6 @@ class NwcController extends GetxController {
 
   Future<void> _loadConnections() async {
     try {
-      await _initNdk();
       final savedConnections = await _storage.getAll();
       for (final info in savedConnections) {
         await _connectAndAdd(info);
@@ -89,32 +90,16 @@ class NwcController extends GetxController {
     }
   }
 
-  Future<void> _initNdk({EventVerifier? eventVerifier}) async {
-    ndk = Ndk(
-      NdkConfig(
-        eventVerifier: eventVerifier ?? RustEventVerifier(),
-        cache: MemCacheManager(),
-        logLevel: kDebugMode ? LogLevel.debug : LogLevel.error,
-        bootstrapRelays: Config.getEnvConfig('nostrRelays') as List<String>,
-        // defaultBroadcastConsiderDonePercent: 0.5,
-      ),
-    );
-  }
-
   Future<void> _connectAndAdd(NwcConnectionInfo info) async {
     try {
-      final connection = await ndk.nwc.connect(info.uri);
+      final client = await NwcClient.fromUri(info.uri);
 
-      logger.i(
-        "waiting for ${connection.isLegacyNotifications() ? "legacy " : ""}notifications for ${info.uri}",
-      );
-      connection.notificationStream.stream.listen((notification) {
-        logger.i(
-          'notification ${notification.type} amount: ${notification.amount}',
-        );
-      });
+      // Subscribe to responses
+      client.subscribe();
 
-      final active = ActiveNwcConnection(info: info, connection: connection);
+      logger.i('NWC client connected for ${info.uri}');
+
+      final active = ActiveNwcConnection(info: info, client: client);
       _activeConnections[info.uri] = active;
     } catch (e) {
       logger.e('Failed to connect to NWC: ${info.uri} error: $e');
@@ -166,7 +151,7 @@ class NwcController extends GetxController {
       throw Exception('NWC Connection not found: $nwcUri');
     }
 
-    final balance = await ndk.nwc.getBalance(active.connection);
+    final balance = await active.client.getBalance();
     active.balance = balance;
     return balance;
   }
@@ -181,22 +166,23 @@ class NwcController extends GetxController {
     }
   }
 
-  /// Reload connections by reconnecting NDK and re-executing _loadConnections
+  /// Reload connections by reconnecting all clients.
   Future<void> reloadConnections() async {
     isInitialized.value = false;
     try {
-      await ndk.destroy();
-      // Clear existing connections
+      // Close existing connections
+      for (final connection in _activeConnections.values) {
+        connection.client.close();
+      }
       _activeConnections.clear();
       activeConnections.clear();
       hasFailedConnection.value = false;
 
-      // Reinitialize NDK and load connections
+      // Reload connections
       await _loadConnections();
-      // fetchTransactionsForCurrent();
     } catch (e) {
       logger.e('Failed to reload connections: $e');
-      EasyLoading.showError('Failed to reload connections');
+      await EasyLoading.showError('Failed to reload connections');
     } finally {
       isInitialized.value = true;
     }
@@ -238,6 +224,12 @@ class NwcController extends GetxController {
 
   Future<bool> deleteConnection(String uri) async {
     try {
+      // Close the client connection
+      final active = _activeConnections[uri];
+      if (active != null) {
+        active.client.close();
+      }
+
       await _storage.delete(uri);
       _activeConnections.remove(uri);
       refreshList();
@@ -248,10 +240,10 @@ class NwcController extends GetxController {
     return true;
   }
 
-  void updateCurrentIndex(int index) {
+  Future<void> updateCurrentIndex(int index) async {
     if (index >= 0 && index < activeConnections.length) {
       currentIndex.value = index;
-      fetchTransactionsForCurrent();
+      await fetchTransactionsForCurrent();
     }
   }
 
@@ -269,6 +261,7 @@ class NwcController extends GetxController {
   }
 
   int reloadConnectionsTimes = 0;
+
   Future<ListTransactionsResponse?> listTransactions(
     String uri, {
     int? from,
@@ -283,8 +276,7 @@ class NwcController extends GetxController {
         throw Exception('NWC Connection not found: $uri');
       }
 
-      final response = await ndk.nwc.listTransactions(
-        active.connection,
+      final response = await active.client.listTransactions(
         from: from,
         until: until,
         limit: limit,
@@ -302,10 +294,8 @@ class NwcController extends GetxController {
             () async {
           if (reloadConnectionsTimes >= 5) return;
           reloadConnectionsTimes++;
-          await EasyLoading.showToast('ReConncteding...');
-          final nwcController =
-              Utils.getOrPutGetxController(create: NwcController.new);
-          await nwcController.reloadConnections();
+          await EasyLoading.showToast('ReConnecting...');
+          await reloadConnections();
         });
       }
       return null;
@@ -319,7 +309,7 @@ class NwcController extends GetxController {
         throw Exception('NWC Connection not found: $uri');
       }
 
-      return await ndk.nwc.getInfo(active.connection);
+      return await active.client.getInfo();
     } catch (e) {
       await EasyLoading.showError(e.toString());
       return null;
@@ -338,8 +328,7 @@ class NwcController extends GetxController {
       }
 
       await waitForLoading();
-      return await ndk.nwc.lookupInvoice(
-        active.connection,
+      return await active.client.lookupInvoice(
         invoice: invoice,
         paymentHash: paymentHash,
       );
@@ -347,6 +336,71 @@ class NwcController extends GetxController {
       await EasyLoading.showError(e.toString());
       return null;
     }
+  }
+
+  /// Pays a lightning invoice.
+  Future<PayInvoiceResponse?> payInvoice({
+    required String uri,
+    required String invoice,
+  }) async {
+    try {
+      final active = _activeConnections[uri];
+      if (active == null) {
+        throw Exception('NWC Connection not found: $uri');
+      }
+
+      await waitForLoading();
+      return await active.client.payInvoice(invoice);
+    } catch (e) {
+      logger.e('NWC payInvoice error', error: e);
+      return null;
+    }
+  }
+
+  /// Creates a new invoice.
+  Future<MakeInvoiceResponse?> makeInvoice({
+    required String uri,
+    required int amountSats,
+    String? description,
+  }) async {
+    try {
+      final active = _activeConnections[uri];
+      if (active == null) {
+        throw Exception('NWC Connection not found: $uri');
+      }
+
+      await waitForLoading();
+      return await active.client.makeInvoice(
+        amountSats: amountSats,
+        description: description,
+      );
+    } catch (e) {
+      logger.e('NWC makeInvoice error', error: e);
+      return null;
+    }
+  }
+
+  /// Gets the active client for a given URI.
+  NwcClient? getClient(String uri) {
+    return _activeConnections[uri]?.client;
+  }
+
+  /// Processes an NWC response event from a relay.
+  ///
+  /// Routes the response to the appropriate client.
+  Future<void> processResponseEvent(Map<String, dynamic> eventData) async {
+    final walletPubkey = eventData['pubkey'] as String?;
+    if (walletPubkey == null) return;
+
+    // Find the client that matches this wallet pubkey
+    for (final connection in _activeConnections.values) {
+      if (connection.client.walletPubkey == walletPubkey) {
+        await connection.client.processResponseEvent(eventData);
+        return;
+      }
+    }
+
+    logger.d('No NWC client found for wallet pubkey: $walletPubkey');
   }
 
   TransactionStatus getTransactionStatus(TransactionResult transaction) {
@@ -362,34 +416,5 @@ class NwcController extends GetxController {
       }
     }
     return TransactionStatus.pending;
-  }
-}
-
-class RustEventVerifier implements EventVerifier {
-  /// Convert Nip01Event to JSON string
-  String toJsonString(Nip01Event event) {
-    return jsonEncode({
-      'id': event.id,
-      'pubkey': event.pubKey,
-      'created_at': event.createdAt,
-      'kind': event.kind,
-      'tags': event.tags,
-      'content': event.content,
-      'sig': event.sig,
-    });
-  }
-
-  @override
-  Future<bool> verify(Nip01Event event) async {
-    try {
-      await rust_nostr.verifyEvent(json: toJsonString(event));
-      return true;
-    } catch (e, s) {
-      logger.e(
-        'Event verification failed: ${event.id} , $e',
-        stackTrace: s,
-      );
-      return false;
-    }
   }
 }

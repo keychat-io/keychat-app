@@ -9,13 +9,12 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/lnd/lnd_controller.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 import 'package:keychat_ecash/unified_wallet/models/lnd_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart' show TransactionResult;
 import 'package:url_launcher/url_launcher.dart';
 
 /// Unified Lightning transaction details page for Cashu Lightning and NWC payments.
@@ -318,7 +317,9 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
         paymentHash: nwcTx!.paymentHash,
       );
 
-      if (lookup != null && lookup.preimage.isNotEmpty) {
+      if (lookup != null &&
+          lookup.transaction.preimage != null &&
+          lookup.transaction.preimage!.isNotEmpty) {
         if (mounted) {
           setState(() {
             _nwcIsPaid = true;

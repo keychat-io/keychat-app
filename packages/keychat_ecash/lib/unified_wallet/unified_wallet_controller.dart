@@ -13,7 +13,6 @@ import 'package:keychat_ecash/lnd/lnd_controller.dart';
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 
 /// Unified controller for managing multiple wallet types
 class UnifiedWalletController extends GetxController {
@@ -73,6 +72,47 @@ class UnifiedWalletController extends GetxController {
   void onInit() {
     super.onInit();
     _initProviders();
+  }
+
+  /// Ensures the controller is fully initialized before use.
+  ///
+  /// Call this method when you need to wait for all providers to be ready.
+  /// Returns immediately if wallets are already loaded.
+  Future<void> ensureInitialized() async {
+    // Already initialized - return immediately
+    if (!isLoading.value && wallets.isNotEmpty) return;
+
+    // If not loading and wallets are empty, trigger a load
+    if (!isLoading.value && wallets.isEmpty) {
+      unawaited(loadAllWallets());
+    }
+
+    // Wait for loading to complete
+    final completer = Completer<void>();
+    late Worker worker;
+
+    worker = ever(isLoading, (bool loading) {
+      if (!loading && !completer.isCompleted) {
+        worker.dispose();
+        completer.complete();
+      }
+    });
+
+    // Also check immediately in case isLoading is already false
+    if (!isLoading.value) {
+      worker.dispose();
+      return;
+    }
+
+    // Timeout after 15 seconds
+    Future.delayed(const Duration(seconds: 15), () {
+      if (!completer.isCompleted) {
+        worker.dispose();
+        completer.complete();
+      }
+    });
+
+    return completer.future;
   }
 
   /// Subscription for NWC balance updates

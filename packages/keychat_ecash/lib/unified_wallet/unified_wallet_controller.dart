@@ -9,6 +9,7 @@ import 'package:keychat/app.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart'
     show CashuWalletTransaction, MintBalanceClass;
+import 'package:keychat_ecash/lnd/lnd_controller.dart';
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
@@ -74,14 +75,110 @@ class UnifiedWalletController extends GetxController {
     _initProviders();
   }
 
+  /// Subscription for NWC balance updates
+  Worker? _nwcBalanceWorker;
+
+  /// Subscription for LND balance updates
+  Worker? _lndBalanceWorker;
+
   /// Initialize all wallet providers
   void _initProviders() {
     // Register built-in providers
     _providers.add(CashuWalletProvider());
     _providers.add(NwcWalletProvider());
+    _providers.add(LndWalletProvider());
+
+    // Listen for NWC and LND balance changes and refresh wallets
+    _setupNwcBalanceListener();
+    _setupLndBalanceListener();
 
     // Initial load and restore saved wallet selection
     _initializeWallets();
+  }
+
+  /// Setup listener for NWC balance updates
+  void _setupNwcBalanceListener() {
+    try {
+      final nwcController =
+          Utils.getOrPutGetxController(create: NwcController.new);
+      _nwcBalanceWorker = ever(nwcController.activeConnections, (_) {
+        // Refresh NWC wallets in the unified list when balances change
+        _refreshNwcWalletsInList();
+      });
+    } catch (e) {
+      logger.e('Failed to setup NWC balance listener: $e');
+    }
+  }
+
+  /// Refresh NWC wallets in the unified wallet list
+  void _refreshNwcWalletsInList() {
+    try {
+      final nwcController =
+          Utils.getOrPutGetxController(create: NwcController.new);
+      final nwcConnections = nwcController.activeConnections;
+
+      // Update each NWC wallet in the list
+      for (var i = 0; i < wallets.length; i++) {
+        final wallet = wallets[i];
+        if (wallet is NwcWallet) {
+          // Find the matching connection with updated balance
+          final updatedConnection = nwcConnections.firstWhereOrNull(
+            (c) => c.info.uri == wallet.id,
+          );
+          if (updatedConnection != null) {
+            wallets[i] = NwcWallet(connection: updatedConnection);
+          }
+        }
+      }
+    } catch (e) {
+      logger.e('Failed to refresh NWC wallets in list: $e');
+    }
+  }
+
+  /// Setup listener for LND balance updates
+  void _setupLndBalanceListener() {
+    try {
+      final lndController =
+          Utils.getOrPutGetxController(create: LndController.new);
+      _lndBalanceWorker = ever(lndController.activeConnections, (_) {
+        // Refresh LND wallets in the unified list when balances change
+        _refreshLndWalletsInList();
+      });
+    } catch (e) {
+      logger.e('Failed to setup LND balance listener: $e');
+    }
+  }
+
+  /// Refresh LND wallets in the unified wallet list
+  void _refreshLndWalletsInList() {
+    try {
+      final lndController =
+          Utils.getOrPutGetxController(create: LndController.new);
+      final lndConnections = lndController.activeConnections;
+
+      // Update each LND wallet in the list
+      for (var i = 0; i < wallets.length; i++) {
+        final wallet = wallets[i];
+        if (wallet is LndWallet) {
+          // Find the matching connection with updated balance
+          final updatedConnection = lndConnections.firstWhereOrNull(
+            (c) => c.info.uri == wallet.id,
+          );
+          if (updatedConnection != null) {
+            wallets[i] = LndWallet(connection: updatedConnection);
+          }
+        }
+      }
+    } catch (e) {
+      logger.e('Failed to refresh LND wallets in list: $e');
+    }
+  }
+
+  @override
+  void onClose() {
+    _nwcBalanceWorker?.dispose();
+    _lndBalanceWorker?.dispose();
+    super.onClose();
   }
 
   /// Initialize wallets and restore saved selection
@@ -460,6 +557,12 @@ class UnifiedWalletController extends GetxController {
         description,
       );
     } else if (provider is NwcWalletProvider) {
+      return provider.createInvoiceWithTransaction(
+        wallet.id,
+        amountSats,
+        description,
+      );
+    } else if (provider is LndWalletProvider) {
       return provider.createInvoiceWithTransaction(
         wallet.id,
         amountSats,

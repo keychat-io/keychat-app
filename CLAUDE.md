@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Security Rules
+
+- **No dangerous deletions**: Do not execute destructive commands like `rm -rf`, `git clean -fd`, `git reset --hard`
+- **No access to sensitive files**: Do not read or modify `.env`, `*.key`, `*.pem`, `credentials.*`, `secrets.*` files
+- **Confirm before destructive operations**: Always ask user confirmation before deleting files, clearing data, or resetting state
+- **No external transmission of secrets**: Never send keys, passwords, tokens, or private keys to external services or print them to logs
+
 ## Project Overview
 
 Keychat is a secure chat application built on:
@@ -133,3 +140,156 @@ cargo build --target <target> --release --target-dir target
 ## Nostr NIPs Implemented
 
 NIP-01, NIP-06, NIP-07, NIP-17, NIP-19, NIP-44, NIP-47, NIP-55, NIP-59, NIP-B7
+
+## Code Patterns & Conventions
+
+### Documentation Rules
+
+- **Add function comments during iterations**: When modifying or reviewing code, add missing documentation comments to functions
+- **Use English for all comments**: All code comments, documentation, and docstrings must be in English
+- **Use Dart doc comments**: Use `///` for public APIs, `//` for implementation details
+
+```dart
+/// Sends a message to the specified room.
+///
+/// Returns [SendMessageResponse] containing the message ID and status.
+/// Throws [RoomNotFoundException] if the room does not exist.
+Future<SendMessageResponse> sendMessage(Room room, String content) async {
+  // Validate room status before sending
+  if (room.status != RoomStatus.enabled) {
+    throw RoomNotEnabledException();
+  }
+  // ...
+}
+```
+
+### Service Singleton Pattern
+
+```dart
+class XxxService extends BaseChatService {
+  XxxService._();
+  static XxxService? _instance;
+  static XxxService get instance => _instance ??= XxxService._();
+}
+```
+
+### Controller Pattern (GetX)
+
+```dart
+class XxxController extends GetxController {
+  // Reactive variables
+  RxList<Message> messages = <Message>[].obs;
+  Rx<Room> roomObs = Room(...).obs;
+  RxBool isLoading = false.obs;
+
+  @override
+  Future<void> onInit() async {
+    super.onInit();
+  }
+}
+```
+
+- Use `Get.find<T>()` to get Controller
+- Use `.obs` to create reactive variables, `.value` to access value
+- Use `Obx(() => ...)` in UI to listen for changes
+
+### Model Pattern (Isar)
+
+```dart
+@Collection(ignore: {'props', 'runtimeField'})
+class Room extends Equatable {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, composite: [CompositeIndex('identityId')])
+  late String toMainPubkey;
+
+  @Enumerated(EnumType.ordinal32)
+  late RoomType type;
+
+  final mykey = IsarLink<Mykey>();
+
+  @override
+  List<Object?> get props => [id, toMainPubkey];
+}
+```
+
+### JSON Serialization
+
+```dart
+@JsonSerializable()
+class XxxModel {
+  const XxxModel({required this.field, this.optionalField});
+
+  factory XxxModel.fromJson(Map<String, dynamic> json) =>
+      _$XxxModelFromJson(json);
+
+  final String field;
+  @JsonKey(includeIfNull: false)
+  final String? optionalField;
+
+  Map<String, dynamic> toJson() => _$XxxModelToJson(this);
+}
+```
+
+### Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Service file | `xxx.service.dart` | `room.service.dart` |
+| Controller file | `xxx.controller.dart` | `chat.controller.dart` |
+| Model file | `xxx.dart` | `room.dart` |
+| Page file | `xxx_page.dart` | `chat_setting_contact_page.dart` |
+| Generated file | `xxx.g.dart` | `room.g.dart` |
+
+### Import Order
+
+```dart
+// 1. Dart core libraries
+import 'dart:async';
+import 'dart:convert';
+
+// 2. Flutter/framework
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+// 3. Third-party packages
+import 'package:isar_community/isar.dart';
+
+// 4. Project packages
+import 'package:keychat/service/room.service.dart';
+
+// 5. Rust FFI (use aliases)
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+```
+
+### Error Handling
+
+```dart
+try {
+  // Business logic
+} catch (e, s) {
+  logger.e('Description', error: e, stackTrace: s);
+  EasyLoading.showError(Utils.getErrorMessage(e));
+}
+```
+
+### Common Utilities
+
+- `logger.i/d/e()` - Logging
+- `EasyLoading.showToast/showSuccess/showError()` - Toast messages
+- `Utils.getErrorMessage(e)` - Extract error message
+- `Get.dialog()` / `Get.to()` / `Get.back()` - Navigation and dialogs
+
+## After Code Changes
+
+```bash
+# Regenerate after modifying models
+melos run build:runner
+
+# Regenerate Dart bindings after modifying Rust code
+cd packages/keychat_rust_ffi_plugin
+flutter_rust_bridge_codegen generate
+
+# Check before committing
+melos run lint:all
+```

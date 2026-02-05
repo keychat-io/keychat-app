@@ -15,6 +15,7 @@ import 'package:keychat_ecash/EcashSetting/EcashSetting_page.dart';
 import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/cashu_send.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/lnd/lnd_setting_page.dart';
 import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/utils.dart';
@@ -185,7 +186,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               'Add Wallet',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            textSmallGray(context, 'Cashu or NWC wallet'),
+            textSmallGray(context, 'Cashu, NWC'), //, or LND wallet
           ],
         ),
       ),
@@ -214,7 +215,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
           ),
           child: protocol == WalletProtocol.cashu
               ? _buildCashuActions(context)
-              : _buildNwcActions(context),
+              : _buildLightningActions(context),
         ),
       );
     });
@@ -319,8 +320,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Build NWC wallet actions (2 buttons)
-  Widget _buildNwcActions(BuildContext context) {
+  /// Build Lightning wallet actions for NWC and LND (2 buttons)
+  Widget _buildLightningActions(BuildContext context) {
     // Pay uses red/orange tones, Receive uses green tones
     const payColor = Colors.redAccent;
     const receiveColor = Colors.green;
@@ -358,6 +359,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final (label, color) = switch (protocol) {
       WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
       WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+      WalletProtocol.lnd => ('LND', Colors.purple),
     };
 
     return Container(
@@ -453,6 +455,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final (label, color) = switch (protocol) {
       WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
       WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+      WalletProtocol.lnd => ('LND', Colors.purple),
     };
 
     return Container(
@@ -799,11 +802,13 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   /// Get gradient colors for wallet card
   List<Color> _getWalletGradientColors(WalletBase wallet) {
     final hash = wallet.id.hashCode;
+    final primaryColor = switch (wallet.protocol) {
+      WalletProtocol.cashu => KeychatGlobal.secondaryColor,
+      WalletProtocol.nwc => KeychatGlobal.bitcoinColor,
+      WalletProtocol.lnd => Colors.purple,
+    };
     return [
-      if (wallet.protocol == WalletProtocol.cashu)
-        KeychatGlobal.secondaryColor.withAlpha(100)
-      else
-        KeychatGlobal.bitcoinColor.withAlpha(100),
+      primaryColor.withAlpha(100),
       Color((hash & 0xFFFFFF) | 0x40000000),
     ];
   }
@@ -1019,6 +1024,16 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
         ),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
+    } else if (transaction is LndWalletTransaction) {
+      // Use unified page for LND Lightning transactions
+      final wallet = controller.selectedWallet;
+      Get.to<void>(
+        () => UnifiedTransactionPage(
+          lndTransaction: transaction,
+          walletId: wallet is LndWallet ? wallet.id : null,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
     }
   }
 
@@ -1033,6 +1048,11 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     } else if (wallet is NwcWallet) {
       deleted = await Get.to<bool>(
         () => NwcSettingPage(connection: wallet.rawData),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    } else if (wallet is LndWallet) {
+      deleted = await Get.to<bool>(
+        () => LndSettingPage(connection: wallet.rawData),
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
     }
@@ -1051,7 +1071,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
 
     if (walletType == null) {
       await EasyLoading.showError(
-        'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
+        'Invalid input. Please enter a valid Cashu mint URL, NWC, or LND connection string.',
       );
       return;
     }
@@ -1065,7 +1085,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
       CupertinoActionSheet(
         title: const Text('Add Wallet'),
         message: const Text(
-          'Paste a Cashu mint URL or NWC connection string',
+          'Paste a Cashu mint URL, NWC, or LND connection string',
         ),
         actions: [
           CupertinoActionSheetAction(

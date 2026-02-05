@@ -96,6 +96,7 @@ class NwcController extends GetxController {
         cache: MemCacheManager(),
         logLevel: kDebugMode ? LogLevel.debug : LogLevel.error,
         bootstrapRelays: Config.getEnvConfig('nostrRelays') as List<String>,
+        // defaultBroadcastConsiderDonePercent: 0.5,
       ),
     );
   }
@@ -131,7 +132,6 @@ class NwcController extends GetxController {
     for (final connection in connections ?? activeConnections) {
       try {
         await _refreshBalance(connection.info.uri);
-        activeConnections.refresh(); // Update UI for this specific connection
       } catch (e) {
         logger.e('Error refreshing balance for ${connection.info.uri}: $e');
         EasyThrottle.throttle('refreshNwcBalances', const Duration(seconds: 5),
@@ -143,6 +143,8 @@ class NwcController extends GetxController {
         });
       }
     }
+    // Update UI after all balances are refreshed
+    activeConnections.refresh();
   }
 
   Future<GetBalanceResponse?> getBalance(String nwcUri) async {

@@ -206,10 +206,10 @@ Please restore your ecash wallet from mint server to resolve this issue.
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () async {
+              await EcashUtils.restoreFromMintServer();
               if (Get.isDialogOpen ?? false) {
                 Get.back<void>();
               }
-              await EcashUtils.restoreFromMintServer();
             },
             child: const Text('Restore'),
           ),
@@ -381,10 +381,6 @@ Please don't close or exit the app.
 Restoring...''',
       );
       final ec = Get.find<EcashController>();
-      if (ec.currentIdentity == null) {
-        await EasyLoading.showError('No mnemonic');
-        return;
-      }
       await ec.restore();
       await EasyLoading.showToast('Successfully');
     } catch (e, s) {

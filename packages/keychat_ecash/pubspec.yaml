@@ -9,6 +9,7 @@ resolution: workspace
 
 # Add regular dependencies here.
 dependencies:
+  dio: ^5.4.0
   flutter:
     sdk: flutter
   keychat: ^1.0.0

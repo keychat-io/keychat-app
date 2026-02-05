@@ -21,10 +21,8 @@ enum WalletProtocol {
   /// Nostr Wallet Connect - remote Lightning wallet via Nostr protocol
   nwc,
 
-  // Future protocols can be added here:
-  // lightning,  // Direct Lightning node connection
-  // onchain,    // Bitcoin on-chain wallet
-  // lnurl,      // LNURL protocol support
+  /// LND Lightning Network Daemon - direct Lightning node connection
+  lnd,
 }
 
 /// Abstract base class for all wallet types in the unified wallet architecture.

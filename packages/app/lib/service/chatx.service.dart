@@ -19,6 +19,7 @@ import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
@@ -256,8 +257,7 @@ class ChatxService extends GetxService {
     logger.i(
       'Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms',
     );
-    final relays = await RelayService.instance.initRelay();
-    Get.put(WebsocketService(relays), permanent: true);
+
     return this;
   }
 

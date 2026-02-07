@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/lnd/active_lnd_connection.dart';
 import 'package:keychat_ecash/lnd/lnd_rest_client.dart';
+import 'package:keychat_ecash/lnd/lnd_setting_page.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/pages/unified_transaction_page.dart';
 
 /// LND Lightning wallet implementation for the unified wallet system.
 class LndWallet extends WalletBase {
@@ -12,7 +14,7 @@ class LndWallet extends WalletBase {
   final ActiveLndConnection connection;
 
   @override
-  String get id => connection.info.uri;
+  String get id => connection.identifier;
 
   @override
   String get displayName =>
@@ -47,6 +49,9 @@ class LndWallet extends WalletBase {
 
   @override
   ActiveLndConnection get rawData => connection;
+
+  @override
+  Widget settingsPage() => LndSettingPage(connection: connection);
 
   /// Node public key
   String? get nodePubkey => connection.nodeInfo?.identityPubkey;
@@ -167,4 +172,15 @@ class LndWalletTransaction extends WalletTransactionBase {
 
   @override
   String? get invoice => _invoice?.paymentRequest ?? _payment?.paymentRequest;
+
+  @override
+  void navigateToTransactionDetail({String? walletId}) {
+    Get.to<void>(
+      () => UnifiedTransactionPage(
+        lndTransaction: this,
+        walletId: walletId,
+      ),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
+  }
 }

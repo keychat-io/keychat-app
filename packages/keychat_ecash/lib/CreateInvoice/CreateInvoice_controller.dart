@@ -17,9 +17,7 @@ class CreateInvoiceController extends GetxController {
 
   @override
   void onInit() {
-    unifiedWalletController = Utils.getOrPutGetxController(
-      create: UnifiedWalletController.new,
-    );
+    unifiedWalletController = Get.find<UnifiedWalletController>();
     textController = TextEditingController();
     descController = TextEditingController();
     if (defaultAmount != null) {

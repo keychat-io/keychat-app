@@ -137,13 +137,13 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                 RichText(
                   text: TextSpan(
                     text: widget.transaction.amountSat.toString(),
-                    children: const <TextSpan>[
+                    children: <TextSpan>[
                       TextSpan(
                         text: ' sat',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
                     ],
@@ -409,7 +409,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
               ),
@@ -447,7 +447,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.grey[300]!,
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
             ),
           ),
           child: Row(
@@ -455,10 +455,10 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
               Expanded(
                 child: Text(
                   hash,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Courier',
                     fontSize: 11,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
@@ -498,13 +498,13 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
         Text(
           value,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
         ),

@@ -18,8 +18,7 @@ class NwcClient {
     required this.params,
     required this.clientPubkey,
     WebsocketService? websocketService,
-  }) : _websocketService =
-            websocketService ?? Get.find<WebsocketService>();
+  }) : _websocketService = websocketService ?? Get.find<WebsocketService>();
 
   /// Creates a new NwcClient from a NWC URI string.
   static Future<NwcClient> fromUri(String uri) async {
@@ -60,18 +59,29 @@ class NwcClient {
   /// The relay URLs.
   List<String> get relays => params.relays;
 
+  /// Ensures all NWC relays are added to the relay pool and connected.
+  ///
+  /// Delegates to [WebsocketService.ensureRelaysConnected].
+  Future<List<String>> ensureRelaysConnected() async {
+    return _websocketService.ensureRelaysConnected(params.relays);
+  }
+
   /// Subscribes to NWC response events (kind 23195).
   ///
-  /// Call this to start receiving responses from the wallet.
-  void subscribe() {
+  /// Ensures relays are connected before subscribing.
+  Future<void> subscribe() async {
     if (_subscriptionId != null) return;
 
-    _subscriptionId = 'nwc:${generate64RandomHexChars(16)}';
+    await ensureRelaysConnected();
 
+    _subscriptionId = 'nwc:${generate64RandomHexChars(16)}';
+    final pubkey = rust_nostr.getHexPubkeyByPrikey(
+      prikey: params.secret,
+    );
     final req = NostrReqModel(
       reqId: _subscriptionId!,
       kinds: [NwcEventKinds.response],
-      pubkeys: [walletPubkey],
+      pubkeys: [pubkey],
       since: DateTime.now().subtract(const Duration(minutes: 1)),
     );
 
@@ -81,6 +91,9 @@ class NwcClient {
       callback: (String relay) {
         logger.d('NWC subscribed to relay: $relay');
       },
+    );
+    logger.i(
+      'NWC client connected for $walletPubkey, subscriptionId: $_subscriptionId-',
     );
   }
 
@@ -100,13 +113,15 @@ class NwcClient {
 
   /// Sends a request to the wallet and waits for a response.
   ///
-  /// Returns the NwcResponse when received, or throws on timeout/error.
+  /// Ensures relays are connected, then subscribes if needed, encrypts the
+  /// request, and broadcasts to all NWC relays.
   Future<NwcResponse> sendRequest(NwcRequest request) async {
-    // Ensure we're subscribed
+    // Ensure relays are connected and we're subscribed
+    await ensureRelaysConnected();
     if (!isSubscribed) {
-      subscribe();
+      await subscribe();
     }
-
+    logger.d('Sending NWC request: ${jsonEncode(request.toJson())}');
     // Encrypt the request content
     final requestJson = jsonEncode(request.toJson());
     final encryptedContent = await rust_nostr.encrypt(

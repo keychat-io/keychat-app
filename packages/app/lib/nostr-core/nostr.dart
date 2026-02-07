@@ -189,12 +189,13 @@ class NostrAPI {
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
       case EventKinds.textNote:
-        // await Get.find<WorldController>().processEvent(event);
-        break;
-      case EventKinds.nip47:
+      // await Get.find<WorldController>().processEvent(event);
+      case EventKinds.nwcRequest:
+        logger.d('revived nwcRequest: $eventList');
         await Utils.getGetxController<NostrWalletConnectController>()
             ?.processEvent(relay, event);
       case EventKinds.nwcResponse:
+        logger.d('revived nwcResponse: $eventList');
         await _processNwcResponse(event, eventList);
       default:
         logger.i('revived: $eventList');

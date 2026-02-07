@@ -7,14 +7,35 @@ import 'package:keychat/app.dart';
 import 'package:keychat/utils.dart' show DesktopContainer;
 import 'package:keychat_ecash/nwc/index.dart';
 
-class NwcSettingPage extends GetView<NwcController> {
+class NwcSettingPage extends StatefulWidget {
   const NwcSettingPage({required this.connection, super.key});
   final ActiveNwcConnection connection;
 
   @override
+  State<NwcSettingPage> createState() => _NwcSettingPageState();
+}
+
+class _NwcSettingPageState extends State<NwcSettingPage> {
+  late final NwcController controller;
+  late final TextEditingController nameController;
+  late final Future<GetInfoResponse?> _infoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<NwcController>();
+    nameController = TextEditingController(text: widget.connection.info.name);
+    _infoFuture = controller.getInfo(widget.connection.info.uri);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final nameController = TextEditingController(text: connection.info.name);
-    final infoFuture = controller.getInfo(connection.info.uri);
     return Scaffold(
       appBar: AppBar(
         title: const Text('NWC Connection Details'),
@@ -22,15 +43,15 @@ class NwcSettingPage extends GetView<NwcController> {
           MenuAnchor(
             builder: (
               BuildContext context,
-              MenuController controller,
+              MenuController menuController,
               Widget? child,
             ) {
               return IconButton(
                 onPressed: () {
-                  if (controller.isOpen) {
-                    controller.close();
+                  if (menuController.isOpen) {
+                    menuController.close();
                   } else {
-                    controller.open();
+                    menuController.open();
                   }
                 },
                 icon: const Icon(Icons.more_vert),
@@ -56,7 +77,7 @@ class NwcSettingPage extends GetView<NwcController> {
       ),
       body: DesktopContainer(
         child: FutureBuilder<GetInfoResponse?>(
-          future: infoFuture,
+          future: _infoFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -69,7 +90,7 @@ class NwcSettingPage extends GetView<NwcController> {
               padding: const EdgeInsets.all(16),
               children: [
                 // Primary Info Card - Name and URI
-                _buildPrimaryInfoCard(context, nameController),
+                _buildPrimaryInfoCard(context),
                 const SizedBox(height: 20),
 
                 // Connection Details
@@ -82,10 +103,7 @@ class NwcSettingPage extends GetView<NwcController> {
     );
   }
 
-  Widget _buildPrimaryInfoCard(
-    BuildContext context,
-    TextEditingController nameController,
-  ) {
+  Widget _buildPrimaryInfoCard(BuildContext context) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -120,7 +138,7 @@ class NwcSettingPage extends GetView<NwcController> {
                   onPressed: () async {
                     final newName = nameController.text.trim();
                     await controller.updateConnectionName(
-                      connection.info.uri,
+                      widget.connection.info.uri,
                       newName,
                     );
                   },
@@ -153,7 +171,7 @@ class NwcSettingPage extends GetView<NwcController> {
                 children: [
                   Expanded(
                     child: Text(
-                      connection.info.uri,
+                      widget.connection.info.uri,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontFamily: 'monospace',
                             fontSize: 11,
@@ -167,7 +185,7 @@ class NwcSettingPage extends GetView<NwcController> {
                     icon: const Icon(Icons.copy, size: 20),
                     onPressed: () async {
                       await Clipboard.setData(
-                        ClipboardData(text: connection.info.uri),
+                        ClipboardData(text: widget.connection.info.uri),
                       );
                       await EasyLoading.showSuccess('Copied');
                     },
@@ -210,14 +228,24 @@ class NwcSettingPage extends GetView<NwcController> {
     );
     if (!(confirmed ?? false)) return;
     try {
-      final deleted = await controller.deleteConnection(connection.info.uri);
+      await EasyLoading.show(status: 'Deleting...');
+      final deleted =
+          await controller.deleteConnection(widget.connection.info.uri);
       await EasyLoading.showToast('Wallet deleted');
       Get.back(
         result: deleted,
         id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
       );
-    } catch (e) {
+    } catch (e, s) {
+      logger.e(
+        'Error deleting NWC connection $e',
+        error: e,
+        stackTrace: s,
+      );
       await EasyLoading.showError(e.toString());
+    } finally {
+      await Future.delayed(const Duration(milliseconds: 2000));
+      EasyLoading.dismiss();
     }
   }
 

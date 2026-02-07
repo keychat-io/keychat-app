@@ -7,10 +7,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
-import 'package:keychat_ecash/keychat_ecash.dart'
-    show CashuWalletTransaction, MintBalanceClass;
-import 'package:keychat_ecash/lnd/lnd_controller.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/keychat_ecash.dart' show MintBalanceClass;
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
 
@@ -43,6 +40,12 @@ class UnifiedWalletController extends GetxController {
 
   /// Page size for transaction pagination
   static const int _pageSize = 20;
+
+  /// Per-wallet transaction cache, keyed by wallet ID.
+  ///
+  /// Avoids re-fetching from the provider when switching between wallets.
+  /// Cleared on explicit refresh via [refreshAll] or [refreshSelectedWallet].
+  final Map<String, List<WalletTransactionBase>> _transactionCache = {};
 
   /// Get the currently selected wallet (null if none)
   WalletBase get selectedWallet {
@@ -82,30 +85,35 @@ class UnifiedWalletController extends GetxController {
     // Already initialized - return immediately
     if (!isLoading.value && wallets.isNotEmpty) return;
 
-    // If not loading and wallets are empty, trigger a load
-    if (!isLoading.value && wallets.isEmpty) {
-      unawaited(loadAllWallets());
-    }
-
-    // Wait for loading to complete
+    // Set up the completion listener BEFORE triggering load to avoid race
     final completer = Completer<void>();
     late Worker worker;
+    Timer? timeoutTimer;
 
     worker = ever(isLoading, (bool loading) {
       if (!loading && !completer.isCompleted) {
+        timeoutTimer?.cancel();
         worker.dispose();
         completer.complete();
       }
     });
 
-    // Also check immediately in case isLoading is already false
-    if (!isLoading.value) {
+    // If not loading and wallets are empty, trigger a load
+    if (!isLoading.value && wallets.isEmpty) {
+      unawaited(loadAllWallets());
+    }
+
+    // Check again after registering worker — loading may have already
+    // completed between the initial check and the worker registration.
+    if (!isLoading.value && wallets.isNotEmpty) {
+      timeoutTimer?.cancel();
       worker.dispose();
-      return;
+      if (!completer.isCompleted) completer.complete();
+      return completer.future;
     }
 
     // Timeout after 15 seconds
-    Future.delayed(const Duration(seconds: 15), () {
+    timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (!completer.isCompleted) {
         worker.dispose();
         completer.complete();
@@ -115,109 +123,66 @@ class UnifiedWalletController extends GetxController {
     return completer.future;
   }
 
-  /// Subscription for NWC balance updates
-  Worker? _nwcBalanceWorker;
-
-  /// Subscription for LND balance updates
-  Worker? _lndBalanceWorker;
-
-  /// Initialize all wallet providers
+  /// Initialize all wallet providers and set up reactive callbacks.
   void _initProviders() {
     // Register built-in providers
     _providers.add(CashuWalletProvider());
     _providers.add(NwcWalletProvider());
     _providers.add(LndWalletProvider());
 
-    // Listen for NWC and LND balance changes and refresh wallets
-    _setupNwcBalanceListener();
-    _setupLndBalanceListener();
+    // Set up unified balance change callbacks for each provider
+    for (final provider in _providers) {
+      provider.setOnWalletsChanged((updatedWallets) {
+        _onProviderWalletsChanged(provider.protocol, updatedWallets);
+      });
+    }
 
     // Initial load and restore saved wallet selection
     _initializeWallets();
   }
 
-  /// Setup listener for NWC balance updates
-  void _setupNwcBalanceListener() {
+  /// Handle wallet changes from a specific provider.
+  ///
+  /// Replaces all wallets of the given [protocol] in the unified list with
+  /// [updatedWallets], preserving wallets from other protocols.
+  /// Skips the update entirely when the wallet set hasn't changed (same IDs
+  /// and balances) to avoid unnecessary sort + UI rebuild.
+  void _onProviderWalletsChanged(
+    WalletProtocol protocol,
+    List<WalletBase> updatedWallets,
+  ) {
     try {
-      final nwcController =
-          Utils.getOrPutGetxController(create: NwcController.new);
-      _nwcBalanceWorker = ever(nwcController.activeConnections, (_) {
-        // Refresh NWC wallets in the unified list when balances change
-        _refreshNwcWalletsInList();
-      });
+      // Quick check: skip if the wallet set for this protocol hasn't changed
+      final existing = wallets.where((w) => w.protocol == protocol).toList();
+      if (_walletsEqual(existing, updatedWallets)) return;
+
+      final merged = <WalletBase>[
+        ...wallets.where((w) => w.protocol != protocol),
+        ...updatedWallets,
+      ];
+      merged.sort((a, b) => b.balanceSats.compareTo(a.balanceSats));
+      wallets.value = merged;
     } catch (e) {
-      logger.e('Failed to setup NWC balance listener: $e');
+      logger.e('Failed to update $protocol wallets in list: $e');
     }
   }
 
-  /// Refresh NWC wallets in the unified wallet list
-  void _refreshNwcWalletsInList() {
-    try {
-      final nwcController =
-          Utils.getOrPutGetxController(create: NwcController.new);
-      final nwcConnections = nwcController.activeConnections;
-
-      // Update each NWC wallet in the list
-      for (var i = 0; i < wallets.length; i++) {
-        final wallet = wallets[i];
-        if (wallet is NwcWallet) {
-          // Find the matching connection with updated balance
-          final updatedConnection = nwcConnections.firstWhereOrNull(
-            (c) => c.info.uri == wallet.id,
-          );
-          if (updatedConnection != null) {
-            wallets[i] = NwcWallet(connection: updatedConnection);
-          }
-        }
+  /// Compares two wallet lists by ID and balance for equality.
+  static bool _walletsEqual(List<WalletBase> a, List<WalletBase> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || a[i].balanceSats != b[i].balanceSats) {
+        return false;
       }
-    } catch (e) {
-      logger.e('Failed to refresh NWC wallets in list: $e');
     }
-  }
-
-  /// Setup listener for LND balance updates
-  void _setupLndBalanceListener() {
-    try {
-      final lndController =
-          Utils.getOrPutGetxController(create: LndController.new);
-      _lndBalanceWorker = ever(lndController.activeConnections, (_) {
-        // Refresh LND wallets in the unified list when balances change
-        _refreshLndWalletsInList();
-      });
-    } catch (e) {
-      logger.e('Failed to setup LND balance listener: $e');
-    }
-  }
-
-  /// Refresh LND wallets in the unified wallet list
-  void _refreshLndWalletsInList() {
-    try {
-      final lndController =
-          Utils.getOrPutGetxController(create: LndController.new);
-      final lndConnections = lndController.activeConnections;
-
-      // Update each LND wallet in the list
-      for (var i = 0; i < wallets.length; i++) {
-        final wallet = wallets[i];
-        if (wallet is LndWallet) {
-          // Find the matching connection with updated balance
-          final updatedConnection = lndConnections.firstWhereOrNull(
-            (c) => c.info.uri == wallet.id,
-          );
-          if (updatedConnection != null) {
-            wallets[i] = LndWallet(connection: updatedConnection);
-          }
-        }
-      }
-    } catch (e) {
-      logger.e('Failed to refresh LND wallets in list: $e');
-    }
+    return true;
   }
 
   @override
   void onClose() {
-    _nwcBalanceWorker?.dispose();
-    _lndBalanceWorker?.dispose();
+    for (final provider in _providers) {
+      provider.dispose();
+    }
     super.onClose();
   }
 
@@ -225,24 +190,6 @@ class UnifiedWalletController extends GetxController {
   Future<void> _initializeWallets() async {
     await loadAllWallets();
     await _restoreSavedWalletSelection();
-  }
-
-  /// Check if NWC has failed connections and reload if needed
-  Future<void> checkAndReloadNwcIfNeeded() async {
-    try {
-      // Try to get NwcController if it exists
-      final nwcController =
-          Utils.getOrPutGetxController(create: NwcController.new);
-      if (nwcController.hasFailedConnection.value) {
-        await nwcController.reloadConnections();
-      }
-    } catch (e, s) {
-      logger.e(
-        'Failed to check/reload NWC connections',
-        error: e,
-        stackTrace: s,
-      );
-    }
   }
 
   /// Restore the previously saved wallet selection
@@ -265,20 +212,25 @@ class UnifiedWalletController extends GetxController {
     loadAllWallets();
   }
 
-  /// Load wallets from all providers
+  /// Load wallets from all providers in parallel.
+  ///
+  /// Each provider loads independently. Results are collected into local lists
+  /// first, then merged into the unified [wallets] list in a single batch to
+  /// avoid concurrent modification of the RxList.
   Future<void> loadAllWallets() async {
     isLoading.value = true;
     try {
-      final allWallets = <WalletBase>[];
+      final currentWalletId = selectedWallet.id;
 
-      for (final provider in _providers) {
+      // Load all providers in parallel, collect results into local map
+      final results = <WalletProtocol, List<WalletBase>>{};
+      await Future.wait(_providers.map((provider) async {
         try {
           final providerWallets = await provider.getWallets();
           logger.i(
             'Loaded ${providerWallets.length} wallets from ${provider.protocol}',
           );
-
-          allWallets.addAll(providerWallets);
+          results[provider.protocol] = providerWallets;
         } catch (e, s) {
           logger.e(
             'Failed to load wallets from ${provider.protocol}',
@@ -286,21 +238,23 @@ class UnifiedWalletController extends GetxController {
             stackTrace: s,
           );
         }
-      }
-      // Store the currently selected wallet ID before updating
-      final currentWalletId = selectedWallet.id;
+      }));
 
-      allWallets.sort(
-        (a, b) => b.balanceSats.compareTo(a.balanceSats),
-      );
-      wallets.value = allWallets;
+      // Merge all results into the wallets list in a single batch
+      final merged = <WalletBase>[
+        // Keep wallets whose protocol was not reloaded (shouldn't happen, but safe)
+        ...wallets.where((w) => !results.containsKey(w.protocol)),
+        // Add freshly loaded wallets
+        for (final entry in results.values) ...entry,
+      ];
+      merged.sort((a, b) => b.balanceSats.compareTo(a.balanceSats));
+      wallets.value = merged;
 
-      // Try to restore the previously selected wallet
+      // Restore selection
       final newIndex = wallets.indexWhere((w) => w.id == currentWalletId);
       if (newIndex != -1) {
         selectedIndex.value = newIndex;
       } else {
-        // Previously selected wallet no longer exists, select first available
         _ensureValidSelectedIndex();
       }
 
@@ -313,24 +267,22 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
-  /// Refresh all wallet data
+  /// Refresh all wallet data.
+  ///
+  /// Clears the transaction cache, refreshes each provider's underlying data,
+  /// then reloads all wallets. [loadAllWallets] handles its own isLoading state.
   Future<void> refreshAll() async {
-    isLoading.value = true;
-    try {
-      // Refresh all providers in parallel
-      await Future.wait(_providers.map((p) => p.refresh()));
-      await loadAllWallets();
-    } finally {
-      isLoading.value = false;
-    }
+    _transactionCache.clear();
+    await Future.wait(_providers.map((p) => p.refresh()));
+    await loadAllWallets();
   }
 
   WalletBase? getWalletById(String uri) {
     return wallets.firstWhereOrNull((w) => w.id == uri);
   }
 
-  /// Refresh only the currently selected wallet's balance and transactions
-  /// If [wallet] is provided, refresh that wallet instead of the selected one
+  /// Refresh only the currently selected wallet's balance and transactions.
+  /// If [wallet] is provided, refresh that wallet instead of the selected one.
   Future<void> refreshSelectedWallet([WalletBase? wallet]) async {
     final targetWallet = wallet ?? selectedWallet;
 
@@ -338,6 +290,9 @@ class UnifiedWalletController extends GetxController {
     if (provider == null) return;
 
     try {
+      // Invalidate cached transactions for this wallet
+      _transactionCache.remove(targetWallet.id);
+
       // Refresh the provider's data for this wallet and get updated wallet
       final updatedWallet = await provider.refreshWallet(targetWallet.id);
 
@@ -349,7 +304,7 @@ class UnifiedWalletController extends GetxController {
         }
       }
 
-      // Reload transactions for the target wallet
+      // Reload transactions for the target wallet (cache was cleared above)
       await loadTransactionsForSelected(wallet: targetWallet);
     } catch (e, s) {
       logger.e('Failed to refresh selected wallet', error: e, stackTrace: s);
@@ -371,13 +326,26 @@ class UnifiedWalletController extends GetxController {
     await loadTransactionsForSelected();
   }
 
-  /// Load transactions for the currently selected wallet
-  /// If [wallet] is provided, load transactions for that wallet instead
+  /// Load transactions for the currently selected wallet.
+  ///
+  /// Returns cached transactions when available, unless [forceRefresh] is set.
+  /// If [wallet] is provided, load transactions for that wallet instead.
   Future<void> loadTransactionsForSelected({
     int limit = _pageSize,
     WalletBase? wallet,
+    bool forceRefresh = false,
   }) async {
     final targetWallet = wallet ?? selectedWallet;
+
+    // Return cached transactions if available and not forcing refresh
+    if (!forceRefresh) {
+      final cached = _transactionCache[targetWallet.id];
+      if (cached != null) {
+        transactions.value = cached;
+        hasMoreTransactions.value = cached.length >= limit;
+        return;
+      }
+    }
 
     isTransactionsLoading.value = true;
     hasMoreTransactions.value = true;
@@ -394,6 +362,7 @@ class UnifiedWalletController extends GetxController {
         limit: limit,
       );
       transactions.value = txList;
+      _transactionCache[targetWallet.id] = txList;
       hasMoreTransactions.value = txList.length >= limit;
     } catch (e, s) {
       logger.e('Failed to load transactions', error: e, stackTrace: s);
@@ -427,6 +396,8 @@ class UnifiedWalletController extends GetxController {
         transactions.addAll(txList);
         hasMoreTransactions.value = txList.length >= _pageSize;
       }
+      // Update cache with full accumulated list
+      _transactionCache[wallet.id] = transactions.toList();
     } catch (e, s) {
       logger.e('Failed to load more transactions', error: e, stackTrace: s);
     } finally {
@@ -589,30 +560,11 @@ class UnifiedWalletController extends GetxController {
       return null;
     }
 
-    // Use protocol-specific method that returns transaction
-    if (provider is CashuWalletProvider) {
-      return provider.createInvoiceWithTransaction(
-        wallet.id,
-        amountSats,
-        description,
-      );
-    } else if (provider is NwcWalletProvider) {
-      return provider.createInvoiceWithTransaction(
-        wallet.id,
-        amountSats,
-        description,
-      );
-    } else if (provider is LndWalletProvider) {
-      return provider.createInvoiceWithTransaction(
-        wallet.id,
-        amountSats,
-        description,
-      );
-    }
-
-    // Fallback: just create invoice (no transaction returned)
-    await provider.createInvoice(wallet.id, amountSats, description);
-    return null;
+    return provider.createInvoiceWithTransaction(
+      wallet.id,
+      amountSats,
+      description,
+    );
   }
 
   Future<WalletTransactionBase?> dialogToMakeInvoice({

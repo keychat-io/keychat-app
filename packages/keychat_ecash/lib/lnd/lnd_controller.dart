@@ -1,257 +1,157 @@
 import 'dart:async';
 
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/lnd/active_lnd_connection.dart';
 import 'package:keychat_ecash/lnd/lnd_connection_info.dart';
-import 'package:keychat_ecash/lnd/lnd_connection_storage.dart';
 import 'package:keychat_ecash/lnd/lnd_rest_client.dart';
+import 'package:keychat_ecash/unified_wallet/base_connection_controller.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart'
+    show WalletProtocol;
 
 /// GetX controller for managing LND wallet connections.
-class LndController extends GetxController {
-  LndConnectionStorage _storage = LndConnectionStorage();
-  final Map<String, ActiveLndConnection> _activeConnections = {};
-
-  final RxList<ActiveLndConnection> activeConnections =
-      <ActiveLndConnection>[].obs;
-  final RxBool isInitialized = false.obs;
-  final RxInt currentIndex = 0.obs;
-
-  /// Flag to indicate if any LND connection has failed
+class LndController
+    extends BaseConnectionController<ActiveLndConnection, LndConnectionInfo> {
+  /// Flag to indicate if any LND connection has failed.
   final RxBool hasFailedConnection = false.obs;
 
-  /// Total balance across all connections (in sats)
-  int get totalSats {
-    return activeConnections.fold<int>(
-      0,
-      (sum, connection) =>
-          sum + (connection.balance?.spendableBalanceSat ?? 0),
+  @override
+  WalletProtocol get protocol => WalletProtocol.lnd;
+
+  // ---------------------------------------------------------------------------
+  // BaseConnectionController hooks
+  // ---------------------------------------------------------------------------
+
+  @override
+  int balanceFromConnection(ActiveLndConnection connection) =>
+      connection.balance?.spendableBalanceSat ?? 0;
+
+  @override
+  LndConnectionInfo parseUri(String uri, {String? name}) =>
+      LndConnectionInfo.fromUri(uri, name: name);
+
+  @override
+  String identifierFromInfo(LndConnectionInfo info) =>
+      '${info.host}:${info.port}';
+
+  @override
+  String uriFromInfo(LndConnectionInfo info) => info.uri;
+
+  @override
+  Future<ActiveLndConnection?> connect(
+    LndConnectionInfo info, {
+    required String identifier,
+    int? walletConnectionId,
+  }) async {
+    try {
+      final client = LndRestClient(info);
+      final nodeInfo = await client.getInfo();
+
+      return ActiveLndConnection(
+        info: info,
+        client: client,
+        identifier: identifier,
+        walletConnectionId: walletConnectionId,
+        nodeInfo: nodeInfo,
+      );
+    } catch (e) {
+      logger.e(
+        'Failed to connect to LND: ${info.host}:${info.port} error: $e',
+      );
+      hasFailedConnection.value = true;
+      return null;
+    }
+  }
+
+  @override
+  void closeConnection(ActiveLndConnection connection) => connection.close();
+
+  @override
+  Future<void> refreshBalance(ActiveLndConnection connection) async {
+    try {
+      connection.balance = await connection.client.getChannelBalance();
+    } catch (e) {
+      hasFailedConnection.value = true;
+      rethrow;
+    }
+  }
+
+  @override
+  LndConnectionInfo updateInfoName(
+    ActiveLndConnection connection,
+    String? newName,
+  ) {
+    return LndConnectionInfo(
+      uri: connection.info.uri,
+      host: connection.info.host,
+      port: connection.info.port,
+      macaroon: connection.info.macaroon,
+      tlsCert: connection.info.tlsCert,
+      name: newName,
+      weight: connection.info.weight,
     );
   }
 
-  /// Inject storage for testing
-  set storage(LndConnectionStorage storage) => _storage = storage;
+  @override
+  void setConnectionInfo(ActiveLndConnection connection, LndConnectionInfo info) {
+    connection.info = info;
+  }
+
+  @override
+  int? getStorageId(ActiveLndConnection connection) =>
+      connection.walletConnectionId;
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   @override
   void onInit() {
     super.onInit();
-    _loadConnections();
+    unawaited(loadConnections());
   }
 
   @override
   void onClose() {
-    // Close all client connections
-    for (final connection in _activeConnections.values) {
-      connection.close();
+    for (final connection in connectionMap.values) {
+      closeConnection(connection);
     }
     super.onClose();
   }
 
-  /// Wait for initialization to complete with timeout.
-  Future<bool> waitForLoading() async {
-    if (isInitialized.value) {
-      return true;
-    }
-
-    final completer = Completer<bool>();
-    late Worker worker;
-    Timer? timeoutTimer;
-
-    worker = ever(isInitialized, (bool value) {
-      if (value && !completer.isCompleted) {
-        timeoutTimer?.cancel();
-        worker.dispose();
-        completer.complete(true);
-      }
-    });
-
-    timeoutTimer = Timer(const Duration(seconds: 10), () {
-      if (!completer.isCompleted) {
-        worker.dispose();
-        completer.complete(false);
-      }
-    });
-
-    return completer.future;
-  }
-
-  Future<void> _loadConnections() async {
-    try {
-      final savedConnections = await _storage.getAll();
-      for (final info in savedConnections) {
-        await _connectAndAdd(info);
-      }
-      _refreshList();
-      // Fetch balances in background
-      await refreshAllBalances();
-    } finally {
-      isInitialized.value = true;
-    }
-  }
-
-  Future<void> _connectAndAdd(LndConnectionInfo info) async {
-    try {
-      final client = LndRestClient(info);
-
-      // Test connection by fetching node info
-      final nodeInfo = await client.getInfo();
-
-      final active = ActiveLndConnection(
-        info: info,
-        client: client,
-        nodeInfo: nodeInfo,
-      );
-      _activeConnections[info.uri] = active;
-    } catch (e) {
-      logger.e('Failed to connect to LND: ${info.host}:${info.port} error: $e');
-      hasFailedConnection.value = true;
-    }
-  }
-
-  void _refreshList() {
-    activeConnections.value = _activeConnections.values.toList();
-    logger.i('Loaded ${activeConnections.length} LND connections');
-  }
-
-  /// Refresh balances for all connections.
-  Future<void> refreshAllBalances([
-    List<ActiveLndConnection>? connections,
-  ]) async {
-    for (final connection in connections ?? activeConnections) {
-      try {
-        await _refreshBalance(connection.info.uri);
-      } catch (e) {
-        logger.e(
-          'Error refreshing LND balance for ${connection.info.host}: $e',
-        );
-        hasFailedConnection.value = true;
-      }
-    }
-    // Update UI after all balances are refreshed
-    activeConnections.refresh();
-  }
-
-  /// Get balance for a specific connection.
-  Future<LndChannelBalance?> getBalance(String uri) async {
-    final active = _activeConnections[uri];
-    if (active == null) {
-      throw Exception('LND Connection not found: $uri');
-    }
-
-    if (active.balance != null) {
-      return active.balance;
-    }
-
-    return _refreshBalance(uri);
-  }
-
-  Future<LndChannelBalance> _refreshBalance(String uri) async {
-    final active = _activeConnections[uri];
-    if (active == null) {
-      throw Exception('LND Connection not found: $uri');
-    }
-
-    final balance = await active.client.getChannelBalance();
-    active.balance = balance;
-    return balance;
-  }
-
-  /// Reload all connections.
+  @override
   Future<void> reloadConnections() async {
-    isInitialized.value = false;
-    try {
-      // Close existing connections
-      for (final connection in _activeConnections.values) {
-        connection.close();
-      }
-      _activeConnections.clear();
-      activeConnections.clear();
-      hasFailedConnection.value = false;
-
-      // Reload from storage
-      await _loadConnections();
-    } catch (e) {
-      logger.e('Failed to reload LND connections: $e');
-      await EasyLoading.showError('Failed to reload connections');
-    } finally {
-      isInitialized.value = true;
-    }
+    hasFailedConnection.value = false;
+    await super.reloadConnections();
   }
 
-  /// Add a new LND connection.
-  Future<void> addConnection(String uri) async {
-    // Check if already exists
-    if (_activeConnections.containsKey(uri)) {
-      throw Exception('Connection already active');
-    }
+  // ---------------------------------------------------------------------------
+  // LND-specific balance helpers
+  // ---------------------------------------------------------------------------
 
-    final info = LndConnectionInfo.fromUri(uri);
-    await _storage.add(info);
-    await _connectAndAdd(info);
-    _refreshList();
+  /// Get cached balance, or refresh if not yet loaded.
+  Future<LndChannelBalance?> getBalance(String uri) async {
+    final active = getConnectionByUri(uri);
+    if (active.balance != null) return active.balance;
+    await refreshBalance(active);
+    return active.balance;
   }
 
-  /// Update connection name.
-  Future<void> updateConnectionName(String uri, String newName) async {
-    try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('Connection not found');
-      }
-
-      final updatedInfo = LndConnectionInfo(
-        uri: uri,
-        host: active.info.host,
-        port: active.info.port,
-        macaroon: active.info.macaroon,
-        tlsCert: active.info.tlsCert,
-        name: newName.isEmpty ? null : newName,
-        weight: active.info.weight,
-      );
-
-      await _storage.update(updatedInfo);
-      active.info = updatedInfo;
-      _refreshList();
-      await EasyLoading.showSuccess('Connection name updated');
-    } catch (e) {
-      await EasyLoading.showError(e.toString());
-    }
-  }
-
-  /// Delete a connection.
-  Future<bool> deleteConnection(String uri) async {
-    try {
-      final connection = _activeConnections[uri];
-      connection?.close();
-
-      await _storage.delete(uri);
-      _activeConnections.remove(uri);
-      _refreshList();
-      return true;
-    } catch (e) {
-      await EasyLoading.showError(e.toString());
-      return false;
-    }
-  }
+  // ---------------------------------------------------------------------------
+  // LND protocol operations
+  // ---------------------------------------------------------------------------
 
   /// Get node info for a connection.
   Future<LndGetInfoResponse?> getInfo(String uri) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
-      if (active.nodeInfo != null) {
-        return active.nodeInfo;
-      }
+      final active = getConnectionByUri(uri);
+      if (active.nodeInfo != null) return active.nodeInfo;
 
       final info = await active.client.getInfo();
       active.nodeInfo = info;
       return info;
     } catch (e) {
-      await EasyLoading.showError(e.toString());
+      logger.e('LND getInfo error: $e');
       return null;
     }
   }
@@ -263,11 +163,7 @@ class LndController extends GetxController {
     int? indexOffset,
   }) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.listPayments(
         maxPayments: maxPayments,
         indexOffset: indexOffset,
@@ -286,11 +182,7 @@ class LndController extends GetxController {
     int? indexOffset,
   }) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.listInvoices(
         pendingOnly: pendingOnly,
         numMaxInvoices: numMaxInvoices,
@@ -309,11 +201,7 @@ class LndController extends GetxController {
     int? feeLimitSat,
   }) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.payInvoice(invoice, feeLimitSat: feeLimitSat);
     } catch (e) {
       logger.e('LND payInvoice error: $e');
@@ -328,11 +216,7 @@ class LndController extends GetxController {
     String? memo,
   }) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.addInvoice(amountSats, memo: memo);
     } catch (e) {
       logger.e('LND addInvoice error: $e');
@@ -343,11 +227,7 @@ class LndController extends GetxController {
   /// Decode a payment request.
   Future<LndPayReqResponse?> decodePayReq(String uri, String payReq) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.decodePayReq(payReq);
     } catch (e) {
       logger.e('LND decodePayReq error: $e');
@@ -358,11 +238,7 @@ class LndController extends GetxController {
   /// Lookup an invoice by payment hash.
   Future<LndInvoice?> lookupInvoice(String uri, String rHashStr) async {
     try {
-      final active = _activeConnections[uri];
-      if (active == null) {
-        throw Exception('LND Connection not found: $uri');
-      }
-
+      final active = getConnectionByUri(uri);
       return await active.client.lookupInvoice(rHashStr);
     } catch (e) {
       logger.e('LND lookupInvoice error: $e');

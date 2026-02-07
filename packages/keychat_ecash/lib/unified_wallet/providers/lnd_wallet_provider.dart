@@ -1,7 +1,8 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/utils.dart' show Utils;
+import 'package:keychat_ecash/lnd/active_lnd_connection.dart';
 import 'package:keychat_ecash/lnd/lnd_connection_info.dart';
 import 'package:keychat_ecash/lnd/lnd_controller.dart';
 import 'package:keychat_ecash/lnd/lnd_rest_client.dart';
@@ -16,15 +17,24 @@ class LndWalletProvider implements WalletProvider {
   }
 
   late final LndController _lndController;
+  Worker? _connectionsWorker;
+  void Function(List<WalletBase> wallets)? _onWalletsChanged;
 
   @override
   WalletProtocol get protocol => WalletProtocol.lnd;
 
   @override
-  bool get isLoading => _lndController.isInitialized.value;
+  bool get isLoading => !_lndController.isInitialized.value;
 
   @override
   int get totalBalance => _lndController.totalSats;
+
+  /// Finds an active connection by its non-secret [identifier] (host:port).
+  ActiveLndConnection? _findByIdentifier(String identifier) {
+    return _lndController.activeConnections.firstWhereOrNull(
+      (c) => c.identifier == identifier,
+    );
+  }
 
   @override
   Future<List<WalletBase>> getWallets() async {
@@ -41,17 +51,12 @@ class LndWalletProvider implements WalletProvider {
 
   @override
   Future<WalletBase?> refreshWallet(String walletId) async {
-    // Refresh the specific connection's balance
-    await _lndController.getBalance(walletId);
+    final active = _findByIdentifier(walletId);
+    if (active == null) return null;
 
-    // Return the updated wallet
-    final connections = _lndController.activeConnections.toList();
-    final connection = connections.firstWhereOrNull(
-      (c) => c.info.uri == walletId,
-    );
-    if (connection == null) return null;
+    await _lndController.getBalance(active.info.uri);
 
-    return LndWallet(connection: connection);
+    return LndWallet(connection: active);
   }
 
   @override
@@ -62,7 +67,9 @@ class LndWalletProvider implements WalletProvider {
 
   @override
   Future<void> removeWallet(String walletId) async {
-    await _lndController.deleteConnection(walletId);
+    final active = _findByIdentifier(walletId);
+    if (active == null) return;
+    await _lndController.deleteConnection(active.info.uri);
   }
 
   @override
@@ -71,11 +78,15 @@ class LndWalletProvider implements WalletProvider {
     int? limit,
     int? offset,
   }) async {
+    final active = _findByIdentifier(walletId);
+    if (active == null) return [];
+
+    final uri = active.info.uri;
     final transactions = <WalletTransactionBase>[];
 
     // Get payments (outgoing)
     final paymentsResponse = await _lndController.listPayments(
-      walletId,
+      uri,
       maxPayments: limit,
       indexOffset: offset,
     );
@@ -93,7 +104,7 @@ class LndWalletProvider implements WalletProvider {
 
     // Get invoices (incoming)
     final invoicesResponse = await _lndController.listInvoices(
-      walletId,
+      uri,
       numMaxInvoices: limit,
       indexOffset: offset,
     );
@@ -134,17 +145,17 @@ class LndWalletProvider implements WalletProvider {
     try {
       await _lndController.waitForLoading();
 
-      // Find the connection
-      final active = _lndController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      // Find the connection by identifier
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('LND connection not found');
         return null;
       }
 
+      final uri = active.info.uri;
+
       // Decode invoice to check amount
-      final decoded = await _lndController.decodePayReq(walletId, invoice);
+      final decoded = await _lndController.decodePayReq(uri, invoice);
       if (decoded == null) {
         await EasyLoading.showError('Failed to decode invoice');
         return null;
@@ -160,7 +171,7 @@ class LndWalletProvider implements WalletProvider {
       }
 
       EasyLoading.show(status: 'Processing...');
-      final result = await _lndController.payInvoice(walletId, invoice);
+      final result = await _lndController.payInvoice(uri, invoice);
 
       if (result == null || !result.isSuccess) {
         await EasyLoading.showError(
@@ -195,9 +206,7 @@ class LndWalletProvider implements WalletProvider {
     try {
       await _lndController.waitForLoading();
 
-      final active = _lndController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('LND connection not found');
         return null;
@@ -205,7 +214,7 @@ class LndWalletProvider implements WalletProvider {
 
       EasyLoading.show(status: 'Generating...');
       final response = await _lndController.addInvoice(
-        walletId,
+        active.info.uri,
         amountSats,
         memo: description,
       );
@@ -224,7 +233,7 @@ class LndWalletProvider implements WalletProvider {
     }
   }
 
-  /// Create invoice and return the full transaction.
+  @override
   Future<LndWalletTransaction?> createInvoiceWithTransaction(
     String walletId,
     int amountSats,
@@ -233,17 +242,17 @@ class LndWalletProvider implements WalletProvider {
     try {
       await _lndController.waitForLoading();
 
-      final active = _lndController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('LND connection not found');
         return null;
       }
 
+      final uri = active.info.uri;
+
       EasyLoading.show(status: 'Generating...');
       final response = await _lndController.addInvoice(
-        walletId,
+        uri,
         amountSats,
         memo: description,
       );
@@ -257,7 +266,7 @@ class LndWalletProvider implements WalletProvider {
 
       // Lookup the created invoice to get full details
       final invoice = await _lndController.lookupInvoice(
-        walletId,
+        uri,
         response.rHash,
       );
 
@@ -314,5 +323,35 @@ class LndWalletProvider implements WalletProvider {
       settled: false,
       memo: memo,
     );
+  }
+
+  @override
+  void setOnWalletsChanged(void Function(List<WalletBase> wallets) callback) {
+    _onWalletsChanged = callback;
+    _connectionsWorker?.dispose();
+    _connectionsWorker = ever(_lndController.activeConnections, (_) {
+      _notifyWalletsChanged();
+    });
+  }
+
+  /// Rebuild wallet list from current active connections and notify.
+  void _notifyWalletsChanged() {
+    final cb = _onWalletsChanged;
+    if (cb == null) return;
+    try {
+      final wallets = _lndController.activeConnections.map((connection) {
+        return LndWallet(connection: connection);
+      }).toList();
+      cb(wallets);
+    } catch (e) {
+      logger.e('Failed to notify LND wallets changed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectionsWorker?.dispose();
+    _connectionsWorker = null;
+    _onWalletsChanged = null;
   }
 }

@@ -1,6 +1,7 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
+import 'package:keychat_ecash/nwc/active_nwc_connection.dart';
 import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_ecash/nwc/nwc_models.dart';
 import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart';
@@ -15,15 +16,24 @@ class NwcWalletProvider implements WalletProvider {
   }
 
   late final NwcController _nwcController;
+  Worker? _connectionsWorker;
+  void Function(List<WalletBase> wallets)? _onWalletsChanged;
 
   @override
   WalletProtocol get protocol => WalletProtocol.nwc;
 
   @override
-  bool get isLoading => _nwcController.isInitialized.value;
+  bool get isLoading => !_nwcController.isInitialized.value;
 
   @override
   int get totalBalance => _nwcController.totalSats;
+
+  /// Finds an active connection by its non-secret [identifier] (wallet pubkey).
+  ActiveNwcConnection? _findByIdentifier(String identifier) {
+    return _nwcController.activeConnections.firstWhereOrNull(
+      (c) => c.identifier == identifier,
+    );
+  }
 
   @override
   Future<List<WalletBase>> getWallets() async {
@@ -40,17 +50,12 @@ class NwcWalletProvider implements WalletProvider {
 
   @override
   Future<WalletBase?> refreshWallet(String walletId) async {
-    // For NWC, refresh the specific connection's balance
-    await _nwcController.getBalance(walletId);
+    final active = _findByIdentifier(walletId);
+    if (active == null) return null;
 
-    // Return the updated wallet
-    final connections = _nwcController.activeConnections.toList();
-    final connection = connections.firstWhereOrNull(
-      (c) => c.info.uri == walletId,
-    );
-    if (connection == null) return null;
+    await _nwcController.getBalance(active.info.uri);
 
-    return NwcWallet(connection: connection);
+    return NwcWallet(connection: active);
   }
 
   @override
@@ -61,7 +66,9 @@ class NwcWalletProvider implements WalletProvider {
 
   @override
   Future<void> removeWallet(String walletId) async {
-    await _nwcController.deleteConnection(walletId);
+    final active = _findByIdentifier(walletId);
+    if (active == null) return;
+    await _nwcController.deleteConnection(active.info.uri);
   }
 
   @override
@@ -70,8 +77,11 @@ class NwcWalletProvider implements WalletProvider {
     int? limit,
     int? offset,
   }) async {
+    final active = _findByIdentifier(walletId);
+    if (active == null) return [];
+
     final response = await _nwcController.listTransactions(
-      walletId,
+      active.info.uri,
       limit: limit,
       offset: offset,
     );
@@ -104,10 +114,8 @@ class NwcWalletProvider implements WalletProvider {
         encodedInvoice: invoice,
       );
 
-      // Find the connection
-      final active = _nwcController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      // Find the connection by identifier
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('NWC connection not found');
         return null;
@@ -124,14 +132,9 @@ class NwcWalletProvider implements WalletProvider {
 
       await EasyLoading.show(status: 'Processing...');
       final result = await _nwcController.payInvoice(
-        uri: walletId,
+        uri: active.info.uri,
         invoice: invoice,
       );
-
-      if (result == null) {
-        await EasyLoading.showError('Payment Failed');
-        return null;
-      }
 
       await EasyLoading.showSuccess('Success');
 
@@ -147,7 +150,7 @@ class NwcWalletProvider implements WalletProvider {
           createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           feesPaid: result.feesPaid,
           preimage: result.preimage,
-          paymentHash: 'none',
+          paymentHash: invoiceInfo.hash,
         ),
         walletId: walletId,
       );
@@ -167,9 +170,7 @@ class NwcWalletProvider implements WalletProvider {
     try {
       await _nwcController.waitForLoading();
 
-      final active = _nwcController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('NWC connection not found');
         return null;
@@ -177,7 +178,7 @@ class NwcWalletProvider implements WalletProvider {
 
       await EasyLoading.show(status: 'Generating...');
       final response = await _nwcController.makeInvoice(
-        uri: walletId,
+        uri: active.info.uri,
         amountSats: amountSats,
         description: description,
       );
@@ -196,7 +197,7 @@ class NwcWalletProvider implements WalletProvider {
     }
   }
 
-  /// Creates an invoice and returns the full transaction.
+  @override
   Future<NwcWalletTransaction?> createInvoiceWithTransaction(
     String walletId,
     int amountSats,
@@ -205,17 +206,17 @@ class NwcWalletProvider implements WalletProvider {
     try {
       await _nwcController.waitForLoading();
 
-      final active = _nwcController.activeConnections.firstWhereOrNull(
-        (c) => c.info.uri == walletId,
-      );
+      final active = _findByIdentifier(walletId);
       if (active == null) {
         await EasyLoading.showError('NWC connection not found');
         return null;
       }
 
       await EasyLoading.show(status: 'Generating...');
+      logger
+          .d('active.info ${active.info}, active.info.uri: ${active.info.uri}');
       final response = await _nwcController.makeInvoice(
-        uri: walletId,
+        uri: active.info.uri,
         amountSats: amountSats,
         description: description,
       );
@@ -231,9 +232,10 @@ class NwcWalletProvider implements WalletProvider {
         transaction: TransactionResult(
           type: TransactionType.incoming,
           invoice: response.invoice,
-          amount: (response.amountSat ?? amountSats) * 1000,
+          amount: response.amountMsats ?? amountSats * 1000,
           description: response.description,
-          createdAt: response.createdAt ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          createdAt: response.createdAt ??
+              DateTime.now().millisecondsSinceEpoch ~/ 1000,
           feesPaid: response.feesPaid,
           paymentHash: response.paymentHash,
           preimage: response.preimage,
@@ -245,5 +247,35 @@ class NwcWalletProvider implements WalletProvider {
       await EasyLoading.showError('Failed to create invoice: $e');
       return null;
     }
+  }
+
+  @override
+  void setOnWalletsChanged(void Function(List<WalletBase> wallets) callback) {
+    _onWalletsChanged = callback;
+    _connectionsWorker?.dispose();
+    _connectionsWorker = ever(_nwcController.activeConnections, (_) {
+      _notifyWalletsChanged();
+    });
+  }
+
+  /// Rebuild wallet list from current active connections and notify.
+  void _notifyWalletsChanged() {
+    final cb = _onWalletsChanged;
+    if (cb == null) return;
+    try {
+      final wallets = _nwcController.activeConnections.map((connection) {
+        return NwcWallet(connection: connection);
+      }).toList();
+      cb(wallets);
+    } catch (e) {
+      logger.e('Failed to notify NWC wallets changed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectionsWorker?.dispose();
+    _connectionsWorker = null;
+    _onWalletsChanged = null;
   }
 }

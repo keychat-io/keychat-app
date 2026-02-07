@@ -6,12 +6,20 @@ class ActiveLndConnection {
   ActiveLndConnection({
     required this.info,
     required this.client,
+    required this.identifier,
+    this.walletConnectionId,
     this.balance,
     this.nodeInfo,
   });
 
   /// Connection configuration
   LndConnectionInfo info;
+
+  /// Non-secret identifier for this connection (host:port).
+  final String identifier;
+
+  /// Isar record ID for storage operations (update, delete).
+  int? walletConnectionId;
 
   /// REST API client
   final LndRestClient client;

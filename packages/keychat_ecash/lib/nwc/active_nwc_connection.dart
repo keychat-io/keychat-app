@@ -8,12 +8,20 @@ class ActiveNwcConnection {
   ActiveNwcConnection({
     required this.info,
     required this.client,
+    required this.identifier,
+    this.walletConnectionId,
     this.balance,
     this.transactions,
   });
 
   /// The connection info (URI, name, weight).
   NwcConnectionInfo info;
+
+  /// Non-secret identifier for this connection (wallet pubkey).
+  final String identifier;
+
+  /// Isar record ID for storage operations (update, delete).
+  int? walletConnectionId;
 
   /// The NWC client for this connection.
   final NwcClient client;

@@ -151,7 +151,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
     } else if (isLnd) {
       return lndTx!.isIncoming;
     } else {
-      return nwcTx!.type == 'incoming';
+      return nwcTx!.type == TransactionType.incoming;
     }
   }
 

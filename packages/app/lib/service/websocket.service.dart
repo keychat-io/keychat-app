@@ -24,14 +24,17 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 class WebsocketService extends GetxService {
-  WebsocketService(List<Relay> relays) {
+  WebsocketService() {
     logger.i('start init websocket service');
-    mainRelayStatus.value = RelayStatusEnum.connecting.name;
-    unawaited(start(relays));
-    final activeCount = relays.where((element) => element.active).length;
-    if (activeCount == 0) {
-      mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
-    }
+    // initialize relays and websocket service
+    RelayService.instance.initRelay().then((relays) {
+      mainRelayStatus.value = RelayStatusEnum.connecting.name;
+      unawaited(start(relays));
+      final activeCount = relays.where((element) => element.active).length;
+      if (activeCount == 0) {
+        mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
+      }
+    });
   }
 
   NostrAPI nostrAPI = NostrAPI.instance;
@@ -713,6 +716,55 @@ class WebsocketService extends GetxService {
     });
 
     return rw;
+  }
+
+  /// Ensures the given relays are in the channel pool and connected.
+  ///
+  /// [relays] - relay URLs to ensure. If null/empty, uses all current channels.
+  /// Returns the list of connected relay URLs (filtered by [relays] if provided).
+  Future<List<String>> ensureRelaysConnected([List<String>? relays]) async {
+    final targetRelays = (relays != null && relays.isNotEmpty)
+        ? relays
+        : channels.keys.toList();
+
+    // Step 1: Add missing relays
+    for (final url in targetRelays) {
+      if (!channels.containsKey(url)) {
+        try {
+          await RelayService.instance.addAndConnect(url);
+        } catch (e) {
+          logger.e('Failed to add relay $url: $e');
+        }
+      }
+    }
+
+    // Step 2: Check if any target relay is already connected
+    final connected = targetRelays
+        .where((url) => channels[url]?.isConnected() ?? false)
+        .toList();
+    if (connected.isNotEmpty) return connected;
+
+    // Step 3: None connected, trigger reconnect and wait
+    final rwList = targetRelays
+        .map((url) => channels[url])
+        .whereType<RelayWebsocket>()
+        .toList();
+    if (rwList.isNotEmpty) {
+      try {
+        await checkOnlineAndConnect(list: rwList);
+      } catch (e) {
+        logger.e('ensureRelaysConnected reconnect error: $e');
+      }
+    }
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    // Step 4: Return currently connected relays (filtered by input)
+    if (relays != null && relays.isNotEmpty) {
+      return relays
+          .where((url) => channels[url]?.isConnected() ?? false)
+          .toList();
+    }
+    return getOnlineSocketString();
   }
 
   void updateRelayPong(String relay) {

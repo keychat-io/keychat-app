@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat_ecash/nwc/index.dart';
+import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/pages/unified_transaction_page.dart';
 
 /// NWC (Nostr Wallet Connect) wallet implementation.
 class NwcWallet extends WalletBase {
@@ -11,7 +14,7 @@ class NwcWallet extends WalletBase {
   final ActiveNwcConnection connection;
 
   @override
-  String get id => connection.info.uri;
+  String get id => connection.identifier;
 
   @override
   String get displayName =>
@@ -49,6 +52,9 @@ class NwcWallet extends WalletBase {
 
   @override
   ActiveNwcConnection get rawData => connection;
+
+  @override
+  Widget settingsPage() => NwcSettingPage(connection: connection);
 
   /// Max spending budget (if available).
   int? get maxBudget => connection.balance?.maxAmount;
@@ -101,19 +107,8 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   WalletTransactionStatus get status {
-    // NWC doesn't have explicit status, infer from settledAt
-    if (transaction.state == 'settled' || transaction.settledAt != null) {
-      return WalletTransactionStatus.success;
-    }
-    // Check if pending transaction has expired
-    if (transaction.expiresAt != null) {
-      final now = DateTime.now();
-      final expiryDate =
-          DateTime.fromMillisecondsSinceEpoch(transaction.expiresAt! * 1000);
-      if (now.isAfter(expiryDate)) {
-        return WalletTransactionStatus.expired;
-      }
-    }
+    if (transaction.isSettled) return WalletTransactionStatus.success;
+    if (transaction.isExpired) return WalletTransactionStatus.expired;
     return WalletTransactionStatus.pending;
   }
 
@@ -138,4 +133,18 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   String get paymentHash => transaction.paymentHash;
+
+  @override
+  String? get invoice => transaction.invoice;
+
+  @override
+  void navigateToTransactionDetail({String? walletId}) {
+    Get.to<void>(
+      () => UnifiedTransactionPage(
+        nwcTransaction: transaction,
+        walletId: walletId,
+      ),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
+  }
 }

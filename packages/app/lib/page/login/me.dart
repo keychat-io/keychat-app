@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +13,6 @@ import 'package:keychat/page/setting/app_general_setting.dart';
 import 'package:keychat/page/setting/more_chat_setting.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/bitcoin_wallet_main.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -101,12 +98,6 @@ class _MinePageState extends State<MinePage> {
                     ),
 
                     onPressed: (context) async {
-                      final controller = Utils.getOrPutGetxController(
-                        create: UnifiedWalletController.new,
-                        permanent: true,
-                      );
-                      // Navigate immediately, controller will show loading state
-                      unawaited(controller.checkAndReloadNwcIfNeeded());
                       await Get.to(BitcoinWalletMain.new);
                       Utils.hideKeyboard(Get.context!);
                     },

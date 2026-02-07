@@ -122,9 +122,8 @@ class EcashUtils {
                       setState(() {
                         isAddingMint = true;
                       });
-                      await Utils.getOrPutGetxController(
-                        create: UnifiedWalletController.new,
-                      ).addWallet(decoded.mint);
+                      await Get.find<UnifiedWalletController>()
+                          .addWallet(decoded.mint);
                       setState(() {
                         isAddingMint = false;
                       });
@@ -162,9 +161,7 @@ class EcashUtils {
 
       // Refresh balance and transactions after receiving
       try {
-        final unifiedController = Utils.getOrPutGetxController(
-          create: UnifiedWalletController.new,
-        );
+        final unifiedController = Get.find<UnifiedWalletController>();
         await unifiedController.refreshSelectedWallet(
           unifiedController.getWalletById(model.mintUrl),
         );

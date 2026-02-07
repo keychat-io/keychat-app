@@ -1,3 +1,4 @@
+export 'base_connection_controller.dart';
 export 'models/cashu_wallet.dart';
 export 'models/lnd_wallet.dart';
 export 'models/nwc_wallet.dart';

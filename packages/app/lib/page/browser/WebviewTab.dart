@@ -1983,10 +1983,8 @@ img {
               ? int.parse(source['defaultAmount'] as String)
               : 0;
           final invoiceAmount = amount > 0 ? amount : defaultAmount;
-          final res =
-              await Utils.getOrPutGetxController(
-                create: UnifiedWalletController.new,
-              ).dialogToMakeInvoice(
+          final res = await Get.find<UnifiedWalletController>()
+              .dialogToMakeInvoice(
                 amount: invoiceAmount,
                 description: source['description'] as String? ?? '',
               );

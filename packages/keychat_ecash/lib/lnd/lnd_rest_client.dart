@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -6,7 +8,10 @@ import 'package:keychat_ecash/lnd/lnd_connection_info.dart';
 
 /// HTTP client for LND REST API with macaroon-based authentication.
 ///
-/// Uses Dio for HTTP requests with support for self-signed certificates.
+/// Uses Dio for HTTP requests. When a TLS certificate is provided in the
+/// lndconnect URI, it is pinned: the server certificate's DER bytes must
+/// match the expected certificate. When no certificate is provided, all
+/// certificates are accepted (for nodes using publicly trusted certs).
 class LndRestClient {
   LndRestClient(this.connectionInfo) {
     _dio = Dio(
@@ -21,14 +26,46 @@ class LndRestClient {
       ),
     );
 
-    // Configure to accept self-signed certificates
+    final pinnedCertDer = _decodePinnedCert(connectionInfo.tlsCert);
+
     _dio.httpClientAdapter = IOHttpClientAdapter(
       createHttpClient: () {
         final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
+        if (pinnedCertDer != null) {
+          // Pin to the certificate from the lndconnect URI
+          client.badCertificateCallback = (cert, host, port) {
+            return _bytesEqual(cert.der, pinnedCertDer);
+          };
+        } else {
+          // No cert in URI — accept all (node may use a trusted CA cert)
+          client.badCertificateCallback = (cert, host, port) => true;
+        }
         return client;
       },
     );
+  }
+
+  /// Decodes the base64 PEM certificate from the lndconnect URI into raw
+  /// DER bytes for comparison with server certificates.
+  ///
+  /// Returns null if [tlsCertBase64] is null or cannot be decoded.
+  static Uint8List? _decodePinnedCert(String? tlsCertBase64) {
+    if (tlsCertBase64 == null || tlsCertBase64.isEmpty) return null;
+    try {
+      return base64Decode(tlsCertBase64);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Constant-time byte array comparison.
+  static bool _bytesEqual(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
   }
 
   final LndConnectionInfo connectionInfo;

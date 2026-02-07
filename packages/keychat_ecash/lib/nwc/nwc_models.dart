@@ -76,6 +76,19 @@ class NwcResponse {
     this.error,
   });
 
+  /// Factory to create from JSON.
+  factory NwcResponse.fromJson(Map<String, dynamic> json) {
+    NwcError? error;
+    if (json['error'] != null) {
+      error = NwcError.fromJson(json['error'] as Map<String, dynamic>);
+    }
+    return NwcResponse(
+      resultType: (json['result_type'] as String?) ?? '',
+      result: json['result'] as Map<String, dynamic>?,
+      error: error,
+    );
+  }
+
   /// The result type (method name).
   final String resultType;
 
@@ -87,19 +100,6 @@ class NwcResponse {
 
   /// Whether this response is an error.
   bool get isError => error != null;
-
-  /// Factory to create from JSON.
-  factory NwcResponse.fromJson(Map<String, dynamic> json) {
-    NwcError? error;
-    if (json['error'] != null) {
-      error = NwcError.fromJson(json['error'] as Map<String, dynamic>);
-    }
-    return NwcResponse(
-      resultType: json['result_type'] as String,
-      result: json['result'] as Map<String, dynamic>?,
-      error: error,
-    );
-  }
 }
 
 /// NWC error response.
@@ -110,19 +110,19 @@ class NwcError {
     this.message,
   });
 
+  /// Factory to create from JSON.
+  factory NwcError.fromJson(Map<String, dynamic> json) {
+    return NwcError(
+      code: (json['code'] as String?) ?? 'UNKNOWN',
+      message: json['message'] as String?,
+    );
+  }
+
   /// The error code.
   final String code;
 
   /// The error message.
   final String? message;
-
-  /// Factory to create from JSON.
-  factory NwcError.fromJson(Map<String, dynamic> json) {
-    return NwcError(
-      code: json['code'] as String,
-      message: json['message'] as String?,
-    );
-  }
 
   @override
   String toString() => 'NwcError($code: $message)';
@@ -137,6 +137,15 @@ class GetBalanceResponse {
     this.budgetRenewal,
   });
 
+  /// Factory to create from JSON.
+  factory GetBalanceResponse.fromJson(Map<String, dynamic> json) {
+    return GetBalanceResponse(
+      balanceMsats: (json['balance'] as int?) ?? 0,
+      maxAmount: json['max_amount'] as int?,
+      budgetRenewal: json['budget_renewal'] as String?,
+    );
+  }
+
   /// Balance in millisats.
   final int balanceMsats;
 
@@ -148,15 +157,6 @@ class GetBalanceResponse {
 
   /// Balance in sats.
   int get balanceSats => balanceMsats ~/ 1000;
-
-  /// Factory to create from JSON.
-  factory GetBalanceResponse.fromJson(Map<String, dynamic> json) {
-    return GetBalanceResponse(
-      balanceMsats: json['balance'] as int,
-      maxAmount: json['max_amount'] as int?,
-      budgetRenewal: json['budget_renewal'] as String?,
-    );
-  }
 }
 
 /// Response for get_info method.
@@ -172,6 +172,26 @@ class GetInfoResponse {
     this.methods = const [],
     this.notifications = const [],
   });
+
+  /// Factory to create from JSON.
+  factory GetInfoResponse.fromJson(Map<String, dynamic> json) {
+    return GetInfoResponse(
+      alias: json['alias'] as String?,
+      color: json['color'] as String?,
+      pubkey: json['pubkey'] as String?,
+      network: json['network'] as String?,
+      blockHeight: json['block_height'] as int?,
+      blockHash: json['block_hash'] as String?,
+      methods: (json['methods'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      notifications: (json['notifications'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+    );
+  }
 
   /// Node alias.
   final String? alias;
@@ -196,26 +216,6 @@ class GetInfoResponse {
 
   /// Supported notifications.
   final List<String> notifications;
-
-  /// Factory to create from JSON.
-  factory GetInfoResponse.fromJson(Map<String, dynamic> json) {
-    return GetInfoResponse(
-      alias: json['alias'] as String?,
-      color: json['color'] as String?,
-      pubkey: json['pubkey'] as String?,
-      network: json['network'] as String?,
-      blockHeight: json['block_height'] as int?,
-      blockHash: json['block_hash'] as String?,
-      methods: (json['methods'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      notifications: (json['notifications'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-    );
-  }
 }
 
 /// Response for list_transactions method.
@@ -225,20 +225,21 @@ class ListTransactionsResponse {
     required this.transactions,
   });
 
-  /// List of transactions.
-  final List<TransactionResult> transactions;
-
   /// Factory to create from JSON.
   factory ListTransactionsResponse.fromJson(Map<String, dynamic> json) {
     final txList = json['transactions'] as List<dynamic>?;
     return ListTransactionsResponse(
       transactions: txList
-              ?.map((tx) =>
-                  TransactionResult.fromJson(tx as Map<String, dynamic>))
+              ?.map(
+                (tx) => TransactionResult.fromJson(tx as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
   }
+
+  /// List of transactions.
+  final List<TransactionResult> transactions;
 }
 
 /// Transaction result model.
@@ -262,8 +263,29 @@ class TransactionResult {
     this.state,
   });
 
-  /// Transaction type (incoming/outgoing).
-  final String type;
+  /// Factory to create from JSON.
+  factory TransactionResult.fromJson(Map<String, dynamic> json) {
+    return TransactionResult(
+      type: TransactionType.fromString(
+        (json['type'] as String?) ?? 'incoming',
+      ),
+      invoice: json['invoice'] as String?,
+      description: json['description'] as String?,
+      descriptionHash: json['description_hash'] as String?,
+      preimage: json['preimage'] as String?,
+      paymentHash: (json['payment_hash'] as String?) ?? '',
+      amount: (json['amount'] as int?) ?? 0,
+      feesPaid: json['fees_paid'] as int?,
+      createdAt: (json['created_at'] as int?) ?? 0,
+      settledAt: json['settled_at'] as int?,
+      expiresAt: json['expires_at'] as int?,
+      metadata: json['metadata'] as Map<String, dynamic>?,
+      state: json['state'] as String?,
+    );
+  }
+
+  /// Transaction direction (incoming/outgoing).
+  final TransactionType type;
 
   /// Invoice string.
   final String? invoice;
@@ -301,31 +323,28 @@ class TransactionResult {
   /// Transaction state.
   final String? state;
 
-  /// Factory to create from JSON.
-  factory TransactionResult.fromJson(Map<String, dynamic> json) {
-    return TransactionResult(
-      type: json['type'] as String,
-      invoice: json['invoice'] as String?,
-      description: json['description'] as String?,
-      descriptionHash: json['description_hash'] as String?,
-      preimage: json['preimage'] as String?,
-      paymentHash: json['payment_hash'] as String,
-      amount: json['amount'] as int,
-      feesPaid: json['fees_paid'] as int?,
-      createdAt: json['created_at'] as int,
-      settledAt: json['settled_at'] as int?,
-      expiresAt: json['expires_at'] as int?,
-      metadata: json['metadata'] as Map<String, dynamic>?,
-      state: json['state'] as String?,
-    );
-  }
-
   /// Amount in sats (convenience getter).
   int get amountSat => amount ~/ 1000;
 
+  /// Whether this transaction is settled (paid successfully).
+  ///
+  /// Checks state field, settledAt timestamp, and preimage presence.
+  bool get isSettled =>
+      state == 'settled' ||
+      settledAt != null ||
+      (preimage != null && preimage!.isNotEmpty);
+
+  /// Whether this transaction has expired.
+  bool get isExpired {
+    if (isSettled) return false;
+    if (expiresAt == null || expiresAt! <= 0) return false;
+    final expiry = DateTime.fromMillisecondsSinceEpoch(expiresAt! * 1000);
+    return DateTime.now().isAfter(expiry);
+  }
+
   /// Converts to JSON.
   Map<String, dynamic> toJson() => {
-        'type': type,
+        'type': type.value,
         'invoice': invoice,
         'description': description,
         'description_hash': descriptionHash,
@@ -349,19 +368,19 @@ class PayInvoiceResponse {
     this.feesPaid,
   });
 
+  /// Factory to create from JSON.
+  factory PayInvoiceResponse.fromJson(Map<String, dynamic> json) {
+    return PayInvoiceResponse(
+      preimage: (json['preimage'] as String?) ?? '',
+      feesPaid: json['fees_paid'] as int?,
+    );
+  }
+
   /// Payment preimage (proof of payment).
   final String preimage;
 
   /// Fees paid in millisats.
   final int? feesPaid;
-
-  /// Factory to create from JSON.
-  factory PayInvoiceResponse.fromJson(Map<String, dynamic> json) {
-    return PayInvoiceResponse(
-      preimage: json['preimage'] as String,
-      feesPaid: json['fees_paid'] as int?,
-    );
-  }
 }
 
 /// Response for make_invoice method.
@@ -370,7 +389,7 @@ class MakeInvoiceResponse {
   const MakeInvoiceResponse({
     required this.invoice,
     required this.paymentHash,
-    this.amountSat,
+    this.amountMsats,
     this.description,
     this.createdAt,
     this.expiresAt,
@@ -378,14 +397,31 @@ class MakeInvoiceResponse {
     this.preimage,
   });
 
+  /// Factory to create from JSON.
+  factory MakeInvoiceResponse.fromJson(Map<String, dynamic> json) {
+    return MakeInvoiceResponse(
+      invoice: (json['invoice'] as String?) ?? '',
+      paymentHash: (json['payment_hash'] as String?) ?? '',
+      amountMsats: json['amount'] as int?,
+      description: json['description'] as String?,
+      createdAt: json['created_at'] as int?,
+      expiresAt: json['expires_at'] as int?,
+      feesPaid: json['fees_paid'] as int?,
+      preimage: json['preimage'] as String?,
+    );
+  }
+
   /// The generated invoice (bolt11).
   final String invoice;
 
   /// The payment hash.
   final String paymentHash;
 
-  /// Amount in sats.
-  final int? amountSat;
+  /// Amount in millisats (as returned by NIP-47).
+  final int? amountMsats;
+
+  /// Amount in sats (convenience getter).
+  int? get amountSats => amountMsats != null ? amountMsats! ~/ 1000 : null;
 
   /// Description.
   final String? description;
@@ -396,25 +432,11 @@ class MakeInvoiceResponse {
   /// Expiry timestamp.
   final int? expiresAt;
 
-  /// Fees paid.
+  /// Fees paid in millisats.
   final int? feesPaid;
 
   /// Preimage.
   final String? preimage;
-
-  /// Factory to create from JSON.
-  factory MakeInvoiceResponse.fromJson(Map<String, dynamic> json) {
-    return MakeInvoiceResponse(
-      invoice: json['invoice'] as String,
-      paymentHash: json['payment_hash'] as String,
-      amountSat: json['amount'] as int?,
-      description: json['description'] as String?,
-      createdAt: json['created_at'] as int?,
-      expiresAt: json['expires_at'] as int?,
-      feesPaid: json['fees_paid'] as int?,
-      preimage: json['preimage'] as String?,
-    );
-  }
 }
 
 /// Response for lookup_invoice method.
@@ -424,24 +446,37 @@ class LookupInvoiceResponse {
     required this.transaction,
   });
 
-  /// The transaction details.
-  final TransactionResult transaction;
-
   /// Factory to create from JSON.
   factory LookupInvoiceResponse.fromJson(Map<String, dynamic> json) {
     return LookupInvoiceResponse(
       transaction: TransactionResult.fromJson(json),
     );
   }
+
+  /// The transaction details.
+  final TransactionResult transaction;
 }
 
-/// Transaction type enum.
-class TransactionType {
-  TransactionType._();
-
+/// Transaction direction (incoming or outgoing).
+enum TransactionType {
   /// Incoming payment.
-  static const String incoming = 'incoming';
+  incoming('incoming'),
 
   /// Outgoing payment.
-  static const String outgoing = 'outgoing';
+  outgoing('outgoing');
+
+  const TransactionType(this.value);
+
+  /// The wire value used in NIP-47 JSON.
+  final String value;
+
+  /// Parses a string to the corresponding enum value.
+  ///
+  /// Defaults to [incoming] for unrecognized values.
+  static TransactionType fromString(String value) {
+    for (final type in TransactionType.values) {
+      if (type.value == value) return type;
+    }
+    return incoming;
+  }
 }

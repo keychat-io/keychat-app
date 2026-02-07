@@ -1,10 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:keychat_ecash/nwc/nwc_models.dart' show TransactionResult;
-import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart'
-    show CashuWallet;
-import 'package:keychat_ecash/unified_wallet/models/nwc_wallet.dart'
-    show NwcWallet;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' show Transaction;
 
 /// Enum representing different wallet protocols/types.
 ///
@@ -20,41 +14,115 @@ enum WalletProtocol {
 
   /// LND Lightning Network Daemon - direct Lightning node connection
   lnd,
+
+  /// Lightning Pub - public Lightning wallet service
+  lightningPub
 }
 
 /// Abstract base class for all wallet types in the unified wallet architecture.
 ///
 /// This class provides a common interface for different wallet protocols
-/// (Cashu, NWC, etc.), enabling the application to work with multiple wallet
+/// (Cashu, NWC, LND), enabling the application to work with multiple wallet
 /// types through a single consistent API.
 ///
-/// ## Architecture Overview:
+/// ## Architecture Overview
 ///
-/// The wallet system uses a layered architecture:
-/// ```
-/// UI Layer (SelectMintAndNwc, PayInvoice, etc.)
-///     ↓
-/// Controller Layer (EcashController, UnifiedWalletController)
-///     ↓
-/// Model Layer (WalletBase → CashuWallet, NwcWallet)
-///     ↓
-/// Storage Layer (WalletStorage)
+/// The unified wallet system manages three distinct wallet protocols through
+/// a common abstraction layer:
+///
+/// ### Supported Protocols
+///
+/// - **Cashu** – Mint-based ecash. Tokens are stored locally; the mint acts as
+///   a blind-signing server. Supports both ecash token transfers and Lightning
+///   melt/mint operations.
+/// - **NWC (Nostr Wallet Connect)** – Remote Lightning wallet control via the
+///   Nostr protocol (NIP-47). Commands (pay_invoice, make_invoice, etc.) are
+///   sent as encrypted Nostr events to a wallet service.
+/// - **LND (Lightning Network Daemon)** – Direct REST connection to an LND
+///   node via lndconnect:// URIs. Provides full Lightning capabilities
+///   including channel management.
+///
+/// ### Layered Architecture
+///
+/// ```text
+/// ┌─────────────────────────────────────────────────┐
+/// │  UI Layer                                       │
+/// │  BitcoinWalletMain, PayInvoice, CreateInvoice   │
+/// └──────────────────┬──────────────────────────────┘
+///                    │
+/// ┌──────────────────▼──────────────────────────────┐
+/// │  Controller Layer                               │
+/// │  UnifiedWalletController, EcashController        │
+/// └──────────────────┬──────────────────────────────┘
+///                    │
+/// ┌──────────────────▼──────────────────────────────┐
+/// │  Provider Layer                                 │
+/// │  WalletProvider interface                       │
+/// │  ├─ CashuWalletProvider                         │
+/// │  ├─ NwcWalletProvider                           │
+/// │  └─ LndWalletProvider                           │
+/// └──────────────────┬──────────────────────────────┘
+///                    │
+/// ┌──────────────────▼──────────────────────────────┐
+/// │  Model Layer                                    │
+/// │  WalletBase (this class)                        │
+/// │  ├─ CashuWallet                                 │
+/// │  ├─ NwcWallet                                   │
+/// │  └─ LndWallet                                   │
+/// └──────────────────┬──────────────────────────────┘
+///                    │
+/// ┌──────────────────▼──────────────────────────────┐
+/// │  Protocol Controllers                           │
+/// │  EcashController, NwcController, LndController  │
+/// └──────────────────┬──────────────────────────────┘
+///                    │
+/// ┌──────────────────▼──────────────────────────────┐
+/// │  Storage Layer                                  │
+/// │  WalletConnectionStorage (Isar DB)              │
+/// └─────────────────────────────────────────────────┘
 /// ```
 ///
-/// ## Implementations:
+/// ### Balance Update Flow
+///
+/// Each `WalletProvider` registers a reactive listener via
+/// `WalletProvider.setOnWalletsChanged` that fires whenever the underlying
+/// protocol controller's data changes:
+///
+/// - **CashuWalletProvider** listens to `EcashController.mintBalances`
+/// - **NwcWalletProvider** listens to `NwcController.activeConnections`
+/// - **LndWalletProvider** listens to `LndController.activeConnections`
+///
+/// When a change is detected, the provider rebuilds its wallet list and
+/// invokes the callback. `UnifiedWalletController` receives the updated
+/// wallets and patches them into the unified `wallets` list in-place,
+/// triggering reactive UI updates without a full reload.
+///
+/// ### Progressive Loading
+///
+/// `UnifiedWalletController.loadAllWallets` loads all providers in parallel
+/// via `Future.wait`. As each provider completes, its wallets are merged
+/// into the unified list immediately, so wallet cards appear progressively
+/// in the UI rather than waiting for all protocols to finish.
+///
+/// ## Implementations
 /// - [CashuWallet]: Cashu ecash protocol wallets
 /// - [NwcWallet]: Nostr Wallet Connect wallets
+/// - [LndWallet]: LND Lightning Network wallets
 ///
-/// ## Key Design Principles:
+/// ## Key Design Principles
 /// 1. **Protocol-agnostic UI**: UI components work with WalletBase
 /// 2. **Polymorphic behavior**: Each implementation provides protocol-specific logic
-/// 3. **Unified transactions**: All payments return WalletTransactionBase
-/// 4. **Single source of truth**: EcashController.selectedWallet
+/// 3. **Unified transactions**: All payments return [WalletTransactionBase]
+/// 4. **Reactive updates**: Provider callbacks push changes to the controller
+/// 5. **Progressive loading**: Wallets appear as each provider completes
 abstract class WalletBase {
-  /// Unique identifier for this wallet.
+  /// Non-secret unique identifier for this wallet.
   ///
-  /// For Cashu wallets: the mint URL
-  /// For NWC wallets: the NWC connection URI
+  /// For Cashu wallets: the mint URL (not secret)
+  /// For NWC wallets: the wallet pubkey (non-secret part of the NWC URI)
+  /// For LND wallets: host:port (non-secret part of the lndconnect URI)
+  ///
+  /// This value is safe to persist, log, and display in the UI.
   String get id;
 
   /// Display name for the wallet (user-defined or derived).
@@ -93,6 +161,9 @@ abstract class WalletBase {
 
   /// Raw underlying data (for type-specific operations)
   dynamic get rawData;
+
+  /// Returns the settings/detail page widget for this wallet.
+  Widget settingsPage();
 }
 
 /// Represents a transaction in a unified format
@@ -134,15 +205,11 @@ abstract class WalletTransactionBase {
   /// Returns whether the payment was successful
   bool get isSuccess;
 
-  String? get invoice {
-    if (rawData is Transaction) {
-      return (rawData as Transaction).token;
-    } else if (rawData is TransactionResult) {
-      return (rawData as TransactionResult).invoice;
-    }
+  /// Returns the invoice/token string for this transaction if available.
+  String? get invoice;
 
-    return null;
-  }
+  /// Navigates to the appropriate transaction detail page.
+  void navigateToTransactionDetail({String? walletId});
 }
 
 /// Unified transaction status

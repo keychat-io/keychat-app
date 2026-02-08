@@ -40,7 +40,6 @@ class NwcController
     int? walletConnectionId,
   }) async {
     final client = await NwcClient.fromUri(info.uri);
-    client.subscribe();
 
     return ActiveNwcConnection(
       info: info,
@@ -82,6 +81,16 @@ class NwcController
   @override
   int? getStorageId(ActiveNwcConnection connection) =>
       connection.walletConnectionId;
+
+  @override
+  Future<void> addConnection(String uri) async {
+    await super.addConnection(uri);
+    // Relays are already online when user adds a wallet, subscribe immediately
+    final connection = connectionMap[uri];
+    if (connection != null) {
+      await connection.client.subscribe();
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -242,6 +251,19 @@ class NwcController
     } catch (e) {
       logger.e('NWC makeInvoice error', error: e);
       return null;
+    }
+  }
+
+  /// Called when a relay reconnects.
+  ///
+  /// Re-subscribes all active NWC clients that use [relayUrl].
+  void onRelayConnected(String relayUrl) {
+    for (final connection in connectionMap.values) {
+      try {
+        connection.client.resubscribeOnRelay(relayUrl);
+      } catch (e) {
+        logger.e('NWC resubscribe error on $relayUrl: $e');
+      }
     }
   }
 

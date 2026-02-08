@@ -128,22 +128,6 @@ class NostrAPI {
     Storage.setInt(key, lastMessageAt + 1);
   }
 
-  // ignore: unused_element
-  Future<void> _processAUTH(List msg1, Relay relay, String message) async {
-    // Mykey mykey = await IdentityService.instance.getDefaultMykey();
-    // NostrEvent event = NostrEvent.from(
-    //     kind: EventKinds.NIP42,
-    //     tags: [
-    //       ["relay", relay.url],
-    //       ["challenge", msg1[1]]
-    //     ],
-    //     content: '',
-    //     privkey: mykey.prikey);
-
-    // String serializeStr = event.serialize('AUTH');
-    // logger.i('auth: $serializeStr');
-    // sendMessageFunction(serializeStr);
-  }
   List<(NostrEventModel, List, String, Relay)> toProccessEventsPool = [];
   Future<void> _proccessEvent01(List eventList, Relay relay, String raw) async {
     final event = NostrEventModel.deserialize(eventList, verify: false);

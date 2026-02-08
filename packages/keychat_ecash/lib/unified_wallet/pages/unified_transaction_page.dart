@@ -7,11 +7,13 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/ecash_controller.dart' show EcashController;
+import 'package:keychat_ecash/keychat_ecash.dart' show EcashController;
 import 'package:keychat_ecash/lnd/lnd_controller.dart';
 import 'package:keychat_ecash/nwc/index.dart';
 import 'package:keychat_ecash/unified_wallet/models/lnd_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -285,6 +287,10 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
           });
           _timer?.cancel();
           if (!silent) EasyLoading.showSuccess('Payment Received!');
+          // Refresh the unified wallet's transaction list
+          if (Get.isRegistered<UnifiedWalletController>()) {
+            Get.find<UnifiedWalletController>().refreshSelectedWallet();
+          }
         }
       } else {
         if (!silent) EasyLoading.showToast('Not paid yet');
@@ -326,7 +332,12 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
           });
           _timer?.cancel();
           if (!silent) EasyLoading.showSuccess('Payment Received!');
-          controller.fetchTransactionsForCurrent();
+          // refreshSelectedWallet reloads NWC transactions through the
+          // unified provider, so no need to call fetchTransactionsForCurrent
+          // separately.
+          if (Get.isRegistered<UnifiedWalletController>()) {
+            Get.find<UnifiedWalletController>().refreshSelectedWallet();
+          }
         }
       } else {
         if (!silent) EasyLoading.showToast('Not paid yet');
@@ -358,7 +369,11 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
         });
       }
       if (checkedTx.status == TransactionStatus.success) {
-        Get.find<EcashController>().getBalance();
+        // refreshSelectedWallet calls CashuWalletProvider.refreshWallet
+        // which already updates the balance internally.
+        if (Get.isRegistered<UnifiedWalletController>()) {
+          Get.find<UnifiedWalletController>().refreshSelectedWallet();
+        }
       }
       await EasyLoading.showSuccess('Checked');
     } catch (e) {

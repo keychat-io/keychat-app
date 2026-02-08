@@ -1,16 +1,13 @@
-import 'package:get/get.dart';
 import 'package:keychat/constants.dart';
-import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/relay.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/message.service.dart';
-import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
@@ -152,9 +149,12 @@ class RelayWebsocket {
 
     await _startListen();
 
-    // nwc reconnect
+    // nwc server reconnect
     Utils.getGetxController<NostrWalletConnectController>()?.startListening(
       relay.url,
     );
+
+    // nwc client reconnect
+    Utils.getGetxController<NwcController>()?.onRelayConnected(relay.url);
   }
 }

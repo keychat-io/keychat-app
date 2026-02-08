@@ -72,7 +72,7 @@ class EcashController extends GetxController {
       }
     });
 
-    timeoutTimer = Timer(const Duration(seconds: 5), () {
+    timeoutTimer = Timer(const Duration(seconds: 10), () {
       if (!completer.isCompleted) {
         worker.dispose();
         completer.complete(false);

@@ -39,12 +39,12 @@ if (!window.webln) {
     getInfo: async function () {
       if (!this._isEnabled) {
         console.warn(
-          'WebLN: getInfo() called but not enabled. Returning dummy info.'
+          'WebLN: getInfo() called but not enabled. Returning dummy info.',
         );
       }
       var res = await window.flutter_inappwebview.callHandler(
         'keychat-webln',
-        'getInfo'
+        'getInfo',
       );
       console.log('getInfo:', JSON.stringify(res));
       return res;
@@ -53,7 +53,7 @@ if (!window.webln) {
       var res = await window.flutter_inappwebview.callHandler(
         'keychat-webln',
         'signMessage',
-        message
+        message,
       );
       // Returns SignMessageResponse interface
       console.log('signMessage:', res);
@@ -64,7 +64,7 @@ if (!window.webln) {
         'keychat-webln',
         'verifyMessage',
         message,
-        signature
+        signature,
       );
       // Returns VerifyMessageResponse interface
       console.log('verifyMessage:', res);
@@ -74,16 +74,24 @@ if (!window.webln) {
       var res = await window.flutter_inappwebview.callHandler(
         'keychat-webln',
         'sendPayment',
-        paymentRequest
+        paymentRequest,
       );
       console.log('sendPayment:', res);
+      return res;
+    },
+    getBalance: async function () {
+      var res = await window.flutter_inappwebview.callHandler(
+        'keychat-webln',
+        'getBalance',
+      );
+      console.log('getBalance:', JSON.stringify(res));
       return res;
     },
     makeInvoice: async function (invoiceRequest) {
       var res = await window.flutter_inappwebview.callHandler(
         'keychat-webln',
         'makeInvoice',
-        invoiceRequest
+        invoiceRequest,
       );
       console.log('makeInvoice:', res);
       return res;

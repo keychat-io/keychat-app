@@ -1967,6 +1967,15 @@ img {
           final msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
         }
+      case 'getBalance':
+        try {
+          final controller = Get.find<UnifiedWalletController>();
+          final totalSats = controller.totalBalance;
+          return {'balance': totalSats}; // WebLN uses sats
+        } catch (e) {
+          logger.e('getBalance error: $e');
+          return {'balance': 0};
+        }
       case 'makeInvoice':
         try {
           final source = data[1] as Map? ?? {};

@@ -620,31 +620,6 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Transaction type badge for Cashu (Ecash/Lightning)
-  Widget _buildTransactionTypeBadge(CashuWalletTransaction transaction) {
-    final isLightning = transaction.rawData.kind == TransactionKind.ln;
-    final (label, color) = isLightning
-        ? ('Lightning', KeychatGlobal.bitcoinColor)
-        : ('Ecash', KeychatGlobal.secondaryColor);
-
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(50),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   /// Individual wallet card widget
   Widget _buildWalletCard(BuildContext context, WalletBase wallet, int index) {
     // Generate gradient colors based on wallet
@@ -765,11 +740,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               padEnds: false,
               viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.7,
               enableInfiniteScroll: false,
-              onPageChanged: (index, reason) async {
-                if (index < controller.wallets.length) {
-                  await controller.selectWallet(index);
-                }
-              },
+              onPageChanged: (index, reason) async {},
             ),
             items: [
               // Wallet cards
@@ -965,7 +936,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
       id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
     );
     if (deleted ?? false) {
-      await controller.selectWallet(0);
+      // refreshAll reloads all wallets and transactions.
+      // _syncSelectedIndex handles selection after deletion.
       await controller.refreshAll();
     }
   }

@@ -53,7 +53,10 @@ class NwcWalletProvider implements WalletProvider {
     final active = _findByIdentifier(walletId);
     if (active == null) return null;
 
-    await _nwcController.getBalance(active.info.uri);
+    // Always fetch fresh balance from the remote wallet.
+    // NwcController.getBalance returns cached data, so call
+    // refreshNwcBalances instead to force a network request.
+    await _nwcController.refreshNwcBalances([active]);
 
     return NwcWallet(connection: active);
   }

@@ -41,6 +41,11 @@ class UnifiedWalletController extends GetxController {
   /// Page size for transaction pagination
   static const int _pageSize = 20;
 
+  /// The wallet ID that should be selected.
+  ///
+  /// Used to restore selection after wallets are re-sorted or arrive late.
+  String? _selectedWalletId;
+
   /// Per-wallet transaction cache, keyed by wallet ID.
   ///
   /// Avoids re-fetching from the provider when switching between wallets.
@@ -77,52 +82,6 @@ class UnifiedWalletController extends GetxController {
     _initProviders();
   }
 
-  /// Ensures the controller is fully initialized before use.
-  ///
-  /// Call this method when you need to wait for all providers to be ready.
-  /// Returns immediately if wallets are already loaded.
-  Future<void> ensureInitialized() async {
-    // Already initialized - return immediately
-    if (!isLoading.value && wallets.isNotEmpty) return;
-
-    // Set up the completion listener BEFORE triggering load to avoid race
-    final completer = Completer<void>();
-    late Worker worker;
-    Timer? timeoutTimer;
-
-    worker = ever(isLoading, (bool loading) {
-      if (!loading && !completer.isCompleted) {
-        timeoutTimer?.cancel();
-        worker.dispose();
-        completer.complete();
-      }
-    });
-
-    // If not loading and wallets are empty, trigger a load
-    if (!isLoading.value && wallets.isEmpty) {
-      unawaited(loadAllWallets());
-    }
-
-    // Check again after registering worker — loading may have already
-    // completed between the initial check and the worker registration.
-    if (!isLoading.value && wallets.isNotEmpty) {
-      timeoutTimer?.cancel();
-      worker.dispose();
-      if (!completer.isCompleted) completer.complete();
-      return completer.future;
-    }
-
-    // Timeout after 15 seconds
-    timeoutTimer = Timer(const Duration(seconds: 15), () {
-      if (!completer.isCompleted) {
-        worker.dispose();
-        completer.complete();
-      }
-    });
-
-    return completer.future;
-  }
-
   /// Initialize all wallet providers and set up reactive callbacks.
   void _initProviders() {
     // Register built-in providers
@@ -147,6 +106,11 @@ class UnifiedWalletController extends GetxController {
   /// [updatedWallets], preserving wallets from other protocols.
   /// Skips the update entirely when the wallet set hasn't changed (same IDs
   /// and balances) to avoid unnecessary sort + UI rebuild.
+  ///
+  /// When a wallet's balance changes, its transaction cache is invalidated
+  /// and — if it is the currently selected wallet — the transaction list is
+  /// reloaded automatically so the UI stays up-to-date after payments or
+  /// receives.
   void _onProviderWalletsChanged(
     WalletProtocol protocol,
     List<WalletBase> updatedWallets,
@@ -156,22 +120,45 @@ class UnifiedWalletController extends GetxController {
       final existing = wallets.where((w) => w.protocol == protocol).toList();
       if (_walletsEqual(existing, updatedWallets)) return;
 
+      // Determine which wallets had a balance change so we can invalidate
+      // their transaction cache.
+      final existingById = {for (final w in existing) w.id: w};
+      var selectedWalletAffected = false;
+      for (final updated in updatedWallets) {
+        final old = existingById[updated.id];
+        if (old == null || old.balanceSats != updated.balanceSats) {
+          _transactionCache.remove(updated.id);
+          if (updated.id == _selectedWalletId) {
+            selectedWalletAffected = true;
+          }
+        }
+      }
+
       final merged = <WalletBase>[
         ...wallets.where((w) => w.protocol != protocol),
         ...updatedWallets,
       ];
       merged.sort((a, b) => b.balanceSats.compareTo(a.balanceSats));
       wallets.value = merged;
+
+      _syncSelectedIndex();
+
+      // Reload transactions for the selected wallet if its balance changed
+      if (selectedWalletAffected) {
+        unawaited(loadTransactionsForSelected(forceRefresh: true));
+      }
     } catch (e) {
       logger.e('Failed to update $protocol wallets in list: $e');
     }
   }
 
-  /// Compares two wallet lists by ID and balance for equality.
+  /// Compares two wallet lists by ID, balance, and displayName for equality.
   static bool _walletsEqual(List<WalletBase> a, List<WalletBase> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id || a[i].balanceSats != b[i].balanceSats) {
+      if (a[i].id != b[i].id ||
+          a[i].balanceSats != b[i].balanceSats ||
+          a[i].displayName != b[i].displayName) {
         return false;
       }
     }
@@ -186,19 +173,24 @@ class UnifiedWalletController extends GetxController {
     super.onClose();
   }
 
-  /// Initialize wallets and restore saved selection
+  /// Initialize wallets and restore saved selection.
+  ///
+  /// Skips transaction loading in [loadAllWallets] because
+  /// [_restoreSavedWalletSelection] will load transactions for the
+  /// correct (previously saved) wallet, avoiding a wasted fetch for
+  /// whatever wallet happens to be at index 0.
   Future<void> _initializeWallets() async {
-    await loadAllWallets();
+    await loadAllWallets(loadTransactions: false);
     await _restoreSavedWalletSelection();
   }
 
-  /// Restore the previously saved wallet selection
+  /// Restore the previously saved wallet selection.
   Future<void> _restoreSavedWalletSelection() async {
     try {
       final savedWallet = await WalletStorageSelection.loadWallet();
-      final index = wallets.indexWhere((w) => w.id == savedWallet.id);
-      if (index != -1) {
-        selectedIndex.value = index;
+      _selectedWalletId = savedWallet.id;
+      _syncSelectedIndex();
+      if (wallets.isNotEmpty) {
         await loadTransactionsForSelected();
       }
     } catch (e, s) {
@@ -206,10 +198,24 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
-  /// Register a new wallet provider (for future extensibility)
-  void registerProvider(WalletProvider provider) {
-    _providers.add(provider);
-    loadAllWallets();
+  /// Derive [selectedIndex] from [_selectedWalletId].
+  ///
+  /// This is the **only** place that writes to [selectedIndex]. Every code
+  /// path that changes [_selectedWalletId] or [wallets] should call this.
+  void _syncSelectedIndex() {
+    if (wallets.isEmpty) {
+      selectedIndex.value = 0;
+      return;
+    }
+    if (_selectedWalletId != null) {
+      final index = wallets.indexWhere((w) => w.id == _selectedWalletId);
+      if (index != -1) {
+        selectedIndex.value = index;
+        return;
+      }
+    }
+    // Wallet not (yet) in the list — clamp to valid range
+    selectedIndex.value = selectedIndex.value.clamp(0, wallets.length - 1);
   }
 
   /// Load wallets from all providers in parallel.
@@ -217,28 +223,30 @@ class UnifiedWalletController extends GetxController {
   /// Each provider loads independently. Results are collected into local lists
   /// first, then merged into the unified [wallets] list in a single batch to
   /// avoid concurrent modification of the RxList.
-  Future<void> loadAllWallets() async {
+  Future<void> loadAllWallets({bool loadTransactions = true}) async {
     isLoading.value = true;
     try {
-      final currentWalletId = selectedWallet.id;
-
-      // Load all providers in parallel, collect results into local map
+      // Load all providers in parallel, each with a 10s timeout
       final results = <WalletProtocol, List<WalletBase>>{};
-      await Future.wait(_providers.map((provider) async {
-        try {
-          final providerWallets = await provider.getWallets();
-          logger.i(
-            'Loaded ${providerWallets.length} wallets from ${provider.protocol}',
-          );
-          results[provider.protocol] = providerWallets;
-        } catch (e, s) {
-          logger.e(
-            'Failed to load wallets from ${provider.protocol}',
-            error: e,
-            stackTrace: s,
-          );
-        }
-      }));
+      await Future.wait(
+        _providers.map((provider) async {
+          try {
+            final providerWallets = await provider
+                .getWallets()
+                .timeout(const Duration(seconds: 10));
+            logger.i(
+              'Loaded ${providerWallets.length} wallets from ${provider.protocol}',
+            );
+            results[provider.protocol] = providerWallets;
+          } catch (e, s) {
+            logger.e(
+              'Failed to load wallets from ${provider.protocol}',
+              error: e,
+              stackTrace: s,
+            );
+          }
+        }),
+      );
 
       // Merge all results into the wallets list in a single batch
       final merged = <WalletBase>[
@@ -246,20 +254,13 @@ class UnifiedWalletController extends GetxController {
         ...wallets.where((w) => !results.containsKey(w.protocol)),
         // Add freshly loaded wallets
         for (final entry in results.values) ...entry,
-      ];
-      merged.sort((a, b) => b.balanceSats.compareTo(a.balanceSats));
+      ]..sort((a, b) => b.balanceSats.compareTo(a.balanceSats));
       wallets.value = merged;
 
-      // Restore selection
-      final newIndex = wallets.indexWhere((w) => w.id == currentWalletId);
-      if (newIndex != -1) {
-        selectedIndex.value = newIndex;
-      } else {
-        _ensureValidSelectedIndex();
-      }
+      _syncSelectedIndex();
 
       // Load transactions for selected wallet
-      if (wallets.isNotEmpty) {
+      if (loadTransactions && wallets.isNotEmpty) {
         await loadTransactionsForSelected();
       }
     } finally {
@@ -283,6 +284,12 @@ class UnifiedWalletController extends GetxController {
 
   /// Refresh only the currently selected wallet's balance and transactions.
   /// If [wallet] is provided, refresh that wallet instead of the selected one.
+  ///
+  /// The provider's `refreshWallet` updates the balance, which may trigger the
+  /// reactive worker ([_onProviderWalletsChanged]) to reload transactions
+  /// automatically. To avoid a redundant second fetch we only reload
+  /// transactions explicitly when the cache was NOT already repopulated by
+  /// the worker.
   Future<void> refreshSelectedWallet([WalletBase? wallet]) async {
     final targetWallet = wallet ?? selectedWallet;
 
@@ -293,7 +300,9 @@ class UnifiedWalletController extends GetxController {
       // Invalidate cached transactions for this wallet
       _transactionCache.remove(targetWallet.id);
 
-      // Refresh the provider's data for this wallet and get updated wallet
+      // Refresh the provider's data for this wallet and get updated wallet.
+      // This may trigger the reactive worker (_onProviderWalletsChanged) which
+      // will repopulate the cache and update the UI if the balance changed.
       final updatedWallet = await provider.refreshWallet(targetWallet.id);
 
       // Update the wallet in the list if refresh was successful
@@ -304,8 +313,11 @@ class UnifiedWalletController extends GetxController {
         }
       }
 
-      // Reload transactions for the target wallet (cache was cleared above)
-      await loadTransactionsForSelected(wallet: targetWallet);
+      // Only reload transactions if the reactive worker hasn't already done so
+      // (i.e. cache is still empty for this wallet).
+      if (!_transactionCache.containsKey(targetWallet.id)) {
+        await loadTransactionsForSelected(wallet: targetWallet);
+      }
     } catch (e, s) {
       logger.e('Failed to refresh selected wallet', error: e, stackTrace: s);
     }
@@ -316,13 +328,12 @@ class UnifiedWalletController extends GetxController {
     if (wallets.isEmpty) return;
     if (index == selectedIndex.value) return;
 
-    // Clamp index to valid range
+    // Clamp index to valid range, update the single source of truth
     final validIndex = index.clamp(0, wallets.length - 1);
-    selectedIndex.value = validIndex;
+    _selectedWalletId = wallets[validIndex].id;
+    _syncSelectedIndex();
 
-    // Save the selection to storage
-    final wallet = selectedWallet;
-    await WalletStorageSelection.saveWallet(wallet);
+    await WalletStorageSelection.saveWallet(selectedWallet);
     await loadTransactionsForSelected();
   }
 
@@ -330,29 +341,40 @@ class UnifiedWalletController extends GetxController {
   ///
   /// Returns cached transactions when available, unless [forceRefresh] is set.
   /// If [wallet] is provided, load transactions for that wallet instead.
+  /// When the target wallet differs from the currently selected wallet, only
+  /// the cache is updated — the visible [transactions] list is left untouched
+  /// so the UI keeps showing the correct wallet's data.
   Future<void> loadTransactionsForSelected({
     int limit = _pageSize,
     WalletBase? wallet,
     bool forceRefresh = false,
   }) async {
     final targetWallet = wallet ?? selectedWallet;
+    final isSelectedWallet =
+        wallet == null || targetWallet.id == selectedWallet.id;
 
     // Return cached transactions if available and not forcing refresh
     if (!forceRefresh) {
       final cached = _transactionCache[targetWallet.id];
       if (cached != null) {
-        transactions.value = cached;
+        if (isSelectedWallet) {
+          transactions.value = cached;
+        }
         hasMoreTransactions.value = cached.length >= limit;
         return;
       }
     }
 
-    isTransactionsLoading.value = true;
+    if (isSelectedWallet) {
+      isTransactionsLoading.value = true;
+    }
     hasMoreTransactions.value = true;
     try {
       final provider = _getProviderForProtocol(targetWallet.protocol);
       if (provider == null) {
-        transactions.clear();
+        if (isSelectedWallet) {
+          transactions.clear();
+        }
         hasMoreTransactions.value = false;
         return;
       }
@@ -361,15 +383,21 @@ class UnifiedWalletController extends GetxController {
         targetWallet.id,
         limit: limit,
       );
-      transactions.value = txList;
       _transactionCache[targetWallet.id] = txList;
+      if (isSelectedWallet) {
+        transactions.value = txList;
+      }
       hasMoreTransactions.value = txList.length >= limit;
     } catch (e, s) {
       logger.e('Failed to load transactions', error: e, stackTrace: s);
-      transactions.clear();
+      if (isSelectedWallet) {
+        transactions.clear();
+      }
       hasMoreTransactions.value = false;
     } finally {
-      isTransactionsLoading.value = false;
+      if (isSelectedWallet) {
+        isTransactionsLoading.value = false;
+      }
     }
   }
 
@@ -424,7 +452,9 @@ class UnifiedWalletController extends GetxController {
     try {
       await EasyLoading.show(status: 'Adding wallet...');
       await matchingProvider.addWallet(connectionString);
-      await matchingProvider.refresh();
+      // loadAllWallets calls provider.getWallets() which fetches fresh data.
+      // Skipping provider.refresh() here avoids a double transaction load
+      // from the reactive worker.
       await loadAllWallets();
       await EasyLoading.showSuccess('Wallet added');
       return true;
@@ -442,24 +472,13 @@ class UnifiedWalletController extends GetxController {
 
     try {
       await EasyLoading.show(status: 'Removing wallet...');
-      selectedIndex.value = 0;
+      _selectedWalletId = null;
       await provider.removeWallet(wallet.id);
       await loadAllWallets();
       await EasyLoading.showSuccess('Wallet removed');
     } catch (e, s) {
       logger.e('Failed to remove wallet', error: e, stackTrace: s);
       EasyLoading.showError('Failed to remove wallet: $e');
-    }
-  }
-
-  /// Ensure selected index is within valid range
-  void _ensureValidSelectedIndex() {
-    if (wallets.isEmpty) {
-      selectedIndex.value = 0;
-    } else if (selectedIndex.value < 0) {
-      selectedIndex.value = 0;
-    } else if (selectedIndex.value >= wallets.length) {
-      selectedIndex.value = wallets.length - 1;
     }
   }
 
@@ -478,55 +497,24 @@ class UnifiedWalletController extends GetxController {
     return null;
   }
 
-  /// Get wallets filtered by protocol
-  List<WalletBase> getWalletsByProtocol(WalletProtocol protocol) {
-    return wallets.where((w) => w.protocol == protocol).toList();
-  }
-
-  /// Get balance by protocol type
-  int getBalanceByProtocol(WalletProtocol protocol) {
-    return wallets
-        .where((w) => w.protocol == protocol)
-        .fold<int>(0, (sum, w) => sum + w.balanceSats);
-  }
-
   // ============================================================
   // Unified Payment APIs
   // ============================================================
 
-  /// Pay a lightning invoice using the currently selected wallet.
+  /// Pay a lightning invoice.
   ///
-  /// Returns [WalletTransactionBase] on success, null on failure or cancellation.
-  /// The returned type will be [CashuWalletTransaction] or [NwcWalletTransaction]
-  /// depending on the selected wallet protocol.
-  Future<WalletTransactionBase?> payLightningInvoice(String invoice) async {
-    final wallet = selectedWallet;
-
-    final provider = _getProviderForProtocol(wallet.protocol);
-    if (provider == null) {
-      await EasyLoading.showError('Wallet provider not found');
-      return null;
-    }
-
-    final result = await provider.payLightningInvoice(wallet.id, invoice);
-    if (result != null) {
-      await HapticFeedback.mediumImpact();
-      unawaited(refreshSelectedWallet(getWalletById(wallet.id)));
-    }
-    return result;
-  }
-
-  /// Pay a lightning invoice using a specific wallet.
+  /// Uses the wallet identified by [walletId]. Falls back to [selectedWallet]
+  /// when [walletId] is omitted.
   ///
-  /// [walletId] - The wallet ID to use for payment
-  /// [invoice] - The lightning invoice string (lnbc...)
+  /// Returns [WalletTransactionBase] on success, null on failure or
+  /// cancellation.
   Future<WalletTransactionBase?> payLightningInvoiceWithWallet(
     String walletId,
     String invoice,
   ) async {
     final wallet = wallets.firstWhereOrNull((w) => w.id == walletId);
     if (wallet == null) {
-      EasyLoading.showError('Wallet not found');
+      await EasyLoading.showError('Wallet not found');
       return null;
     }
 
@@ -539,6 +527,10 @@ class UnifiedWalletController extends GetxController {
     final result = await provider.payLightningInvoice(walletId, invoice);
     if (result != null) {
       await HapticFeedback.mediumImpact();
+      // The provider's internal balance refresh triggers the reactive
+      // worker (_onProviderWalletsChanged) which invalidates the cache
+      // and reloads transactions. For protocols that don't update
+      // balance reactively, refreshSelectedWallet handles it.
       unawaited(refreshSelectedWallet(wallet));
     }
     return result;
@@ -582,6 +574,8 @@ class UnifiedWalletController extends GetxController {
     );
     if (res != null) {
       await HapticFeedback.mediumImpact();
+      // Refresh transactions so the new pending invoice appears in the list
+      unawaited(refreshSelectedWallet());
     }
     return res;
   }

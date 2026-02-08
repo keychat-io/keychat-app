@@ -76,7 +76,7 @@ class PayInvoiceController extends GetxController {
           walletSelection.id,
           invoice,
         );
-        if (tx != null) {
+        if (tx != null && !isClosed) {
           textController.clear();
         }
         return tx;
@@ -103,7 +103,7 @@ class PayInvoiceController extends GetxController {
                   walletSelection.id,
                   invoice,
                 );
-                if (tx != null) {
+                if (tx != null && !isClosed) {
                   textController.clear();
                 }
                 Get.back(result: tx);

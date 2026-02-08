@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:keychat/global.dart';
-import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/storage.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/utils.dart';
@@ -22,7 +22,7 @@ class WalletStorageSelection {
   /// Returns the saved wallet if it still exists, otherwise falls back to
   /// the highest-balance wallet, then the default Cashu mint.
   static Future<WalletBase> loadWallet() async {
-    final savedId = await SecureStorage.instance.read(_secureKey);
+    final savedId = Storage.getString(_secureKey);
 
     // Try to find the saved wallet in the unified controller
     if (savedId != null && savedId.isNotEmpty) {
@@ -40,14 +40,14 @@ class WalletStorageSelection {
 
   /// Save the selected wallet identifier to secure storage.
   static Future<void> saveWallet(WalletBase wallet) async {
-    await SecureStorage.instance.write(_secureKey, wallet.id);
+    await Storage.setString(_secureKey, wallet.id);
   }
 
   /// Returns the last selected Cashu mint URL (for ecash-specific operations).
   ///
   /// Falls back to the first non-zero balance Cashu mint, then the default.
   static Future<String> getLastMintWallet() async {
-    final savedId = await SecureStorage.instance.read(_secureKey);
+    final savedId = Storage.getString(_secureKey);
 
     if (savedId != null && savedId.isNotEmpty) {
       // If the saved ID is a Cashu mint URL, validate it still exists

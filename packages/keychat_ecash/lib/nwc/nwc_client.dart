@@ -97,6 +97,17 @@ class NwcClient {
     );
   }
 
+  /// Re-subscribes on a specific relay after it reconnects.
+  ///
+  /// Only acts if this client uses the given [relayUrl].
+  void resubscribeOnRelay(String relayUrl) {
+    if (!params.relays.contains(relayUrl)) return;
+
+    // Reset subscription so subscribe() creates a fresh one
+    _subscriptionId = null;
+    subscribe();
+  }
+
   /// Closes the subscription and cleans up resources.
   void close() {
     if (_subscriptionId != null) {
@@ -117,7 +128,10 @@ class NwcClient {
   /// request, and broadcasts to all NWC relays.
   Future<NwcResponse> sendRequest(NwcRequest request) async {
     // Ensure relays are connected and we're subscribed
-    await ensureRelaysConnected();
+    final connectedRelays = await ensureRelaysConnected();
+    if (connectedRelays.isEmpty) {
+      throw Exception('No NWC relays connected for $walletPubkey');
+    }
     if (!isSubscribed) {
       await subscribe();
     }

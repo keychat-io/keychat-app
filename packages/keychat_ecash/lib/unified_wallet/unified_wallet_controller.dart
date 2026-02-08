@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart'
     show BorderRadius, Clip, Radius, RoundedRectangleBorder;
 import 'package:flutter/services.dart';
@@ -40,6 +41,10 @@ class UnifiedWalletController extends GetxController {
 
   /// Page size for transaction pagination
   static const int _pageSize = 20;
+
+  /// Carousel controller for programmatic page navigation (desktop arrows).
+  final CarouselSliderController carouselController =
+      CarouselSliderController();
 
   /// The wallet ID that should be selected.
   ///

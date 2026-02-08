@@ -157,7 +157,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   Widget _buildAddCard(BuildContext context) {
     return GestureDetector(
       child: Container(
-        width: MediaQuery.of(context).size.width / 2,
+        width: 260,
         margin: const EdgeInsets.symmetric(horizontal: 5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
@@ -726,35 +726,89 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Wallet cards carousel
+  /// Wallet cards carousel with desktop left/right arrow navigation.
   Widget _buildWalletCarousel(BuildContext context) {
     return Obx(
-      () => Padding(
-        padding: const EdgeInsets.only(left: 10),
-        child: ScrollConfiguration(
-          behavior: MyCustomScrollBehavior(),
-          child: CarouselSlider(
-            disableGesture: false,
-            options: CarouselOptions(
-              height: 160,
-              padEnds: false,
-              viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.7,
-              enableInfiniteScroll: false,
-              onPageChanged: (index, reason) async {},
+      () {
+        final totalItems = controller.wallets.length + 1; // wallets + add card
+        final carousel = Padding(
+          padding: const EdgeInsets.only(left: 10),
+          child: ScrollConfiguration(
+            behavior: MyCustomScrollBehavior(),
+            child: CarouselSlider(
+              carouselController: controller.carouselController,
+              disableGesture: false,
+              options: CarouselOptions(
+                height: 160,
+                padEnds: false,
+                viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.7,
+                enableInfiniteScroll: false,
+                onPageChanged: (index, reason) async {
+                  if (index < controller.wallets.length) {
+                    await controller.selectWallet(index);
+                  }
+                },
+              ),
+              items: [
+                // Wallet cards
+                ...controller.wallets.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final wallet = entry.value;
+                  return _buildWalletCard(context, wallet, index);
+                }),
+                // Add new wallet card
+                _buildAddCard(context),
+              ],
             ),
-            items: [
-              // Wallet cards
-              ...controller.wallets.asMap().entries.map((entry) {
-                final index = entry.key;
-                final wallet = entry.value;
-                return _buildWalletCard(context, wallet, index);
-              }),
-              // Add new wallet card
-              _buildAddCard(context),
-            ],
           ),
-        ),
-      ),
+        );
+
+        // On desktop, wrap with left/right arrow buttons when more than 3 cards
+        if (!GetPlatform.isDesktop || totalItems <= 3) return carousel;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            carousel,
+            // Left arrow
+            Positioned(
+              left: 0,
+              child: IconButton(
+                onPressed: () {
+                  controller.carouselController.previousPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(CupertinoIcons.chevron_left, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surface.withAlpha(200),
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+            // Right arrow
+            Positioned(
+              right: 0,
+              child: IconButton(
+                onPressed: () {
+                  controller.carouselController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(CupertinoIcons.chevron_right, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surface.withAlpha(200),
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

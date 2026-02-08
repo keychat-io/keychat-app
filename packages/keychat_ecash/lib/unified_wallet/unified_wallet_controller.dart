@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart'
-    show BorderRadius, Clip, Radius, RoundedRectangleBorder;
+    show BorderRadius, Clip, Curves, Radius, RoundedRectangleBorder;
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -328,8 +328,12 @@ class UnifiedWalletController extends GetxController {
     }
   }
 
-  /// Select a wallet by index and save the selection
-  Future<void> selectWallet(int index) async {
+  /// Select a wallet by index and save the selection.
+  ///
+  /// When [fromCarousel] is false (e.g. tapping a card or restoring saved
+  /// selection), the carousel is animated to the new page so the selected
+  /// card is always visible / centered.
+  Future<void> selectWallet(int index, {bool fromCarousel = false}) async {
     if (wallets.isEmpty) return;
     if (index == selectedIndex.value) return;
 
@@ -337,6 +341,15 @@ class UnifiedWalletController extends GetxController {
     final validIndex = index.clamp(0, wallets.length - 1);
     _selectedWalletId = wallets[validIndex].id;
     _syncSelectedIndex();
+
+    // Sync carousel position when the change didn't originate from a swipe
+    if (!fromCarousel) {
+      carouselController.animateToPage(
+        validIndex,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
 
     await WalletStorageSelection.saveWallet(selectedWallet);
     await loadTransactionsForSelected();

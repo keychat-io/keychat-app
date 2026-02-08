@@ -230,6 +230,9 @@ abstract class BaseConnectionController<TConnection, TInfo>
     );
     if (connection != null) {
       connectionMap[uri] = connection;
+      // Fetch balance immediately so the wallet shows a balance in the UI
+      // without requiring a manual refresh.
+      await refreshBalance(connection);
     }
     refreshList();
   }

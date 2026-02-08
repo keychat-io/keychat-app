@@ -731,35 +731,32 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     return Obx(
       () {
         final totalItems = controller.wallets.length + 1; // wallets + add card
-        final carousel = Padding(
-          padding: const EdgeInsets.only(left: 10),
-          child: ScrollConfiguration(
-            behavior: MyCustomScrollBehavior(),
-            child: CarouselSlider(
-              carouselController: controller.carouselController,
-              disableGesture: false,
-              options: CarouselOptions(
-                height: 160,
-                padEnds: false,
-                viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.7,
-                enableInfiniteScroll: false,
-                onPageChanged: (index, reason) async {
-                  if (index < controller.wallets.length) {
-                    await controller.selectWallet(index);
-                  }
-                },
-              ),
-              items: [
-                // Wallet cards
-                ...controller.wallets.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final wallet = entry.value;
-                  return _buildWalletCard(context, wallet, index);
-                }),
-                // Add new wallet card
-                _buildAddCard(context),
-              ],
+        final carousel = ScrollConfiguration(
+          behavior: MyCustomScrollBehavior(),
+          child: CarouselSlider(
+            carouselController: controller.carouselController,
+            disableGesture: false,
+            options: CarouselOptions(
+              height: 160,
+              viewportFraction: GetPlatform.isDesktop ? 0.35 : 0.6,
+              enableInfiniteScroll: false,
+              initialPage: controller.selectedIndex.value,
+              onPageChanged: (index, reason) async {
+                if (index < controller.wallets.length) {
+                  await controller.selectWallet(index, fromCarousel: true);
+                }
+              },
             ),
+            items: [
+              // Wallet cards
+              ...controller.wallets.asMap().entries.map((entry) {
+                final index = entry.key;
+                final wallet = entry.value;
+                return _buildWalletCard(context, wallet, index);
+              }),
+              // Add new wallet card
+              _buildAddCard(context),
+            ],
           ),
         );
 
@@ -1019,7 +1016,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
       CupertinoActionSheet(
         title: const Text('Add Wallet'),
         message: const Text(
-          'Paste a Cashu mint URL, NWC, or LND connection string',
+          'Paste a Cashu mint URL, NWC string', // , or LND connection
         ),
         actions: [
           CupertinoActionSheetAction(

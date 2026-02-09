@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/page/components.dart';
-import 'package:keychat/rust_api.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/status_enum.dart';
@@ -102,6 +101,57 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                       child: Utils.genQRImage(
                         tx.token,
                         size: min(maxWidth, 300),
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding:
+                        const EdgeInsetsDirectional.symmetric(vertical: 16),
+                    child: Center(
+                      child: Container(
+                        width: min(maxWidth, 300),
+                        height: min(maxWidth, 300),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.1),
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.qr_code,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Token is too long to\ngenerate QR code',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

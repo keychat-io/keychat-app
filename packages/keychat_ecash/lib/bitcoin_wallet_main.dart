@@ -740,6 +740,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               height: 160,
               viewportFraction: GetPlatform.isDesktop ? 0.35 : 0.6,
               enableInfiniteScroll: false,
+              padEnds: false,
               initialPage: controller.selectedIndex.value,
               onPageChanged: (index, reason) async {
                 if (index < controller.wallets.length) {

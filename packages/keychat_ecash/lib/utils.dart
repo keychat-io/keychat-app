@@ -359,6 +359,7 @@ Restoring...''',
       await ec.restore();
       await EasyLoading.showToast('Successfully');
     } catch (e, s) {
+      await EasyLoading.dismiss();
       final msg = Utils.getErrorMessage(e);
       logger.e(e.toString(), error: e, stackTrace: s);
       await Get.dialog(

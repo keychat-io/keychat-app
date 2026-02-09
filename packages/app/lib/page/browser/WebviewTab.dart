@@ -37,7 +37,6 @@ import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path/path.dart' as path;
@@ -76,9 +75,6 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
-
-  // Track last successfully committed main-frame URL to detect downgrade loops
-  WebUri? _lastCommittedMainFrameUrl;
 
   // Add tooltip key
   final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
@@ -805,83 +801,71 @@ class _WebviewTabState extends State<WebviewTab> {
                 : PermissionResponseAction.GRANT,
           );
         },
-        shouldOverrideUrlLoading: (controller, NavigationAction navigationAction) async {
-          final uri = navigationAction.request.url;
-          logger.i('shouldOverrideUrlLoading: $uri');
-          if (uri == null) return NavigationActionPolicy.ALLOW;
-          // Detect https->http downgrade loop for same host (main frame only)
-          if (navigationAction.isForMainFrame &&
-              _lastCommittedMainFrameUrl != null &&
-              _lastCommittedMainFrameUrl!.scheme == 'https' &&
-              uri.scheme == 'http' &&
-              uri.host == _lastCommittedMainFrameUrl!.host) {
-            logger.w(
-              'Blocked downgrade navigation (https -> http) for host ${uri.host}',
-            );
-            return NavigationActionPolicy.CANCEL;
-          }
-          // download file
+        shouldOverrideUrlLoading:
+            (controller, NavigationAction navigationAction) async {
+              final uri = navigationAction.request.url;
+              logger.i('shouldOverrideUrlLoading: $uri');
+              if (uri == null) return NavigationActionPolicy.ALLOW;
 
-          if (uri.toString().startsWith('blob:')) {
-            await EasyLoading.showError('Blob files are not supported');
-            return NavigationActionPolicy.CANCEL;
-          }
-          if (navigationAction.shouldPerformDownload ?? false) {
-            return NavigationActionPolicy.DOWNLOAD;
-          }
-
-          try {
-            final str = uri.toString();
-
-            // Handle special URLs
-            if (await handleSpecialUrls(str)) {
-              return NavigationActionPolicy.CANCEL;
-            }
-
-            if (isPdfUrl(str) &&
-                !str.startsWith('https://docs.google.com/gview')) {
-              final googleDocsUrl =
-                  'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-              logger.i('load pdf: $googleDocsUrl');
-              await controller.loadUrl(
-                urlRequest: URLRequest(
-                  url: WebUri.uri(Uri.parse(googleDocsUrl)),
-                ),
-              );
-              return NavigationActionPolicy.CANCEL;
-            }
-
-            if ([
-              'http',
-              'https',
-              'data',
-              'javascript',
-              'about',
-            ].contains(uri.scheme)) {
-              return NavigationActionPolicy.ALLOW;
-            }
-            try {
-              await launchUrl(uri);
-            } catch (e) {
-              if (e is PlatformException) {
-                await EasyLoading.showError(
-                  'Failed to open link: ${e.message}',
-                );
+              // download file
+              if (uri.toString().startsWith('blob:')) {
+                await EasyLoading.showError('Blob files are not supported');
                 return NavigationActionPolicy.CANCEL;
               }
-              logger.i(e.toString(), error: e);
-              await EasyLoading.showError('Failed to open link: $e');
-            }
-          } catch (e) {
-            logger.i(e.toString(), error: e);
-          }
-          return NavigationActionPolicy.CANCEL;
-        },
+              if (navigationAction.shouldPerformDownload ?? false) {
+                return NavigationActionPolicy.DOWNLOAD;
+              }
+
+              try {
+                final str = uri.toString();
+
+                // Handle special URLs
+                if (await handleSpecialUrls(str)) {
+                  return NavigationActionPolicy.CANCEL;
+                }
+
+                if (isPdfUrl(str) &&
+                    !str.startsWith('https://docs.google.com/gview')) {
+                  final googleDocsUrl =
+                      'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+                  logger.i('load pdf: $googleDocsUrl');
+                  await controller.loadUrl(
+                    urlRequest: URLRequest(
+                      url: WebUri.uri(Uri.parse(googleDocsUrl)),
+                    ),
+                  );
+                  return NavigationActionPolicy.CANCEL;
+                }
+
+                if ([
+                  'http',
+                  'https',
+                  'data',
+                  'javascript',
+                  'about',
+                ].contains(uri.scheme)) {
+                  return NavigationActionPolicy.ALLOW;
+                }
+                try {
+                  await launchUrl(uri);
+                } catch (e) {
+                  if (e is PlatformException) {
+                    await EasyLoading.showError(
+                      'Failed to open link: ${e.message}',
+                    );
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  logger.i(e.toString(), error: e);
+                  await EasyLoading.showError('Failed to open link: $e');
+                }
+              } catch (e) {
+                logger.i(e.toString(), error: e);
+              }
+              return NavigationActionPolicy.CANCEL;
+            },
         onLoadStop: (controller, url) async {
           if (url == null) return;
           logger.d('onLoadStop: $url');
-          // Store last committed main-frame URL (used for downgrade loop detection)
-          _lastCommittedMainFrameUrl = url;
           await _checkGoBackState(url.toString());
           await controller.injectJavascriptFileFromAsset(
             assetFilePath: 'assets/js/nostr.js',

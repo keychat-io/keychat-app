@@ -37,7 +37,7 @@ class WalletConnection extends Equatable {
   ///
   /// NWC: wallet pubkey from the URI host.
   /// LND: host:port.
-  @Index(unique: true)
+  @Index(unique: true, composite: [CompositeIndex('protocol')])
   late String identifier;
 
   /// AES-encrypted full URI (contains secrets like NWC secret key or LND macaroon).

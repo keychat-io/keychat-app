@@ -119,9 +119,11 @@ class DBProvider {
             final identifier = _extractNwcIdentifier(uri);
             if (identifier == null) continue;
 
-            // Check for duplicates
+            // Check for duplicates within the same protocol
             final existing = await database.walletConnections
                 .filter()
+                .protocolEqualTo(WalletProtocol.nwc)
+                .and()
                 .identifierEqualTo(identifier)
                 .findFirst();
             if (existing != null) continue;

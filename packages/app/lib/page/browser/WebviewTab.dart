@@ -318,9 +318,14 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            bottom: multiWebviewController.bottomSafeHosts.contains(
-              WebUri(widget.initUrl).host,
-            ),
+            // Android with traditional navigation bar (not gesture navigation)
+            // needs bottom safe area to avoid content being obscured
+            bottom:
+                (GetPlatform.isAndroid &&
+                    MediaQuery.of(context).systemGestureInsets.bottom == 0) ||
+                multiWebviewController.bottomSafeHosts.contains(
+                  WebUri(widget.initUrl).host,
+                ),
             child: Column(
               children: [
                 Expanded(

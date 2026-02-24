@@ -24,6 +24,8 @@ dependencies:
   get: ^4.7.3
   flutter_easyloading: ^3.0.5
   path_provider: ^2.1.5
+  record: ^5.1.0
+  just_audio: ^0.9.39
   convert: ^3.1.2
   shared_preferences: ^2.5.3
   badges: ^3.1.2

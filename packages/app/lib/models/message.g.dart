@@ -508,6 +508,7 @@ const _MessagemediaTypeEnumValueMap = {
   'lightningInvoice': 16,
   'profileRequest': 17,
   'messageReaction': 18,
+  'voiceNote': 19,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -529,6 +530,7 @@ const _MessagemediaTypeValueEnumMap = {
   16: MessageMediaType.lightningInvoice,
   17: MessageMediaType.profileRequest,
   18: MessageMediaType.messageReaction,
+  19: MessageMediaType.voiceNote,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,

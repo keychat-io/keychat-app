@@ -51,6 +51,21 @@ const MsgFileInfoSchema = Schema(
       type: IsarType.dateTime,
     ),
     r'url': PropertySchema(id: 12, name: r'url', type: IsarType.string),
+    r'isVoiceNote': PropertySchema(
+      id: 13,
+      name: r'isVoiceNote',
+      type: IsarType.bool,
+    ),
+    r'duration': PropertySchema(
+      id: 14,
+      name: r'duration',
+      type: IsarType.long,
+    ),
+    r'waveform': PropertySchema(
+      id: 15,
+      name: r'waveform',
+      type: IsarType.string,
+    ),
   },
 
   estimateSize: _msgFileInfoEstimateSize,
@@ -120,6 +135,12 @@ int _msgFileInfoEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.waveform;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -142,6 +163,9 @@ void _msgFileInfoSerialize(
   writer.writeString(offsets[10], object.type);
   writer.writeDateTime(offsets[11], object.updateAt);
   writer.writeString(offsets[12], object.url);
+  writer.writeBool(offsets[13], object.isVoiceNote);
+  writer.writeLong(offsets[14], object.duration ?? -9223372036854775808);
+  writer.writeString(offsets[15], object.waveform);
 }
 
 MsgFileInfo _msgFileInfoDeserialize(
@@ -165,6 +189,9 @@ MsgFileInfo _msgFileInfoDeserialize(
   object.type = reader.readStringOrNull(offsets[10]);
   object.updateAt = reader.readDateTimeOrNull(offsets[11]);
   object.url = reader.readStringOrNull(offsets[12]);
+  object.isVoiceNote = reader.readBool(offsets[13]);
+  object.duration = reader.readLongOrNull(offsets[14]);
+  object.waveform = reader.readStringOrNull(offsets[15]);
   return object;
 }
 
@@ -202,6 +229,12 @@ P _msgFileInfoDeserializeProp<P>(
     case 11:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readBool(offset)) as P;
+    case 14:
+      return (reader.readLongOrNull(offset)) as P;
+    case 15:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2037,7 +2070,10 @@ MsgFileInfo _$MsgFileInfoFromJson(Map<String, dynamic> json) => MsgFileInfo()
   ..key = json['key'] as String?
   ..ecashToken = json['ecashToken'] as String?
   ..hash = json['hash'] as String?
-  ..sourceName = json['sourceName'] as String?;
+  ..sourceName = json['sourceName'] as String?
+  ..isVoiceNote = json['isVoiceNote'] as bool? ?? false
+  ..duration = (json['duration'] as num?)?.toInt()
+  ..waveform = json['waveform'] as String?;
 
 Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
     <String, dynamic>{
@@ -2053,6 +2089,9 @@ Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
       'ecashToken': ?instance.ecashToken,
       'hash': ?instance.hash,
       'sourceName': ?instance.sourceName,
+      if (instance.isVoiceNote) 'isVoiceNote': instance.isVoiceNote,
+      'duration': ?instance.duration,
+      'waveform': ?instance.waveform,
     };
 
 const _$FileStatusEnumMap = {

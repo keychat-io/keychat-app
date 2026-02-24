@@ -37,6 +37,10 @@ class MsgFileInfo {
   String? hash; // sha256
   String? sourceName;
 
+  bool isVoiceNote = false;
+  int? duration; // duration in seconds
+  String? waveform; // base64-encoded 5-bit packed waveform data
+
   @JsonKey(includeFromJson: false, includeToJson: false)
   @ignore
   FileEncryptInfo? fileInfo;
@@ -58,6 +62,9 @@ class MsgFileInfo {
       'size': fileInfo?.size,
       'hash': fileInfo?.hash,
       'sourceName': fileInfo?.sourceName,
+      if (isVoiceNote) 'isVoiceNote': '1',
+      if (duration != null) 'duration': duration.toString(),
+      if (waveform != null) 'waveform': waveform!,
     };
     final base = Uri.parse(fileInfo?.url ?? '');
     final uri = Uri.https(

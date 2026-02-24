@@ -925,6 +925,9 @@ class FileService {
         compress: true,
       );
     }
+    if (FileService.instance.isAudioFile(xfile.path)) {
+      return handleSendMediaFile(room, xfile, MessageMediaType.voiceNote);
+    }
     await handleSendMediaFile(room, xfile, MessageMediaType.file);
     return null;
   }
@@ -1001,6 +1004,11 @@ class FileService {
       '.tiff',
       '.svg',
     ].contains(extension);
+  }
+
+  bool isAudioFile(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    return ['ogg', 'opus', 'aac', 'm4a', 'mp3', 'wav'].contains(ext);
   }
 
   /// Check if file path is a video file

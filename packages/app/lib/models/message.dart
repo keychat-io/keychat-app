@@ -41,6 +41,7 @@ enum MessageMediaType {
   lightningInvoice,
   profileRequest, // sync my profile to others
   messageReaction, // reaction to a message
+  voiceNote,
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }
@@ -139,7 +140,8 @@ class Message extends Equatable {
   bool get isMediaType =>
       mediaType == MessageMediaType.image ||
       mediaType == MessageMediaType.video ||
-      mediaType == MessageMediaType.file;
+      mediaType == MessageMediaType.file ||
+      mediaType == MessageMediaType.voiceNote;
 
   MsgFileInfo? convertToMsgFileInfo() {
     if (content.startsWith('https://') || content.startsWith('http://')) {

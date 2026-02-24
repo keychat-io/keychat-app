@@ -3,6 +3,17 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.40.1
+
+- Redesigned NWC (Nostr Wallet Connect) protocol with new client, models, and request manager.
+- Introduced unified wallet architecture with base connection controller and multi-provider support (Cashu / NWC).
+- Refactored WebviewTab URL loading logic and removed unused variables.
+- Improved wallet selection UI responsiveness in Bitcoin wallet page.
+- Added placeholder UI when Cashu token is too long to generate QR code.
+- Disabled carousel padding at ends for better layout in Bitcoin wallet.
+- Fixed loading indicator not dismissed on error during restore process.
+- Database schema update: added wallet connection model.
+
 ## 1.39.2+6494
 
 - Nostr Wallet Connect (NWC) wallet based on NIP-47.

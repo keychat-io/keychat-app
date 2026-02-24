@@ -34,7 +34,7 @@ class _PayEcashPageState extends State<PayEcashPage> {
   }
 
   Future<void> init() async {
-    final mint = await WalletStorageSelection.getLasetMintWallet();
+    final mint = await WalletStorageSelection.getLastMintWallet();
     setState(() {
       selectedMint = mint;
     });
@@ -173,9 +173,7 @@ class _PayEcashPageState extends State<PayEcashPage> {
                               );
 
                               final unifiedController =
-                                  Utils.getOrPutGetxController(
-                                create: UnifiedWalletController.new,
-                              );
+                                  Get.find<UnifiedWalletController>();
                               await unifiedController.refreshSelectedWallet(
                                 unifiedController.getWalletById(selectedMint),
                               );

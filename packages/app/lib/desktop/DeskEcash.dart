@@ -17,10 +17,6 @@ class DeskEcash extends GetView<DesktopController> {
       initialRoute: '/bitcoin_wallets',
       onGenerateRoute: (RouteSettings settings) {
         if (settings.name == '/bitcoin_wallets') {
-          Utils.getOrPutGetxController(
-            create: UnifiedWalletController.new,
-            permanent: true,
-          );
           return GetPageRoute(page: BitcoinWalletMain.new);
         }
 

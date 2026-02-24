@@ -173,8 +173,8 @@ class SelectMint extends StatelessWidget {
     selected.value = newSelectedMint;
 
     // save last used wallet
-    final wb = Utils.getOrPutGetxController(create: UnifiedWalletController.new)
-        .getWalletById(newSelectedMint);
+    final wb =
+        Get.find<UnifiedWalletController>().getWalletById(newSelectedMint);
     if (wb != null) {
       await WalletStorageSelection.saveWallet(wb);
     }

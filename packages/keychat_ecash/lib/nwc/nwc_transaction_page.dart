@@ -6,12 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show TransactionStatus;
-import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart'
-    show TransactionType;
-import 'package:ndk/ndk.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -71,7 +68,9 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
         invoice: widget.transaction.invoice,
         paymentHash: widget.transaction.paymentHash,
       );
-      if (lookup != null && lookup.preimage.isNotEmpty) {
+      if (lookup != null &&
+          lookup.transaction.preimage != null &&
+          lookup.transaction.preimage!.isNotEmpty) {
         if (mounted) {
           setState(() {
             _isPaid = true;
@@ -109,7 +108,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          widget.transaction.type == TransactionType.incoming.name
+          widget.transaction.type == TransactionType.incoming
               ? 'Receive via NWC'
               : 'Pay via NWC',
         ),
@@ -138,13 +137,13 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
                 RichText(
                   text: TextSpan(
                     text: widget.transaction.amountSat.toString(),
-                    children: const <TextSpan>[
+                    children: <TextSpan>[
                       TextSpan(
                         text: ' sat',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
                     ],
@@ -410,7 +409,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
               ),
@@ -448,7 +447,7 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.grey[300]!,
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
             ),
           ),
           child: Row(
@@ -456,10 +455,10 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
               Expanded(
                 child: Text(
                   hash,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Courier',
                     fontSize: 11,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
@@ -499,13 +498,13 @@ class _NwcTransactionPageState extends State<NwcTransactionPage> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
         Text(
           value,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
         ),

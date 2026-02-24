@@ -8,6 +8,7 @@ import 'package:keychat/global.dart';
 import 'package:keychat/models/embedded/cashu_info.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/utils.dart';
+import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -35,40 +36,17 @@ class EcashUtils {
     'INSERT INTO promises',
   ];
 
-  static final Map<String, bool> _activeChecks = {};
-
+  /// Delegates to [LightningUtils.instance.startCheckPending] with no expiry.
   static Future<void> startCheckPending(
     Transaction tx,
     void Function(Transaction ct) callback,
-  ) async {
-    if (tx.status != TransactionStatus.pending) {
-      callback(tx);
-      return;
-    }
-
-    _activeChecks[tx.id] = true;
-
-    while (_activeChecks[tx.id] != null && (_activeChecks[tx.id] ?? false)) {
-      final ln = await rust_cashu.checkTransaction(id: tx.id);
-      if (ln.status == TransactionStatus.success ||
-          ln.status == TransactionStatus.failed) {
-        callback(ln);
-        unawaited(Get.find<UnifiedWalletController>().refreshSelectedWallet());
-        _activeChecks.remove(tx.id);
-        return;
-      }
-      logger.d('Checking status: ${tx.id}');
-      await Future<void>.delayed(const Duration(seconds: 3));
-    }
-
-    logger.d('Check stopped for transaction: ${tx.id}');
+  ) {
+    return LightningUtils.instance.startCheckPending(tx, 0, callback);
   }
 
+  /// Delegates to [LightningUtils.instance.stopCheckPending].
   static void stopCheckPending(Transaction tx) {
-    if (_activeChecks.containsKey(tx.id)) {
-      _activeChecks.remove(tx.id);
-      logger.d('Stopping check for transaction: ${tx.id}');
-    }
+    LightningUtils.instance.stopCheckPending(tx);
   }
 
   static Future<Transaction?> handleReceiveToken({
@@ -122,9 +100,8 @@ class EcashUtils {
                       setState(() {
                         isAddingMint = true;
                       });
-                      await Utils.getOrPutGetxController(
-                        create: UnifiedWalletController.new,
-                      ).addWallet(decoded.mint);
+                      await Get.find<UnifiedWalletController>()
+                          .addWallet(decoded.mint);
                       setState(() {
                         isAddingMint = false;
                       });
@@ -162,9 +139,7 @@ class EcashUtils {
 
       // Refresh balance and transactions after receiving
       try {
-        final unifiedController = Utils.getOrPutGetxController(
-          create: UnifiedWalletController.new,
-        );
+        final unifiedController = Get.find<UnifiedWalletController>();
         await unifiedController.refreshSelectedWallet(
           unifiedController.getWalletById(model.mintUrl),
         );
@@ -206,10 +181,10 @@ Please restore your ecash wallet from mint server to resolve this issue.
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () async {
+              await EcashUtils.restoreFromMintServer();
               if (Get.isDialogOpen ?? false) {
                 Get.back<void>();
               }
-              await EcashUtils.restoreFromMintServer();
             },
             child: const Text('Restore'),
           ),
@@ -381,13 +356,10 @@ Please don't close or exit the app.
 Restoring...''',
       );
       final ec = Get.find<EcashController>();
-      if (ec.currentIdentity == null) {
-        await EasyLoading.showError('No mnemonic');
-        return;
-      }
       await ec.restore();
       await EasyLoading.showToast('Successfully');
     } catch (e, s) {
+      await EasyLoading.dismiss();
       final msg = Utils.getErrorMessage(e);
       logger.e(e.toString(), error: e, stackTrace: s);
       await Get.dialog(

@@ -700,9 +700,8 @@ class ChatController extends GetxController {
 
   Future<void> _handleSendLightning() async {
     try {
-      final tx = await Utils.getOrPutGetxController(
-        create: UnifiedWalletController.new,
-      ).dialogToMakeInvoice();
+      final tx = await Get.find<UnifiedWalletController>()
+          .dialogToMakeInvoice();
 
       if (tx == null) return;
 
@@ -931,9 +930,6 @@ class ChatController extends GetxController {
         });
       }
       return;
-    }
-    if (roomObs.value.type == RoomType.bot) {
-      unawaited(_initBotInfo());
     }
   }
 

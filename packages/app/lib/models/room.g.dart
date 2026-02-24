@@ -473,12 +473,19 @@ const _RoomstatusValueEnumMap = {
   8: RoomStatus.removedFromGroup,
   9: RoomStatus.groupUser,
 };
-const _RoomtypeEnumValueMap = {'common': 0, 'private': 1, 'group': 2, 'bot': 3};
+const _RoomtypeEnumValueMap = {
+  'common': 0,
+  'private': 1,
+  'group': 2,
+  'bot': 3,
+  'freebot': 4,
+};
 const _RoomtypeValueEnumMap = {
   0: RoomType.common,
   1: RoomType.private,
   2: RoomType.group,
   3: RoomType.bot,
+  4: RoomType.freebot,
 };
 
 Id _roomGetId(Room object) {

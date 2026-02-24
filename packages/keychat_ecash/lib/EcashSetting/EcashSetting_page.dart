@@ -9,7 +9,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/setting.controller.dart';
 import 'package:keychat/global.dart';
-import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_controller.dart';

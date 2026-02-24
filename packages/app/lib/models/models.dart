@@ -25,6 +25,7 @@ export 'package:keychat/models/browser/browser_favorite.dart';
 export 'package:keychat/models/browser/browser_history.dart';
 export 'package:keychat/models/ecash_bill.dart';
 export 'package:keychat/models/signal_id.dart';
+export 'package:keychat/models/wallet_connection.dart';
 
 export 'package:keychat/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
 export 'package:keychat/page/chat/message_actions/BotPricePerMessageRequestWidget.dart';

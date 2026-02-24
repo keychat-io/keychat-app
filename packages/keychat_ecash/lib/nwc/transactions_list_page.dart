@@ -4,9 +4,8 @@ import 'package:get/get.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/utils.dart' show formatTime;
 import 'package:keychat_ecash/utils.dart' show EcashUtils;
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/nwc/index.dart';
 import 'package:keychat_ecash/nwc/nwc_transaction_page.dart';
-import 'package:ndk/ndk.dart';
 
 class TransactionsListPage extends StatefulWidget {
   const TransactionsListPage({required this.nwcUri, super.key});
@@ -73,7 +72,7 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
         });
       }
     } catch (e) {
-      // Handle error
+      EasyLoading.showError('Failed to load transactions');
     } finally {
       setState(() {
         _isLoading = false;
@@ -126,10 +125,12 @@ class _TransactionsListPageState extends State<TransactionsListPage> {
                 }
               },
               leading: Icon(
-                tx.type == 'incoming'
+                tx.type == TransactionType.incoming
                     ? Icons.arrow_downward
                     : Icons.arrow_upward,
-                color: tx.type == 'incoming' ? Colors.green : Colors.red,
+                color: tx.type == TransactionType.incoming
+                    ? Colors.green
+                    : Colors.red,
               ),
               title: Text('${tx.amountSat} sat'),
               subtitle: Column(

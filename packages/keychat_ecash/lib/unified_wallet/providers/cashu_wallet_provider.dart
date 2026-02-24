@@ -1,6 +1,7 @@
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';
+import 'package:keychat/service/wallet_connection_storage.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/unified_wallet/models/cashu_wallet.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
@@ -8,13 +9,15 @@ import 'package:keychat_ecash/unified_wallet/providers/wallet_provider.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
-/// Cashu wallet provider implementation
+/// Cashu wallet provider implementation.
 class CashuWalletProvider implements WalletProvider {
   CashuWalletProvider() {
     _ecashController = Get.find<EcashController>();
   }
 
   late final EcashController _ecashController;
+  Worker? _balanceWorker;
+  void Function(List<WalletBase> wallets)? _onWalletsChanged;
 
   @override
   WalletProtocol get protocol => WalletProtocol.cashu;
@@ -71,6 +74,7 @@ class CashuWalletProvider implements WalletProvider {
   @override
   Future<void> removeWallet(String walletId) async {
     await rust_cashu.removeMint(url: walletId);
+    await WalletConnectionStorage.instance.deleteCashuMint(walletId);
   }
 
   @override
@@ -84,9 +88,11 @@ class CashuWalletProvider implements WalletProvider {
       offset: BigInt.from(offset ?? 0),
     );
 
-    // Filter by mint if specified
+    // TODO(cashu): offset/limit are applied globally before filtering by mint,
+    // so the returned count may be less than `limit` even when more transactions
+    // exist for this mint. Needs a per-mint query API from the Rust layer.
     return transactions
-        .where((tx) => tx.mintUrl == walletId || walletId.isEmpty)
+        // .where((tx) => tx.mintUrl == walletId || walletId.isEmpty)
         .map((tx) => CashuWalletTransaction(transaction: tx))
         .toList();
   }
@@ -150,7 +156,7 @@ class CashuWalletProvider implements WalletProvider {
     }
   }
 
-  /// Create invoice and return the full transaction
+  @override
   Future<CashuWalletTransaction?> createInvoiceWithTransaction(
     String walletId,
     int amountSats,
@@ -169,5 +175,39 @@ class CashuWalletProvider implements WalletProvider {
       await EasyLoading.showError('Failed to create invoice: $e');
       return null;
     }
+  }
+
+  @override
+  void setOnWalletsChanged(void Function(List<WalletBase> wallets) callback) {
+    _onWalletsChanged = callback;
+    _balanceWorker?.dispose();
+    _balanceWorker = ever(_ecashController.mintBalances, (_) {
+      _notifyWalletsChanged();
+    });
+  }
+
+  /// Rebuild wallet list from current mint balances and notify the callback.
+  void _notifyWalletsChanged() {
+    final cb = _onWalletsChanged;
+    if (cb == null) return;
+    try {
+      final wallets = _ecashController.mintBalances.map((mintBalance) {
+        return CashuWallet(
+          mintBalance: mintBalance,
+          supportsMint: _ecashController.supportMint(mintBalance.mint),
+          supportsMelt: _ecashController.supportMelt(mintBalance.mint),
+        );
+      }).toList();
+      cb(wallets);
+    } catch (e) {
+      logger.e('Failed to notify Cashu wallets changed: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _balanceWorker?.dispose();
+    _balanceWorker = null;
+    _onWalletsChanged = null;
   }
 }

@@ -7,12 +7,16 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/nwc/nwc_controller.dart';
+import 'package:keychat_ecash/ecash_controller.dart' show EcashController;
+import 'package:keychat_ecash/keychat_ecash.dart' show EcashController;
+import 'package:keychat_ecash/lnd/lnd_controller.dart';
+import 'package:keychat_ecash/nwc/index.dart';
+import 'package:keychat_ecash/unified_wallet/models/lnd_wallet.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart' show TransactionResult;
 import 'package:url_launcher/url_launcher.dart';
 
 /// Unified Lightning transaction details page for Cashu Lightning and NWC payments.
@@ -57,15 +61,19 @@ class UnifiedTransactionPage extends StatefulWidget {
   const UnifiedTransactionPage({
     this.cashuTransaction,
     this.nwcTransaction,
+    this.lndTransaction,
     this.walletId,
     super.key,
   }) : assert(
-          cashuTransaction != null || nwcTransaction != null,
-          'Either cashuTransaction or nwcTransaction must be provided',
+          cashuTransaction != null ||
+              nwcTransaction != null ||
+              lndTransaction != null,
+          'Either cashuTransaction, nwcTransaction, or lndTransaction must be provided',
         );
 
   final Transaction? cashuTransaction;
   final TransactionResult? nwcTransaction;
+  final LndWalletTransaction? lndTransaction;
   final String? walletId;
 
   @override
@@ -75,21 +83,37 @@ class UnifiedTransactionPage extends StatefulWidget {
 class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   late Transaction? cashuTx;
   late TransactionResult? nwcTx;
+  late LndWalletTransaction? lndTx;
   Timer? _timer;
   bool _isChecking = false;
   bool _nwcIsPaid = false;
+  bool _lndIsPaid = false;
   int expiryTs = 0;
 
   bool get isCashu => cashuTx != null;
   bool get isNwc => nwcTx != null;
+  bool get isLnd => lndTx != null;
 
-  // Common getters that work for both types
+  // Common getters that work for all types
   TransactionStatus get _status {
     if (isCashu) {
       return cashuTx!.status;
+    } else if (isLnd) {
+      return _getLndStatus();
     } else {
       return _getNwcStatus();
     }
+  }
+
+  TransactionStatus _getLndStatus() {
+    if (_lndIsPaid) return TransactionStatus.success;
+    return lndTx!.status == WalletTransactionStatus.success
+        ? TransactionStatus.success
+        : lndTx!.status == WalletTransactionStatus.failed
+            ? TransactionStatus.failed
+            : lndTx!.status == WalletTransactionStatus.expired
+                ? TransactionStatus.expired
+                : TransactionStatus.pending;
   }
 
   TransactionStatus _getNwcStatus() {
@@ -126,14 +150,18 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   bool get isIncoming {
     if (isCashu) {
       return cashuTx!.io == TransactionDirection.incoming;
+    } else if (isLnd) {
+      return lndTx!.isIncoming;
     } else {
-      return nwcTx!.type == 'incoming';
+      return nwcTx!.type == TransactionType.incoming;
     }
   }
 
   int get amountSats {
     if (isCashu) {
       return cashuTx!.amount.toInt();
+    } else if (isLnd) {
+      return lndTx!.amountSats.abs();
     } else {
       return nwcTx!.amountSat;
     }
@@ -142,6 +170,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   String? get invoice {
     if (isCashu) {
       return cashuTx!.token;
+    } else if (isLnd) {
+      return lndTx!.invoice;
     } else {
       return nwcTx!.invoice;
     }
@@ -156,6 +186,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   String? get description {
     if (isCashu) {
       return cashuTx!.metadata['memo'];
+    } else if (isLnd) {
+      return lndTx!.description;
     } else {
       return nwcTx!.description;
     }
@@ -164,6 +196,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   String? get preimage {
     if (isCashu) {
       return cashuTx!.metadata['preimage'];
+    } else if (isLnd) {
+      return lndTx!.preimage;
     } else {
       return nwcTx!.preimage;
     }
@@ -174,6 +208,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
       final feeValue = cashuTx!.metadata['fee'];
       if (feeValue == null) return null;
       return int.tryParse(feeValue);
+    } else if (isLnd) {
+      return lndTx!.fee;
     } else {
       final feeValue = nwcTx!.feesPaid;
       return feeValue != null ? feeValue ~/ 1000 : null;
@@ -185,6 +221,7 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
     super.initState();
     cashuTx = widget.cashuTransaction;
     nwcTx = widget.nwcTransaction;
+    lndTx = widget.lndTransaction;
 
     _initializeTransaction();
   }
@@ -225,6 +262,47 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
     });
   }
 
+  Future<void> _checkLndStatus({bool silent = false}) async {
+    if (_isChecking || !isLnd) return;
+
+    final walletId = widget.walletId;
+    if (walletId == null) {
+      if (!silent) EasyLoading.showError('Wallet ID not found');
+      return;
+    }
+
+    _isChecking = true;
+    try {
+      if (!silent) EasyLoading.show(status: 'Checking...');
+      final controller = Get.find<LndController>();
+      final invoice = await controller.lookupInvoice(
+        walletId,
+        lndTx!.paymentHash,
+      );
+
+      if (invoice != null && invoice.settled) {
+        if (mounted) {
+          setState(() {
+            _lndIsPaid = true;
+          });
+          _timer?.cancel();
+          if (!silent) EasyLoading.showSuccess('Payment Received!');
+          // Refresh the unified wallet's transaction list
+          if (Get.isRegistered<UnifiedWalletController>()) {
+            Get.find<UnifiedWalletController>().refreshSelectedWallet();
+          }
+        }
+      } else {
+        if (!silent) EasyLoading.showToast('Not paid yet');
+      }
+    } catch (e) {
+      if (!silent) EasyLoading.showError('Check failed: $e');
+    } finally {
+      _isChecking = false;
+      if (!silent) EasyLoading.dismiss();
+    }
+  }
+
   Future<void> _checkNwcStatus({bool silent = false}) async {
     if (_isChecking || !isNwc) return;
 
@@ -245,14 +323,21 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
         paymentHash: nwcTx!.paymentHash,
       );
 
-      if (lookup != null && lookup.preimage.isNotEmpty) {
+      if (lookup != null &&
+          lookup.transaction.preimage != null &&
+          lookup.transaction.preimage!.isNotEmpty) {
         if (mounted) {
           setState(() {
             _nwcIsPaid = true;
           });
           _timer?.cancel();
           if (!silent) EasyLoading.showSuccess('Payment Received!');
-          controller.fetchTransactionsForCurrent();
+          // refreshSelectedWallet reloads NWC transactions through the
+          // unified provider, so no need to call fetchTransactionsForCurrent
+          // separately.
+          if (Get.isRegistered<UnifiedWalletController>()) {
+            Get.find<UnifiedWalletController>().refreshSelectedWallet();
+          }
         }
       } else {
         if (!silent) EasyLoading.showToast('Not paid yet');
@@ -284,7 +369,11 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
         });
       }
       if (checkedTx.status == TransactionStatus.success) {
-        Get.find<EcashController>().getBalance();
+        // refreshSelectedWallet calls CashuWalletProvider.refreshWallet
+        // which already updates the balance internally.
+        if (Get.isRegistered<UnifiedWalletController>()) {
+          Get.find<UnifiedWalletController>().refreshSelectedWallet();
+        }
       }
       await EasyLoading.showSuccess('Checked');
     } catch (e) {
@@ -479,6 +568,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
                       await _handleCashuMeltOperation();
                     } else if (isNwc) {
                       await _checkNwcStatus();
+                    } else if (isLnd) {
+                      await _checkLndStatus();
                     }
                   },
             icon: _isChecking
@@ -609,7 +700,11 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
                 _buildSecondaryInfo(
                   context,
                   'Payment Method',
-                  isCashu ? 'Cashu Lightning' : 'Nostr Wallet Connect',
+                  isCashu
+                      ? 'Cashu Lightning'
+                      : isLnd
+                          ? 'LND Lightning'
+                          : 'Nostr Wallet Connect',
                 ),
 
                 const SizedBox(height: 8),
@@ -643,6 +738,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
       // For Lightning transactions, prefer payment hash from metadata
       final paymentHash = cashuTx!.metadata['payment_hash'];
       return paymentHash ?? cashuTx!.id;
+    } else if (isLnd) {
+      return lndTx!.paymentHash;
     } else {
       return nwcTx!.paymentHash;
     }
@@ -651,6 +748,8 @@ class _UnifiedTransactionPageState extends State<UnifiedTransactionPage> {
   int _getTimestamp() {
     if (isCashu) {
       return cashuTx!.timestamp.toInt() * 1000;
+    } else if (isLnd) {
+      return lndTx!.timestamp.millisecondsSinceEpoch;
     } else {
       return nwcTx!.createdAt * 1000;
     }

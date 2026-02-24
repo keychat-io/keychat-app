@@ -24,6 +24,7 @@ import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
+import 'package:keychat_ecash/nwc/nwc_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 typedef OnMessageReceived = void Function(int type, dynamic message);
@@ -127,22 +128,6 @@ class NostrAPI {
     Storage.setInt(key, lastMessageAt + 1);
   }
 
-  // ignore: unused_element
-  Future<void> _processAUTH(List msg1, Relay relay, String message) async {
-    // Mykey mykey = await IdentityService.instance.getDefaultMykey();
-    // NostrEvent event = NostrEvent.from(
-    //     kind: EventKinds.NIP42,
-    //     tags: [
-    //       ["relay", relay.url],
-    //       ["challenge", msg1[1]]
-    //     ],
-    //     content: '',
-    //     privkey: mykey.prikey);
-
-    // String serializeStr = event.serialize('AUTH');
-    // logger.i('auth: $serializeStr');
-    // sendMessageFunction(serializeStr);
-  }
   List<(NostrEventModel, List, String, Relay)> toProccessEventsPool = [];
   Future<void> _proccessEvent01(List eventList, Relay relay, String raw) async {
     final event = NostrEventModel.deserialize(eventList, verify: false);
@@ -188,11 +173,14 @@ class NostrAPI {
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
       case EventKinds.textNote:
-        // await Get.find<WorldController>().processEvent(event);
-        break;
-      case EventKinds.nip47:
+      // await Get.find<WorldController>().processEvent(event);
+      case EventKinds.nwcRequest:
+        logger.d('revived nwcRequest: $eventList');
         await Utils.getGetxController<NostrWalletConnectController>()
             ?.processEvent(relay, event);
+      case EventKinds.nwcResponse:
+        logger.d('revived nwcResponse: $eventList');
+        await _processNwcResponse(event, eventList);
       default:
         logger.i('revived: $eventList');
     }
@@ -207,6 +195,26 @@ class NostrAPI {
     //       pubkey: profile['pubkey'],
     //       petname: profile['petname']);
     // }
+  }
+
+  /// Processes NWC response events (kind 23195) and routes them to NwcController.
+  Future<void> _processNwcResponse(
+    NostrEventModel event,
+    List<dynamic> eventList,
+  ) async {
+    try {
+      final nwcController = Utils.getGetxController<NwcController>();
+      if (nwcController == null) {
+        logger.d('NwcController not found, skipping NWC response');
+        return;
+      }
+
+      // Convert event to map format for processing
+      final eventData = eventList[2] as Map<String, dynamic>;
+      await nwcController.processResponseEvent(eventData);
+    } catch (e, s) {
+      logger.e('Error processing NWC response', error: e, stackTrace: s);
+    }
   }
 
   Future<Request> syncContact(String pubkey) async {
@@ -569,8 +577,8 @@ class NostrAPI {
     void Function(String error) failedCallback,
   ) async {
     final content = await decryptNip4Content(sourceEvent);
+    logger.e('decryptNip4Content: $content');
     if (content == null) {
-      logger.e('decryptNip4Content error: ${sourceEvent.id}');
       failedCallback('Nip04 ecrypt error');
       return;
     }

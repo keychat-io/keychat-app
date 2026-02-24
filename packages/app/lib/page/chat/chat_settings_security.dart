@@ -53,6 +53,7 @@ class ChatSettingSecurity extends StatelessWidget {
                                 return;
                               }
                               cc.roomObs.value.encryptMode = EncryptMode.nip04;
+                              cc.roomObs.value.status = RoomStatus.enabled;
                               await RoomService.instance.updateRoomAndRefresh(
                                 cc.roomObs.value,
                               );
@@ -68,6 +69,7 @@ class ChatSettingSecurity extends StatelessWidget {
                                 return;
                               }
                               cc.roomObs.value.encryptMode = EncryptMode.nip17;
+                              cc.roomObs.value.status = RoomStatus.enabled;
                               await RoomService.instance.updateRoomAndRefresh(
                                 cc.roomObs.value,
                               );

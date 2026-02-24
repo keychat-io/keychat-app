@@ -26,9 +26,7 @@ class PayInvoiceController extends GetxController {
   void onInit() {
     textController = TextEditingController(text: invoice);
     selectedInvoice.value = invoice ?? '';
-    unifiedWalletController = Utils.getOrPutGetxController(
-      create: UnifiedWalletController.new,
-    );
+    unifiedWalletController = Get.find<UnifiedWalletController>();
 
     textController.addListener(() {
       EasyThrottle.throttle('invoice', const Duration(milliseconds: 1000),
@@ -78,7 +76,7 @@ class PayInvoiceController extends GetxController {
           walletSelection.id,
           invoice,
         );
-        if (tx != null) {
+        if (tx != null && !isClosed) {
           textController.clear();
         }
         return tx;
@@ -105,7 +103,7 @@ class PayInvoiceController extends GetxController {
                   walletSelection.id,
                   invoice,
                 );
-                if (tx != null) {
+                if (tx != null && !isClosed) {
                   textController.clear();
                 }
                 Get.back(result: tx);

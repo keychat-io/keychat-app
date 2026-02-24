@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:keychat/app.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/desktop/DeskBrowser.dart';
@@ -8,11 +6,9 @@ import 'package:keychat/desktop/DeskRoomList.dart';
 import 'package:keychat/desktop/DeskSetting.dart';
 import 'package:keychat/desktop/DesktopController.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:sidebarx/sidebarx.dart';
 
 class DesktopMain extends GetView<DesktopController> {
@@ -135,14 +131,7 @@ class HomeSidebarX extends GetView<DesktopController> {
               size: iconSize,
             );
           },
-          onTap: () {
-            unawaited(
-              Utils.getOrPutGetxController(
-                create: UnifiedWalletController.new,
-                permanent: true,
-              ).checkAndReloadNwcIfNeeded(),
-            );
-          },
+          onTap: () {},
         ),
         const SidebarXItem(icon: CupertinoIcons.person),
       ],

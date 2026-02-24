@@ -264,6 +264,8 @@ class NostrWalletConnectController extends GetxController {
     }
   }
 
+// 1770454533
+// 1770454471
   Future<void> _sendMessage(String relay, String message, {String? id}) async {
     loggerNoLine.d('send message: $message');
     final encrypted = await encrypt(

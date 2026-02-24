@@ -162,14 +162,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
-  bech32:
-    dependency: transitive
-    description:
-      name: bech32
-      sha256: "156cbace936f7720c79a79d16a03efad343b1ef17106716e04b8b8e39f99f7f7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.2"
   bip21_uri:
     dependency: transitive
     description:
@@ -179,14 +171,6 @@ packages:
       url: "https://github.com/keychat-io/dart-bip21-uri.git"
     source: git
     version: "2.2.0"
-  bip340:
-    dependency: transitive
-    description:
-      name: bip340
-      sha256: b7bcd70a860e605046006adaa72bc4f7453f4d31d7ba74a4ad9d5de387a0fc0b
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -427,14 +411,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-  cryptography:
-    dependency: transitive
-    description:
-      name: cryptography
-      sha256: "3eda3029d34ec9095a27a198ac9785630fe525c0eb6a49f3d575272f8e792ef0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.9.0"
   csslib:
     dependency: transitive
     description:
@@ -531,14 +507,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
-  elliptic:
-    dependency: transitive
-    description:
-      name: elliptic
-      sha256: "67931d408faa353bdebac9f7a1df0c3f6f828f4e8439cdf084573cd1601a2f4b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.12"
   emoji_picker_flutter:
     dependency: transitive
     description:
@@ -1446,14 +1414,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
-  ndk:
-    dependency: transitive
-    description:
-      name: ndk
-      sha256: cb72cf29475ec0a1e0e7b7c41299e5e18b77c816d35c96c85c0b0389bd272059
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.0"
   nested:
     dependency: transitive
     description:

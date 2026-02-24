@@ -168,11 +168,13 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
         invoice: _cashuInfoModel.token,
       );
       if (res != null) {
-        if (res.settledAt != null) {
+        if (res.transaction.settledAt != null) {
           await updateMessageEcashStatus(TransactionStatus.success);
           return;
         }
-        if (res.expiresAt * 1000 < DateTime.now().millisecondsSinceEpoch) {
+        if (res.transaction.expiresAt != null &&
+            res.transaction.expiresAt! * 1000 <
+                DateTime.now().millisecondsSinceEpoch) {
           await updateMessageEcashStatus(TransactionStatus.expired);
           return;
         }

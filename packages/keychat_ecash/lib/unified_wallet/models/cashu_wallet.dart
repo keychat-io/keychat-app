@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:keychat/global.dart';
+import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat_ecash/Bills/cashu_transaction.dart';
+import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/pages/unified_transaction_page.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
@@ -52,6 +55,9 @@ class CashuWallet extends WalletBase {
 
   @override
   MintBalanceClass get rawData => mintBalance;
+
+  @override
+  Widget settingsPage() => MintServerPage(mintBalance);
 
   /// Extract a friendly name from mint URL
   String _extractMintName(String mintUrl) {
@@ -122,4 +128,26 @@ class CashuWalletTransaction extends WalletTransactionBase {
 
   @override
   String get paymentHash => transaction.id;
+
+  @override
+  String? get invoice => transaction.token;
+
+  @override
+  void navigateToTransactionDetail({String? walletId}) {
+    final isLightning = transaction.kind == TransactionKind.ln;
+    if (isLightning) {
+      Get.to<void>(
+        () => UnifiedTransactionPage(
+          cashuTransaction: transaction,
+          walletId: transaction.mintUrl,
+        ),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    } else {
+      Get.to<void>(
+        () => CashuTransactionPage(transaction: transaction),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+      );
+    }
+  }
 }

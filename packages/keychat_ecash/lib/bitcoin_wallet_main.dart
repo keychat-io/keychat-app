@@ -12,14 +12,11 @@ import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_page.dart';
-import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/cashu_send.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:ndk/ndk.dart';
 
 class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   const BitcoinWalletMain({super.key});
@@ -52,62 +49,61 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
       ),
       bottomNavigationBar: _buildBottomBar(context),
       body: DesktopContainer(
-        child: Obx(() {
-          if (controller.isLoading.value && controller.wallets.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final indicatorController = IndicatorController();
-          return CustomRefreshIndicator(
-            controller: indicatorController,
-            onRefresh: () async {
-              if (indicatorController.side == IndicatorSide.top) {
-                // Pull down - refresh all
-                await controller.refreshAll();
-              } else if (indicatorController.side == IndicatorSide.bottom) {
-                // Pull up - load more
-                await controller.loadMoreTransactions();
-              }
-            },
-            trigger: IndicatorTrigger.bothEdges,
-            builder: (context, child, indicatorController) {
-              return Stack(
+        child: Builder(
+          builder: (context) {
+            final indicatorController = IndicatorController();
+            return CustomRefreshIndicator(
+              controller: indicatorController,
+              onRefresh: () async {
+                if (indicatorController.side == IndicatorSide.top) {
+                  // Pull down - refresh all
+                  await controller.refreshAll();
+                } else if (indicatorController.side == IndicatorSide.bottom) {
+                  // Pull up - load more
+                  await controller.loadMoreTransactions();
+                }
+              },
+              trigger: IndicatorTrigger.bothEdges,
+              builder: (context, child, indicatorController) {
+                return Stack(
+                  children: [
+                    child,
+                    // Top refresh indicator
+                    if (indicatorController.side == IndicatorSide.top)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildRefreshIndicator(indicatorController),
+                      ),
+                    // Bottom load more indicator
+                    if (indicatorController.side == IndicatorSide.bottom)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildLoadMorePullIndicator(indicatorController),
+                      ),
+                  ],
+                );
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  child,
-                  // Top refresh indicator
-                  if (indicatorController.side == IndicatorSide.top)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildRefreshIndicator(indicatorController),
-                    ),
-                  // Bottom load more indicator
-                  if (indicatorController.side == IndicatorSide.bottom)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildLoadMorePullIndicator(indicatorController),
-                    ),
+                  // Total Balance Section
+                  _buildTotalBalanceSection(context),
+                  // Wallet Cards Carousel
+                  _buildWalletCarousel(context),
+                  // Transactions Section
+                  _buildTransactionsHeader(context),
+                  // Transaction List
+                  _buildTransactionsList(context),
+                  const SizedBox(height: 40),
                 ],
-              );
-            },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                // Total Balance Section
-                _buildTotalBalanceSection(context),
-                // Wallet Cards Carousel
-                _buildWalletCarousel(context),
-                // Transactions Section
-                _buildTransactionsHeader(context),
-                // Transaction List
-                _buildTransactionsList(context),
-                const SizedBox(height: 40),
-              ],
-            ),
-          );
-        }),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -161,7 +157,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   Widget _buildAddCard(BuildContext context) {
     return GestureDetector(
       child: Container(
-        width: MediaQuery.of(context).size.width / 2,
+        width: 260,
         margin: const EdgeInsets.symmetric(horizontal: 5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
@@ -185,7 +181,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               'Add Wallet',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            textSmallGray(context, 'Cashu or NWC wallet'),
+            textSmallGray(context, 'Cashu, NWC'), //, or LND wallet
           ],
         ),
       ),
@@ -214,7 +210,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
           ),
           child: protocol == WalletProtocol.cashu
               ? _buildCashuActions(context)
-              : _buildNwcActions(context),
+              : _buildLightningActions(context),
         ),
       );
     });
@@ -319,8 +315,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Build NWC wallet actions (2 buttons)
-  Widget _buildNwcActions(BuildContext context) {
+  /// Build Lightning wallet actions for NWC and LND (2 buttons)
+  Widget _buildLightningActions(BuildContext context) {
     // Pay uses red/orange tones, Receive uses green tones
     const payColor = Colors.redAccent;
     const receiveColor = Colors.green;
@@ -358,6 +354,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final (label, color) = switch (protocol) {
       WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
       WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+      WalletProtocol.lnd => ('LND', Colors.purple),
+      WalletProtocol.lightningPub => ('pub', Colors.pink)
     };
 
     return Container(
@@ -453,6 +451,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final (label, color) = switch (protocol) {
       WalletProtocol.cashu => ('Cashu', KeychatGlobal.secondaryColor),
       WalletProtocol.nwc => ('NWC', KeychatGlobal.bitcoinColor),
+      WalletProtocol.lnd => ('LND', Colors.purple),
+      WalletProtocol.lightningPub => ('pub', Colors.pink)
     };
 
     return Container(
@@ -620,31 +620,6 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Transaction type badge for Cashu (Ecash/Lightning)
-  Widget _buildTransactionTypeBadge(CashuWalletTransaction transaction) {
-    final isLightning = transaction.rawData.kind == TransactionKind.ln;
-    final (label, color) = isLightning
-        ? ('Lightning', KeychatGlobal.bitcoinColor)
-        : ('Ecash', KeychatGlobal.secondaryColor);
-
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(50),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   /// Individual wallet card widget
   Widget _buildWalletCard(BuildContext context, WalletBase wallet, int index) {
     // Generate gradient colors based on wallet
@@ -751,23 +726,25 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     );
   }
 
-  /// Wallet cards carousel
+  /// Wallet cards carousel with desktop left/right arrow navigation.
   Widget _buildWalletCarousel(BuildContext context) {
     return Obx(
-      () => Padding(
-        padding: const EdgeInsets.only(left: 10),
-        child: ScrollConfiguration(
+      () {
+        final totalItems = controller.wallets.length + 1; // wallets + add card
+        final carousel = ScrollConfiguration(
           behavior: MyCustomScrollBehavior(),
           child: CarouselSlider(
+            carouselController: controller.carouselController,
             disableGesture: false,
             options: CarouselOptions(
               height: 160,
-              padEnds: false,
-              viewportFraction: GetPlatform.isDesktop ? 0.4 : 0.7,
+              viewportFraction: GetPlatform.isDesktop ? 0.35 : 0.6,
               enableInfiniteScroll: false,
+              padEnds: false,
+              initialPage: controller.selectedIndex.value,
               onPageChanged: (index, reason) async {
                 if (index < controller.wallets.length) {
-                  await controller.selectWallet(index);
+                  await controller.selectWallet(index, fromCarousel: true);
                 }
               },
             ),
@@ -782,8 +759,54 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               _buildAddCard(context),
             ],
           ),
-        ),
-      ),
+        );
+
+        // On desktop, wrap with left/right arrow buttons when more than 3 cards
+        if (!GetPlatform.isDesktop || totalItems <= 3) return carousel;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            carousel,
+            // Left arrow
+            Positioned(
+              left: 0,
+              child: IconButton(
+                onPressed: () {
+                  controller.carouselController.previousPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(CupertinoIcons.chevron_left, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surface.withAlpha(200),
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+            // Right arrow
+            Positioned(
+              right: 0,
+              child: IconButton(
+                onPressed: () {
+                  controller.carouselController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(CupertinoIcons.chevron_right, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surface.withAlpha(200),
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -799,11 +822,14 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   /// Get gradient colors for wallet card
   List<Color> _getWalletGradientColors(WalletBase wallet) {
     final hash = wallet.id.hashCode;
+    final primaryColor = switch (wallet.protocol) {
+      WalletProtocol.cashu => KeychatGlobal.secondaryColor,
+      WalletProtocol.nwc => KeychatGlobal.bitcoinColor,
+      WalletProtocol.lnd => Colors.purple,
+      WalletProtocol.lightningPub => Colors.pink
+    };
     return [
-      if (wallet.protocol == WalletProtocol.cashu)
-        KeychatGlobal.secondaryColor.withAlpha(100)
-      else
-        KeychatGlobal.bitcoinColor.withAlpha(100),
+      primaryColor.withAlpha(100),
       Color((hash & 0xFFFFFF) | 0x40000000),
     ];
   }
@@ -889,29 +915,9 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final tx = await Get.find<EcashController>().dialogToPayInvoice();
     if (tx == null) return;
 
-    // Handle NWC payment result
-    if (tx.rawData is TransactionResult) {
-      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          nwcTransaction: tx.rawData as TransactionResult,
-          walletId: nwcUri,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      return;
-    }
-
-    // Handle Cashu Lightning payment result
-    if (tx.rawData is Transaction) {
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          cashuTransaction: tx.rawData as Transaction,
-          walletId: (tx.rawData as Transaction).mintUrl,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
+    tx.navigateToTransactionDetail(
+      walletId: tx.walletId ?? controller.selectedWallet.id,
+    );
   }
 
   Future<void> _handleReceiveEcash() async {
@@ -954,29 +960,10 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   Future<void> _handleReceiveLightning() async {
     final tx = await controller.dialogToMakeInvoice();
     if (tx == null) return;
-    // Handle NWC invoice result
-    if (tx.rawData is TransactionResult) {
-      final nwcUri = tx.walletId ?? controller.selectedWallet.id;
 
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          nwcTransaction: tx.rawData as TransactionResult,
-          walletId: nwcUri,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-      return;
-    }
-    // Handle Cashu Lightning invoice result
-    if (tx.rawData is Transaction) {
-      await Get.to<void>(
-        () => UnifiedTransactionPage(
-          cashuTransaction: tx.rawData as Transaction,
-          walletId: (tx.rawData as Transaction).mintUrl,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
+    tx.navigateToTransactionDetail(
+      walletId: tx.walletId ?? controller.selectedWallet.id,
+    );
   }
 
   void _navigateToSettings() {
@@ -989,55 +976,20 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
 
   /// Handle transaction tap - navigate to transaction details
   void _onTransactionTap(WalletTransactionBase transaction) {
-    if (transaction is CashuWalletTransaction) {
-      final tx = transaction.rawData;
-      final isLightning = tx.kind == TransactionKind.ln;
-
-      if (isLightning) {
-        // Use unified page for Cashu Lightning transactions
-        Get.to<void>(
-          () => UnifiedTransactionPage(
-            cashuTransaction: tx,
-            walletId: tx.mintUrl,
-          ),
-          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-        );
-      } else {
-        // Use Cashu-specific page for Ecash transactions
-        Get.to<void>(
-          () => CashuTransactionPage(transaction: tx),
-          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-        );
-      }
-    } else if (transaction is NwcWalletTransaction) {
-      // Use unified page for NWC Lightning transactions
-      final wallet = controller.selectedWallet;
-      Get.to<void>(
-        () => UnifiedTransactionPage(
-          nwcTransaction: transaction.rawData,
-          walletId: wallet is NwcWallet ? wallet.id : null,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
+    transaction.navigateToTransactionDetail(
+      walletId: controller.selectedWallet.id,
+    );
   }
 
   /// Handle wallet card tap - navigate to wallet details
   Future<void> _onWalletCardTap(WalletBase wallet) async {
-    bool? deleted;
-    if (wallet is CashuWallet) {
-      deleted = await Get.to<bool>(
-        () => MintServerPage(wallet.rawData),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    } else if (wallet is NwcWallet) {
-      deleted = await Get.to<bool>(
-        () => NwcSettingPage(connection: wallet.rawData),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    }
+    final deleted = await Get.to<bool>(
+      () => wallet.settingsPage(),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
     if (deleted ?? false) {
-      await controller.selectWallet(0);
+      // refreshAll reloads all wallets and transactions.
+      // _syncSelectedIndex handles selection after deletion.
       await controller.refreshAll();
     }
   }
@@ -1051,7 +1003,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
 
     if (walletType == null) {
       await EasyLoading.showError(
-        'Invalid input. Please enter a valid Cashu mint URL or NWC connection string.',
+        'Invalid input. Please enter a valid Cashu mint URL, NWC, or LND connection string.',
       );
       return;
     }
@@ -1065,7 +1017,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
       CupertinoActionSheet(
         title: const Text('Add Wallet'),
         message: const Text(
-          'Paste a Cashu mint URL or NWC connection string',
+          'Paste a Cashu mint URL, NWC string', // , or LND connection
         ),
         actions: [
           CupertinoActionSheetAction(

@@ -18,10 +18,12 @@ import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/service/unifiedpush.service.dart';
+import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat/utils/MyCustomScrollBehavior.dart';
 import 'package:keychat/utils/config.dart' as env_config;
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 
 bool isProdEnv = true;
@@ -55,9 +57,9 @@ void main(List<String> args) async {
     enableLog: kDebugMode,
     logWriterCallback: _logWriterCallback,
     defaultPopGesture: true,
-    defaultTransition: GetPlatform.isDesktop
-        ? Transition.fadeIn
-        : Transition.cupertino,
+    defaultTransition: GetPlatform.isMobile
+        ? Transition.cupertino
+        : Transition.fade,
   );
   final initialRoute = await getInitRoute(isLogin: isLogin);
   final getMaterialApp = GetMaterialApp(
@@ -132,6 +134,8 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
     ..put(MultiWebviewController(), permanent: true)
     ..putAsync(() => ChatxService().init(dbPath), permanent: true)
     ..put(HomeController(), permanent: true)
+    ..lazyPut(WebsocketService.new, fenix: true)
+    ..lazyPut(UnifiedWalletController.new, fenix: true)
     ..lazyPut(DesktopController.new, fenix: true);
   return sc;
 }

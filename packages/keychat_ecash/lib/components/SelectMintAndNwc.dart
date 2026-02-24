@@ -23,9 +23,7 @@ class _SelectMintAndNwcState extends State<SelectMintAndNwc> {
   void initState() {
     super.initState();
     ecashController = Get.find<EcashController>();
-    unifiedWalletController = Utils.getOrPutGetxController(
-      create: UnifiedWalletController.new,
-    );
+    unifiedWalletController = Get.find<UnifiedWalletController>();
   }
 
   @override

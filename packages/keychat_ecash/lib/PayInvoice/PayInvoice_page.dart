@@ -37,9 +37,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
   void initState() {
     controller = Get.put(PayInvoiceController(invoice: widget.invoce));
     ecashController = Get.find<EcashController>();
-    unifiedWalletController = Utils.getOrPutGetxController(
-      create: UnifiedWalletController.new,
-    );
+    unifiedWalletController = Get.find<UnifiedWalletController>();
     super.initState();
   }
 

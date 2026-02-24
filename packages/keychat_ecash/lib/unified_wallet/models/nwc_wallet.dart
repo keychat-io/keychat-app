@@ -1,19 +1,20 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
 import 'package:keychat_ecash/nwc/index.dart';
-import 'package:ndk/domain_layer/usecases/nwc/consts/transaction_type.dart';
-import 'package:ndk/ndk.dart';
+import 'package:keychat_ecash/nwc/nwc_setting_page.dart';
+import 'package:keychat_ecash/unified_wallet/models/wallet_base.dart';
+import 'package:keychat_ecash/unified_wallet/pages/unified_transaction_page.dart';
 
-/// NWC (Nostr Wallet Connect) wallet implementation
+/// NWC (Nostr Wallet Connect) wallet implementation.
 class NwcWallet extends WalletBase {
+  /// Creates a new NwcWallet.
   NwcWallet({required this.connection});
 
   final ActiveNwcConnection connection;
 
   @override
-  String get id => connection.info.uri;
+  String get id => connection.identifier;
 
   @override
   String get displayName =>
@@ -52,10 +53,13 @@ class NwcWallet extends WalletBase {
   @override
   ActiveNwcConnection get rawData => connection;
 
-  /// Max spending budget (if available)
+  @override
+  Widget settingsPage() => NwcSettingPage(connection: connection);
+
+  /// Max spending budget (if available).
   int? get maxBudget => connection.balance?.maxAmount;
 
-  /// Extract wallet name from NWC URI
+  /// Extracts wallet name from NWC URI.
   String _extractWalletName(String uri) {
     try {
       // NWC URIs typically contain relay info
@@ -70,8 +74,9 @@ class NwcWallet extends WalletBase {
   }
 }
 
-/// NWC transaction wrapper
+/// NWC transaction wrapper.
 class NwcWalletTransaction extends WalletTransactionBase {
+  /// Creates a new NwcWalletTransaction.
   NwcWalletTransaction({required this.transaction, this.walletId});
 
   final TransactionResult transaction;
@@ -86,7 +91,7 @@ class NwcWalletTransaction extends WalletTransactionBase {
   int get amountSats {
     // NWC amounts are in millisats
     final amount = (transaction.amount / 1000).floor();
-    return transaction.type == TransactionType.incoming.name ? amount : -amount;
+    return transaction.type == TransactionType.incoming ? amount : -amount;
   }
 
   @override
@@ -102,24 +107,13 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   WalletTransactionStatus get status {
-    // NWC doesn't have explicit status, infer from settledAt
-    if (transaction.state == 'settled' || transaction.settledAt != null) {
-      return WalletTransactionStatus.success;
-    }
-    // Check if pending transaction has expired
-    if (transaction.expiresAt != null) {
-      final now = DateTime.now();
-      final expiryDate =
-          DateTime.fromMillisecondsSinceEpoch(transaction.expiresAt! * 1000);
-      if (now.isAfter(expiryDate)) {
-        return WalletTransactionStatus.expired;
-      }
-    }
+    if (transaction.isSettled) return WalletTransactionStatus.success;
+    if (transaction.isExpired) return WalletTransactionStatus.expired;
     return WalletTransactionStatus.pending;
   }
 
   @override
-  bool get isIncoming => transaction.type == TransactionType.incoming.name;
+  bool get isIncoming => transaction.type == TransactionType.incoming;
 
   @override
   WalletProtocol get protocol => WalletProtocol.nwc;
@@ -139,4 +133,18 @@ class NwcWalletTransaction extends WalletTransactionBase {
 
   @override
   String get paymentHash => transaction.paymentHash;
+
+  @override
+  String? get invoice => transaction.invoice;
+
+  @override
+  void navigateToTransactionDetail({String? walletId}) {
+    Get.to<void>(
+      () => UnifiedTransactionPage(
+        nwcTransaction: transaction,
+        walletId: walletId,
+      ),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
+  }
 }

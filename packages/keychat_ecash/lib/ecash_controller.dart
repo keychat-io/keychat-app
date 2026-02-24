@@ -11,6 +11,7 @@ import 'package:keychat/app.dart';
 import 'package:keychat/rust_api.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/secure_storage.dart';
+import 'package:keychat/service/wallet_connection_storage.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
@@ -23,6 +24,7 @@ class EcashDBVersion {
   static const int v0 = 0; // not initial version
   static const int v1 = 1; // initial version
   static const int v2 = 2;
+  static const int v3 = 3; // cashu mints saved to WalletConnection
 }
 
 class EcashController extends GetxController {
@@ -70,7 +72,7 @@ class EcashController extends GetxController {
       }
     });
 
-    timeoutTimer = Timer(const Duration(seconds: 5), () {
+    timeoutTimer = Timer(const Duration(seconds: 10), () {
       if (!completer.isCompleted) {
         worker.dispose();
         completer.complete(false);
@@ -146,7 +148,7 @@ class EcashController extends GetxController {
   Future<bool> upgradeToV2() async {
     final ecashDBVersion =
         Storage.getIntOrZero(StorageKeyString.ecashDBVersion);
-    if (ecashDBVersion == EcashDBVersion.v2) return false;
+    if (ecashDBVersion >= EcashDBVersion.v2) return false;
 
     final dbV1Path = '$dbPath${KeychatGlobal.ecashDBFileV1}';
     final dbV2Path = '$dbPath${KeychatGlobal.ecashDBFileV2}';
@@ -203,6 +205,20 @@ class EcashController extends GetxController {
       );
     }
     await _initCashuMints();
+    await _migrateToV3();
+  }
+
+  /// Migrates Cashu mint URLs to the WalletConnection registry.
+  Future<void> _migrateToV3() async {
+    final version = Storage.getIntOrZero(StorageKeyString.ecashDBVersion);
+    if (version >= EcashDBVersion.v3) return;
+
+    final storage = WalletConnectionStorage.instance;
+    for (final m in mints) {
+      await storage.addCashuMint(m.url);
+    }
+    await Storage.setInt(StorageKeyString.ecashDBVersion, EcashDBVersion.v3);
+    logger.i('Migrated ${mints.length} Cashu mints to WalletConnection');
   }
 
   @override
@@ -353,6 +369,7 @@ class EcashController extends GetxController {
     mints.value = await rust_cashu.getMints();
     mints.refresh();
     await getBalance();
+    await WalletConnectionStorage.instance.addCashuMint(mint);
   }
 
   Future<void> restore() async {

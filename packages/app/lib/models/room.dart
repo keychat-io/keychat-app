@@ -20,6 +20,7 @@ enum RoomType {
   private,
   group,
   bot,
+  freebot,
 }
 
 enum GroupType {

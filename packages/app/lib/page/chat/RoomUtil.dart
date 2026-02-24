@@ -1,5 +1,6 @@
 import 'dart:convert' show jsonDecode;
 
+import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -845,6 +846,8 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
+        case MessageMediaType.voiceNote:
+          return VoiceMessageBubble(message: message);
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(

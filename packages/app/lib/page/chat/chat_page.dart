@@ -28,6 +28,12 @@ import 'package:keychat/service/signal_chat.service.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:image_picker/image_picker.dart' show XFile;
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/models/message.dart';
+import 'package:keychat/service/voice_record.service.dart';
+import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({this.room, super.key});
@@ -46,6 +52,9 @@ class _ChatPage2State extends State<ChatPage> {
   late MarkdownConfig markdownDarkConfig;
   late MarkdownConfig markdownLightConfig;
   bool isSendGreeting = false;
+  bool _isRecording = false;
+  bool _isCancellingRecord = false;
+  Offset _recordStartPos = Offset.zero;
   late Room room;
 
   @override
@@ -82,6 +91,65 @@ class _ChatPage2State extends State<ChatPage> {
       ],
     );
     super.initState();
+  }
+
+  Future<void> _startVoiceRecording() async {
+    try {
+      await VoiceRecordService.instance.startRecording();
+      setState(() {
+        _isRecording = true;
+        _isCancellingRecord = false;
+      });
+    } catch (e) {
+      debugPrint('Voice recording failed: $e');
+    }
+  }
+
+  Future<void> _stopAndSendVoiceRecording() async {
+    if (!_isRecording) return;
+
+    setState(() => _isRecording = false);
+
+    final result = await VoiceRecordService.instance.stopRecording();
+    if (result == null || result.duration < 1) {
+      await VoiceRecordService.instance.cancelRecording();
+      return;
+    }
+
+    final ctrl = Get.find<ChatController>(tag: widget.identity.toString());
+    final rm = ctrl.room;
+
+    try {
+      final xfile = XFile(result.filePath);
+      final mfi = await FileService.instance.encryptToSendFile(
+        rm,
+        xfile,
+        MessageMediaType.voiceNote,
+      );
+
+      if (mfi != null && mfi.fileInfo != null) {
+        mfi.isVoiceNote = true;
+        mfi.duration = result.duration;
+        mfi.waveform = result.waveform;
+
+        await RoomService.instance.sendMessage(
+          rm,
+          mfi.getUriString('voiceNote'),
+          realMessage: mfi.toString(),
+          mediaType: MessageMediaType.voiceNote,
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to send voice message: $e');
+    }
+  }
+
+  Future<void> _cancelVoiceRecording() async {
+    await VoiceRecordService.instance.cancelRecording();
+    setState(() {
+      _isRecording = false;
+      _isCancellingRecord = false;
+    });
   }
 
   @override
@@ -317,6 +385,33 @@ class _ChatPage2State extends State<ChatPage> {
       child: Column(
         children: [
           _getReplyWidget(),
+          if (_isRecording)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: _isCancellingRecord
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : Colors.blue.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  Icon(
+                    _isCancellingRecord
+                        ? CupertinoIcons.xmark_circle
+                        : CupertinoIcons.waveform,
+                    color: _isCancellingRecord ? Colors.red : Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isCancellingRecord
+                        ? 'Release to cancel'
+                        : '◀ Slide to cancel',
+                    style: TextStyle(
+                      color: _isCancellingRecord ? Colors.red : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Container(
             padding: EdgeInsets.only(
               bottom: 8,
@@ -538,17 +633,56 @@ class _ChatPage2State extends State<ChatPage> {
                     ),
                   ),
                 ),
-                IconButton(
-                  iconSize: 28,
-                  padding: EdgeInsets.zero,
-                  onPressed: handleMessageSend,
-                  icon: controller.inputText.value.isNotEmpty
-                      ? const Icon(
+                controller.inputText.value.isNotEmpty
+                    ? IconButton(
+                        iconSize: 28,
+                        padding: EdgeInsets.zero,
+                        onPressed: handleMessageSend,
+                        icon: const Icon(
                           CupertinoIcons.arrow_up_circle_fill,
                           color: KeychatGlobal.primaryColor,
-                        )
-                      : const Icon(CupertinoIcons.add_circled),
-                ),
+                        ),
+                      )
+                    : _isRecording
+                        ? const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: Icon(
+                              CupertinoIcons.stop_circle,
+                              color: Colors.red,
+                              size: 28,
+                            ),
+                          )
+                        : GestureDetector(
+                            onLongPressStart: (details) {
+                              _recordStartPos = details.globalPosition;
+                              _startVoiceRecording();
+                            },
+                            onLongPressMoveUpdate: (details) {
+                              final dx = details.globalPosition.dx -
+                                  _recordStartPos.dx;
+                              setState(() {
+                                _isCancellingRecord = dx < -80;
+                              });
+                            },
+                            onLongPressEnd: (_) {
+                              if (_isCancellingRecord) {
+                                _cancelVoiceRecording();
+                              } else {
+                                _stopAndSendVoiceRecording();
+                              }
+                            },
+                            child: IconButton(
+                              iconSize: 28,
+                              padding: EdgeInsets.zero,
+                              onPressed: () {
+                                controller.hideAdd.value =
+                                    !controller.hideAdd.value;
+                                controller.hideEmoji.value = true;
+                              },
+                              icon: const Icon(CupertinoIcons.mic_circle),
+                            ),
+                          ),
               ],
             ),
           ),

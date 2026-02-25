@@ -4,18 +4,20 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:keychat/models/message.dart';
 
 class VoiceMessageBubble extends StatefulWidget {
   const VoiceMessageBubble({
+    // required this.audioUrl,
+    required this.message,
     super.key,
-    required this.audioUrl,
     this.duration,
     this.waveformBase64,
     this.isFromMe = false,
   });
-
-  final String audioUrl;      // local file path or remote URL
-  final int? duration;         // seconds
+  final Message message;
+  String get audioUrl => message.content; // TODOlocal file path or remote URL
+  final int? duration; // seconds
   final String? waveformBase64;
   final bool isFromMe;
 
@@ -28,7 +30,7 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _totalDuration = Duration.zero;
-  double _playbackSpeed = 1.0;
+  double _playbackSpeed = 1;
   List<double> _waveformData = [];
 
   @override
@@ -43,23 +45,23 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
       _waveformData = List.filled(50, 0.3); // default flat waveform
       return;
     }
-    
+
     try {
       final bytes = base64Decode(widget.waveformBase64!);
       final samples = <double>[];
       var bitPos = 0;
-      
+
       while (bitPos + 5 <= bytes.length * 8) {
         var value = 0;
         for (var bit = 0; bit < 5; bit++) {
           if (bytes[(bitPos + bit) ~/ 8] & (1 << ((bitPos + bit) % 8)) != 0) {
-            value |= (1 << bit);
+            value |= 1 << bit;
           }
         }
         samples.add(value / 31.0);
         bitPos += 5;
       }
-      
+
       _waveformData = samples.isEmpty ? List.filled(50, 0.3) : samples;
     } catch (_) {
       _waveformData = List.filled(50, 0.3);
@@ -68,20 +70,21 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
 
   Future<void> _initPlayer() async {
     try {
-      if (widget.audioUrl.startsWith('/') || widget.audioUrl.startsWith('file:')) {
+      if (widget.audioUrl.startsWith('/') ||
+          widget.audioUrl.startsWith('file:')) {
         await _player.setFilePath(widget.audioUrl.replaceFirst('file://', ''));
       } else {
         await _player.setUrl(widget.audioUrl);
       }
-      
+
       _player.durationStream.listen((d) {
         if (d != null && mounted) setState(() => _totalDuration = d);
       });
-      
+
       _player.positionStream.listen((p) {
         if (mounted) setState(() => _position = p);
       });
-      
+
       _player.playerStateStream.listen((state) {
         if (mounted) {
           setState(() => _isPlaying = state.playing);
@@ -175,7 +178,9 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
                       data: _waveformData,
                       progress: progress.clamp(0.0, 1.0),
                       activeColor: Theme.of(context).colorScheme.primary,
-                      inactiveColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                      inactiveColor: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.4),
                     ),
                     size: Size.infinite,
                   ),
@@ -186,7 +191,7 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      _isPlaying 
+                      _isPlaying
                           ? _formatDuration(_position)
                           : _formatDuration(displayDuration),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -198,10 +203,11 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
                         onTap: _cycleSpeed,
                         child: Text(
                           '${_playbackSpeed}x',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                       ),
                   ],

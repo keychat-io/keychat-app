@@ -116,13 +116,10 @@ class _ChatPage2State extends State<ChatPage> {
       return;
     }
 
-    final ctrl = Get.find<ChatController>(tag: widget.identity.toString());
-    final rm = ctrl.room;
-
     try {
       final xfile = XFile(result.filePath);
       final mfi = await FileService.instance.encryptToSendFile(
-        rm,
+        controller.roomObs.value,
         xfile,
         MessageMediaType.voiceNote,
       );
@@ -133,7 +130,7 @@ class _ChatPage2State extends State<ChatPage> {
         mfi.waveform = result.waveform;
 
         await RoomService.instance.sendMessage(
-          rm,
+          controller.roomObs.value,
           mfi.getUriString('voiceNote'),
           realMessage: mfi.toString(),
           mediaType: MessageMediaType.voiceNote,
@@ -633,56 +630,57 @@ class _ChatPage2State extends State<ChatPage> {
                     ),
                   ),
                 ),
-                controller.inputText.value.isNotEmpty
-                    ? IconButton(
-                        iconSize: 28,
-                        padding: EdgeInsets.zero,
-                        onPressed: handleMessageSend,
-                        icon: const Icon(
-                          CupertinoIcons.arrow_up_circle_fill,
-                          color: KeychatGlobal.primaryColor,
-                        ),
-                      )
-                    : _isRecording
-                        ? const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: Icon(
-                              CupertinoIcons.stop_circle,
-                              color: Colors.red,
-                              size: 28,
-                            ),
-                          )
-                        : GestureDetector(
-                            onLongPressStart: (details) {
-                              _recordStartPos = details.globalPosition;
-                              _startVoiceRecording();
-                            },
-                            onLongPressMoveUpdate: (details) {
-                              final dx = details.globalPosition.dx -
-                                  _recordStartPos.dx;
-                              setState(() {
-                                _isCancellingRecord = dx < -80;
-                              });
-                            },
-                            onLongPressEnd: (_) {
-                              if (_isCancellingRecord) {
-                                _cancelVoiceRecording();
-                              } else {
-                                _stopAndSendVoiceRecording();
-                              }
-                            },
-                            child: IconButton(
-                              iconSize: 28,
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                controller.hideAdd.value =
-                                    !controller.hideAdd.value;
-                                controller.hideEmoji.value = true;
-                              },
-                              icon: const Icon(CupertinoIcons.mic_circle),
-                            ),
+                if (controller.inputText.value.isNotEmpty)
+                  IconButton(
+                    iconSize: 28,
+                    padding: EdgeInsets.zero,
+                    onPressed: handleMessageSend,
+                    icon: const Icon(
+                      CupertinoIcons.arrow_up_circle_fill,
+                      color: KeychatGlobal.primaryColor,
+                    ),
+                  )
+                else
+                  _isRecording
+                      ? const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: Icon(
+                            CupertinoIcons.stop_circle,
+                            color: Colors.red,
+                            size: 28,
                           ),
+                        )
+                      : GestureDetector(
+                          onLongPressStart: (details) {
+                            _recordStartPos = details.globalPosition;
+                            _startVoiceRecording();
+                          },
+                          onLongPressMoveUpdate: (details) {
+                            final dx =
+                                details.globalPosition.dx - _recordStartPos.dx;
+                            setState(() {
+                              _isCancellingRecord = dx < -80;
+                            });
+                          },
+                          onLongPressEnd: (_) {
+                            if (_isCancellingRecord) {
+                              _cancelVoiceRecording();
+                            } else {
+                              _stopAndSendVoiceRecording();
+                            }
+                          },
+                          child: IconButton(
+                            iconSize: 28,
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              controller.hideAdd.value =
+                                  !controller.hideAdd.value;
+                              controller.hideEmoji.value = true;
+                            },
+                            icon: const Icon(CupertinoIcons.mic_circle),
+                          ),
+                        ),
               ],
             ),
           ),

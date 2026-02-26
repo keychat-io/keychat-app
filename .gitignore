@@ -53,3 +53,6 @@ packages/app/android/app/.cxx/
 packages/app/ios/Flutter/Flutter.podspec
 packages/app/macos/Runner/Keychat.app/
 docs_local/
+# Documentation files - not tracked
+logs/
+*.log

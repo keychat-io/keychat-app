@@ -35,9 +35,86 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:url_launcher/url_launcher.dart' show launchUrl;
+import 'package:url_launcher/url_launcher.dart' show LaunchMode, launchUrl;
+
+/// Custom widget that wraps code blocks with a copy button
+/// Uses markdown_widget's PreConfig.wrapper callback
+class CodeBlockWithCopyButton extends StatelessWidget {
+  const CodeBlockWithCopyButton({
+    required this.child,
+    required this.code,
+    required this.language,
+    super.key,
+  });
+
+  final Widget child;
+  final String code;
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Original code block rendered by markdown_widget
+        child,
+        // Copy button positioned at bottom right
+        Positioned(
+          right: 8,
+          bottom: 8,
+          child: SizedBox(
+            height: 28,
+            child: TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: code));
+                await EasyLoading.showToast('Code copied');
+              },
+              icon: const Icon(Icons.content_copy, size: 16),
+              label: const Text('Copy'),
+              style: TextButton.styleFrom(
+                foregroundColor: Get.isDarkMode
+                    ? const Color(0xFFB8A3FF) // Light purple for dark mode
+                    : const Color(0xFF6F42C1), // Deep purple for light mode
+                backgroundColor: Get.isDarkMode
+                    ? const Color(0xFF2D2D2D) // Dark gray for dark mode
+                    : Colors.white.withValues(
+                        alpha: 0.95,
+                      ), // White for light mode
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  side: BorderSide(
+                    color: Get.isDarkMode
+                        ? const Color(0xFF444444)
+                        : const Color(0xFFE0E0E0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class RoomUtil {
+  // Create a custom code wrapper with copy button using markdown_widget's built-in wrapper
+  static CodeBlockWithCopyButton codeWrapper(
+    Widget child,
+    String? text,
+    String? language,
+  ) {
+    return CodeBlockWithCopyButton(
+      code: text ?? '',
+      language: language ?? 'markdown',
+      child: child,
+    );
+  }
+
   static Future<void> forwardTextMessage(
     Identity identity,
     String content, {
@@ -721,7 +798,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     return MarkdownBlock(
       key: id != null ? ObjectKey('mk:$id') : null,
       data: Utils.formartTextToLinkText(data),
-      selectable: false,
       config: config,
       generator: MarkdownGenerator(
         linesMargin: const EdgeInsets.symmetric(vertical: 4),
@@ -1344,10 +1420,27 @@ $link
     } catch (e) {}
     if (uri == null) return;
 
+    // Check if Cmd (Mac) or Ctrl (Windows/Linux) key is pressed
+    final isModifierKeyPressed =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+
     if (uri.scheme == 'https' || uri.scheme == 'http') {
-      await Get.find<MultiWebviewController>().launchWebview(
-        initUrl: url,
-      );
+      if (isModifierKeyPressed) {
+        // Open in external browser when modifier key is pressed
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          await EasyLoading.showToast('Opened in browser');
+        } catch (e) {
+          logger.e('launch url error: $e');
+          await EasyLoading.showError('Error: $e');
+        }
+      } else {
+        // Open in app's internal webview
+        await Get.find<MultiWebviewController>().launchWebview(
+          initUrl: url,
+        );
+      }
       return;
     }
     if (uri.scheme == 'wss' || uri.scheme == 'ws') {

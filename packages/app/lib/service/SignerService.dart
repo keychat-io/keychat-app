@@ -92,11 +92,125 @@ class SignerService {
     }
   }
 
+  /// Creates two gift wrap events (one for recipient, one for sender for multi-device sync)
+  Future<Map<String, String>> getNip59EventStringsWithSenderCopy({
+    required String content,
+    required String from,
+    required String to,
+    int nip17Kind = EventKinds.chatRumor,
+    List<List<String>>? additionalTags,
+  }) async {
+    try {
+      // Create event for recipient
+      final toReceiverEvent = await _createNip59Event(
+        content: content,
+        from: from,
+        to: to,
+        nip17Kind: nip17Kind,
+        additionalTags: additionalTags,
+      );
+
+      // Create event for sender (self)
+      final toSenderEvent = await _createNip59Event(
+        content: content,
+        from: from,
+        to: from, // Send to self
+        nip17Kind: nip17Kind,
+        additionalTags: additionalTags,
+      );
+
+      return {
+        'to_receiver': toReceiverEvent,
+        'to_sender': toSenderEvent,
+      };
+    } catch (e, s) {
+      logger.e(
+        'getNip59EventStringsWithSenderCopy error',
+        error: e,
+        stackTrace: s,
+      );
+      rethrow;
+    }
+  }
+
+  /// Creates a single NIP-59 gift wrap event (internal helper method)
+  Future<String> _createNip59Event({
+    required String content,
+    required String from,
+    required String to,
+    required int nip17Kind,
+    List<List<String>>? additionalTags,
+  }) async {
+    final id1 = generate64RandomHexChars();
+    var tags = [
+      ['p', to],
+    ];
+    if (additionalTags != null) {
+      tags = additionalTags;
+    }
+
+    // Create Rumor (kind 14)
+    final subEvent = {
+      'id': id1,
+      'pubkey': from,
+      'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'kind': nip17Kind, // Should be 14
+      'tags': tags,
+      'content': content,
+    };
+
+    // Encrypt Rumor with NIP-44
+    final encryptedSubEvent = await amber.nip44Encrypt(
+      plaintext: jsonEncode(subEvent),
+      currentUser: from,
+      pubKey: to,
+      id: id1,
+    );
+
+    // Create Seal (kind 13)
+    final randomTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final id2 = generate64RandomHexChars();
+    final secondEvent = {
+      'id': '',
+      'pubkey': from,
+      'created_at': randomTime,
+      'kind': 13,
+      'tags': [],
+      'content': encryptedSubEvent['signature'],
+      'sig': '',
+    };
+
+    final res = await amber.signEvent(
+      currentUser: from,
+      eventJson: jsonEncode(secondEvent),
+      id: id2,
+    );
+
+    // Encrypt Seal with NIP-44
+    final randomSecp256k1 = await rust_nostr.generateSecp256K1();
+    final encrypteSecondRes = await rust_nostr.encryptNip44(
+      content: res['event'] as String,
+      senderKeys: randomSecp256k1.prikey,
+      receiverPubkey: to,
+    );
+
+    // Create Gift Wrap (kind 1059)
+    return rust_nostr.signEvent(
+      senderKeys: randomSecp256k1.prikey,
+      tags: [
+        ['p', to],
+      ],
+      createdAt: BigInt.from(randomTime),
+      content: encrypteSecondRes,
+      kind: 1059, // Outer layer remains 1059
+    );
+  }
+
   Future<String> getNip59EventString({
     required String content,
     required String from,
     required String to,
-    int nip17Kind = EventKinds.nip17,
+    int nip17Kind = EventKinds.chatRumor,
     List<List<String>>? additionalTags,
   }) async {
     try {

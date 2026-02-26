@@ -321,35 +321,64 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  bool get isDarkMode {
-    if (message.isMeSend) {
-      if (message.isSystem ||
-          message.encryptType == MessageEncryptType.signal ||
-          message.encryptType == MessageEncryptType.mls) {
-        return true;
-      }
-    }
-    return Get.isDarkMode;
+  MarkdownConfig get markdownConfig {
+    // Unified: follow system theme for all messages
+    return Get.isDarkMode ? markdownDarkConfig : markdownLightConfig;
   }
 
-  MarkdownConfig get markdownConfig {
-    return isDarkMode ? markdownDarkConfig : markdownLightConfig;
+  /// Get background color for message bubble
+  Color get messageBubbleColor {
+    // Check for weak encryption first
+    if (cc.roomObs.value.type != RoomType.group && !message.isSystem) {
+      if (message.encryptType == MessageEncryptType.nip04 ||
+          message.encryptType == MessageEncryptType.nip17) {
+        return Colors.red.withValues(alpha: 0.15);
+      }
+    }
+
+    if (message.isMeSend) {
+      // My messages: light tint of primary color (#7748FF)
+      if (Get.isDarkMode) {
+        return const Color(0xFF3D2580); // Deep purple tint for dark mode
+      } else {
+        return const Color(0xFFEDE7FF); // Light lavender tint for light mode
+      }
+    } else {
+      // Received messages: neutral colors
+      if (Get.isDarkMode) {
+        return const Color(0xFF2C2C2C); // Darker gray for dark mode
+      } else {
+        return const Color(0xFFF5F5F5); // Lighter gray for light mode
+      }
+    }
+  }
+
+  /// Get text color for message content
+  Color get messageTextColor {
+    // Unified: follow system theme for all messages
+    if (Get.isDarkMode) {
+      return const Color(0xFFE8E8E8); // Light text on dark background
+    } else {
+      return const Color(0xFF1F1F1F); // Dark text on light background
+    }
   }
 
   Widget _getMessageContainer() {
-    final widget = GestureDetector(
+    final widget = message.reply == null
+        ? RoomUtil.getTextViewWidget(
+            message,
+            cc,
+            markdownConfig,
+            _chatBubbleContainer,
+          )
+        : _getReplyWidget();
+    final messageBody = GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onLongPress: _handleTextLongPress,
       onSecondaryTapDown: (TapDownDetails e) async {
         await _onSecondaryTapDown(Get.context!, e);
       },
-      child: message.reply == null
-          ? RoomUtil.getTextViewWidget(
-              message,
-              cc,
-              markdownConfig,
-              _chatBubbleContainer,
-            )
-          : _getReplyWidget(),
+      child: widget,
     );
 
     if (message.isMeSend) {
@@ -372,7 +401,7 @@ class MessageWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
                       ?messageStatus,
-                      Flexible(child: widget),
+                      Flexible(child: messageBody),
                     ],
                   ),
                 ),
@@ -457,7 +486,7 @@ class MessageWidget extends StatelessWidget {
               ),
             ),
           ),
-        widget,
+        messageBody,
         GestureDetector(
           onTap: _handleShowRawdata,
           child: Padding(
@@ -726,7 +755,7 @@ class MessageWidget extends StatelessWidget {
         child: Text(
           message.reply!.content,
           style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-            color: (isDarkMode ? Colors.white : Colors.black87).withValues(
+            color: messageTextColor.withValues(
               alpha: 0.7,
             ),
             height: 1.1,
@@ -759,7 +788,7 @@ class MessageWidget extends StatelessWidget {
                 Theme.of(
                   Get.context!,
                 ).textTheme.bodyMedium?.copyWith(
-                  color: (isDarkMode ? Colors.white : Colors.black87),
+                  color: messageTextColor,
                   height: 1.2,
                 ),
             maxLines: 5,
@@ -775,13 +804,11 @@ class MessageWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:
-                  (message.isMeSend
-                          ? MaterialTheme.lightScheme().surface
-                          : Theme.of(Get.context!).colorScheme.surface)
-                      .withValues(alpha: 0.5),
+              color: (Get.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05)),
               border: Border(
-                left: BorderSide(color: Colors.purple.shade200, width: 2),
+                left: BorderSide(color: Colors.purple.shade300, width: 2),
               ),
             ),
             child: Column(
@@ -791,7 +818,7 @@ class MessageWidget extends StatelessWidget {
                   message.reply!.user,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                    color: Colors.purple,
+                    color: Colors.purple.shade300,
                     height: 1,
                   ),
                 ),
@@ -800,7 +827,7 @@ class MessageWidget extends StatelessWidget {
                       message.reply!.content,
                       style: Theme.of(Get.context!).textTheme.bodyLarge
                           ?.copyWith(
-                            color: (isDarkMode ? Colors.white : Colors.black87),
+                            color: messageTextColor,
                             height: 1,
                           ),
                     ),
@@ -818,15 +845,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Color getBackgroupColorByEncrypteMode(Color color) {
-    if (cc.roomObs.value.type == RoomType.group || message.isSystem) {
-      return color;
-    }
-    if (message.encryptType == MessageEncryptType.nip04 ||
-        message.encryptType == MessageEncryptType.nip17) {
-      return Colors.red.withAlpha(100);
-    }
-
-    return color;
+    // Use the new messageBubbleColor getter instead
+    return messageBubbleColor;
   }
 
   Widget _chatBubbleContainer({String? text, Widget? child, int? id}) {

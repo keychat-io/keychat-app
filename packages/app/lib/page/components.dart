@@ -445,11 +445,19 @@ Widget _buildStatusChip(
       backgroundColor = Colors.red.withValues(alpha: 0.2);
       textColor = Colors.red.shade700;
       icon = Icons.error_outline;
-    default:
-      text = sendStatus.name;
-      backgroundColor = Colors.red.withValues(alpha: 0.2);
-      textColor = Colors.red.shade700;
-      icon = Icons.warning_amber;
+    case EventSendEnum.noAcitveRelay:
+    case EventSendEnum.relayDisconnected:
+    case EventSendEnum.serverReturnFailed:
+    case EventSendEnum.proccessError:
+    case EventSendEnum.success:
+      text = sendStatus == EventSendEnum.success ? 'Sent' : 'Failed';
+      backgroundColor = sendStatus == EventSendEnum.success
+          ? Colors.green.withValues(alpha: 0.2)
+          : Colors.red.withValues(alpha: 0.2);
+      textColor = sendStatus == EventSendEnum.success
+          ? Colors.green
+          : Colors.red.shade700;
+      icon = sendStatus == EventSendEnum.success ? Icons.check : Icons.close;
   }
 
   return Container(
@@ -468,7 +476,6 @@ Widget _buildStatusChip(
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            overflow: TextOverflow.ellipsis,
             color: textColor,
           ),
           maxLines: 3,

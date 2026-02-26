@@ -99,6 +99,16 @@ class NwcWalletProvider implements WalletProvider {
   }
 
   @override
+  Future<List<WalletTransactionBase>> getOneSatTransactions(
+    String walletId, {
+    int? limit,
+    int? offset,
+  }) async {
+    // NWC doesn't support 1sat transactions
+    return [];
+  }
+
+  @override
   bool canHandle(String connectionString) {
     // NWC URIs start with nostr+walletconnect://
     return connectionString.startsWith(KeychatGlobal.nwcPrefix);

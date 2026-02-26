@@ -502,6 +502,45 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               }),
             ],
           ),
+          // 1sat transactions button (Cashu only)
+          Obx(() {
+            final wallet = controller.selectedWallet;
+            if (wallet.protocol != WalletProtocol.cashu) {
+              return const SizedBox.shrink();
+            }
+            return GestureDetector(
+              onTap: () => _showOneSatTransactionsModal(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: KeychatGlobal.secondaryColor.withAlpha(50),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.money_dollar_circle,
+                      size: 16,
+                      color: KeychatGlobal.secondaryColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      '1sat',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: KeychatGlobal.secondaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1049,5 +1088,230 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     if (result != null && result.isNotEmpty) {
       await _processWalletInput(result);
     }
+  }
+
+  /// Show modal with 1sat transactions list
+  Future<void> _showOneSatTransactionsModal(BuildContext context) async {
+    // Load 1sat transactions
+    await controller.loadOneSatTransactions();
+
+    await Get.bottomSheet(
+      isScrollControlled: GetPlatform.isMobile,
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '1sat Transactions',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Obx(() {
+                        final wallet = controller.selectedWallet;
+                        return Text(
+                          wallet.displayName,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall!
+                                        .color
+                                        ?.withAlpha(160),
+                                  ),
+                        );
+                      }),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: Get.back,
+                    icon: const Icon(CupertinoIcons.xmark),
+                  ),
+                ],
+              ),
+            ),
+            // Transactions list
+            Expanded(
+              child: _buildOneSatTransactionsList(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 1sat transactions list widget
+  Widget _buildOneSatTransactionsList(BuildContext context) {
+    return Obx(() {
+      if (controller.isOneSatTransactionsLoading.value &&
+          controller.oneSatTransactions.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (controller.oneSatTransactions.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: Wrap(
+              direction: Axis.vertical,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.doc_text,
+                  size: 64,
+                  color: Colors.grey.withAlpha(120),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No 1sat Transactions',
+                  style: TextStyle(
+                    color: Colors.grey.withAlpha(160),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return CustomRefreshIndicator(
+        onRefresh: () async {
+          await controller.loadOneSatTransactions(forceRefresh: true);
+        },
+        trigger: IndicatorTrigger.bothEdges,
+        builder: (context, child, indicatorController) {
+          return Stack(
+            children: [
+              child,
+              // Top refresh indicator
+              if (indicatorController.side == IndicatorSide.top)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildRefreshIndicator(indicatorController),
+                ),
+              // Bottom load more indicator
+              if (indicatorController.side == IndicatorSide.bottom)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildLoadMoreOneSatPullIndicator(indicatorController),
+                ),
+            ],
+          );
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            ...controller.oneSatTransactions.map((transaction) {
+              return _buildTransactionTile(context, transaction);
+            }),
+            // Load more / No more data indicator
+            _buildLoadMoreOneSatIndicator(context),
+          ],
+        ),
+      );
+    });
+  }
+
+  /// Build bottom pull-up load more indicator for 1sat transactions
+  Widget _buildLoadMoreOneSatPullIndicator(
+    IndicatorController indicatorController,
+  ) {
+    // Don't show if no more data
+    if (!controller.hasMoreOneSatTransactions.value) {
+      return const SizedBox.shrink();
+    }
+
+    final value = indicatorController.value.clamp(0.0, 1.5);
+    return Container(
+      height: 60 * value,
+      alignment: Alignment.center,
+      child: indicatorController.isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              CupertinoIcons.arrow_up,
+              size: 24 * value,
+              color: Colors.grey,
+            ),
+    );
+  }
+
+  /// Build load more indicator widget for 1sat transactions
+  Widget _buildLoadMoreOneSatIndicator(BuildContext context) {
+    return Obx(() {
+      // Loading more state - handled by pull indicator now
+      if (controller.isLoadingMoreOneSat.value) {
+        return const SizedBox.shrink();
+      }
+
+      // No more data state
+      if (!controller.hasMoreOneSatTransactions.value) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: Text(
+              'No more transactions',
+              style: TextStyle(
+                color: Colors.grey.withAlpha(160),
+                fontSize: 12,
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Has more data - show hint text
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: Text(
+            'Pull up to load more',
+            style: TextStyle(
+              color: Colors.grey.withAlpha(160),
+              fontSize: 12,
+            ),
+          ),
+        ),
+      );
+    });
   }
 }

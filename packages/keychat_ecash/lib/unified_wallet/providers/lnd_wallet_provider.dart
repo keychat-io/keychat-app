@@ -132,6 +132,16 @@ class LndWalletProvider implements WalletProvider {
   }
 
   @override
+  Future<List<WalletTransactionBase>> getOneSatTransactions(
+    String walletId, {
+    int? limit,
+    int? offset,
+  }) async {
+    // LND doesn't support 1sat transactions
+    return [];
+  }
+
+  @override
   bool canHandle(String connectionString) {
     // LND URIs start with lndconnect://
     return connectionString.startsWith(LndConnectionInfo.lndConnectPrefix);

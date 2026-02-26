@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:keychat/constants.dart';
 import 'package:keychat/models/relay.dart';
 import 'package:keychat/nostr-core/nostr_nip4_req.dart';
@@ -22,6 +24,10 @@ class RelayWebsocket {
   bool pong = false;
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
+
+  // Stream subscriptions to prevent memory leaks
+  StreamSubscription<ConnectionState>? connectionStateSubscription;
+  StreamSubscription<dynamic>? messagesSubscription;
 
   Future<void> _startListen() async {
     // id keys
@@ -156,5 +162,15 @@ class RelayWebsocket {
 
     // nwc client reconnect
     Utils.getGetxController<NwcController>()?.onRelayConnected(relay.url);
+  }
+
+  /// Clean up all subscriptions to prevent memory leaks.
+  /// Call this before creating a new WebSocket connection.
+  void cleanupSubscriptions() {
+    connectionStateSubscription?.cancel();
+    connectionStateSubscription = null;
+    messagesSubscription?.cancel();
+    messagesSubscription = null;
+    subscriptions.clear();
   }
 }

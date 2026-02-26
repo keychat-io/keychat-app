@@ -18,6 +18,7 @@ import 'package:keychat/page/chat/ChatMediaFilesPage.dart';
 import 'package:keychat/page/chat/ForwardSelectRoom.dart';
 import 'package:keychat/page/chat/contact_page.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
+import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
@@ -53,43 +54,39 @@ class CodeBlockWithCopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Original code block rendered by markdown_widget
         child,
-        // Copy button positioned at bottom right
-        Positioned(
-          right: 8,
-          bottom: 8,
-          child: SizedBox(
-            height: 28,
-            child: TextButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: code));
-                await EasyLoading.showToast('Code copied');
-              },
-              icon: const Icon(Icons.content_copy, size: 16),
-              label: const Text('Copy'),
-              style: TextButton.styleFrom(
-                foregroundColor: Get.isDarkMode
-                    ? const Color(0xFFB8A3FF) // Light purple for dark mode
-                    : const Color(0xFF6F42C1), // Deep purple for light mode
-                backgroundColor: Get.isDarkMode
-                    ? const Color(0xFF2D2D2D) // Dark gray for dark mode
-                    : Colors.white.withValues(
-                        alpha: 0.95,
-                      ), // White for light mode
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+        // Copy button below the code block, centered with outline
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 2),
+            child: SizedBox(
+              height: 26,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: code));
+                  await EasyLoading.showToast('Code copied');
+                },
+                icon: const Icon(Icons.content_copy, size: 13),
+                label: const Text('Copy', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Get.isDarkMode
+                      ? const Color(0xFFB8A3FF)
+                      : const Color(0xFF6F42C1),
                   side: BorderSide(
                     color: Get.isDarkMode
-                        ? const Color(0xFF444444)
-                        : const Color(0xFFE0E0E0),
+                        ? const Color(0xFF555555)
+                        : const Color(0xFFD0D0D0),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
               ),
@@ -794,10 +791,21 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     return rooms;
   }
 
-  static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
+  /// Renders markdown content as a widget.
+  ///
+  /// [selectable] controls whether the text is selectable. Defaults to false
+  /// since the parent [SelectionArea] in [MessageWidget] handles selection
+  /// with a custom context menu.
+  static Widget getMarkdownView(
+    String data,
+    MarkdownConfig config, [
+    int? id,
+    bool selectable = false,
+  ]) {
     return MarkdownBlock(
       key: id != null ? ObjectKey('mk:$id') : null,
       data: Utils.formartTextToLinkText(data),
+      selectable: selectable,
       config: config,
       generator: MarkdownGenerator(
         linesMargin: const EdgeInsets.symmetric(vertical: 4),

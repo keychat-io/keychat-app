@@ -383,3 +383,23 @@ flutter_rust_bridge_codegen generate
 # Check before committing
 melos run lint:all
 ```
+
+## Documentation for Complex Changes
+
+**Temporary/Working Documents (`docs_local/`):**
+
+- Complex bug fixes and performance issues: create `{category}/{issue-name}/DIAGNOSIS.md` and `FIXES.md`
+- Code plans, design drafts, investigation notes, and other working documents
+- Can be in any language
+- **Organize with subdirectories by category** (e.g., `performance/`, `bugs/`, `features/`)
+
+**Formal Documentation (`docs/`):**
+
+- Architecture design, complex features, design decisions, and security-related documentation
+- **Must be written in English**
+- **Organize with subdirectories by topic** (e.g., `architecture/`, `protocols/`, `security/`)
+
+**Commit Log Summary (`Changelog.md`):**
+
+- Write commit log summaries to `Changelog.md` in the root directory
+- Keep entries **concise and well-formatted**

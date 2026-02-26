@@ -1537,14 +1537,48 @@ Init File: $time \n
   }
 
   static String formartTextToLinkText(String text) {
+    // Regex to match markdown code blocks (``` or ~~~)
+    final codeBlockPattern = RegExp(
+      r'(```|~~~)[\s\S]*?\1',
+      multiLine: true,
+    );
+
+    // Regex to match inline code (backticks)
+    final inlineCodePattern = RegExp('`[^`]+`');
+
     final urlPattern = RegExp(
       r'(?<!\[)(?<!\()(\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s\[\]()]+)(?!\))(?!\])',
     );
 
-    return text.replaceAllMapped(urlPattern, (match) {
-      final url = match.group(1)!;
-      return '[$url]($url)';
-    });
+    // Collect all protected ranges (code blocks and inline code)
+    final protectedRanges = <(int, int)>[
+      ...codeBlockPattern.allMatches(text).map((m) => (m.start, m.end)),
+      ...inlineCodePattern.allMatches(text).map((m) => (m.start, m.end)),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
+    // Check if a position is within protected range
+    bool isWithinProtectedRange(int position) {
+      for (final (start, end) in protectedRanges) {
+        if (position >= start && position < end) return true;
+      }
+      return false;
+    }
+
+    final buffer = StringBuffer();
+    var lastIndex = 0;
+
+    // Replace URLs only outside protected ranges
+    for (final match in urlPattern.allMatches(text)) {
+      if (!isWithinProtectedRange(match.start)) {
+        buffer.write(text.substring(lastIndex, match.start));
+        final url = match.group(1)!;
+        buffer.write('[$url]($url)');
+        lastIndex = match.end;
+      }
+    }
+
+    buffer.write(text.substring(lastIndex));
+    return buffer.toString();
   }
 
   static Future<T> withRetry<T>(

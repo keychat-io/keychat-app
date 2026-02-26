@@ -850,7 +850,7 @@ class GroupService extends BaseChatService {
     required Room groupRoom,
     required String content,
     bool nip17 = false,
-    int nip17Kind = EventKinds.nip17,
+    int nip17Kind = EventKinds.chatRumor,
     List<List<String>>? additionalTags,
     bool save = true,
   }) async {

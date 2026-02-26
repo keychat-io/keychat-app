@@ -53,6 +53,7 @@ class _ChatPage2State extends State<ChatPage> {
     room = _getRoomAndInit();
     myAvatar = Utils.getAvatarByIdentity(room.getIdentity());
     isGroup = room.type == RoomType.group;
+
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(
       configs: [
         const LinkConfig(
@@ -65,7 +66,8 @@ class _ChatPage2State extends State<ChatPage> {
         ),
         const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
         PreConfig.darkConfig.copy(
-          textStyle: const TextStyle(color: Colors.white, fontSize: 16),
+          wrapper: RoomUtil.codeWrapper,
+          textStyle: const TextStyle(color: Colors.white, fontSize: 14),
         ),
         const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
       ],
@@ -78,6 +80,10 @@ class _ChatPage2State extends State<ChatPage> {
             color: Colors.blue,
             decoration: TextDecoration.none,
           ),
+        ),
+        const PreConfig(
+          wrapper: RoomUtil.codeWrapper,
+          textStyle: TextStyle(fontSize: 14),
         ),
       ],
     );
@@ -232,11 +238,9 @@ class _ChatPage2State extends State<ChatPage> {
                               roomMember: rm,
                               cc: controller,
                               screenWidth: Get.width,
-                              backgroundColor: message.isMeSend
-                                  ? KeychatGlobal.secondaryColor
-                                  : Get.isDarkMode
-                                  ? const Color(0xFF2c2c2c)
-                                  : const Color(0xFFFFFFFF),
+                              backgroundColor: const Color(
+                                0xFFFFFFFF,
+                              ), // Placeholder, actual color computed in widget
                               markdownLightConfig: markdownLightConfig,
                               markdownDarkConfig: markdownDarkConfig,
                             );

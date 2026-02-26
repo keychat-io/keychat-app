@@ -187,7 +187,7 @@ class HomeController extends GetxController
           forceReconnect = pauseDiff > 60;
         }
 
-        unawaited(removeBadge());
+        unawaited(resetBadge());
         try {
           // websocket status
           final shouldConnect =
@@ -587,7 +587,7 @@ class HomeController extends GetxController
       });
     }
 
-    removeBadge();
+    await resetBadge();
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 2), () async {
@@ -631,11 +631,6 @@ class HomeController extends GetxController
     return rooms;
   }
 
-  Future<void> removeBadge() async {
-    if (!isAppBadgeSupported) return;
-    await FlutterNewBadger.removeBadge();
-  }
-
   Future<void> setTipsViewed(String name, RxBool toSetValue) async {
     toSetValue.value = false;
     await Storage.setInt(name, 1);
@@ -651,6 +646,7 @@ class HomeController extends GetxController
 
   Future<void> resetBadge() async {
     if (!isAppBadgeSupported) return;
+    loggerNoLine.i('resetBadge: ${allUnReadCount.value}');
     await FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 

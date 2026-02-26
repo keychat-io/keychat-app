@@ -1236,7 +1236,7 @@ class MlsGroupService extends BaseChatService {
     required String realMessage,
     required Room groupRoom,
     required Map users,
-    int nip17Kind = EventKinds.nip17,
+    int nip17Kind = EventKinds.chatRumor,
     List<List<String>>? additionalTags,
   }) async {
     final events = <NostrEventModel>[];

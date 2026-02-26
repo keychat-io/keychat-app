@@ -88,7 +88,8 @@ class EventKinds {
   static const int delete = 5;
   static const int reaction = 7;
   static const int nip42 = 22242;
-  static const int nip17 = 1059;
+  static const int chatRumor = 14; // NIP-17 inner rumor (chat message)
+  static const int nip17 = 1059; // NIP-17 outer gift wrap
   static const int nwcRequest = 23194;
   static const int nwcResponse = 23195;
   // static const int nip104KP = 443;

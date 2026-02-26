@@ -39,6 +39,19 @@ class UnifiedWalletController extends GetxController {
   /// Whether loading more transactions
   final RxBool isLoadingMore = false.obs;
 
+  /// 1sat transactions for the currently selected wallet
+  final RxList<WalletTransactionBase> oneSatTransactions =
+      <WalletTransactionBase>[].obs;
+
+  /// Whether 1sat transactions are loading
+  final RxBool isOneSatTransactionsLoading = false.obs;
+
+  /// Whether there are more 1sat transactions to load
+  final RxBool hasMoreOneSatTransactions = true.obs;
+
+  /// Whether loading more 1sat transactions
+  final RxBool isLoadingMoreOneSat = false.obs;
+
   /// Page size for transaction pagination
   static const int _pageSize = 20;
 
@@ -56,6 +69,9 @@ class UnifiedWalletController extends GetxController {
   /// Avoids re-fetching from the provider when switching between wallets.
   /// Cleared on explicit refresh via [refreshAll] or [refreshSelectedWallet].
   final Map<String, List<WalletTransactionBase>> _transactionCache = {};
+
+  /// Per-wallet 1sat transaction cache, keyed by wallet ID.
+  final Map<String, List<WalletTransactionBase>> _oneSatTransactionCache = {};
 
   /// Get the currently selected wallet (null if none)
   WalletBase get selectedWallet {
@@ -279,6 +295,7 @@ class UnifiedWalletController extends GetxController {
   /// then reloads all wallets. [loadAllWallets] handles its own isLoading state.
   Future<void> refreshAll() async {
     _transactionCache.clear();
+    _oneSatTransactionCache.clear();
     await Future.wait(_providers.map((p) => p.refresh()));
     await loadAllWallets();
   }
@@ -304,6 +321,7 @@ class UnifiedWalletController extends GetxController {
     try {
       // Invalidate cached transactions for this wallet
       _transactionCache.remove(targetWallet.id);
+      _oneSatTransactionCache.remove(targetWallet.id);
 
       // Refresh the provider's data for this wallet and get updated wallet.
       // This may trigger the reactive worker (_onProviderWalletsChanged) which
@@ -341,6 +359,9 @@ class UnifiedWalletController extends GetxController {
     final validIndex = index.clamp(0, wallets.length - 1);
     _selectedWalletId = wallets[validIndex].id;
     _syncSelectedIndex();
+
+    // Clear 1sat transaction cache when switching wallets
+    oneSatTransactions.clear();
 
     // Sync carousel position when the change didn't originate from a swipe
     if (!fromCarousel) {
@@ -448,6 +469,100 @@ class UnifiedWalletController extends GetxController {
       logger.e('Failed to load more transactions', error: e, stackTrace: s);
     } finally {
       isLoadingMore.value = false;
+    }
+  }
+
+  /// Load 1sat transactions for the currently selected wallet.
+  ///
+  /// Returns cached transactions when available, unless [forceRefresh] is set.
+  /// If [wallet] is provided, load 1sat transactions for that wallet instead.
+  Future<void> loadOneSatTransactions({
+    int limit = _pageSize,
+    WalletBase? wallet,
+    bool forceRefresh = false,
+  }) async {
+    final targetWallet = wallet ?? selectedWallet;
+    final isSelectedWallet =
+        wallet == null || targetWallet.id == selectedWallet.id;
+
+    // Return cached 1sat transactions if available and not forcing refresh
+    if (!forceRefresh) {
+      final cached = _oneSatTransactionCache[targetWallet.id];
+      if (cached != null) {
+        if (isSelectedWallet) {
+          oneSatTransactions.value = cached;
+        }
+        hasMoreOneSatTransactions.value = cached.length >= limit;
+        return;
+      }
+    }
+
+    if (isSelectedWallet) {
+      isOneSatTransactionsLoading.value = true;
+    }
+    hasMoreOneSatTransactions.value = true;
+    try {
+      final provider = _getProviderForProtocol(targetWallet.protocol);
+      if (provider == null) {
+        if (isSelectedWallet) {
+          oneSatTransactions.clear();
+        }
+        hasMoreOneSatTransactions.value = false;
+        return;
+      }
+
+      final txList = await provider.getOneSatTransactions(
+        targetWallet.id,
+        limit: limit,
+      );
+      _oneSatTransactionCache[targetWallet.id] = txList;
+      if (isSelectedWallet) {
+        oneSatTransactions.value = txList;
+      }
+      hasMoreOneSatTransactions.value = txList.length >= limit;
+    } catch (e, s) {
+      logger.e('Failed to load 1sat transactions', error: e, stackTrace: s);
+      if (isSelectedWallet) {
+        oneSatTransactions.clear();
+      }
+      hasMoreOneSatTransactions.value = false;
+    } finally {
+      if (isSelectedWallet) {
+        isOneSatTransactionsLoading.value = false;
+      }
+    }
+  }
+
+  /// Load more 1sat transactions (pagination)
+  Future<void> loadMoreOneSatTransactions() async {
+    if (isLoadingMoreOneSat.value || !hasMoreOneSatTransactions.value) return;
+
+    final wallet = selectedWallet;
+
+    final provider = _getProviderForProtocol(wallet.protocol);
+    if (provider == null) return;
+
+    isLoadingMoreOneSat.value = true;
+    try {
+      final txList = await provider.getOneSatTransactions(
+        wallet.id,
+        limit: _pageSize,
+        offset: oneSatTransactions.length,
+      );
+
+      if (txList.isEmpty) {
+        hasMoreOneSatTransactions.value = false;
+      } else {
+        oneSatTransactions.addAll(txList);
+        hasMoreOneSatTransactions.value = txList.length >= _pageSize;
+      }
+      // Update cache with full accumulated list
+      _oneSatTransactionCache[wallet.id] = oneSatTransactions.toList();
+    } catch (e, s) {
+      logger.e('Failed to load more 1sat transactions',
+          error: e, stackTrace: s);
+    } finally {
+      isLoadingMoreOneSat.value = false;
     }
   }
 

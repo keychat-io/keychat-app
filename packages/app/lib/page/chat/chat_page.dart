@@ -189,8 +189,8 @@ class _ChatPage2State extends State<ChatPage> {
                 Expanded(
                   child: Container(
                     color: Get.isDarkMode
-                        ? const Color(0xFF000000)
-                        : const Color(0xffededed),
+                        ? const Color(0xFF0E1116)
+                        : const Color(0xFFFCFAFF),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: CustomMaterialIndicator(
                       onRefresh: controller.pullToLoadMessages,

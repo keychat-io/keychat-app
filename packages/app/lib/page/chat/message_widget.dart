@@ -337,18 +337,20 @@ class MessageWidget extends StatelessWidget {
     }
 
     if (message.isMeSend) {
-      // My messages: light tint of primary color (#7748FF)
+      // My messages: soft purple tint that pairs with the page background
       if (Get.isDarkMode) {
-        return const Color(0xFF3D2580); // Deep purple tint for dark mode
+        return const Color(0xFF1B2A3A); // Deep blue slate for dark mode
       } else {
-        return const Color(0xFFEDE7FF); // Light lavender tint for light mode
+        return const Color(0xFFF0E8FF); // Soft purple for light mode
       }
     } else {
-      // Received messages: neutral colors
+      // Received messages: neutral surface tones
       if (Get.isDarkMode) {
-        return const Color(0xFF2C2C2C); // Darker gray for dark mode
+        return const Color(0xFF1A1F26); // Dark neutral for dark mode
       } else {
-        return const Color(0xFFF5F5F5); // Lighter gray for light mode
+        return const Color(
+          0xFFFFFFFF,
+        ); // White for clear contrast with light background
       }
     }
   }
@@ -372,13 +374,48 @@ class MessageWidget extends StatelessWidget {
             _chatBubbleContainer,
           )
         : _getReplyWidget();
+    // Wrap in SelectionArea with custom context menu handling:
+    // - No text selected + right-click → show custom popup menu (Copy, Reply, Forward, etc.)
+    // - Text selected + right-click → show default system context menu (Copy, Select All)
+    final selectableWidget = SelectionArea(
+      contextMenuBuilder:
+          (
+            BuildContext context,
+            SelectableRegionState selectableRegionState,
+          ) {
+            final buttonItems = selectableRegionState.contextMenuButtonItems;
+            // Copy button is only present when text is actually selected
+            final hasSelection = buttonItems.any(
+              (ContextMenuButtonItem item) =>
+                  item.type == ContextMenuButtonType.copy,
+            );
+
+            if (hasSelection) {
+              // Text is selected — show default context menu (Copy, Select All)
+              return AdaptiveTextSelectionToolbar.buttonItems(
+                anchors: selectableRegionState.contextMenuAnchors,
+                buttonItems: buttonItems,
+              );
+            }
+
+            // No text selected — dismiss the default menu and show custom popup
+            final anchor =
+                selectableRegionState.contextMenuAnchors.primaryAnchor;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _onSecondaryTapDown(
+                Get.context!,
+                TapDownDetails(globalPosition: anchor),
+              );
+            });
+            return const SizedBox.shrink();
+          },
+      child: widget,
+    );
+
     final messageBody = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPress: _handleTextLongPress,
-      onSecondaryTapDown: (TapDownDetails e) async {
-        await _onSecondaryTapDown(Get.context!, e);
-      },
-      child: widget,
+      child: selectableWidget,
     );
 
     if (message.isMeSend) {

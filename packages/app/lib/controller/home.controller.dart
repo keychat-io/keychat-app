@@ -178,13 +178,22 @@ class HomeController extends GetxController
         resumed = true;
         isBlurred.value = false;
 
+        // Check network availability before attempting reconnection
+        if (!isConnectedNetwork.value) {
+          logger.i(
+            'App resumed but network unavailable, waiting for network...',
+          );
+          break;
+        }
+
         // if app running background > 10s
         var tryConnect = false;
         var forceReconnect = false;
         if (pausedTime != null) {
           final pauseDiff = DateTime.now().difference(pausedTime!).inSeconds;
           tryConnect = pauseDiff > 10;
-          forceReconnect = pauseDiff > 60;
+          // Increase threshold to 2 minutes to reduce unnecessary force reconnects
+          forceReconnect = pauseDiff > 120;
         }
 
         unawaited(resetBadge());
@@ -195,6 +204,7 @@ class HomeController extends GetxController
               GetPlatform.isDesktop ||
               tryConnect;
           if (shouldConnect) {
+            logger.i('App resumed, reconnecting (force: $forceReconnect)');
             unawaited(
               Get.find<WebsocketService>().checkOnlineAndConnect(
                 forceReconnect: forceReconnect,
@@ -503,15 +513,22 @@ class HomeController extends GetxController
   }
 
   void networkListenHandle(List<ConnectivityResult> result) {
+    final wasDisconnected = !isConnectedNetwork.value;
+
     if (result.contains(ConnectivityResult.none)) {
       isConnectedNetwork.value = false;
-      Utils.getGetxController<WebsocketService>()?.checkOnlineAndConnect();
+      logger.w('Network lost, connections will retry automatically');
+      // Don't actively disconnect - let WebSocket backoff handle it
     } else {
-      // network from disconnected to connected
-      if (!isConnectedNetwork.value) {
-        Utils.getGetxController<WebsocketService>()?.start();
-      }
       isConnectedNetwork.value = true;
+
+      if (wasDisconnected) {
+        logger.i('Network restored, checking connections...');
+        // Give network a moment to stabilize before reconnecting
+        Future.delayed(const Duration(seconds: 2), () {
+          Utils.getGetxController<WebsocketService>()?.checkOnlineAndConnect();
+        });
+      }
     }
   }
 
@@ -574,15 +591,29 @@ class HomeController extends GetxController
       networkListenHandle,
     );
 
-    // Start periodic connection check timer (every minute)
+    // Start health-based connection check timer (every 2 minutes)
+    // Only reconnects if there are actual connection issues
     if (GetPlatform.isDesktop) {
       _connectionCheckTimer = Timer.periodic(const Duration(minutes: 2), (
         timer,
       ) {
-        if (isConnectedNetwork.value) {
-          Get.find<WebsocketService>().checkOnlineAndConnect(
-            forceReconnect: true,
-          );
+        if (!isConnectedNetwork.value) return;
+
+        final ws = Get.find<WebsocketService>();
+
+        // Only reconnect if there are issues
+        final hasDisconnected = ws.relayConnectedCount.value == 0;
+        final hasUnhealthyConnections = ws.channels.values.any((rw) {
+          if (!rw.isConnected()) return true;
+          final backoff = ws.getBackoffState(rw.relay.url);
+          return !backoff.isHealthy();
+        });
+
+        if (hasDisconnected || hasUnhealthyConnections) {
+          logger.i('Desktop health check: reconnecting unhealthy relays');
+          ws.checkOnlineAndConnect();
+        } else {
+          logger.d('Desktop health check: all connections healthy');
         }
       });
     }

@@ -33,6 +33,14 @@ abstract class WalletProvider {
     int? offset,
   });
 
+  /// Get 1sat transactions for a specific wallet (Cashu only).
+  /// For non-Cashu wallets, returns an empty list.
+  Future<List<WalletTransactionBase>> getOneSatTransactions(
+    String walletId, {
+    int? limit,
+    int? offset,
+  });
+
   /// Check if the connection string is valid for this provider.
   bool canHandle(String connectionString);
 

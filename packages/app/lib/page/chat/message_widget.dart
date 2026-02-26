@@ -374,48 +374,63 @@ class MessageWidget extends StatelessWidget {
             _chatBubbleContainer,
           )
         : _getReplyWidget();
-    // Wrap in SelectionArea with custom context menu handling:
-    // - No text selected + right-click → show custom popup menu (Copy, Reply, Forward, etc.)
-    // - Text selected + right-click → show default system context menu (Copy, Select All)
-    final selectableWidget = SelectionArea(
-      contextMenuBuilder:
-          (
-            BuildContext context,
-            SelectableRegionState selectableRegionState,
-          ) {
-            final buttonItems = selectableRegionState.contextMenuButtonItems;
-            // Copy button is only present when text is actually selected
-            final hasSelection = buttonItems.any(
-              (ContextMenuButtonItem item) =>
-                  item.type == ContextMenuButtonType.copy,
-            );
-
-            if (hasSelection) {
-              // Text is selected — show default context menu (Copy, Select All)
-              return AdaptiveTextSelectionToolbar.buttonItems(
-                anchors: selectableRegionState.contextMenuAnchors,
-                buttonItems: buttonItems,
+    // Desktop: SelectionArea enables mouse-drag text selection.
+    // When text is selected, right-click shows an inline toolbar (rendered by
+    // contextMenuBuilder) so the selection highlight is preserved.
+    // When no text is selected, right-click shows our custom popup via showMenu.
+    // Mobile: no SelectionArea; long press shows bottom sheet menu.
+    final Widget interactiveChild;
+    String? selectedText;
+    if (GetPlatform.isDesktop) {
+      interactiveChild = SelectionArea(
+        onSelectionChanged: (value) {
+          selectedText = value?.plainText;
+        },
+        contextMenuBuilder:
+            (
+              context,
+              selectableRegionState,
+            ) {
+              final buttonItems = selectableRegionState.contextMenuButtonItems;
+              final hasSelection = buttonItems.any(
+                (item) => item.type == ContextMenuButtonType.copy,
               );
-            }
 
-            // No text selected — dismiss the default menu and show custom popup
-            final anchor =
-                selectableRegionState.contextMenuAnchors.primaryAnchor;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _onSecondaryTapDown(
-                Get.context!,
-                TapDownDetails(globalPosition: anchor),
-              );
-            });
-            return const SizedBox.shrink();
-          },
-      child: widget,
-    );
+              if (hasSelection) {
+                // Text is selected — build unified menu items inline
+                // so selection highlight is preserved (no focus steal).
+                final menuItems = _buildContextMenuButtonItems(
+                  selectedText: selectedText,
+                );
+                // Prepend system Copy Selected at the top
+                return AdaptiveTextSelectionToolbar.buttonItems(
+                  anchors: selectableRegionState.contextMenuAnchors,
+                  buttonItems: menuItems,
+                );
+              }
+
+              // No text selected — suppress, let GestureDetector handle it
+              return const SizedBox.shrink();
+            },
+        child: widget,
+      );
+    } else {
+      interactiveChild = widget;
+    }
 
     final messageBody = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPress: _handleTextLongPress,
-      child: selectableWidget,
+      onSecondaryTapDown: GetPlatform.isDesktop
+          ? (details) {
+              // Only trigger when no text is selected (selected case handled
+              // by contextMenuBuilder above)
+              if (selectedText == null || selectedText!.isEmpty) {
+                _onSecondaryTapDown(Get.context!, details);
+              }
+            }
+          : null,
+      child: interactiveChild,
     );
 
     if (message.isMeSend) {
@@ -1331,6 +1346,41 @@ class MessageWidget extends StatelessWidget {
     FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
+  /// Builds context menu button items for text selection right-click.
+  ///
+  /// Used by [SelectionArea.contextMenuBuilder] when text is selected,
+  /// rendered inline so the selection highlight is preserved.
+  /// Only shows Copy Selected and Copy All options.
+  List<ContextMenuButtonItem> _buildContextMenuButtonItems({
+    String? selectedText,
+  }) {
+    return <ContextMenuButtonItem>[
+      if (selectedText != null && selectedText.isNotEmpty)
+        ContextMenuButtonItem(
+          label: 'Copy Selected',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: selectedText));
+            EasyLoading.showToast('Copied');
+            ContextMenuController.removeAny();
+          },
+        ),
+      ContextMenuButtonItem(
+        label: 'Copy All',
+        onPressed: () {
+          ContextMenuController.removeAny();
+          var content = message.content;
+          if (message.realMessage != null &&
+              cc.roomObs.value.type == RoomType.bot) {
+            content = message.realMessage!;
+          }
+          Clipboard.setData(ClipboardData(text: content));
+          EasyLoading.showToast('Copied');
+        },
+      ),
+    ];
+  }
+
+  /// Shows a unified context popup menu on desktop right-click (no text selected).
   Future<void> _onSecondaryTapDown(
     BuildContext context,
     TapDownDetails e,
@@ -1347,7 +1397,7 @@ class MessageWidget extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    await showMenu(
+    await showMenu<void>(
       context: context,
       elevation: 8,
       color: theme.popupMenuTheme.color ?? theme.cardColor,
@@ -1355,7 +1405,7 @@ class MessageWidget extends StatelessWidget {
       position: position,
       items: [
         if (message.isMediaType)
-          PopupMenuItem(
+          PopupMenuItem<void>(
             mouseCursor: SystemMouseCursors.click,
             child: const Row(
               children: [
@@ -1386,7 +1436,7 @@ class MessageWidget extends StatelessWidget {
               OpenFilex.open(fileDir);
             },
           ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1405,7 +1455,7 @@ class MessageWidget extends StatelessWidget {
             EasyLoading.showToast('Copied');
           },
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1418,7 +1468,7 @@ class MessageWidget extends StatelessWidget {
             await _showMoreEmojis();
           },
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1429,7 +1479,7 @@ class MessageWidget extends StatelessWidget {
           ),
           onTap: () => _handleReply(Get.context!),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1440,7 +1490,7 @@ class MessageWidget extends StatelessWidget {
           ),
           onTap: () => _handleForward(Get.context!),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           onTap: _handleShowRawdata,
           child: const Row(
@@ -1451,7 +1501,7 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: Row(
             children: [
@@ -1483,8 +1533,8 @@ class MessageWidget extends StatelessWidget {
         body: emoji_picker.EmojiPicker(
           onEmojiSelected:
               (
-                emoji_picker.Category? category,
-                emoji_picker.Emoji emoji,
+                category,
+                emoji,
               ) async {
                 Get.back<void>();
                 await cc.handleEmojiReact(message, emoji.emoji);
@@ -1612,7 +1662,7 @@ class MessageWidget extends StatelessWidget {
               builder:
                   (
                     context,
-                    AsyncSnapshot<Set<String>> snapshot,
+                    snapshot,
                   ) {
                     if (snapshot.hasData) {
                       return _buildEmojiReactionRow(snapshot.data!);
@@ -1675,7 +1725,7 @@ class MessageWidget extends StatelessWidget {
                           Icons.delete,
                           color: Colors.red,
                         ),
-                        onPressed: (BuildContext context) {
+                        onPressed: (context) {
                           Get.back<void>();
                           _showDeleteDialog(message);
                         },

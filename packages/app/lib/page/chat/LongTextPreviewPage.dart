@@ -1,5 +1,4 @@
-import 'package:keychat/page/browser/MultiWebviewController.dart';
-import 'package:keychat/utils.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,25 +30,7 @@ class LongTextPreviewPage extends StatelessWidget {
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
-              child: MarkdownBlock(
-                data: text,
-                config:
-                    (Get.isDarkMode
-                            ? MarkdownConfig.darkConfig
-                            : MarkdownConfig.defaultConfig)
-                        .copy(
-                          configs: [
-                            const PConfig(textStyle: TextStyle(fontSize: 20)),
-                            LinkConfig(
-                              onTap: (url) {
-                                Utils.hideKeyboard(Get.context!);
-                                Get.find<MultiWebviewController>()
-                                    .launchWebview(initUrl: url);
-                              },
-                            ),
-                          ],
-                        ),
-              ),
+              child: MarkdownBlock(data: text, config: RoomUtil.markdownConfig),
             ),
           ),
         ],

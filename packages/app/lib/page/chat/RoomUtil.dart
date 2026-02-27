@@ -1068,8 +1068,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
   /// since the parent [SelectionArea] in [MessageWidget] handles selection
   /// with a custom context menu.
   static Widget getMarkdownView(
-    String data,
-    MarkdownConfig config, [
+    String data, [
     int? id,
     bool selectable = false,
   ]) {
@@ -1077,7 +1076,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
       key: id != null ? ObjectKey('mk:$id') : null,
       data: Utils.formartTextToLinkText(data),
       selectable: selectable,
-      config: config,
+      config: RoomUtil.markdownConfig,
       generator: MarkdownGenerator(
         linesMargin: const EdgeInsets.symmetric(vertical: 4),
       ),
@@ -1096,7 +1095,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
         errorCallback(
           child: getMarkdownView(
             message.realMessage ?? message.content,
-            markdownConfig,
             message.id,
           ),
         ),
@@ -1181,7 +1179,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
   static Widget getTextViewWidget(
     Message message,
     ChatController cc,
-    MarkdownConfig markdownConfig,
     Widget Function({Widget? child, String? text}) errorCallback,
   ) {
     try {
@@ -1190,7 +1187,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return errorCallback(
             child: getMarkdownView(
               message.realMessage ?? message.content,
-              markdownConfig,
               message.id,
             ),
           );
@@ -1279,7 +1275,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     return errorCallback(
       child: getMarkdownView(
         message.realMessage ?? message.content,
-        markdownConfig,
         message.id,
       ),
     );
@@ -1646,6 +1641,48 @@ $link
     'nip04': 'NIP04',
     'nip17': 'NIP17',
   };
+
+  static MarkdownConfig get markdownDarkConfig =>
+      MarkdownConfig.darkConfig.copy(
+        configs: [
+          const LinkConfig(
+            onTap: RoomUtil.tapLink,
+            style: TextStyle(
+              color: Colors.white,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.white,
+            ),
+          ),
+          const PConfig(
+            textStyle: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          PreConfig.darkConfig.copy(
+            wrapper: RoomUtil.codeWrapper,
+            textStyle: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
+        ],
+      );
+
+  static MarkdownConfig get markdownLightConfig =>
+      MarkdownConfig.defaultConfig.copy(
+        configs: [
+          const LinkConfig(
+            onTap: RoomUtil.tapLink,
+            style: TextStyle(
+              color: Colors.blue,
+              decoration: TextDecoration.none,
+            ),
+          ),
+          const PreConfig(
+            wrapper: RoomUtil.codeWrapper,
+            textStyle: TextStyle(fontSize: 14),
+          ),
+        ],
+      );
+
+  static MarkdownConfig get markdownConfig =>
+      Get.isDarkMode ? markdownDarkConfig : markdownLightConfig;
 
   static Widget getEncryptModeChip(
     Room room,

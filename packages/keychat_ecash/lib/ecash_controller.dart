@@ -64,7 +64,7 @@ class EcashController extends GetxController {
     late Worker worker;
     Timer? timeoutTimer;
 
-    worker = ever(isInitialized, (bool value) {
+    worker = ever(isInitialized, (value) {
       if (value && !completer.isCompleted) {
         timeoutTimer?.cancel();
         worker.dispose();
@@ -141,7 +141,43 @@ class EcashController extends GetxController {
     if (mints.isEmpty) {
       await initMintUrl();
     }
-    unawaited(requestPageRefresh());
+    // Fetch balance synchronously so isInitialized is set before
+    // UnifiedWalletController calls waitForInit(). The slow pending
+    // check runs in the background to avoid blocking startup.
+    await _initBalanceAndSignalReady();
+    unawaited(_checkPendingTransactionsInBackground());
+  }
+
+  /// Fetch balance and mark Cashu as initialized.
+  ///
+  /// Called from [_initCashuMints] to ensure [isInitialized] is true before
+  /// any consumer calls [waitForInit]. This avoids the race condition where
+  /// [UnifiedWalletController] times out waiting for initialization.
+  Future<void> _initBalanceAndSignalReady() async {
+    try {
+      await getBalance();
+    } catch (e) {
+      logger.e('Failed to fetch initial balance', error: e);
+    } finally {
+      isInitialized.value = true;
+    }
+  }
+
+  /// Run slow pending-transaction checks in the background.
+  ///
+  /// Separated from [_initBalanceAndSignalReady] so that startup is not
+  /// blocked by network-dependent operations (Lightning pending checks can
+  /// take up to 3 minutes).
+  Future<void> _checkPendingTransactionsInBackground() async {
+    try {
+      unawaited(rust_cashu.checkPending());
+      final pendings = await rust_cashu.getLnPendingTransactions();
+      await LightningUtils.instance
+          .checkPendings(pendings)
+          .timeout(const Duration(minutes: 3));
+    } catch (e) {
+      logger.e('Failed to check pending transactions in background: $e');
+    }
   }
 
   // move cashu token to v2

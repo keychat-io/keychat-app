@@ -321,35 +321,116 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  bool get isDarkMode {
-    if (message.isMeSend) {
-      if (message.isSystem ||
-          message.encryptType == MessageEncryptType.signal ||
-          message.encryptType == MessageEncryptType.mls) {
-        return true;
-      }
-    }
-    return Get.isDarkMode;
+  MarkdownConfig get markdownConfig {
+    // Unified: follow system theme for all messages
+    return Get.isDarkMode ? markdownDarkConfig : markdownLightConfig;
   }
 
-  MarkdownConfig get markdownConfig {
-    return isDarkMode ? markdownDarkConfig : markdownLightConfig;
+  /// Get background color for message bubble
+  Color get messageBubbleColor {
+    // Check for weak encryption first
+    if (cc.roomObs.value.type != RoomType.group && !message.isSystem) {
+      if (message.encryptType == MessageEncryptType.nip04 ||
+          message.encryptType == MessageEncryptType.nip17) {
+        return Colors.red.withValues(alpha: 0.15);
+      }
+    }
+
+    if (message.isMeSend) {
+      // My messages: soft purple tint that pairs with the page background
+      if (Get.isDarkMode) {
+        return const Color(0xFF1B2A3A); // Deep blue slate for dark mode
+      } else {
+        return const Color(0xFFF0E8FF); // Soft purple for light mode
+      }
+    } else {
+      // Received messages: neutral surface tones
+      if (Get.isDarkMode) {
+        return const Color(0xFF1A1F26); // Dark neutral for dark mode
+      } else {
+        return const Color(
+          0xFFFFFFFF,
+        ); // White for clear contrast with light background
+      }
+    }
+  }
+
+  /// Get text color for message content
+  Color get messageTextColor {
+    // Unified: follow system theme for all messages
+    if (Get.isDarkMode) {
+      return const Color(0xFFE8E8E8); // Light text on dark background
+    } else {
+      return const Color(0xFF1F1F1F); // Dark text on light background
+    }
   }
 
   Widget _getMessageContainer() {
-    final widget = GestureDetector(
+    final widget = message.reply == null
+        ? RoomUtil.getTextViewWidget(
+            message,
+            cc,
+            markdownConfig,
+            _chatBubbleContainer,
+          )
+        : _getReplyWidget();
+    // Desktop: SelectionArea enables mouse-drag text selection.
+    // When text is selected, right-click shows an inline toolbar (rendered by
+    // contextMenuBuilder) so the selection highlight is preserved.
+    // When no text is selected, right-click shows our custom popup via showMenu.
+    // Mobile: no SelectionArea; long press shows bottom sheet menu.
+    final Widget interactiveChild;
+    String? selectedText;
+    if (GetPlatform.isDesktop) {
+      interactiveChild = SelectionArea(
+        onSelectionChanged: (value) {
+          selectedText = value?.plainText;
+        },
+        contextMenuBuilder:
+            (
+              context,
+              selectableRegionState,
+            ) {
+              final buttonItems = selectableRegionState.contextMenuButtonItems;
+              final hasSelection = buttonItems.any(
+                (item) => item.type == ContextMenuButtonType.copy,
+              );
+
+              if (hasSelection) {
+                // Text is selected — build unified menu items inline
+                // so selection highlight is preserved (no focus steal).
+                final menuItems = _buildContextMenuButtonItems(
+                  selectedText: selectedText,
+                );
+                // Prepend system Copy Selected at the top
+                return AdaptiveTextSelectionToolbar.buttonItems(
+                  anchors: selectableRegionState.contextMenuAnchors,
+                  buttonItems: menuItems,
+                );
+              }
+
+              // No text selected — suppress, let GestureDetector handle it
+              return const SizedBox.shrink();
+            },
+        child: widget,
+      );
+    } else {
+      interactiveChild = widget;
+    }
+
+    final messageBody = GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onLongPress: _handleTextLongPress,
-      onSecondaryTapDown: (TapDownDetails e) async {
-        await _onSecondaryTapDown(Get.context!, e);
-      },
-      child: message.reply == null
-          ? RoomUtil.getTextViewWidget(
-              message,
-              cc,
-              markdownConfig,
-              _chatBubbleContainer,
-            )
-          : _getReplyWidget(),
+      onSecondaryTapDown: GetPlatform.isDesktop
+          ? (details) {
+              // Only trigger when no text is selected (selected case handled
+              // by contextMenuBuilder above)
+              if (selectedText == null || selectedText!.isEmpty) {
+                _onSecondaryTapDown(Get.context!, details);
+              }
+            }
+          : null,
+      child: interactiveChild,
     );
 
     if (message.isMeSend) {
@@ -372,7 +453,7 @@ class MessageWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
                       ?messageStatus,
-                      Flexible(child: widget),
+                      Flexible(child: messageBody),
                     ],
                   ),
                 ),
@@ -457,7 +538,7 @@ class MessageWidget extends StatelessWidget {
               ),
             ),
           ),
-        widget,
+        messageBody,
         GestureDetector(
           onTap: _handleShowRawdata,
           child: Padding(
@@ -726,7 +807,7 @@ class MessageWidget extends StatelessWidget {
         child: Text(
           message.reply!.content,
           style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-            color: (isDarkMode ? Colors.white : Colors.black87).withValues(
+            color: messageTextColor.withValues(
               alpha: 0.7,
             ),
             height: 1.1,
@@ -759,7 +840,7 @@ class MessageWidget extends StatelessWidget {
                 Theme.of(
                   Get.context!,
                 ).textTheme.bodyMedium?.copyWith(
-                  color: (isDarkMode ? Colors.white : Colors.black87),
+                  color: messageTextColor,
                   height: 1.2,
                 ),
             maxLines: 5,
@@ -775,13 +856,11 @@ class MessageWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:
-                  (message.isMeSend
-                          ? MaterialTheme.lightScheme().surface
-                          : Theme.of(Get.context!).colorScheme.surface)
-                      .withValues(alpha: 0.5),
+              color: (Get.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05)),
               border: Border(
-                left: BorderSide(color: Colors.purple.shade200, width: 2),
+                left: BorderSide(color: Colors.purple.shade300, width: 2),
               ),
             ),
             child: Column(
@@ -791,7 +870,7 @@ class MessageWidget extends StatelessWidget {
                   message.reply!.user,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                    color: Colors.purple,
+                    color: Colors.purple.shade300,
                     height: 1,
                   ),
                 ),
@@ -800,7 +879,7 @@ class MessageWidget extends StatelessWidget {
                       message.reply!.content,
                       style: Theme.of(Get.context!).textTheme.bodyLarge
                           ?.copyWith(
-                            color: (isDarkMode ? Colors.white : Colors.black87),
+                            color: messageTextColor,
                             height: 1,
                           ),
                     ),
@@ -818,15 +897,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Color getBackgroupColorByEncrypteMode(Color color) {
-    if (cc.roomObs.value.type == RoomType.group || message.isSystem) {
-      return color;
-    }
-    if (message.encryptType == MessageEncryptType.nip04 ||
-        message.encryptType == MessageEncryptType.nip17) {
-      return Colors.red.withAlpha(100);
-    }
-
-    return color;
+    // Use the new messageBubbleColor getter instead
+    return messageBubbleColor;
   }
 
   Widget _chatBubbleContainer({String? text, Widget? child, int? id}) {
@@ -1274,6 +1346,41 @@ class MessageWidget extends StatelessWidget {
     FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
+  /// Builds context menu button items for text selection right-click.
+  ///
+  /// Used by [SelectionArea.contextMenuBuilder] when text is selected,
+  /// rendered inline so the selection highlight is preserved.
+  /// Only shows Copy Selected and Copy All options.
+  List<ContextMenuButtonItem> _buildContextMenuButtonItems({
+    String? selectedText,
+  }) {
+    return <ContextMenuButtonItem>[
+      if (selectedText != null && selectedText.isNotEmpty)
+        ContextMenuButtonItem(
+          label: 'Copy Selected',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: selectedText));
+            EasyLoading.showToast('Copied');
+            ContextMenuController.removeAny();
+          },
+        ),
+      ContextMenuButtonItem(
+        label: 'Copy All',
+        onPressed: () {
+          ContextMenuController.removeAny();
+          var content = message.content;
+          if (message.realMessage != null &&
+              cc.roomObs.value.type == RoomType.bot) {
+            content = message.realMessage!;
+          }
+          Clipboard.setData(ClipboardData(text: content));
+          EasyLoading.showToast('Copied');
+        },
+      ),
+    ];
+  }
+
+  /// Shows a unified context popup menu on desktop right-click (no text selected).
   Future<void> _onSecondaryTapDown(
     BuildContext context,
     TapDownDetails e,
@@ -1290,7 +1397,7 @@ class MessageWidget extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    await showMenu(
+    await showMenu<void>(
       context: context,
       elevation: 8,
       color: theme.popupMenuTheme.color ?? theme.cardColor,
@@ -1298,7 +1405,7 @@ class MessageWidget extends StatelessWidget {
       position: position,
       items: [
         if (message.isMediaType)
-          PopupMenuItem(
+          PopupMenuItem<void>(
             mouseCursor: SystemMouseCursors.click,
             child: const Row(
               children: [
@@ -1329,7 +1436,7 @@ class MessageWidget extends StatelessWidget {
               OpenFilex.open(fileDir);
             },
           ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1348,7 +1455,7 @@ class MessageWidget extends StatelessWidget {
             EasyLoading.showToast('Copied');
           },
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1361,7 +1468,7 @@ class MessageWidget extends StatelessWidget {
             await _showMoreEmojis();
           },
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1372,7 +1479,7 @@ class MessageWidget extends StatelessWidget {
           ),
           onTap: () => _handleReply(Get.context!),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: const Row(
             children: [
@@ -1383,7 +1490,7 @@ class MessageWidget extends StatelessWidget {
           ),
           onTap: () => _handleForward(Get.context!),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           onTap: _handleShowRawdata,
           child: const Row(
@@ -1394,7 +1501,7 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
         ),
-        PopupMenuItem(
+        PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           child: Row(
             children: [
@@ -1426,8 +1533,8 @@ class MessageWidget extends StatelessWidget {
         body: emoji_picker.EmojiPicker(
           onEmojiSelected:
               (
-                emoji_picker.Category? category,
-                emoji_picker.Emoji emoji,
+                category,
+                emoji,
               ) async {
                 Get.back<void>();
                 await cc.handleEmojiReact(message, emoji.emoji);
@@ -1555,7 +1662,7 @@ class MessageWidget extends StatelessWidget {
               builder:
                   (
                     context,
-                    AsyncSnapshot<Set<String>> snapshot,
+                    snapshot,
                   ) {
                     if (snapshot.hasData) {
                       return _buildEmojiReactionRow(snapshot.data!);
@@ -1618,7 +1725,7 @@ class MessageWidget extends StatelessWidget {
                           Icons.delete,
                           color: Colors.red,
                         ),
-                        onPressed: (BuildContext context) {
+                        onPressed: (context) {
                           Get.back<void>();
                           _showDeleteDialog(message);
                         },

@@ -173,9 +173,8 @@ class ChatController extends GetxController {
     lastMessageAddedAt = DateTime.now();
 
     messages.insert(index, message);
-    if (scrollController.hasClients &&
-        scrollController.position.pixels <= 400) {
-      jumpToBottom(100);
+    if (scrollController.hasClients && scrollController.position.hasPixels) {
+      snapToBottomIfNear();
     }
   }
 
@@ -332,6 +331,24 @@ class ChatController extends GetxController {
         );
       }
     });
+  }
+
+  /// Snap back to bottom when the user scrolls less than one viewport height.
+  void snapToBottomIfNear() {
+    if (!scrollController.hasClients) {
+      return;
+    }
+
+    final position = scrollController.position;
+    if (!position.hasPixels) {
+      return;
+    }
+
+    final offset = position.pixels;
+    final viewport = position.viewportDimension;
+    if (offset > 0 && offset < viewport) {
+      jumpToBottom(100);
+    }
   }
 
   Future<void> loadAllChat({int searchMsgIndex = -1}) async {

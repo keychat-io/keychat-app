@@ -21,6 +21,9 @@ melos:
     - packages/keychat_rust_ffi_plugin/cargokit/**
 
   scripts:
+    dmg:
+      run: bash scripts/build-dmg-local.sh
+      description: Build DMG for macOS app.
     postclean:
       run: melos run clean:flutter --no-select
       description: Runs "flutter clean" in all Flutter packages

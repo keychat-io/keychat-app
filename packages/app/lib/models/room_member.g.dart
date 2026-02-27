@@ -200,12 +200,14 @@ const _RoomMemberstatusEnumValueMap = {
   'invited': 1,
   'blocked': 2,
   'removed': 3,
+  'unknown': 4,
 };
 const _RoomMemberstatusValueEnumMap = {
   0: UserStatusType.inviting,
   1: UserStatusType.invited,
   2: UserStatusType.blocked,
   3: UserStatusType.removed,
+  4: UserStatusType.unknown,
 };
 
 Id _roomMemberGetId(RoomMember object) {
@@ -2114,4 +2116,5 @@ const _$UserStatusTypeEnumMap = {
   UserStatusType.invited: 'invited',
   UserStatusType.blocked: 'blocked',
   UserStatusType.removed: 'removed',
+  UserStatusType.unknown: 'unknown',
 };

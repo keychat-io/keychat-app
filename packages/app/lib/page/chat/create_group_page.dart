@@ -158,7 +158,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextFormField(
+                    child: TextField(
                       controller: _groupNameController,
                       decoration: const InputDecoration(
                         labelText: 'Group Name',

@@ -204,74 +204,82 @@ class RoomList extends GetView<HomeController> {
                     },
                     onLongPress: () =>
                         RoomUtil.showRoomActionSheet(context, room),
-                    child: ColoredBox(
-                      color: room.pin
-                          ? Get.isDarkMode
-                                ? const Color(0xFF202020)
-                                : const Color(0xFFEDEDED)
-                          : Colors.transparent,
-                      child: Obx(
-                        () => ListTile(
-                          contentPadding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                          ),
-                          leading: Utils.getAvatarByRoom(room),
-                          key: Key('room:${room.id}'),
-                          selected:
-                              desktopController?.selectedRoom.value.id ==
-                              room.id,
-                          selectedTileColor: KeychatGlobal.primaryColor
-                              .withAlpha(50),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              AutoSizeText(
-                                room.getRoomName(),
-                                minFontSize: 10,
-                                maxFontSize: 18,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              if (controller.roomLastMessage[room.id] != null)
-                                Wrap(
-                                  children: [
-                                    textSmallGray(
+                    child: Obx(
+                      () {
+                        final isSelected =
+                            desktopController?.selectedRoom.value.id == room.id;
+                        return ColoredBox(
+                          color: isSelected
+                              ? KeychatGlobal.primaryColor.withAlpha(50)
+                              : (room.pin
+                                    ? Get.isDarkMode
+                                          ? const Color(0xFF202020)
+                                          : const Color(0xFFEDEDED)
+                                    : Colors.transparent),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                            ),
+                            leading: Utils.getAvatarByRoom(room),
+                            key: Key('room:${room.id}'),
+                            selected: isSelected,
+                            selectedTileColor: KeychatGlobal.primaryColor
+                                .withAlpha(50),
+                            title: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: AutoSizeText(
+                                    room.getRoomName(),
+                                    minFontSize: 10,
+                                    maxFontSize: 18,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
                                       context,
-                                      Utils.formatTimeMsg(
-                                        controller
-                                            .roomLastMessage[room.id]!
-                                            .createdAt,
-                                      ),
-                                    ),
-                                    if (room.isMute)
-                                      Icon(
-                                        Icons.notifications_off_outlined,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.6),
-                                        size: 16,
-                                      )
-                                    else
-                                      Container(),
-                                  ],
+                                    ).textTheme.titleMedium,
+                                  ),
                                 ),
-                            ],
-                          ),
-                          subtitle: Obx(
-                            () => RoomUtil.getSubtitleDisplay(
-                              context,
-                              room,
-                              DateTime.now().subtract(
-                                const Duration(seconds: 5),
+                                if (controller.roomLastMessage[room.id] != null)
+                                  Wrap(
+                                    children: [
+                                      textSmallGray(
+                                        context,
+                                        Utils.formatTimeMsg(
+                                          controller
+                                              .roomLastMessage[room.id]!
+                                              .createdAt,
+                                        ),
+                                      ),
+                                      if (room.isMute)
+                                        Icon(
+                                          Icons.notifications_off_outlined,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.6),
+                                          size: 16,
+                                        )
+                                      else
+                                        Container(),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                            subtitle: Obx(
+                              () => RoomUtil.getSubtitleDisplay(
+                                context,
+                                room,
+                                DateTime.now().subtract(
+                                  const Duration(seconds: 5),
+                                ),
+                                controller.roomLastMessage[room.id],
                               ),
-                              controller.roomLastMessage[room.id],
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   );
                 },

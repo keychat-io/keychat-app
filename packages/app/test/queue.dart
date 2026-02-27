@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 List<int> _queue = [];
 
 void _processQueue() {
-  for (var i in _queue) {
+  for (final i in _queue) {
     debugPrint('process- ${DateTime.now()} : $i');
   }
   _queue.clear();
@@ -29,7 +29,7 @@ void proccessIt(int i) {
 void main() async {
   for (var i = 0; i < 5; i++) {
     debugPrint('call - ${DateTime.now()} : $i');
-    await Future.delayed(Duration(milliseconds: Random().nextInt(1000)));
+    await Future<void>.delayed(Duration(milliseconds: Random().nextInt(1000)));
     proccessIt(i);
   }
 }

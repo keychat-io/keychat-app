@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/service/SignerService.dart';
 
 void main() {
   group('NIP-17 Rumor Kind Tests', () {
@@ -24,6 +25,25 @@ void main() {
 
       // Seal should be kind 13 (defined elsewhere)
       // NIP-59 spec: Rumor (14) → Seal (13) → Gift Wrap (1059)
+    });
+
+    test('Amber rumor structure uses kind 14 and p-tag', () {
+      final rumor = SignerService.instance.buildRumorEventForTesting(
+        content: 'hello',
+        from: 'sender_pubkey',
+        to: 'receiver_pubkey',
+      );
+
+      expect(rumor['kind'], equals(EventKinds.chatRumor));
+      expect(rumor['pubkey'], equals('sender_pubkey'));
+      expect(rumor['content'], equals('hello'));
+      expect(rumor['created_at'], isA<int>());
+
+      final tags = rumor['tags'] as List<dynamic>;
+      expect(tags, isNotEmpty);
+      final firstTag = tags.first as List<dynamic>;
+      expect(firstTag[0], equals('p'));
+      expect(firstTag[1], equals('receiver_pubkey'));
     });
   });
 }

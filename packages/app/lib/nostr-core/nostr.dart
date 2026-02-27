@@ -338,12 +338,14 @@ class NostrAPI {
     MsgReply? reply,
     bool timestampTweaked = false,
     bool save = true,
-    int nip17Kind = EventKinds.nip17,
+    int nip17Kind = EventKinds.chatRumor,
     List<List<String>>? additionalTags,
     bool? isSystem,
   }) async {
-    String? encryptedEvent;
+    late String encryptedEvent;
+
     if (identity.isFromSigner) {
+      // Use Amber signer - sign once to create single event for receiver
       encryptedEvent = await SignerService.instance.getNip59EventString(
         content: sourceContent,
         nip17Kind: nip17Kind,
@@ -352,6 +354,7 @@ class NostrAPI {
         to: toPubkey ?? room.toMainPubkey,
       );
     } else {
+      // Rust FFI path - creates single event for receiver
       encryptedEvent = await rust_nostr.createGiftJson(
         kind: nip17Kind,
         senderKeys: await identity.getSecp256k1SKHex(),
@@ -361,17 +364,23 @@ class NostrAPI {
         additionalTags: additionalTags,
       );
     }
+
+    if (encryptedEvent.isEmpty) {
+      throw Exception('Failed to create encrypted NIP-17 event');
+    }
+
+    // Send to receiver
     return sendAndSaveNostrEvent(
       to: toPubkey ?? room.toMainPubkey,
       plainContent: sourceContent,
-      room: room,
       encryptedEvent: encryptedEvent,
       from: identity.secp256k1PKHex,
+      room: room,
+      save: save,
       mediaType: mediaType,
       reply: reply,
       realMessage: realMessage,
       isSystem: isSystem,
-      save: save,
     );
   }
 
@@ -422,6 +431,100 @@ class NostrAPI {
     );
 
     return SendMessageResponse(events: [event], message: model);
+  }
+
+  /// Sends NIP-17 message with sender copy to both receiver and sender's devices.
+  /// This enables multi-device synchronization by storing a wrapped copy on the sender's side.
+  Future<SendMessageResponse> sendAndSaveNostrEventWithSenderCopy({
+    required String to,
+    required String plainContent,
+    required String? encryptedEventToReceiver,
+    required String from,
+    required Room room,
+    String? encryptedEventToSender,
+    bool save = true,
+    MessageMediaType? mediaType,
+    MsgReply? reply,
+    bool? isSystem,
+    String? realMessage,
+  }) async {
+    if (encryptedEventToReceiver == null) {
+      throw Exception('encryptedEventToReceiver must not be null');
+    }
+    final receiverEvent = NostrEventModel.fromJson(
+      jsonDecode(encryptedEventToReceiver) as Map<String, dynamic>,
+      verify: false,
+    );
+
+    // Send receiver event
+    final receiverRelays = await Get.find<WebsocketService>().writeNostrEvent(
+      event: receiverEvent,
+      eventString: encryptedEventToReceiver,
+      roomId: room.parentRoom?.id ?? room.id,
+      toRelays: room.sendingRelays,
+    );
+
+    // Send sender copy if available
+    var allRelays = receiverRelays;
+    if (encryptedEventToSender != null && encryptedEventToSender.isNotEmpty) {
+      final senderEvent = NostrEventModel.fromJson(
+        jsonDecode(encryptedEventToSender) as Map<String, dynamic>,
+        verify: false,
+      );
+      final senderRelays = await Get.find<WebsocketService>().writeNostrEvent(
+        event: senderEvent,
+        eventString: encryptedEventToSender,
+        roomId: room.parentRoom?.id ?? room.id,
+        toRelays: room.sendingRelays,
+      );
+      allRelays = <String>{...receiverRelays, ...senderRelays};
+    }
+
+    if (save && allRelays.isEmpty) {
+      throw Exception(ErrorMessages.relayIsEmptyException);
+    }
+    if (!save) {
+      final events = [receiverEvent];
+      if (encryptedEventToSender != null && encryptedEventToSender.isNotEmpty) {
+        events.add(
+          NostrEventModel.fromJson(
+            jsonDecode(encryptedEventToSender) as Map<String, dynamic>,
+            verify: false,
+          ),
+        );
+      }
+      return SendMessageResponse(events: events);
+    }
+
+    // Save message to DB
+    final model = await MessageService.instance.saveMessageToDB(
+      events: [receiverEvent],
+      reply: reply,
+      from: from,
+      to: to,
+      isSystem: isSystem ?? false,
+      senderPubkey: room.myIdPubkey,
+      content: plainContent,
+      realMessage: realMessage,
+      isRead: true,
+      isMeSend: true,
+      room: room,
+      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      mediaType: mediaType,
+      encryptType: MessageEncryptType.nip17,
+      connectedRelays: allRelays.length,
+    );
+
+    final events = [receiverEvent];
+    if (encryptedEventToSender != null && encryptedEventToSender.isNotEmpty) {
+      events.add(
+        NostrEventModel.fromJson(
+          jsonDecode(encryptedEventToSender) as Map<String, dynamic>,
+          verify: false,
+        ),
+      );
+    }
+    return SendMessageResponse(events: events, message: model);
   }
 
   Future<String?> decryptNip4Content(NostrEventModel event) async {

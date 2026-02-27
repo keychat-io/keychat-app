@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode;
+import 'dart:math' show min;
 
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -22,6 +23,52 @@ import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:web_socket_client/web_socket_client.dart';
+
+/// Tracks connection backoff state for a single relay.
+/// Implements exponential backoff to prevent reconnection storms.
+class _RelayBackoffState {
+  int failureCount = 0;
+  DateTime? lastAttempt;
+  DateTime? lastSuccess;
+
+  /// Calculate exponential backoff duration based on failure count.
+  /// Returns: 3s, 6s, 12s, 24s, 48s, max 60s
+  Duration getBackoffDuration() {
+    final seconds = min(3 * (1 << failureCount), 60);
+    return Duration(seconds: seconds);
+  }
+
+  /// Check if enough time has passed since last attempt.
+  bool shouldAttempt() {
+    if (lastAttempt == null) return true;
+    final backoff = getBackoffDuration();
+    return DateTime.now().difference(lastAttempt!) > backoff;
+  }
+
+  /// Record a connection failure, incrementing backoff.
+  void recordFailure() {
+    failureCount++;
+    lastAttempt = DateTime.now();
+    logger.d(
+      'Relay failure recorded, count: $failureCount, next retry in: ${getBackoffDuration().inSeconds}s',
+    );
+  }
+
+  /// Record a successful connection, resetting backoff.
+  void recordSuccess() {
+    failureCount = 0;
+    lastAttempt = null;
+    lastSuccess = DateTime.now();
+  }
+
+  /// Check if relay has had a recent successful connection.
+  /// Used to determine if a relay is healthy enough to skip reconnection.
+  bool isHealthy() {
+    if (lastSuccess == null) return false;
+    // Healthy if successful connection within last 5 minutes
+    return DateTime.now().difference(lastSuccess!) < const Duration(minutes: 5);
+  }
+}
 
 class WebsocketService extends GetxService {
   WebsocketService() {
@@ -48,6 +95,16 @@ class WebsocketService extends GetxService {
   DateTime initAt = DateTime.now();
 
   bool startLock = false;
+
+  /// Tracks exponential backoff state for each relay.
+  /// Key: relay URL, Value: backoff state with failure count and timing
+  final Map<String, _RelayBackoffState> _backoffStates = {};
+
+  /// Get or create backoff state for a relay.
+  /// Public to allow health checks from other services.
+  _RelayBackoffState getBackoffState(String url) {
+    return _backoffStates.putIfAbsent(url, _RelayBackoffState.new);
+  }
 
   int activitySocketCount() {
     return channels.values.where((element) => element.isConnected()).length;
@@ -132,16 +189,42 @@ class WebsocketService extends GetxService {
           'checkOnlineAndConnect: ${rw.relay.url}, forceReconnect: $forceReconnect',
         );
         if (!rw.relay.active) return;
+
+        final backoff = getBackoffState(rw.relay.url);
+
+        // Skip if in backoff period (unless forced)
+        if (!forceReconnect && !backoff.shouldAttempt()) {
+          logger.d(
+            'Skipping ${rw.relay.url} - in backoff period (${backoff.failureCount} failures)',
+          );
+          return;
+        }
+
         if (forceReconnect) {
+          // Clean up old subscriptions before closing
+          rw.cleanupSubscriptions();
           rw.channel?.close();
+          backoff.lastAttempt = DateTime.now();
           await _startConnectRelay(rw);
           return;
         }
-        final relayStatus = await rw.checkOnlineStatus();
-        if (!relayStatus) {
-          rw.channel?.close();
-          await _startConnectRelay(rw);
+
+        // Check health before reconnecting
+        if (rw.isConnected()) {
+          final isHealthy = await rw.checkOnlineStatus();
+          if (isHealthy) {
+            backoff.recordSuccess();
+            logger.d('${rw.relay.url} is healthy, skipping reconnect');
+            return; // Connection is good
+          }
         }
+
+        // Need to reconnect
+        logger.i('Reconnecting ${rw.relay.url}');
+        rw.cleanupSubscriptions();
+        rw.channel?.close();
+        backoff.recordFailure();
+        await _startConnectRelay(rw);
       }),
     );
   }
@@ -162,6 +245,7 @@ class WebsocketService extends GetxService {
     relay.errorMessage = null;
     await RelayService.instance.update(relay);
     if (channels[relay.url] != null) {
+      channels[relay.url]!.cleanupSubscriptions();
       channels[relay.url]!.channel?.close();
       channels[relay.url]!.relay = relay;
       channels.refresh();
@@ -557,9 +641,12 @@ class WebsocketService extends GetxService {
 
   Future<void> stopListening() async {
     for (final rw in channels.values) {
+      // Clean up all subscriptions before closing
+      rw.cleanupSubscriptions();
       rw.channel?.close();
     }
     channels.clear();
+    _backoffStates.clear();
   }
 
   Future<Set<String>> writeNostrEvent({
@@ -696,24 +783,66 @@ class WebsocketService extends GetxService {
       ),
     );
 
-    rw.channel!.messages.listen((message) {
-      nostrAPI.addNostrEventToQueue(rw.relay, message);
-    });
-    rw.channel!.connection.listen((ConnectionState state) {
-      if (state is Connected || state is Reconnected) {
-        rw.connectSuccess();
-        if (connectedCallback != null) {
-          connectedCallback();
-        }
-        // Retry pending messages for this relay
-        unawaited(
-          MessageRetryService.instance.retryPendingMessages(rw.relay.url),
+    /// Store message subscription to enable proper cleanup.
+    /// Saves reference so we can cancel it when reconnecting.
+    rw.messagesSubscription = rw.channel!.messages.listen(
+      (message) {
+        nostrAPI.addNostrEventToQueue(rw.relay, message);
+      },
+      onError: (dynamic error, dynamic stackTrace) {
+        logger.e(
+          'WebSocket message error for ${rw.relay.url}',
+          error: error,
+          stackTrace: stackTrace is StackTrace ? stackTrace : null,
         );
-      }
+      },
+    );
 
-      // update the main page status
-      unawaited(refreshMainRelayStatus());
-    });
+    /// Store connection state subscription to enable proper cleanup.
+    /// Prevents zombie subscribers in long-running sessions.
+    rw.connectionStateSubscription = rw.channel!.connection.listen(
+      (ConnectionState state) {
+        final backoff = getBackoffState(rw.relay.url);
+
+        if (state is Connected || state is Reconnected) {
+          backoff.recordSuccess();
+          logger.i('Relay connected: ${rw.relay.url}');
+          rw.connectSuccess();
+          if (connectedCallback != null) {
+            connectedCallback();
+          }
+          // Retry pending messages for this relay
+          unawaited(
+            MessageRetryService.instance.retryPendingMessages(rw.relay.url),
+          );
+        } else if (state is Disconnected) {
+          backoff.recordFailure();
+          logger.w(
+            'Relay disconnected: ${rw.relay.url}, failures: ${backoff.failureCount}',
+          );
+
+          // Circuit breaker: cleanup if too many failures
+          if (backoff.failureCount >= 5) {
+            logger.e(
+              'Relay ${rw.relay.url} exceeded failure threshold (5), activating circuit breaker',
+            );
+            rw.cleanupSubscriptions();
+          }
+        }
+
+        // update the main page status
+        unawaited(refreshMainRelayStatus());
+      },
+      onError: (dynamic error, dynamic stackTrace) {
+        getBackoffState(rw.relay.url).recordFailure();
+        logger.e(
+          'WebSocket connection state error for ${rw.relay.url}',
+          error: error,
+          stackTrace: stackTrace is StackTrace ? stackTrace : null,
+        );
+        unawaited(refreshMainRelayStatus());
+      },
+    );
 
     return rw;
   }
@@ -782,5 +911,26 @@ class WebsocketService extends GetxService {
     if (activeCount == 0) {
       mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
     }
+  }
+
+  /// Get connection health status for all relays.
+  /// Useful for debugging and monitoring connection quality.
+  Map<String, Map<String, dynamic>> getConnectionHealth() {
+    return Map.fromEntries(
+      channels.entries.map((entry) {
+        final backoff = getBackoffState(entry.key);
+        return MapEntry(entry.key, {
+          'connected': entry.value.isConnected(),
+          'failures': backoff.failureCount,
+          'lastSuccess': backoff.lastSuccess?.toIso8601String(),
+          'isHealthy': backoff.isHealthy(),
+          'nextRetry': backoff.shouldAttempt()
+              ? 'now'
+              : backoff.lastAttempt!
+                    .add(backoff.getBackoffDuration())
+                    .toIso8601String(),
+        });
+      }),
+    );
   }
 }

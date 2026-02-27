@@ -3,9 +3,7 @@ import 'package:keychat/global.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/bitcoin_wallet_main.dart';
-import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 
 class DeskEcash extends GetView<DesktopController> {
   const DeskEcash({super.key});
@@ -15,7 +13,7 @@ class DeskEcash extends GetView<DesktopController> {
     return Navigator(
       key: Get.nestedKey(GetXNestKey.ecash),
       initialRoute: '/bitcoin_wallets',
-      onGenerateRoute: (RouteSettings settings) {
+      onGenerateRoute: (settings) {
         if (settings.name == '/bitcoin_wallets') {
           return GetPageRoute(page: BitcoinWalletMain.new);
         }

@@ -83,16 +83,32 @@ class CashuWalletProvider implements WalletProvider {
     int? limit,
     int? offset,
   }) async {
-    final transactions = await rust_cashu.getTransactionsWithOffset(
+    final transactions = await rust_cashu.getTxsWithOffsetMintAmount(
+      mintUrl: walletId,
       limit: BigInt.from(limit ?? 20),
       offset: BigInt.from(offset ?? 0),
+      isOneAmount: false,
     );
 
-    // TODO(cashu): offset/limit are applied globally before filtering by mint,
-    // so the returned count may be less than `limit` even when more transactions
-    // exist for this mint. Needs a per-mint query API from the Rust layer.
     return transactions
-        // .where((tx) => tx.mintUrl == walletId || walletId.isEmpty)
+        .map((tx) => CashuWalletTransaction(transaction: tx))
+        .toList();
+  }
+
+  @override
+  Future<List<WalletTransactionBase>> getOneSatTransactions(
+    String walletId, {
+    int? limit,
+    int? offset,
+  }) async {
+    final transactions = await rust_cashu.getTxsWithOffsetMintAmount(
+      mintUrl: walletId,
+      limit: BigInt.from(limit ?? 20),
+      offset: BigInt.from(offset ?? 0),
+      isOneAmount: true,
+    );
+
+    return transactions
         .map((tx) => CashuWalletTransaction(transaction: tx))
         .toList();
   }

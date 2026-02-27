@@ -407,7 +407,10 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
             children: [
               const Text('Total Balance'),
               Obx(
-                () => controller.isLoading.value
+                // Show spinner only when loading AND no wallets have arrived yet.
+                // Once any provider delivers wallets, display the accumulated
+                // balance immediately even if other providers are still loading.
+                () => controller.isLoading.value && controller.wallets.isEmpty
                     ? SizedBox(
                         height: 60,
                         child: Center(
@@ -417,26 +420,48 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
                           ),
                         ),
                       )
-                    : RichText(
-                        text: TextSpan(
-                          text: controller.totalBalance.toString(),
-                          children: const <TextSpan>[
-                            TextSpan(
-                              text: ' sat',
+                    : Row(
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              text: controller.totalBalance.toString(),
+                              children: const <TextSpan>[
+                                TextSpan(
+                                  text: ' sat',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                               style: TextStyle(
-                                fontSize: 20,
+                                height: 1.3,
+                                fontSize: 48,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge!
+                                    .color,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                          style: TextStyle(
-                            height: 1.3,
-                            fontSize: 48,
-                            color:
-                                Theme.of(context).textTheme.titleLarge!.color,
-                            fontWeight: FontWeight.bold,
                           ),
-                        ),
+                          // Small loading indicator when more providers are
+                          // still loading in the background.
+                          if (controller.isLoading.value)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context)
+                                      .primaryColor
+                                      .withAlpha(150),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
               ),
             ],
@@ -502,6 +527,45 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
               }),
             ],
           ),
+          // 1sat transactions button (Cashu only)
+          Obx(() {
+            final wallet = controller.selectedWallet;
+            if (wallet.protocol != WalletProtocol.cashu) {
+              return const SizedBox.shrink();
+            }
+            return GestureDetector(
+              onTap: () => _showOneSatTransactionsModal(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: KeychatGlobal.secondaryColor.withAlpha(50),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.money_dollar_circle,
+                      size: 16,
+                      color: KeychatGlobal.secondaryColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      '1sat',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: KeychatGlobal.secondaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1049,5 +1113,16 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     if (result != null && result.isNotEmpty) {
       await _processWalletInput(result);
     }
+  }
+
+  /// Show modal with 1sat transactions list
+  Future<void> _showOneSatTransactionsModal(BuildContext context) async {
+    // Load 1sat transactions
+    await controller.loadOneSatTransactions();
+
+    await Get.to<void>(
+      () => const OneSatTransactionsPage(),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+    );
   }
 }

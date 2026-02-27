@@ -16,12 +16,16 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/chat/ChatMediaFilesPage.dart';
 import 'package:keychat/page/chat/ForwardSelectRoom.dart';
+import 'package:keychat/page/chat/add_member_to_group.dart';
 import 'package:keychat/page/chat/contact_page.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
+import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
+import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/room.service.dart';
@@ -32,12 +36,353 @@ import 'package:keychat_ecash/red_pocket_cashu.dart';
 import 'package:keychat_ecash/red_pocket_lightning.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:url_launcher/url_launcher.dart' show launchUrl;
+import 'package:url_launcher/url_launcher.dart' show LaunchMode, launchUrl;
+
+/// Custom widget that wraps code blocks with a copy button
+/// Uses markdown_widget's PreConfig.wrapper callback
+class CodeBlockWithCopyButton extends StatelessWidget {
+  const CodeBlockWithCopyButton({
+    required this.child,
+    required this.code,
+    required this.language,
+    super.key,
+  });
+
+  final Widget child;
+  final String code;
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Original code block rendered by markdown_widget
+        child,
+        // Copy button below the code block, centered with outline
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 2),
+            child: SizedBox(
+              height: 26,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: code));
+                  await EasyLoading.showToast('Code copied');
+                },
+                icon: const Icon(Icons.content_copy, size: 13),
+                label: const Text('Copy', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Get.isDarkMode
+                      ? const Color(0xFFB8A3FF)
+                      : const Color(0xFF6F42C1),
+                  side: BorderSide(
+                    color: Get.isDarkMode
+                        ? const Color(0xFF555555)
+                        : const Color(0xFFD0D0D0),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class RoomUtil {
+  /// Builds a colored badge widget for member status/role labels.
+  ///
+  /// Used in both group members list page and group settings grid view
+  /// to display Admin, Me, Inviting, Key Expired badges consistently.
+  static Widget buildMemberBadge(
+    BuildContext context, {
+    required String label,
+    required Color color,
+    bool isBold = false,
+    EdgeInsetsGeometry margin = EdgeInsets.zero,
+  }) {
+    return Container(
+      margin: margin,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(30),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withAlpha(100), width: 0.5),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontSize: 10,
+          fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  /// Builds an Admin badge.
+  static Widget adminBadge(
+    BuildContext context, {
+    EdgeInsetsGeometry margin = EdgeInsets.zero,
+  }) {
+    return buildMemberBadge(
+      context,
+      label: 'Admin',
+      color: Theme.of(context).colorScheme.primary,
+      isBold: true,
+      margin: margin,
+    );
+  }
+
+  /// Builds a "Me" badge.
+  static Widget meBadge(
+    BuildContext context, {
+    EdgeInsetsGeometry margin = EdgeInsets.zero,
+  }) {
+    return buildMemberBadge(
+      context,
+      label: 'Me',
+      color: Theme.of(context).colorScheme.primary,
+      isBold: true,
+      margin: margin,
+    );
+  }
+
+  /// Builds an Inviting badge.
+  static Widget invitingBadge(
+    BuildContext context, {
+    EdgeInsetsGeometry margin = EdgeInsets.zero,
+  }) {
+    return buildMemberBadge(
+      context,
+      label: 'Inviting',
+      color: Colors.amber.shade700,
+      margin: margin,
+    );
+  }
+
+  /// Builds a Key Expired badge.
+  static Widget keyExpiredBadge(
+    BuildContext context, {
+    EdgeInsetsGeometry margin = EdgeInsets.zero,
+  }) {
+    return buildMemberBadge(
+      context,
+      label: 'Key Expired',
+      color: Colors.red.shade700,
+      margin: margin,
+    );
+  }
+
+  // Create a custom code wrapper with copy button using markdown_widget's built-in wrapper
+  static CodeBlockWithCopyButton codeWrapper(
+    Widget child,
+    String? text,
+    String? language,
+  ) {
+    return CodeBlockWithCopyButton(
+      code: text ?? '',
+      language: language ?? 'markdown',
+      child: child,
+    );
+  }
+
+  /// Shows the add member to group dialog.
+  ///
+  /// Retrieves the list of contacts that can be added to the group,
+  /// excluding those already in the group, and displays a bottom sheet
+  /// with the AddMemberToGroup widget.
+  static Future<void> showAddMemberToGroupDialog(
+    Room room,
+    Identity identity,
+  ) async {
+    String? admin;
+    var memberPubkeys = <String>{};
+    if (room.isMLSGroup) {
+      final existedPubkeys = await rust_mls.getGroupMembers(
+        nostrId: room.getIdentity().secp256k1PKHex,
+        groupId: room.toMainPubkey,
+      );
+      memberPubkeys = Set.from(existedPubkeys);
+      admin = await room.getAdmin();
+    } else {
+      final members = await room.getActiveMembers();
+      admin = await room.getAdmin();
+      for (final rm in members) {
+        memberPubkeys.add(rm.idPubkey);
+      }
+    }
+    // contacts
+    var contactList = await ContactService.instance.getFriendContacts(
+      room.identityId,
+    );
+    final contacts = <Map<String, dynamic>>[];
+    contactList = contactList.reversed.toList();
+    for (var i = 0; i < contactList.length; i++) {
+      final c = contactList[i];
+      if (c.pubkey == identity.secp256k1PKHex) continue;
+      var exist = false;
+      if (memberPubkeys.contains(c.pubkey)) {
+        exist = true;
+      }
+      contacts.add({
+        'pubkey': c.pubkey,
+        'npubkey': c.npubkey,
+        'name': c.displayName,
+        'contact': c,
+        'exist': exist,
+        'isCheck': false,
+        'mlsPK': null,
+        'isAdmin': admin == c.pubkey,
+      });
+    }
+    await Get.bottomSheet<void>(
+      AddMemberToGroup(
+        room: room,
+        contacts: contacts,
+      ),
+      isScrollControlled: true,
+      ignoreSafeArea: false,
+    );
+  }
+
+  /// Shows a dialog with group member details and available actions.
+  ///
+  /// Displays member name, inviting status, pubkey, and optional about text.
+  /// Actions: start private chat, copy pubkey, remove member (admin only).
+  static void showGroupMemberDialog({
+    required Room room,
+    required RoomMember rm,
+    required Contact contact,
+    required bool isAdmin,
+  }) {
+    Get.dialog<void>(
+      CupertinoAlertDialog(
+        title: Text(rm.displayName),
+        content: Column(
+          children: [
+            if (rm.status == UserStatusType.inviting)
+              Text(
+                'Inviting',
+                style: Theme.of(
+                  Get.context!,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.amber.shade700),
+              ),
+            Text(
+              contact.npubkey,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (contact.displayAbout != null &&
+                contact.displayAbout!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  contact.displayAbout!.length > 200
+                      ? contact.displayAbout!.substring(0, 200)
+                      : contact.displayAbout!,
+                  style: Theme.of(Get.context!).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
+                ),
+              ),
+          ],
+        ),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            onPressed: () async {
+              final existingRoom = await RoomService.instance
+                  .getRoomAndContainSession(
+                    contact.pubkey,
+                    room.identityId,
+                  );
+              if (existingRoom == null) {
+                await RoomService.instance.createRoomAndsendInvite(
+                  contact.pubkey,
+                  identity: room.getIdentity(),
+                  greeting: 'From Group: ${room.getRoomName()}',
+                );
+                return;
+              }
+              await Utils.offAndToNamedRoom(existingRoom);
+              Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+            },
+            child: const Text('Start Private Chat'),
+          ),
+          CupertinoDialogAction(
+            child: const Text('Copy Pubkey'),
+            onPressed: () async {
+              final npub = rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
+              await Clipboard.setData(ClipboardData(text: npub));
+              await EasyLoading.showToast('Copied');
+              Get.back<void>();
+            },
+          ),
+          if (isAdmin)
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Get.back<void>();
+                Get.dialog<void>(
+                  CupertinoAlertDialog(
+                    title: Text(
+                      'Are you sure to remove ${rm.displayName}?',
+                    ),
+                    actions: <Widget>[
+                      CupertinoDialogAction(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Get.back<void>();
+                        },
+                      ),
+                      CupertinoDialogAction(
+                        isDestructiveAction: true,
+                        child: const Text('Remove'),
+                        onPressed: () async {
+                          try {
+                            EasyLoading.show(status: 'Processing...');
+                            await GroupService.instance.removeMember(room, rm);
+                            EasyLoading.showSuccess(
+                              'Removed',
+                              duration: const Duration(seconds: 1),
+                            );
+                            Get.back<void>();
+                          } catch (e, s) {
+                            logger.e(e.toString(), error: e, stackTrace: s);
+                            EasyLoading.showError(Utils.getErrorMessage(e));
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: const Text('Remove Member'),
+            ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              Get.back<void>();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static Future<void> forwardTextMessage(
     Identity identity,
     String content, {
@@ -395,7 +740,7 @@ Let's start an encrypted chat.''';
     }
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (BuildContext context) => CupertinoActionSheet(
+      builder: (context) => CupertinoActionSheet(
         title: Text(
           room.getRoomName(),
           style: const TextStyle(fontSize: 18),
@@ -717,11 +1062,21 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     return rooms;
   }
 
-  static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
+  /// Renders markdown content as a widget.
+  ///
+  /// [selectable] controls whether the text is selectable. Defaults to false
+  /// since the parent [SelectionArea] in [MessageWidget] handles selection
+  /// with a custom context menu.
+  static Widget getMarkdownView(
+    String data,
+    MarkdownConfig config, [
+    int? id,
+    bool selectable = false,
+  ]) {
     return MarkdownBlock(
       key: id != null ? ObjectKey('mk:$id') : null,
       data: Utils.formartTextToLinkText(data),
-      selectable: false,
+      selectable: selectable,
       config: config,
       generator: MarkdownGenerator(
         linesMargin: const EdgeInsets.symmetric(vertical: 4),
@@ -1344,10 +1699,27 @@ $link
     } catch (e) {}
     if (uri == null) return;
 
+    // Check if Cmd (Mac) or Ctrl (Windows/Linux) key is pressed
+    final isModifierKeyPressed =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+
     if (uri.scheme == 'https' || uri.scheme == 'http') {
-      await Get.find<MultiWebviewController>().launchWebview(
-        initUrl: url,
-      );
+      if (isModifierKeyPressed) {
+        // Open in external browser when modifier key is pressed
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          await EasyLoading.showToast('Opened in browser');
+        } catch (e) {
+          logger.e('launch url error: $e');
+          await EasyLoading.showError('Error: $e');
+        }
+      } else {
+        // Open in app's internal webview
+        await Get.find<MultiWebviewController>().launchWebview(
+          initUrl: url,
+        );
+      }
       return;
     }
     if (uri.scheme == 'wss' || uri.scheme == 'ws') {

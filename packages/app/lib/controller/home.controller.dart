@@ -47,7 +47,8 @@ class HomeController extends GetxController
   RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
   RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
   RxInt allUnReadCount = 0.obs;
-  bool isAppBadgeSupported = false;
+  bool isAppBadgeSupported =
+      GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
 
   RxMap<int, TabData> tabBodyDatas = <int, TabData>{}.obs;
   RxMap<int, Message?> roomLastMessage = <int, Message?>{}.obs;
@@ -559,8 +560,6 @@ class HomeController extends GetxController
     super.onInit();
     await loadNotificationConfig();
     final mys = await loadRoomList(init: true);
-    isAppBadgeSupported =
-        GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
     if (mys.isNotEmpty) {
       // Ecash Init
       Get.find<EcashController>().initIdentity(mys[0]);
@@ -677,7 +676,9 @@ class HomeController extends GetxController
 
   Future<void> resetBadge() async {
     if (!isAppBadgeSupported) return;
-    loggerNoLine.i('resetBadge: ${allUnReadCount.value}');
+    if (allUnReadCount.value == 0) {
+      return FlutterNewBadger.removeBadge();
+    }
     await FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 

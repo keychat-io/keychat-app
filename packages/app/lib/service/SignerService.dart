@@ -1,10 +1,13 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'package:keychat/constants.dart';
-import 'package:keychat/nostr-core/nostr_event.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+
+import 'package:flutter/foundation.dart';
 
 import 'package:amberflutter/amberflutter.dart';
+
+import 'package:keychat/constants.dart';
+import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/utils.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SignerService {
   // Avoid self instance
@@ -204,6 +207,33 @@ class SignerService {
       content: encrypteSecondRes,
       kind: 1059, // Outer layer remains 1059
     );
+  }
+
+  /// Builds a rumor event map for tests without invoking Amber SDK.
+  @visibleForTesting
+  Map<String, dynamic> buildRumorEventForTesting({
+    required String content,
+    required String from,
+    required String to,
+    int nip17Kind = EventKinds.chatRumor,
+    List<List<String>>? additionalTags,
+    int? createdAt,
+    String? id,
+  }) {
+    var tags = <List<String>>[
+      ['p', to],
+    ];
+    if (additionalTags != null) {
+      tags = additionalTags;
+    }
+    return {
+      'id': id ?? generate64RandomHexChars(),
+      'pubkey': from,
+      'created_at': createdAt ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'kind': nip17Kind,
+      'tags': tags,
+      'content': content,
+    };
   }
 
   Future<String> getNip59EventString({

@@ -425,6 +425,7 @@ class MlsGroupService extends BaseChatService {
           if (extension['status'] != null) {
             status = UserStatusType.values.firstWhere(
               (e) => e.name == extension['status'],
+              orElse: () => UserStatusType.unknown,
             );
           }
         } catch (e) {
@@ -976,10 +977,10 @@ class MlsGroupService extends BaseChatService {
         '["EVENT",$event]',
         callback:
             ({
-              required String relay,
-              required String eventId,
-              required bool status,
-              String? errorMessage,
+              required relay,
+              required eventId,
+              required status,
+              errorMessage,
             }) async {
               final isDuplicate =
                   errorMessage?.toLowerCase().startsWith('duplicate') ?? false;

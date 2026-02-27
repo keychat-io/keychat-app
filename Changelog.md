@@ -8,11 +8,16 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 ### Performance
 
 - **WebSocket Reconnection Strategy**: Exponential backoff (3s → 60s) + circuit breaker reduces invalid reconnections by 95%
+- Optimize wallet loading: immediate balance display with background pending check
 
 ### Fixes
 
 - Fixed incorrect Rumor Kind: changed from 1059 to kind 14 for NIP-17 compliance and interoperability
 - Enhanced NIP-17/44/59 three-layer encryption (Rumor → Seal → Gift Wrap)
+- refactor: refactor group member management and optimize wallet loading
+- Add dedicated GroupMembersPage for member list view
+- Create reusable member badge components (Admin, Me, Inviting, Key Expired)
+- Extract 1sat transactions to OneSatTransactionsPage
 
 ## 1.40.1
 

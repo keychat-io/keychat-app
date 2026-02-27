@@ -72,9 +72,9 @@ const WalletConnectionSchema = CollectionSchema(
         ),
       ],
     ),
-    r'identifier': IndexSchema(
-      id: -1091831983288130400,
-      name: r'identifier',
+    r'identifier_protocol': IndexSchema(
+      id: 8239545126540200959,
+      name: r'identifier_protocol',
       unique: true,
       replace: false,
       properties: [
@@ -82,6 +82,11 @@ const WalletConnectionSchema = CollectionSchema(
           name: r'identifier',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+        IndexPropertySchema(
+          name: r'protocol',
+          type: IndexType.value,
+          caseSensitive: false,
         ),
       ],
     ),
@@ -213,63 +218,126 @@ void _walletConnectionAttach(
 }
 
 extension WalletConnectionByIndex on IsarCollection<WalletConnection> {
-  Future<WalletConnection?> getByIdentifier(String identifier) {
-    return getByIndex(r'identifier', [identifier]);
-  }
-
-  WalletConnection? getByIdentifierSync(String identifier) {
-    return getByIndexSync(r'identifier', [identifier]);
-  }
-
-  Future<bool> deleteByIdentifier(String identifier) {
-    return deleteByIndex(r'identifier', [identifier]);
-  }
-
-  bool deleteByIdentifierSync(String identifier) {
-    return deleteByIndexSync(r'identifier', [identifier]);
-  }
-
-  Future<List<WalletConnection?>> getAllByIdentifier(
-    List<String> identifierValues,
+  Future<WalletConnection?> getByIdentifierProtocol(
+    String identifier,
+    WalletProtocol protocol,
   ) {
-    final values = identifierValues.map((e) => [e]).toList();
-    return getAllByIndex(r'identifier', values);
+    return getByIndex(r'identifier_protocol', [identifier, protocol]);
   }
 
-  List<WalletConnection?> getAllByIdentifierSync(
-    List<String> identifierValues,
+  WalletConnection? getByIdentifierProtocolSync(
+    String identifier,
+    WalletProtocol protocol,
   ) {
-    final values = identifierValues.map((e) => [e]).toList();
-    return getAllByIndexSync(r'identifier', values);
+    return getByIndexSync(r'identifier_protocol', [identifier, protocol]);
   }
 
-  Future<int> deleteAllByIdentifier(List<String> identifierValues) {
-    final values = identifierValues.map((e) => [e]).toList();
-    return deleteAllByIndex(r'identifier', values);
+  Future<bool> deleteByIdentifierProtocol(
+    String identifier,
+    WalletProtocol protocol,
+  ) {
+    return deleteByIndex(r'identifier_protocol', [identifier, protocol]);
   }
 
-  int deleteAllByIdentifierSync(List<String> identifierValues) {
-    final values = identifierValues.map((e) => [e]).toList();
-    return deleteAllByIndexSync(r'identifier', values);
+  bool deleteByIdentifierProtocolSync(
+    String identifier,
+    WalletProtocol protocol,
+  ) {
+    return deleteByIndexSync(r'identifier_protocol', [identifier, protocol]);
   }
 
-  Future<Id> putByIdentifier(WalletConnection object) {
-    return putByIndex(r'identifier', object);
+  Future<List<WalletConnection?>> getAllByIdentifierProtocol(
+    List<String> identifierValues,
+    List<WalletProtocol> protocolValues,
+  ) {
+    final len = identifierValues.length;
+    assert(
+      protocolValues.length == len,
+      'All index values must have the same length',
+    );
+    final values = <List<dynamic>>[];
+    for (var i = 0; i < len; i++) {
+      values.add([identifierValues[i], protocolValues[i]]);
+    }
+
+    return getAllByIndex(r'identifier_protocol', values);
   }
 
-  Id putByIdentifierSync(WalletConnection object, {bool saveLinks = true}) {
-    return putByIndexSync(r'identifier', object, saveLinks: saveLinks);
+  List<WalletConnection?> getAllByIdentifierProtocolSync(
+    List<String> identifierValues,
+    List<WalletProtocol> protocolValues,
+  ) {
+    final len = identifierValues.length;
+    assert(
+      protocolValues.length == len,
+      'All index values must have the same length',
+    );
+    final values = <List<dynamic>>[];
+    for (var i = 0; i < len; i++) {
+      values.add([identifierValues[i], protocolValues[i]]);
+    }
+
+    return getAllByIndexSync(r'identifier_protocol', values);
   }
 
-  Future<List<Id>> putAllByIdentifier(List<WalletConnection> objects) {
-    return putAllByIndex(r'identifier', objects);
+  Future<int> deleteAllByIdentifierProtocol(
+    List<String> identifierValues,
+    List<WalletProtocol> protocolValues,
+  ) {
+    final len = identifierValues.length;
+    assert(
+      protocolValues.length == len,
+      'All index values must have the same length',
+    );
+    final values = <List<dynamic>>[];
+    for (var i = 0; i < len; i++) {
+      values.add([identifierValues[i], protocolValues[i]]);
+    }
+
+    return deleteAllByIndex(r'identifier_protocol', values);
   }
 
-  List<Id> putAllByIdentifierSync(
+  int deleteAllByIdentifierProtocolSync(
+    List<String> identifierValues,
+    List<WalletProtocol> protocolValues,
+  ) {
+    final len = identifierValues.length;
+    assert(
+      protocolValues.length == len,
+      'All index values must have the same length',
+    );
+    final values = <List<dynamic>>[];
+    for (var i = 0; i < len; i++) {
+      values.add([identifierValues[i], protocolValues[i]]);
+    }
+
+    return deleteAllByIndexSync(r'identifier_protocol', values);
+  }
+
+  Future<Id> putByIdentifierProtocol(WalletConnection object) {
+    return putByIndex(r'identifier_protocol', object);
+  }
+
+  Id putByIdentifierProtocolSync(
+    WalletConnection object, {
+    bool saveLinks = true,
+  }) {
+    return putByIndexSync(r'identifier_protocol', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByIdentifierProtocol(List<WalletConnection> objects) {
+    return putAllByIndex(r'identifier_protocol', objects);
+  }
+
+  List<Id> putAllByIdentifierProtocolSync(
     List<WalletConnection> objects, {
     bool saveLinks = true,
   }) {
-    return putAllByIndexSync(r'identifier', objects, saveLinks: saveLinks);
+    return putAllByIndexSync(
+      r'identifier_protocol',
+      objects,
+      saveLinks: saveLinks,
+    );
   }
 }
 
@@ -460,22 +528,25 @@ extension WalletConnectionQueryWhere
   }
 
   QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
-  identifierEqualTo(String identifier) {
+  identifierEqualToAnyProtocol(String identifier) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'identifier', value: [identifier]),
+        IndexWhereClause.equalTo(
+          indexName: r'identifier_protocol',
+          value: [identifier],
+        ),
       );
     });
   }
 
   QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
-  identifierNotEqualTo(String identifier) {
+  identifierNotEqualToAnyProtocol(String identifier) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'identifier',
+                indexName: r'identifier_protocol',
                 lower: [],
                 upper: [identifier],
                 includeUpper: false,
@@ -483,7 +554,7 @@ extension WalletConnectionQueryWhere
             )
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'identifier',
+                indexName: r'identifier_protocol',
                 lower: [identifier],
                 includeLower: false,
                 upper: [],
@@ -493,7 +564,7 @@ extension WalletConnectionQueryWhere
         return query
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'identifier',
+                indexName: r'identifier_protocol',
                 lower: [identifier],
                 includeLower: false,
                 upper: [],
@@ -501,13 +572,128 @@ extension WalletConnectionQueryWhere
             )
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'identifier',
+                indexName: r'identifier_protocol',
                 lower: [],
                 upper: [identifier],
                 includeUpper: false,
               ),
             );
       }
+    });
+  }
+
+  QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
+  identifierProtocolEqualTo(String identifier, WalletProtocol protocol) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'identifier_protocol',
+          value: [identifier, protocol],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
+  identifierEqualToProtocolNotEqualTo(
+    String identifier,
+    WalletProtocol protocol,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'identifier_protocol',
+                lower: [identifier],
+                upper: [identifier, protocol],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'identifier_protocol',
+                lower: [identifier, protocol],
+                includeLower: false,
+                upper: [identifier],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'identifier_protocol',
+                lower: [identifier, protocol],
+                includeLower: false,
+                upper: [identifier],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'identifier_protocol',
+                lower: [identifier],
+                upper: [identifier, protocol],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
+  identifierEqualToProtocolGreaterThan(
+    String identifier,
+    WalletProtocol protocol, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'identifier_protocol',
+          lower: [identifier, protocol],
+          includeLower: include,
+          upper: [identifier],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
+  identifierEqualToProtocolLessThan(
+    String identifier,
+    WalletProtocol protocol, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'identifier_protocol',
+          lower: [identifier],
+          upper: [identifier, protocol],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WalletConnection, WalletConnection, QAfterWhereClause>
+  identifierEqualToProtocolBetween(
+    String identifier,
+    WalletProtocol lowerProtocol,
+    WalletProtocol upperProtocol, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'identifier_protocol',
+          lower: [identifier, lowerProtocol],
+          includeLower: includeLower,
+          upper: [identifier, upperProtocol],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }

@@ -5,7 +5,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'room_member.g.dart';
 
-enum UserStatusType { inviting, invited, blocked, removed }
+enum UserStatusType { inviting, invited, blocked, removed, unknown }
 
 @JsonSerializable(includeIfNull: false)
 @Collection(

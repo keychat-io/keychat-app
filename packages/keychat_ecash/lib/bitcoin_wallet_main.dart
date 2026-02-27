@@ -407,7 +407,10 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
             children: [
               const Text('Total Balance'),
               Obx(
-                () => controller.isLoading.value
+                // Show spinner only when loading AND no wallets have arrived yet.
+                // Once any provider delivers wallets, display the accumulated
+                // balance immediately even if other providers are still loading.
+                () => controller.isLoading.value && controller.wallets.isEmpty
                     ? SizedBox(
                         height: 60,
                         child: Center(
@@ -417,26 +420,48 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
                           ),
                         ),
                       )
-                    : RichText(
-                        text: TextSpan(
-                          text: controller.totalBalance.toString(),
-                          children: const <TextSpan>[
-                            TextSpan(
-                              text: ' sat',
+                    : Row(
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              text: controller.totalBalance.toString(),
+                              children: const <TextSpan>[
+                                TextSpan(
+                                  text: ' sat',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                               style: TextStyle(
-                                fontSize: 20,
+                                height: 1.3,
+                                fontSize: 48,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge!
+                                    .color,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                          style: TextStyle(
-                            height: 1.3,
-                            fontSize: 48,
-                            color:
-                                Theme.of(context).textTheme.titleLarge!.color,
-                            fontWeight: FontWeight.bold,
                           ),
-                        ),
+                          // Small loading indicator when more providers are
+                          // still loading in the background.
+                          if (controller.isLoading.value)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context)
+                                      .primaryColor
+                                      .withAlpha(150),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
               ),
             ],
@@ -1095,223 +1120,9 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     // Load 1sat transactions
     await controller.loadOneSatTransactions();
 
-    await Get.bottomSheet(
-      isScrollControlled: GetPlatform.isMobile,
-      clipBehavior: Clip.hardEdge,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
-        ),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).dividerColor,
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '1sat Transactions',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Obx(() {
-                        final wallet = controller.selectedWallet;
-                        return Text(
-                          wallet.displayName,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .color
-                                        ?.withAlpha(160),
-                                  ),
-                        );
-                      }),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: Get.back,
-                    icon: const Icon(CupertinoIcons.xmark),
-                  ),
-                ],
-              ),
-            ),
-            // Transactions list
-            Expanded(
-              child: _buildOneSatTransactionsList(context),
-            ),
-          ],
-        ),
-      ),
+    await Get.to<void>(
+      () => const OneSatTransactionsPage(),
+      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
     );
-  }
-
-  /// 1sat transactions list widget
-  Widget _buildOneSatTransactionsList(BuildContext context) {
-    return Obx(() {
-      if (controller.isOneSatTransactionsLoading.value &&
-          controller.oneSatTransactions.isEmpty) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Center(child: CircularProgressIndicator()),
-        );
-      }
-
-      if (controller.oneSatTransactions.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Center(
-            child: Wrap(
-              direction: Axis.vertical,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.doc_text,
-                  size: 64,
-                  color: Colors.grey.withAlpha(120),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No 1sat Transactions',
-                  style: TextStyle(
-                    color: Colors.grey.withAlpha(160),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      return CustomRefreshIndicator(
-        onRefresh: () async {
-          await controller.loadOneSatTransactions(forceRefresh: true);
-        },
-        trigger: IndicatorTrigger.bothEdges,
-        builder: (context, child, indicatorController) {
-          return Stack(
-            children: [
-              child,
-              // Top refresh indicator
-              if (indicatorController.side == IndicatorSide.top)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: _buildRefreshIndicator(indicatorController),
-                ),
-              // Bottom load more indicator
-              if (indicatorController.side == IndicatorSide.bottom)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _buildLoadMoreOneSatPullIndicator(indicatorController),
-                ),
-            ],
-          );
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            ...controller.oneSatTransactions.map((transaction) {
-              return _buildTransactionTile(context, transaction);
-            }),
-            // Load more / No more data indicator
-            _buildLoadMoreOneSatIndicator(context),
-          ],
-        ),
-      );
-    });
-  }
-
-  /// Build bottom pull-up load more indicator for 1sat transactions
-  Widget _buildLoadMoreOneSatPullIndicator(
-    IndicatorController indicatorController,
-  ) {
-    // Don't show if no more data
-    if (!controller.hasMoreOneSatTransactions.value) {
-      return const SizedBox.shrink();
-    }
-
-    final value = indicatorController.value.clamp(0.0, 1.5);
-    return Container(
-      height: 60 * value,
-      alignment: Alignment.center,
-      child: indicatorController.isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              CupertinoIcons.arrow_up,
-              size: 24 * value,
-              color: Colors.grey,
-            ),
-    );
-  }
-
-  /// Build load more indicator widget for 1sat transactions
-  Widget _buildLoadMoreOneSatIndicator(BuildContext context) {
-    return Obx(() {
-      // Loading more state - handled by pull indicator now
-      if (controller.isLoadingMoreOneSat.value) {
-        return const SizedBox.shrink();
-      }
-
-      // No more data state
-      if (!controller.hasMoreOneSatTransactions.value) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Center(
-            child: Text(
-              'No more transactions',
-              style: TextStyle(
-                color: Colors.grey.withAlpha(160),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        );
-      }
-
-      // Has more data - show hint text
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Center(
-          child: Text(
-            'Pull up to load more',
-            style: TextStyle(
-              color: Colors.grey.withAlpha(160),
-              fontSize: 12,
-            ),
-          ),
-        ),
-      );
-    });
   }
 }

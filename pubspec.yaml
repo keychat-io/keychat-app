@@ -21,12 +21,41 @@ melos:
     - packages/keychat_rust_ffi_plugin/cargokit/**
 
   scripts:
+    reset:all:
+      run: melos clean && melos bs && melos run generate:all
+      description: Run `melos run clean` and `melos run get` in all packages in this project.
+    reset:macos:
+      run: bash scripts/switch_flutter_secure_storage.sh macos && melos clean && melos bs && melos run generate:all
+      description: Run `melos run clean` and `melos run get` in all packages in this project.
+    reset:no-macos:
+      run: bash scripts/switch_flutter_secure_storage.sh non-macos && melos clean && melos bs && melos run generate:all
+      description: Run `melos run clean` and `melos run get` in all packages in this project.
+    run:ios:
+      name: run_ios
+      description: "run app on ios device"
+      run: cd packages/app && flutter run -d 000 -v
+    run:android:
+      name: run_android
+      description: "run app on android device"
+      run: cd packages/app && flutter run -d 441 -v
+    run:macos:release:
+      run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=prod --release
+      description: Run macOS app in release mode.
+    run:macos:dev1:
+      run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=dev1
+      description: Run macOS app in dev1 mode.
+    run:macos:dev2:
+      run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=dev2
+      description: Run macOS app in dev2 mode.
+    run:macos:dev3:
+      run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=dev3
+      description: Run macOS app in dev3 mode.
+    run:macos:
+      run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=prod
+      description: Run macOS app in production mode.
     dmg:
       run: bash scripts/build-dmg-local.sh
       description: Build DMG for macOS app.
-    postclean:
-      run: melos run clean:flutter --no-select
-      description: Runs "flutter clean" in all Flutter packages
 
     lint:all:
       run: melos run analyze && melos run format
@@ -88,7 +117,13 @@ melos:
         dirExists: test
 
     clean:flutter:
-      run: melos exec -c 4 --fail-fast -- "flutter clean && flutter pub get && rm -rf ios/Podfile.lock && cd ios && pod repo update && pod install"
+      steps:
+        - melos exec -c 4 --fail-fast -- "flutter clean"
+        - melos exec -c 4 --fail-fast -- "flutter pub run build_runner clean"
+        - melos exec -c 4 --fail-fast -- "melos bootstrap"
+        - melos exec -c 4 --fail-fast -- "flutter pub run build_runner build --delete-conflicting-outputs"
+        - cd packages/app/ios && rm -rf Podfile.lock && pod repo update && pod install --repo-update
+        - cd packages/app/macos && rm -rf Podfile.lock && pod repo update && pod install --repo-update
       description: Run Flutter clean for a specific package in this project.
       packageFilters:
         flutter: true
@@ -100,12 +135,6 @@ melos:
       packageFilters:
         dirExists: coverage
 
-    docs:
-      run: |
-        npm install -g https://github.com/GetStream/stream-chat-docusaurus-cli &&
-        npx stream-chat-docusaurus -i -s
-      description: Runs the docusaurus documentation locally.
-
     intl:generate:
       name: app_intl
       description: "generate intl utils for mobile packages"
@@ -114,29 +143,21 @@ melos:
     build:runner:
       name: app_build_runner
       description: "app build runner"
-      run: cd packages/app && fvm flutter pub run build_runner build --delete-conflicting-outputs
+      run: fvm flutter pub run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        flutter: true
 
     pod:install:
       name: pod_install_app
       description: "pod install"
       steps:
-        - cd packages/app/ios && pod update && pod install --repo-update
-        - cd ../macos && pod update && pod install --repo-update
+        - cd packages/app/ios && rm -rf Podfile.lock && pod update && pod install --repo-update
+        - cd ../macos && rm -rf Podfile.lock && pod update && pod install --repo-update
 
     core:intl:generate:
       name: core_intl
       description: "generate intl utils for core package"
       run: cd shared/core && fvm flutter pub run intl_utils:generate
-
-    app:get:
-      name: app_get
-      description: "run app pub get only"
-      run: cd packages/app && fvm flutter pub get
-
-    ios:
-      name: run_ios
-      description: "run app on ios device"
-      run: cd packages/app && flutter run -d 000 -v
 
     image:gen:
       name: gen_image

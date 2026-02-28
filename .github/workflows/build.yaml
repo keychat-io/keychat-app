@@ -66,7 +66,7 @@ env:
 jobs:
   get-version:
     name: Create release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version_step.outputs.version }}
       version_short: ${{ steps.version_step.outputs.version_short }}
@@ -112,44 +112,10 @@ jobs:
           targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
       - name: Setup-Linux
         run: |
-          echo "Building for platform: linux (x86_64)"
+          echo "Building for platform: linux"
           sudo apt-get update -y && sudo apt-get upgrade -y
-
-          # Core build tools and Ruby/Python for building
-          sudo apt-get install -y curl git unzip xz-utils zip clang cmake ninja-build pkg-config meson build-essential
-          sudo apt-get install -y ruby ruby-dev python3 python3-pip gperf unifdef
-
-          # WPE WebKit dependencies - grouped to avoid conflicts
-          # Core dependencies
-          sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libssl-dev libgnutls28-dev libsecret-1-dev
-
-          # Graphics and rendering
-          sudo apt-get install -y libepoxy-dev libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
-
-          # Images and fonts
-          sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev libharfbuzz-dev libharfbuzz-icu0
-          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev
-
-          # Text processing and database
-          sudo apt-get install -y libhyphen-dev libenchant-2-dev libsqlite3-dev
-
-          # GTK and core system
-          sudo apt-get install -y libgtk-3-dev libglu1-mesa libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
-
-          # WPE WebKit libraries (Ubuntu 24.04 has libwpewebkit-1.0-dev)
-          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev libwpewebkit-1.0-dev
-
-          # Update library cache
-          sudo ldconfig
-
-          # Set PKG_CONFIG_PATH
-          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-
-          # Verify WPE WebKit installation
-          echo "Checking pkg-config for wpe-webkit..."
-          pkg-config --modversion wpe-webkit-1.0 && echo "SUCCESS: wpe-webkit-1.0 found" || echo "ERROR: wpe-webkit-1.0 not found"
-          pkg-config --cflags wpe-webkit-1.0
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -207,7 +173,7 @@ jobs:
           ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
   build-linux-arm64:
     if: ${{ github.event_name == 'push' || inputs.build_linux_arm64 }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     needs: get-version
     steps:
       - name: Checkout
@@ -235,44 +201,10 @@ jobs:
           targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
       - name: Setup-Linux
         run: |
-          echo "Building for platform: linux (arm64)"
+          echo "Building for platform: linux"
           sudo apt-get update -y && sudo apt-get upgrade -y
-
-          # Core build tools and Ruby/Python for building
-          sudo apt-get install -y curl git unzip xz-utils zip clang cmake ninja-build pkg-config meson build-essential
-          sudo apt-get install -y ruby ruby-dev python3 python3-pip gperf unifdef
-
-          # WPE WebKit dependencies - grouped to avoid conflicts
-          # Core dependencies
-          sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libssl-dev libgnutls28-dev libsecret-1-dev
-
-          # Graphics and rendering
-          sudo apt-get install -y libepoxy-dev libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
-
-          # Images and fonts
-          sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev libharfbuzz-dev libharfbuzz-icu0
-          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev
-
-          # Text processing and database
-          sudo apt-get install -y libhyphen-dev libenchant-2-dev libsqlite3-dev
-
-          # GTK and core system
-          sudo apt-get install -y libgtk-3-dev libglu1-mesa libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
-
-          # WPE WebKit libraries (Ubuntu 24.04 has libwpewebkit-1.0-dev)
-          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev libwpewebkit-1.0-dev
-
-          # Update library cache
-          sudo ldconfig
-
-          # Set PKG_CONFIG_PATH
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-
-          # Verify WPE WebKit installation
-          echo "Checking pkg-config for wpe-webkit..."
-          pkg-config --modversion wpe-webkit-1.0 && echo "SUCCESS: wpe-webkit-1.0 found" || echo "ERROR: wpe-webkit-1.0 not found"
-          pkg-config --cflags wpe-webkit-1.0
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -302,7 +234,7 @@ jobs:
           fastforge package \
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
-            --targets deb,rpm,appimage \
+            --targets deb,rpm \
             --build-target-platform linux-arm64 \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64.{{ext}}'
         env:
@@ -311,7 +243,7 @@ jobs:
       - name: GPG Sign
         run: |
           chmod +x ./scripts/gpg-sign.sh
-          ./scripts/gpg-sign.sh ./dist "deb rpm AppImage"
+          ./scripts/gpg-sign.sh ./dist "deb rpm"
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload
@@ -503,7 +435,7 @@ jobs:
 
   build-android:
     if: ${{ github.event_name == 'push' || inputs.build_android }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: get-version
     steps:
       - name: Import GPG Key

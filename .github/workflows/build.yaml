@@ -91,7 +91,7 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux-x86_64:
     if: ${{ github.event_name == 'push' || inputs.build_linux_x86_64 }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: get-version
     steps:
       - name: Checkout
@@ -119,38 +119,37 @@ jobs:
           sudo apt-get install -y curl git unzip xz-utils zip clang cmake ninja-build pkg-config meson build-essential
           sudo apt-get install -y ruby ruby-dev python3 python3-pip gperf unifdef
 
-          # WPE WebKit dependencies
+          # WPE WebKit dependencies - grouped to avoid conflicts
+          # Core dependencies
           sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libssl-dev libgnutls28-dev libsecret-1-dev
+
+          # Graphics and rendering
           sudo apt-get install -y libepoxy-dev libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
+
+          # Images and fonts
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev libharfbuzz-dev libharfbuzz-icu0
-          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev libhyphen-dev
-          sudo apt-get install -y libenchant-2-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-          sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good libsqlite3-dev
+          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev
+
+          # Text processing and database
+          sudo apt-get install -y libhyphen-dev libenchant-2-dev libsqlite3-dev
+
+          # GTK and core system
           sudo apt-get install -y libgtk-3-dev libglu1-mesa libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
 
-          # WPE WebKit libraries (try both package names for compatibility)
-          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev
-
-          # Try to install wpe-webkit package (Ubuntu 22.04 might have this)
-          sudo apt-get install -y wpe-webkit-2.0 || echo "wpe-webkit-2.0 not available, trying alternatives"
+          # WPE WebKit libraries (Ubuntu 24.04 has libwpewebkit-1.0-dev)
+          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev libwpewebkit-1.0-dev
 
           # Update library cache
           sudo ldconfig
 
-          # Set PKG_CONFIG_PATH to help pkg-config find the libraries
-          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Set PKG_CONFIG_PATH
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 
-          # Verify WPE WebKit installation with multiple package names
+          # Verify WPE WebKit installation
           echo "Checking pkg-config for wpe-webkit..."
-          pkg-config --modversion wpe-webkit-2.0 || echo "wpe-webkit-2.0 not found"
-          pkg-config --modversion wpe-webkit-1.0 || echo "wpe-webkit-1.0 not found"
-          pkg-config --modversion wpe-1.0 || echo "wpe-1.0 not found"
-          pkg-config --cflags wpe-webkit-2.0 || echo "wpe-webkit-2.0 cflags not found"
-
-          # List all WPE-related packages installed
-          echo "=== Installed WPE-related packages ==="
-          dpkg -l | grep -i wpe
+          pkg-config --modversion wpe-webkit-1.0 && echo "SUCCESS: wpe-webkit-1.0 found" || echo "ERROR: wpe-webkit-1.0 not found"
+          pkg-config --cflags wpe-webkit-1.0
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -208,7 +207,7 @@ jobs:
           ./scripts/cleanup.sh "${{ steps.import_gpg.outputs.fingerprint }}" "."
   build-linux-arm64:
     if: ${{ github.event_name == 'push' || inputs.build_linux_arm64 }}
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     needs: get-version
     steps:
       - name: Checkout
@@ -243,38 +242,37 @@ jobs:
           sudo apt-get install -y curl git unzip xz-utils zip clang cmake ninja-build pkg-config meson build-essential
           sudo apt-get install -y ruby ruby-dev python3 python3-pip gperf unifdef
 
-          # WPE WebKit dependencies
+          # WPE WebKit dependencies - grouped to avoid conflicts
+          # Core dependencies
           sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libssl-dev libgnutls28-dev libsecret-1-dev
+
+          # Graphics and rendering
           sudo apt-get install -y libepoxy-dev libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
+
+          # Images and fonts
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev libharfbuzz-dev libharfbuzz-icu0
-          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev libhyphen-dev
-          sudo apt-get install -y libenchant-2-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-          sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good libsqlite3-dev
+          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libicu-dev libxml2-dev
+
+          # Text processing and database
+          sudo apt-get install -y libhyphen-dev libenchant-2-dev libsqlite3-dev
+
+          # GTK and core system
           sudo apt-get install -y libgtk-3-dev libglu1-mesa libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
 
-          # WPE WebKit libraries (try both package names for compatibility)
-          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev
-
-          # Try to install wpe-webkit package (Ubuntu 22.04 might have this)
-          sudo apt-get install -y wpe-webkit-2.0 || echo "wpe-webkit-2.0 not available, trying alternatives"
+          # WPE WebKit libraries (Ubuntu 24.04 has libwpewebkit-1.0-dev)
+          sudo apt-get install -y libwpe-1.0-dev libwpebackend-fdo-1.0-dev libwpewebkit-1.0-dev
 
           # Update library cache
           sudo ldconfig
 
-          # Set PKG_CONFIG_PATH to help pkg-config find the libraries
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Set PKG_CONFIG_PATH
+          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
           echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 
-          # Verify WPE WebKit installation with multiple package names
+          # Verify WPE WebKit installation
           echo "Checking pkg-config for wpe-webkit..."
-          pkg-config --modversion wpe-webkit-2.0 || echo "wpe-webkit-2.0 not found"
-          pkg-config --modversion wpe-webkit-1.0 || echo "wpe-webkit-1.0 not found"
-          pkg-config --modversion wpe-1.0 || echo "wpe-1.0 not found"
-          pkg-config --cflags wpe-webkit-2.0 || echo "wpe-webkit-2.0 cflags not found"
-
-          # List all WPE-related packages installed
-          echo "=== Installed WPE-related packages ==="
-          dpkg -l | grep -i wpe
+          pkg-config --modversion wpe-webkit-1.0 && echo "SUCCESS: wpe-webkit-1.0 found" || echo "ERROR: wpe-webkit-1.0 not found"
+          pkg-config --cflags wpe-webkit-1.0
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -304,7 +302,7 @@ jobs:
           fastforge package \
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,verbose" \
             --platform linux \
-            --targets deb,rpm \
+            --targets deb,rpm,appimage \
             --build-target-platform linux-arm64 \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-arm64.{{ext}}'
         env:
@@ -313,7 +311,7 @@ jobs:
       - name: GPG Sign
         run: |
           chmod +x ./scripts/gpg-sign.sh
-          ./scripts/gpg-sign.sh ./dist "deb rpm"
+          ./scripts/gpg-sign.sh ./dist "deb rpm AppImage"
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Upload

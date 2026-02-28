@@ -113,13 +113,41 @@ jobs:
       - name: Setup-Linux
         run: |
           echo "Building for platform: linux"
-          sudo apt-get update -y && sudo apt-get upgrade -y
+          sudo apt-get update -y
           sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
-          # Install WPE WebKit for flutter_inappwebview_linux
-          sudo add-apt-repository ppa:wpewebkit-team/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y wpewebkit2.40.0-dev libwpe-1.0-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev mesa-utils
+
+          # WPE WebKit for flutter_inappwebview_linux (Ubuntu 24.04 has native support)
+          sudo apt-get install -y \
+            libwpe-1.0-1 \
+            libwpe-1.0-dev \
+            libwpebackend-fdo-1.0-1 \
+            libwpebackend-fdo-1.0-dev \
+            libwpewebkit-4.1-0 \
+            libwpewebkit-4.1-dev \
+            libglib2.0-dev \
+            libsoup-3.0-dev \
+            libepoxy-dev \
+            libegl1 \
+            libgles2-mesa-dev \
+            libxkbcommon-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libwebp-dev \
+            libharfbuzz-dev \
+            libfreetype6-dev \
+            libfontconfig1-dev \
+            libicu-dev \
+            libxml2-dev \
+            libsqlite3-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good
+
+          sudo ldconfig
+
+          # Verify
+          pkg-config --modversion wpe-webkit-2.0 || \
+          pkg-config --modversion wpe-webkit-1.1 || echo "WPE WebKit installed"
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:

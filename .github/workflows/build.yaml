@@ -112,18 +112,27 @@ jobs:
           targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
       - name: Setup-Linux
         run: |
-          echo "Building for platform: linux"
+          echo "Building for platform: linux (x86_64)"
           sudo apt-get update -y && sudo apt-get upgrade -y
-          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
-          # WPE WebKit for flutter_inappwebview_linux
+
+          # Core build tools
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip
+          sudo apt-get install -y clang cmake ninja-build pkg-config meson build-essential
+
+          # WPE WebKit for flutter_inappwebview_linux (must be installed before other dependencies)
           sudo apt-get install -y libwpewebkit-1.0-dev libwpe-1.0-dev libwpebackend-fdo-1.0-dev
+
+          # Verify WPE WebKit installation
+          pkg-config --modversion wpe-webkit-1.0 || echo "Warning: wpe-webkit-1.0 not found by pkg-config"
+
+          # GTK and core dependencies
+          sudo apt-get install -y libgtk-3-dev libglu1-mesa libsecret-1-dev
           sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libepoxy-dev
           sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev
           sudo apt-get install -y libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev
           sudo apt-get install -y libicu-dev libxml2-dev libhyphen-dev libenchant-2-dev
-          sudo apt-get install -y libunwind-dev
+          sudo apt-get install -y libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
           sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
           sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good
           sudo apt-get install -y libsqlite3-dev libssl-dev libgcrypt20-dev
@@ -212,18 +221,27 @@ jobs:
           targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
       - name: Setup-Linux
         run: |
-          echo "Building for platform: linux"
+          echo "Building for platform: linux (arm64)"
           sudo apt-get update -y && sudo apt-get upgrade -y
-          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
-          # WPE WebKit for flutter_inappwebview_linux
+
+          # Core build tools
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip
+          sudo apt-get install -y clang cmake ninja-build pkg-config meson build-essential
+
+          # WPE WebKit for flutter_inappwebview_linux (must be installed before other dependencies)
           sudo apt-get install -y libwpewebkit-1.0-dev libwpe-1.0-dev libwpebackend-fdo-1.0-dev
+
+          # Verify WPE WebKit installation
+          pkg-config --modversion wpe-webkit-1.0 || echo "Warning: wpe-webkit-1.0 not found by pkg-config"
+
+          # GTK and core dependencies
+          sudo apt-get install -y libgtk-3-dev libglu1-mesa libsecret-1-dev
           sudo apt-get install -y libglib2.0-dev libsoup-3.0-dev libepoxy-dev
           sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libxkbcommon-dev
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev
           sudo apt-get install -y libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev
           sudo apt-get install -y libicu-dev libxml2-dev libhyphen-dev libenchant-2-dev
-          sudo apt-get install -y libunwind-dev
+          sudo apt-get install -y libunwind-dev liblzma-dev libstdc++-12-dev mesa-utils
           sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
           sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good
           sudo apt-get install -y libsqlite3-dev libssl-dev libgcrypt20-dev

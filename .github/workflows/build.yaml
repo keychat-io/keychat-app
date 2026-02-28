@@ -123,6 +123,7 @@ jobs:
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev
           sudo apt-get install -y libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev
           sudo apt-get install -y libicu-dev libxml2-dev libhyphen-dev libenchant-2-dev
+          sudo apt-get install -y libunwind-dev
           sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
           sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good
           sudo apt-get install -y libsqlite3-dev libssl-dev libgcrypt20-dev
@@ -222,6 +223,7 @@ jobs:
           sudo apt-get install -y libjpeg-dev libpng-dev libwebp-dev
           sudo apt-get install -y libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev
           sudo apt-get install -y libicu-dev libxml2-dev libhyphen-dev libenchant-2-dev
+          sudo apt-get install -y libunwind-dev
           sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
           sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good
           sudo apt-get install -y libsqlite3-dev libssl-dev libgcrypt20-dev

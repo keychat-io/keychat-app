@@ -78,7 +78,8 @@ class FileService {
     required String key,
     required String iv,
   }) async {
-    final encrypter = Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr));
+    final encrypter =
+        Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr, padding: null));
 
     final encryptedBytes = Encrypted(await input.readAsBytes());
     final decryptedBytes = encrypter.decryptBytes(
@@ -559,7 +560,7 @@ class FileService {
     final key = Key.fromUtf8(
       Random(16).nextInt(10).toString(),
     ).stretch(32, salt: salt);
-    final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
+    final encrypter = Encrypter(AES(key, mode: AESMode.ctr, padding: null));
     final fileName = path.basename(input.path);
     final encryptedBytes = encrypter.encryptBytes(
       Uint8List.fromList(await input.readAsBytes()),

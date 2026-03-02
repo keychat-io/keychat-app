@@ -1,4 +1,5 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -15,6 +16,14 @@ class SignerService {
   static SignerService? _instance;
   final amber = Amberflutter();
   static SignerService get instance => _instance ??= SignerService._();
+
+  /// Generate a random timestamp up to 2 days in the past (NIP-59 spec)
+  int _randomizedTimestamp() {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    const twoDaysInSeconds = 2 * 24 * 60 * 60;
+    final randomOffset = Random.secure().nextInt(twoDaysInSeconds);
+    return now - randomOffset;
+  }
 
   Future<bool> checkAvailable() async {
     try {
@@ -170,15 +179,15 @@ class SignerService {
       id: id1,
     );
 
-    // Create Seal (kind 13)
-    final randomTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    // Create Seal (kind 13) with randomized timestamp
+    final sealTime = _randomizedTimestamp();
     final id2 = generate64RandomHexChars();
     final secondEvent = {
       'id': '',
       'pubkey': from,
-      'created_at': randomTime,
+      'created_at': sealTime,
       'kind': 13,
-      'tags': [],
+      'tags': <List<String>>[],
       'content': encryptedSubEvent['signature'],
       'sig': '',
     };
@@ -197,13 +206,13 @@ class SignerService {
       receiverPubkey: to,
     );
 
-    // Create Gift Wrap (kind 1059)
+    // Create Gift Wrap (kind 1059) with independent randomized timestamp
     return rust_nostr.signEvent(
       senderKeys: randomSecp256k1.prikey,
       tags: [
         ['p', to],
       ],
-      createdAt: BigInt.from(randomTime),
+      createdAt: BigInt.from(_randomizedTimestamp()),
       content: encrypteSecondRes,
       kind: 1059, // Outer layer remains 1059
     );
@@ -265,14 +274,15 @@ class SignerService {
         pubKey: to,
         id: id1,
       );
-      final randomTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      // Create Seal (kind 13) with randomized timestamp
+      final sealTime = _randomizedTimestamp();
       final id2 = generate64RandomHexChars();
       final secondEvent = {
         'id': '',
         'pubkey': from,
-        'created_at': randomTime,
+        'created_at': sealTime,
         'kind': 13,
-        'tags': [],
+        'tags': <List<String>>[],
         'content': encryptedSubEvent['signature'],
         'sig': '',
       };
@@ -288,12 +298,13 @@ class SignerService {
         senderKeys: randomSecp256k1.prikey,
         receiverPubkey: to,
       );
+      // Gift Wrap (kind 1059) with independent randomized timestamp
       return await rust_nostr.signEvent(
         senderKeys: randomSecp256k1.prikey,
         tags: [
           ['p', to],
         ],
-        createdAt: BigInt.from(randomTime),
+        createdAt: BigInt.from(_randomizedTimestamp()),
         content: encrypteSecondRes,
         kind: 1059,
       );
@@ -356,6 +367,16 @@ class SignerService {
         id: subEvent['id'] as String,
       );
       final plainEvent = jsonDecode(res2['signature'] as String);
+
+      // NIP-59: verify seal pubkey matches rumor pubkey
+      final sealPubkey = subEvent['pubkey'] as String;
+      final rumorPubkey = plainEvent['pubkey'] as String;
+      if (sealPubkey != rumorPubkey) {
+        throw Exception(
+          'NIP-59 verification failed: seal pubkey does not match rumor pubkey',
+        );
+      }
+
       final tags = (plainEvent['tags'] as List)
           .map((e) => (e as List).map((e2) => e2.toString()).toList())
           .toList();

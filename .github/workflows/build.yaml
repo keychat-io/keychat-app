@@ -143,6 +143,11 @@ jobs:
           chmod +x appimagetool
           mv appimagetool /usr/local/bin/
           ldd --version
+      - name: Disable inappwebview on Linux
+        working-directory: ./packages/app/
+        run: |
+          sed -i '/flutter_inappwebview_linux/d' linux/flutter/generated_plugins.cmake
+          flutter pub get
       - name: Build-APP
         working-directory: ./packages/app/
         run: |
@@ -227,6 +232,11 @@ jobs:
       #     chmod +x appimagetool
       #     mv appimagetool /usr/local/bin/
       #     ldd --version
+      - name: Disable inappwebview on Linux
+        working-directory: ./packages/app/
+        run: |
+          sed -i '/flutter_inappwebview_linux/d' linux/flutter/generated_plugins.cmake
+          flutter pub get
       - name: Build-Linux-APP
         working-directory: ./packages/app/
         run: |

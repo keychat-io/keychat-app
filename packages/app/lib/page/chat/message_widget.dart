@@ -20,12 +20,10 @@ import 'package:keychat/page/chat/chat_bubble.dart';
 import 'package:keychat/page/chat/chat_bubble_clipper_4.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/routes.dart';
-import 'package:keychat/page/theme.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -37,8 +35,6 @@ class MessageWidget extends StatelessWidget {
     required this.cc,
     required this.backgroundColor,
     required this.screenWidth,
-    required this.markdownLightConfig,
-    required this.markdownDarkConfig,
     super.key,
     this.roomMember,
   }) {
@@ -53,8 +49,6 @@ class MessageWidget extends StatelessWidget {
   RoomMember? roomMember;
   late double screenWidth;
   late bool isGroup;
-  late MarkdownConfig markdownLightConfig;
-  late MarkdownConfig markdownDarkConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -321,11 +315,6 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  MarkdownConfig get markdownConfig {
-    // Unified: follow system theme for all messages
-    return Get.isDarkMode ? markdownDarkConfig : markdownLightConfig;
-  }
-
   /// Get background color for message bubble
   Color get messageBubbleColor {
     // Check for weak encryption first
@@ -370,7 +359,6 @@ class MessageWidget extends StatelessWidget {
         ? RoomUtil.getTextViewWidget(
             message,
             cc,
-            markdownConfig,
             _chatBubbleContainer,
           )
         : _getReplyWidget();
@@ -888,7 +876,6 @@ class MessageWidget extends StatelessWidget {
           ),
           RoomUtil.getMarkdownView(
             message.realMessage ?? message.content,
-            markdownConfig,
             message.id,
           ),
         ],
@@ -918,7 +905,6 @@ class MessageWidget extends StatelessWidget {
           backGroundColor: getBackgroupColorByEncrypteMode(backgroundColor),
           child: child ??= RoomUtil.getMarkdownView(
             text ?? message.realMessage ?? message.content,
-            markdownConfig,
             id,
           ),
         ),

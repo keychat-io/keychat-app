@@ -25,7 +25,6 @@ import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
-import 'package:markdown_widget/markdown_widget.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -43,8 +42,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   late Widget myAvatar;
   bool isGroup = false;
-  late MarkdownConfig markdownDarkConfig;
-  late MarkdownConfig markdownLightConfig;
   bool isSendGreeting = false;
   late Room room;
 
@@ -53,40 +50,6 @@ class _ChatPage2State extends State<ChatPage> {
     room = _getRoomAndInit();
     myAvatar = Utils.getAvatarByIdentity(room.getIdentity());
     isGroup = room.type == RoomType.group;
-
-    markdownDarkConfig = MarkdownConfig.darkConfig.copy(
-      configs: [
-        const LinkConfig(
-          onTap: RoomUtil.tapLink,
-          style: TextStyle(
-            color: Colors.white,
-            decoration: TextDecoration.underline,
-            decorationColor: Colors.white,
-          ),
-        ),
-        const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
-        PreConfig.darkConfig.copy(
-          wrapper: RoomUtil.codeWrapper,
-          textStyle: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
-      ],
-    );
-    markdownLightConfig = MarkdownConfig.defaultConfig.copy(
-      configs: [
-        const LinkConfig(
-          onTap: RoomUtil.tapLink,
-          style: TextStyle(
-            color: Colors.blue,
-            decoration: TextDecoration.none,
-          ),
-        ),
-        const PreConfig(
-          wrapper: RoomUtil.codeWrapper,
-          textStyle: TextStyle(fontSize: 14),
-        ),
-      ],
-    );
     super.initState();
   }
 
@@ -241,8 +204,6 @@ class _ChatPage2State extends State<ChatPage> {
                               backgroundColor: const Color(
                                 0xFFFFFFFF,
                               ), // Placeholder, actual color computed in widget
-                              markdownLightConfig: markdownLightConfig,
-                              markdownDarkConfig: markdownDarkConfig,
                             );
                           },
                         ),

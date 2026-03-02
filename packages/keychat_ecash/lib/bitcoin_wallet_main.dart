@@ -649,13 +649,18 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final amountText =
         '${isIncoming ? '+' : '-'} ${transaction.amountSats.abs()}';
 
+    // for ecash 32 sats split transactions
+    final isSplit = transaction is CashuWalletTransaction &&
+        transaction.rawData.io == TransactionDirection.split;
     return ListTile(
       key: Key(transaction.id + transaction.timestamp.toString()),
       dense: true,
       leading: Icon(
-        isIncoming
-            ? CupertinoIcons.arrow_down_left
-            : CupertinoIcons.arrow_up_right,
+        isSplit
+            ? CupertinoIcons.arrow_left_right
+            : isIncoming
+                ? CupertinoIcons.arrow_down_left
+                : CupertinoIcons.arrow_up_right,
         color: isIncoming ? Colors.green : Colors.red,
       ),
       title: Text(

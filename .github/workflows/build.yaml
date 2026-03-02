@@ -116,38 +116,93 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev mesa-utils
-
-          # WPE WebKit for flutter_inappwebview_linux (Ubuntu 24.04 has native support)
+      - name: Install WPE runtime dependencies
+        run: |
           sudo apt-get install -y \
-            libwpe-1.0-1 \
-            libwpe-1.0-dev \
-            libwpebackend-fdo-1.0-1 \
-            libwpebackend-fdo-1.0-dev \
-            libwpewebkit-4.1-0 \
-            libwpewebkit-4.1-dev \
             libglib2.0-dev \
             libsoup-3.0-dev \
+            libssl-dev libgnutls28-dev \
+            libsecret-1-dev \
+            libgcrypt20-dev libtasn1-dev \
             libepoxy-dev \
-            libegl1 \
-            libgles2-mesa-dev \
+            libegl1-mesa-dev libgles2-mesa-dev \
             libxkbcommon-dev \
-            libjpeg-dev \
-            libpng-dev \
-            libwebp-dev \
-            libharfbuzz-dev \
-            libfreetype6-dev \
-            libfontconfig1-dev \
-            libicu-dev \
-            libxml2-dev \
+            libjpeg-dev libpng-dev libwebp-dev \
+            libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev \
+            libicu-dev libxml2-dev \
+            libhyphen-dev libenchant-2-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgstreamer-plugins-bad1.0-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             libsqlite3-dev \
-            gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good
+            libsystemd-dev \
+            bubblewrap xdg-dbus-proxy libseccomp-dev \
+            libxslt1-dev \
+            libdrm-dev libgbm-dev \
+            libatk1.0-dev libatk-bridge2.0-dev \
+            liblcms2-dev \
+            libavif-dev \
+            libwoff-dev
+      - name: Cache WPE WebKit
+        id: cache-wpe
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/wpe-cache
+          key: wpe-webkit-x86_64-2.50.4-libwpe-1.16.3-v1
+      - name: Build WPE WebKit from source
+        if: steps.cache-wpe.outputs.cache-hit != 'true'
+        run: |
+          # Install additional build-only dependencies
+          sudo apt-get install -y \
+            build-essential meson \
+            ruby ruby-dev python3 python3-pip \
+            gperf unifdef
 
+          export WPE_PREFIX=/usr/local/wpe-cache
+
+          # Build libwpe
+          cd /tmp
+          wget https://wpewebkit.org/releases/libwpe-1.16.3.tar.xz
+          tar xf libwpe-1.16.3.tar.xz
+          cd libwpe-1.16.3
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$WPE_PREFIX
+          ninja -C build
+          ninja -C build install
+
+          # Build WPE WebKit (minimal build for CI)
+          cd /tmp
+          wget https://wpewebkit.org/releases/wpewebkit-2.50.4.tar.xz
+          tar xf wpewebkit-2.50.4.tar.xz
+          cd wpewebkit-2.50.4
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$WPE_PREFIX \
+            -DPORT=WPE \
+            -DUSE_JPEGXL=OFF \
+            -DENABLE_DOCUMENTATION=OFF \
+            -DENABLE_INTROSPECTION=OFF \
+            -DENABLE_BUBBLEWRAP_SANDBOX=ON \
+            -DENABLE_WEBDRIVER=OFF \
+            -DENABLE_MINIBROWSER=OFF \
+            -DENABLE_SPEECH_SYNTHESIS=OFF \
+            -DUSE_LIBBACKTRACE=OFF \
+            -DENABLE_GAMEPAD=OFF \
+            -DENABLE_JOURNALD_LOG=OFF \
+            -DENABLE_WPE_PLATFORM=ON \
+            -DENABLE_WPE_PLATFORM_HEADLESS=ON
+          ninja -C build -j$(nproc)
+          ninja -C build install
+      - name: Install WPE WebKit from cache
+        run: |
+          sudo cp -a /usr/local/wpe-cache/* /usr/local/
           sudo ldconfig
 
           # Verify
-          pkg-config --modversion wpe-webkit-2.0 || \
-          pkg-config --modversion wpe-webkit-1.1 || echo "WPE WebKit installed"
+          pkg-config --modversion wpe-webkit-2.0
+          pkg-config --modversion wpe-1.0
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -237,10 +292,93 @@ jobs:
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa libsecret-1-dev
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev mesa-utils
-          # Install WPE WebKit for flutter_inappwebview_linux
-          sudo add-apt-repository ppa:wpewebkit-team/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y wpewebkit2.40.0-dev libwpe-1.0-dev
+      - name: Install WPE runtime dependencies
+        run: |
+          sudo apt-get install -y \
+            libglib2.0-dev \
+            libsoup-3.0-dev \
+            libssl-dev libgnutls28-dev \
+            libsecret-1-dev \
+            libgcrypt20-dev libtasn1-dev \
+            libepoxy-dev \
+            libegl1-mesa-dev libgles2-mesa-dev \
+            libxkbcommon-dev \
+            libjpeg-dev libpng-dev libwebp-dev \
+            libharfbuzz-dev libharfbuzz-icu0 libfreetype6-dev libfontconfig1-dev \
+            libicu-dev libxml2-dev \
+            libhyphen-dev libenchant-2-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgstreamer-plugins-bad1.0-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            libsqlite3-dev \
+            libsystemd-dev \
+            bubblewrap xdg-dbus-proxy libseccomp-dev \
+            libxslt1-dev \
+            libdrm-dev libgbm-dev \
+            libatk1.0-dev libatk-bridge2.0-dev \
+            liblcms2-dev \
+            libavif-dev \
+            libwoff-dev
+      - name: Cache WPE WebKit
+        id: cache-wpe
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/wpe-cache
+          key: wpe-webkit-arm64-2.50.4-libwpe-1.16.3-v1
+      - name: Build WPE WebKit from source
+        if: steps.cache-wpe.outputs.cache-hit != 'true'
+        run: |
+          # Install additional build-only dependencies
+          sudo apt-get install -y \
+            build-essential meson \
+            ruby ruby-dev python3 python3-pip \
+            gperf unifdef
+
+          export WPE_PREFIX=/usr/local/wpe-cache
+
+          # Build libwpe
+          cd /tmp
+          wget https://wpewebkit.org/releases/libwpe-1.16.3.tar.xz
+          tar xf libwpe-1.16.3.tar.xz
+          cd libwpe-1.16.3
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$WPE_PREFIX
+          ninja -C build
+          ninja -C build install
+
+          # Build WPE WebKit (minimal build for CI)
+          cd /tmp
+          wget https://wpewebkit.org/releases/wpewebkit-2.50.4.tar.xz
+          tar xf wpewebkit-2.50.4.tar.xz
+          cd wpewebkit-2.50.4
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$WPE_PREFIX \
+            -DPORT=WPE \
+            -DUSE_JPEGXL=OFF \
+            -DENABLE_DOCUMENTATION=OFF \
+            -DENABLE_INTROSPECTION=OFF \
+            -DENABLE_BUBBLEWRAP_SANDBOX=ON \
+            -DENABLE_WEBDRIVER=OFF \
+            -DENABLE_MINIBROWSER=OFF \
+            -DENABLE_SPEECH_SYNTHESIS=OFF \
+            -DUSE_LIBBACKTRACE=OFF \
+            -DENABLE_GAMEPAD=OFF \
+            -DENABLE_JOURNALD_LOG=OFF \
+            -DENABLE_WPE_PLATFORM=ON \
+            -DENABLE_WPE_PLATFORM_HEADLESS=ON
+          ninja -C build -j$(nproc)
+          ninja -C build install
+      - name: Install WPE WebKit from cache
+        run: |
+          sudo cp -a /usr/local/wpe-cache/* /usr/local/
+          sudo ldconfig
+
+          # Verify
+          pkg-config --modversion wpe-webkit-2.0
+          pkg-config --modversion wpe-1.0
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:

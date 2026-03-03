@@ -892,7 +892,8 @@ class MessageWidget extends StatelessWidget {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: screenWidth),
+        // Symmetric alignment: deduct avatar space (48 + 4) from both sides
+        constraints: BoxConstraints(maxWidth: screenWidth - 104),
         child: ChatBubble(
           clipper: ChatBubbleClipper4(
             type: message.isMeSend

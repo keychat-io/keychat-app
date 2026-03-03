@@ -661,7 +661,11 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
             : isIncoming
                 ? CupertinoIcons.arrow_down_left
                 : CupertinoIcons.arrow_up_right,
-        color: isIncoming ? Colors.green : Colors.red,
+        color: isSplit
+            ? Colors.blue
+            : isIncoming
+                ? Colors.green
+                : Colors.red,
       ),
       title: Text(
         amountText,

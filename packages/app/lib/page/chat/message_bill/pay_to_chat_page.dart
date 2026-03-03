@@ -16,15 +16,16 @@ class PayToChatBillPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(PayToRelayController(roomId));
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Bills Of Chat'),
+        title: const Text('Pay to Chat'),
       ),
       body: Obx(
         () => CustomMaterialIndicator(
           onRefresh: controller.loadMore,
           displacement: 20,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           trigger: IndicatorTrigger.trailingEdge,
           triggerMode: IndicatorTriggerMode.anywhere,
           child: ListView.builder(

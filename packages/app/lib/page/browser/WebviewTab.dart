@@ -108,16 +108,9 @@ class _WebviewTabState extends State<WebviewTab> {
     super.initState();
   }
 
-  Future<void> menuOpened() async {
-    if (GetPlatform.isMobile) {
-      await HapticFeedback.lightImpact();
-    }
-    final uri = await getCurrentUrl();
-    initBrowserConnect(uri);
-    multiWebviewController.updateTabData(
-      uniqueId: widget.uniqueKey,
-      url: uri.toString(),
-    );
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void initBrowserConnect(WebUri uri) {
@@ -138,6 +131,7 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar:
               GetPlatform.isDesktop ||
                   !multiWebviewController.browserConfig.showFAB
@@ -349,6 +343,18 @@ class _WebviewTabState extends State<WebviewTab> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> menuOpened() async {
+    if (GetPlatform.isMobile) {
+      await HapticFeedback.lightImpact();
+    }
+    final uri = await getCurrentUrl();
+    initBrowserConnect(uri);
+    multiWebviewController.updateTabData(
+      uniqueId: widget.uniqueKey,
+      url: uri.toString(),
     );
   }
 
@@ -806,68 +812,67 @@ class _WebviewTabState extends State<WebviewTab> {
                 : PermissionResponseAction.GRANT,
           );
         },
-        shouldOverrideUrlLoading:
-            (controller, NavigationAction navigationAction) async {
-              final uri = navigationAction.request.url;
-              logger.i('shouldOverrideUrlLoading: $uri');
-              if (uri == null) return NavigationActionPolicy.ALLOW;
+        shouldOverrideUrlLoading: (controller, navigationAction) async {
+          final uri = navigationAction.request.url;
+          logger.i('shouldOverrideUrlLoading: $uri');
+          if (uri == null) return NavigationActionPolicy.ALLOW;
 
-              // download file
-              if (uri.toString().startsWith('blob:')) {
-                await EasyLoading.showError('Blob files are not supported');
+          // download file
+          if (uri.toString().startsWith('blob:')) {
+            await EasyLoading.showError('Blob files are not supported');
+            return NavigationActionPolicy.CANCEL;
+          }
+          if (navigationAction.shouldPerformDownload ?? false) {
+            return NavigationActionPolicy.DOWNLOAD;
+          }
+
+          try {
+            final str = uri.toString();
+
+            // Handle special URLs
+            if (await handleSpecialUrls(str)) {
+              return NavigationActionPolicy.CANCEL;
+            }
+
+            if (isPdfUrl(str) &&
+                !str.startsWith('https://docs.google.com/gview')) {
+              final googleDocsUrl =
+                  'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+              logger.i('load pdf: $googleDocsUrl');
+              await controller.loadUrl(
+                urlRequest: URLRequest(
+                  url: WebUri.uri(Uri.parse(googleDocsUrl)),
+                ),
+              );
+              return NavigationActionPolicy.CANCEL;
+            }
+
+            if ([
+              'http',
+              'https',
+              'data',
+              'javascript',
+              'about',
+            ].contains(uri.scheme)) {
+              return NavigationActionPolicy.ALLOW;
+            }
+            try {
+              await launchUrl(uri);
+            } catch (e) {
+              if (e is PlatformException) {
+                await EasyLoading.showError(
+                  'Failed to open link: ${e.message}',
+                );
                 return NavigationActionPolicy.CANCEL;
               }
-              if (navigationAction.shouldPerformDownload ?? false) {
-                return NavigationActionPolicy.DOWNLOAD;
-              }
-
-              try {
-                final str = uri.toString();
-
-                // Handle special URLs
-                if (await handleSpecialUrls(str)) {
-                  return NavigationActionPolicy.CANCEL;
-                }
-
-                if (isPdfUrl(str) &&
-                    !str.startsWith('https://docs.google.com/gview')) {
-                  final googleDocsUrl =
-                      'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-                  logger.i('load pdf: $googleDocsUrl');
-                  await controller.loadUrl(
-                    urlRequest: URLRequest(
-                      url: WebUri.uri(Uri.parse(googleDocsUrl)),
-                    ),
-                  );
-                  return NavigationActionPolicy.CANCEL;
-                }
-
-                if ([
-                  'http',
-                  'https',
-                  'data',
-                  'javascript',
-                  'about',
-                ].contains(uri.scheme)) {
-                  return NavigationActionPolicy.ALLOW;
-                }
-                try {
-                  await launchUrl(uri);
-                } catch (e) {
-                  if (e is PlatformException) {
-                    await EasyLoading.showError(
-                      'Failed to open link: ${e.message}',
-                    );
-                    return NavigationActionPolicy.CANCEL;
-                  }
-                  logger.i(e.toString(), error: e);
-                  await EasyLoading.showError('Failed to open link: $e');
-                }
-              } catch (e) {
-                logger.i(e.toString(), error: e);
-              }
-              return NavigationActionPolicy.CANCEL;
-            },
+              logger.i(e.toString(), error: e);
+              await EasyLoading.showError('Failed to open link: $e');
+            }
+          } catch (e) {
+            logger.i(e.toString(), error: e);
+          }
+          return NavigationActionPolicy.CANCEL;
+        },
         onLoadStop: (controller, url) async {
           if (url == null) return;
           logger.d('onLoadStop: $url');
@@ -932,8 +937,8 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         onReceivedError:
             (
-              InAppWebViewController controller,
-              WebResourceRequest request,
+              controller,
+              request,
               error,
             ) async {
               final url = request.url.toString();

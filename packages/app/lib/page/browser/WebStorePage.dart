@@ -58,7 +58,7 @@ class _WebStorePageState extends State<WebStorePage> {
                   await Get.find<HomeController>().loadAppRemoteConfig();
                 },
                 displacement: 20,
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.builder(
                   itemCount: homeController.recommendWebstore.entries.length,

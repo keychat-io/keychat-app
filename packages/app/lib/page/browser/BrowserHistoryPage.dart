@@ -77,7 +77,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
           await loadData(limit: 20, offset: amount);
         },
         displacement: 20,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         trigger: IndicatorTrigger.trailingEdge,
         triggerMode: IndicatorTriggerMode.anywhere,
         child: ListView.builder(

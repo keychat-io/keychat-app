@@ -78,8 +78,7 @@ class FileService {
     required String key,
     required String iv,
   }) async {
-    final encrypter =
-        Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr, padding: null));
+    final encrypter = Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr));
 
     final encryptedBytes = Encrypted(await input.readAsBytes());
     final decryptedBytes = encrypter.decryptBytes(
@@ -365,7 +364,7 @@ class FileService {
       final downloadedFile = await FileService.instance
           .downloadFile(
             avatarUrl,
-            (int count, int total) async {
+            (count, total) async {
               EasyThrottle.throttle(
                 'downloadAndSaveAvatar$avatarUrl',
                 const Duration(milliseconds: 300),
@@ -560,7 +559,7 @@ class FileService {
     final key = Key.fromUtf8(
       Random(16).nextInt(10).toString(),
     ).stretch(32, salt: salt);
-    final encrypter = Encrypter(AES(key, mode: AESMode.ctr, padding: null));
+    final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
     final fileName = path.basename(input.path);
     final encryptedBytes = encrypter.encryptBytes(
       Uint8List.fromList(await input.readAsBytes()),

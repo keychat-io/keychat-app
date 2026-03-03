@@ -45,6 +45,9 @@ void main(List<String> args) async {
     return;
   }
 
+  // Set edge-to-edge mode early
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
   final stopwatch = Stopwatch()..start();
   final sc = await initServices(widgetsBinding);
 
@@ -75,19 +78,16 @@ void main(List<String> args) async {
   );
 
   runApp(getMaterialApp);
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await WidgetsBinding.instance.endOfFrame;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     stopwatch.stop();
     logger.i('app launched: ${stopwatch.elapsedMilliseconds} ms');
+    // Set system UI overlay once after app launch
+    _updateSystemUIOverlay();
+  });
 
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarContrastEnforced: true,
-      ),
-    );
+  // Listen for theme mode changes and update system UI accordingly
+  ever(sc.themeMode, (_) {
+    _updateSystemUIOverlay();
   });
 }
 
@@ -138,6 +138,37 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
     ..lazyPut(UnifiedWalletController.new, fenix: true)
     ..lazyPut(DesktopController.new, fenix: true);
   return sc;
+}
+
+void _updateSystemUIOverlay() {
+  /// Update system UI overlay style to match current theme
+  /// Determines brightness based on current theme mode and system settings
+  final sc = Get.find<SettingController>();
+  final themeMode = sc.themeMode.value;
+
+  // Determine if dark mode should be used
+  bool isDarkMode;
+  if (themeMode == 'dark') {
+    isDarkMode = true;
+  } else if (themeMode == 'light') {
+    isDarkMode = false;
+  } else {
+    // 'system' mode - check platform brightness
+    isDarkMode =
+        PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+  }
+
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: isDarkMode
+          ? Brightness.light
+          : Brightness.dark,
+      statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+      systemNavigationBarContrastEnforced: true,
+    ),
+  );
 }
 
 void _logWriterCallback(String text, {bool isError = false}) {

@@ -110,6 +110,11 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void dispose() {
+    // Cancel pending debounce/throttle operations for this tab
+    EasyDebounce.cancel('saveScroll:${tabController.url.value}');
+    EasyDebounce.cancel('onUpdateVisitedHistory:${tabController.url.value}');
+    EasyThrottle.cancel('refreshPage${tabController.hashCode}');
+    urlScrollPositions.clear();
     super.dispose();
   }
 

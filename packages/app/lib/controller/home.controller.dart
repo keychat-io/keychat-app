@@ -57,6 +57,7 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   late Timer _connectionCheckTimer;
+  StreamSubscription<Uri>? _appLinksSub;
   RxBool checkRunStatus = true.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
@@ -384,10 +385,48 @@ class HomeController extends GetxController
     return chatIdentities.values.toList();
   }
 
+  /// Lightweight update for a single room when a new message arrives.
+  /// Avoids full DB reload by updating in-memory data directly.
+  void updateSingleRoom(int identityId, int roomId, Message message) {
+    roomLastMessage[roomId] = message;
+
+    final tabData = tabBodyDatas[identityId];
+    if (tabData == null) return;
+
+    // Increment unread count if message is not read
+    if (!message.isRead) {
+      // Find the room in the list and update its unread count
+      for (final item in tabData.rooms) {
+        if (item is Room && item.id == roomId) {
+          if (!item.isMute) {
+            item.unReadCount++;
+            tabData.unReadCount++;
+          }
+          break;
+        }
+      }
+    }
+
+    // Re-sort rooms to move this room to top (by last message time)
+    resortRoomList(identityId);
+    tabBodyDatas.refresh();
+
+    unawaited(_refreshUnreadSum());
+  }
+
+  /// Recalculate and update the total unread badge count from cached data.
+  Future<void> _refreshUnreadSum() async {
+    var unReadSum = 0;
+    for (final item in tabBodyDatas.values) {
+      unReadSum += item.unReadCount + item.anonymousUnReadCount;
+    }
+    await setUnreadCount(unReadSum);
+  }
+
   void loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
       'loadIdentityRoomList:$identityId',
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 1000),
       () async {
         logger.d('loadIdentityRoomList identityId: $identityId');
         final res = await RoomService.instance.getRoomList(identityId);
@@ -427,16 +466,10 @@ class HomeController extends GetxController
               ..anonymousUnReadCount = anonymousUnReadCount
               ..requestingUnReadCount = requestingUnReadCount
               ..rooms = datas;
-        tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
+        tabBodyDatas[identityId] = tabBodyData;
+        tabBodyDatas.refresh();
 
-        var unReadSum = 0;
-        final keys = tabBodyDatas.keys.toList();
-        for (var i = 0; i < keys.length; i++) {
-          final e = keys[i];
-          final item = tabBodyDatas[e]!;
-          unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
-        }
-        await setUnreadCount(unReadSum);
+        await _refreshUnreadSum();
       },
     );
   }
@@ -537,6 +570,7 @@ class HomeController extends GetxController
   Future<void> onClose() async {
     tabController.dispose();
     _intentSub.cancel();
+    _appLinksSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     subscription.cancel();
     _connectionCheckTimer.cancel();
@@ -711,7 +745,7 @@ class HomeController extends GetxController
     if (item == null) return;
     item.identity = identity;
     tabBodyDatas[identity.id] = item;
-    tabBodyDatas.value = Map.from(tabBodyDatas);
+    tabBodyDatas.refresh();
     if (Get.context != null) {
       Utils.hideKeyboard(Get.context!);
     }
@@ -754,7 +788,7 @@ class HomeController extends GetxController
       }
     });
 
-    appLinks.uriLinkStream.listen(
+    _appLinksSub = appLinks.uriLinkStream.listen(
       handleAppLink,
       onError: (err) {
         logger.e('listen failed: $err');

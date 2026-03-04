@@ -487,6 +487,7 @@ class ChatController extends GetxController {
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
+    scrollController.dispose();
     indicatorController.dispose();
     super.onClose();
   }
@@ -680,6 +681,10 @@ class ChatController extends GetxController {
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
+    } else {
+      // Preserve existing contact when new room doesn't have one
+      // (contact is an @ignore field not persisted by Isar)
+      newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
     roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh

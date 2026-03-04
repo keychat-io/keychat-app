@@ -129,8 +129,23 @@ class NostrAPI {
   }
 
   List<(NostrEventModel, List, String, Relay)> toProccessEventsPool = [];
+  final Set<String> _poolEventIds = {};
+  static const int _maxEventPoolSize = 500;
+
   Future<void> _proccessEvent01(List eventList, Relay relay, String raw) async {
     final event = NostrEventModel.deserialize(eventList, verify: false);
+
+    // Skip duplicates already in pool or already handled
+    if (handledEventIds.contains(event.id) ||
+        !_poolEventIds.add(event.id)) {
+      return;
+    }
+
+    // Prevent unbounded pool growth
+    if (toProccessEventsPool.length >= _maxEventPoolSize) {
+      logger.w('Event pool full ($_maxEventPoolSize), processing immediately');
+    }
+
     toProccessEventsPool.add((event, eventList, raw, relay));
 
     // waiting 200ms to proccess all events
@@ -141,6 +156,7 @@ class NostrAPI {
         final events = toProccessEventsPool;
         if (events.isEmpty) return;
         toProccessEventsPool = [];
+        _poolEventIds.clear();
         events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
         for (final (event, eventList, raw, relay) in events) {
           nostrEventQueue.addJob((_) async {

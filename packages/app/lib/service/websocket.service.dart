@@ -619,7 +619,6 @@ class WebsocketService extends GetxService {
     if (mainRelayStatus.value != status.name) {
       mainRelayStatus.value = status.name;
       loggerNoLine.d('setMainRelayStatus: ${mainRelayStatus.value}');
-      channels.refresh();
     }
   }
 

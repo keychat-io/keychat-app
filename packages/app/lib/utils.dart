@@ -1307,7 +1307,7 @@ Init File: $time \n
 
     Get.back<void>();
     Get.find<DesktopController>().activeChatTabAndToRoom(room);
-    await Get.toNamed(
+    await Get.offAllNamed<void>(
       '/room/${room.id}',
       arguments: arguments ?? room,
       id: GetXNestKey.room,

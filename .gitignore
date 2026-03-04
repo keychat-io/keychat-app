@@ -56,3 +56,4 @@ docs_local/
 # Documentation files - not tracked
 logs/
 *.log
+scripts/ExportOptions.plist

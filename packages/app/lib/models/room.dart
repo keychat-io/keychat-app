@@ -19,6 +19,7 @@ enum RoomType {
   @Deprecated('use common instead')
   private,
   group,
+  @Deprecated('use keychat agent instead')
   bot,
   freebot,
 }

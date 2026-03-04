@@ -22,6 +22,7 @@ class RoomList extends GetView<HomeController> {
     final desktopController = Utils.getGetxController<DesktopController>();
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         titleSpacing: 0,
@@ -50,7 +51,7 @@ class RoomList extends GetView<HomeController> {
                       fontWeight: FontWeight.w600,
                     ),
                     dividerColor: Colors.transparent,
-                    tabs: controller.tabBodyDatas.values.map((TabData e) {
+                    tabs: controller.tabBodyDatas.values.map((e) {
                       final identity = e.identity;
                       final title = identity.displayName.length > 15
                           ? '${identity.displayName.substring(0, 15)}...'
@@ -90,7 +91,7 @@ class RoomList extends GetView<HomeController> {
               key: GlobalObjectKey('roomlist_tab_indicator_$identityId'),
               onRefresh: () async => Get.find<WebsocketService>().start(),
               displacement: 20,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               triggerMode: IndicatorTriggerMode.anywhere,
               child: ListView.separated(
                 key: ObjectKey('roomlist_tab_$identityId'),

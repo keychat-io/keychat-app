@@ -425,7 +425,7 @@ class MlsGroupService extends BaseChatService {
           if (extension['status'] != null) {
             status = UserStatusType.values.firstWhere(
               (e) => e.name == extension['status'],
-              orElse: () => UserStatusType.unknown,
+              orElse: () => UserStatusType.invited, // for default status
             );
           }
         } catch (e) {

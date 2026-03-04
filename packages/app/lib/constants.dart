@@ -16,7 +16,6 @@ class KeyChatEventKinds {
   static const int start = 1; // default
   static const int dm = 100; // one to one private chat
   static const int dmAddContactFromAlice = 101; // request to add friend
-  static const int dmAddContactFromBob = 102; // agree to add friend
   static const int dmDeleteHistory = 103; // delete history
   static const int dmReject = 104; // reject to add friend
   static const int dmEnd = 200; // chat end

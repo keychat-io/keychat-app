@@ -55,17 +55,17 @@ class WorldPage extends StatelessWidget {
             return CustomMaterialIndicator(
               onRefresh: () => worldController.getFeed(e),
               displacement: 20,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               triggerMode: IndicatorTriggerMode.anywhere,
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: list.length,
-                separatorBuilder: (BuildContext context2, int index) => Divider(
+                separatorBuilder: (context2, index) => Divider(
                   color: Get.isDarkMode ? Colors.black87 : Colors.white70,
                   thickness: 1,
                   height: 1,
                 ),
-                itemBuilder: (BuildContext context, int index) {
+                itemBuilder: (context, index) {
                   final ne = list[index] as NostrEventModel;
                   final createdAt = Utils.formatTimeForMessage(
                     DateTime.fromMillisecondsSinceEpoch(ne.createdAt * 1000),

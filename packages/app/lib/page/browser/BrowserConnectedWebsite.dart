@@ -69,17 +69,16 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                 );
               },
               displacement: 20,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               trigger: IndicatorTrigger.trailingEdge,
               triggerMode: IndicatorTriggerMode.anywhere,
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: urls.length,
-                separatorBuilder: (BuildContext context2, int index) =>
-                    const Divider(
-                      indent: 16,
-                      endIndent: 16,
-                    ),
+                separatorBuilder: (context2, index) => const Divider(
+                  indent: 16,
+                  endIndent: 16,
+                ),
                 itemBuilder: (context, index) {
                   final site = urls[index];
 

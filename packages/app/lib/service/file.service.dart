@@ -364,7 +364,7 @@ class FileService {
       final downloadedFile = await FileService.instance
           .downloadFile(
             avatarUrl,
-            (int count, int total) async {
+            (count, total) async {
               EasyThrottle.throttle(
                 'downloadAndSaveAvatar$avatarUrl',
                 const Duration(milliseconds: 300),

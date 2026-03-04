@@ -15,6 +15,7 @@ class PayToRelayPage extends StatelessWidget {
     final id = roomId ?? int.parse(Get.parameters['id']!);
     final controller = Get.put(PayToRelayController(id));
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
         title: const Text('Bills Of Chat'),
@@ -23,7 +24,7 @@ class PayToRelayPage extends StatelessWidget {
         () => CustomMaterialIndicator(
           onRefresh: controller.loadMore,
           displacement: 20,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           trigger: IndicatorTrigger.trailingEdge,
           triggerMode: IndicatorTriggerMode.anywhere,
           child: ListView.builder(

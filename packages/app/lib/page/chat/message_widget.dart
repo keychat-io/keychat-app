@@ -427,7 +427,7 @@ class MessageWidget extends StatelessWidget {
         margin: EdgeInsets.only(
           top: 10,
           bottom: 10,
-          left: messageStatus == null ? 40.0 : 0,
+          left: messageStatus == null ? 24.0 : 0,
         ),
         child: Column(
           children: [
@@ -450,7 +450,7 @@ class MessageWidget extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.only(right: 48),
+              padding: const EdgeInsets.only(right: 24),
               child: GestureDetector(
                 onTap: _handleShowRawdata,
                 child: Row(
@@ -733,7 +733,7 @@ class MessageWidget extends StatelessWidget {
         ? message.idPubkey
         : cc.roomObs.value.toMainPubkey;
     return Container(
-      padding: const EdgeInsets.only(top: 10, bottom: 10, right: 48),
+      padding: const EdgeInsets.only(top: 10, bottom: 10, right: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -876,7 +876,7 @@ class MessageWidget extends StatelessWidget {
           ),
           RoomUtil.getMarkdownView(
             message.realMessage ?? message.content,
-            message.id,
+            id: message.id,
           ),
         ],
       ),
@@ -892,7 +892,8 @@ class MessageWidget extends StatelessWidget {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: screenWidth),
+        // Symmetric alignment: deduct avatar space (48 + 4) from both sides
+        constraints: BoxConstraints(maxWidth: screenWidth - 104),
         child: ChatBubble(
           clipper: ChatBubbleClipper4(
             type: message.isMeSend
@@ -905,7 +906,7 @@ class MessageWidget extends StatelessWidget {
           backGroundColor: getBackgroupColorByEncrypteMode(backgroundColor),
           child: child ??= RoomUtil.getMarkdownView(
             text ?? message.realMessage ?? message.content,
-            id,
+            id: id,
           ),
         ),
       ),

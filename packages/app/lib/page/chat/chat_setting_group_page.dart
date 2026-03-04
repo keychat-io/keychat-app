@@ -298,9 +298,16 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         }
       }
     }
+    final allMembers = members
+        .where(
+          (e) =>
+              e.status == UserStatusType.invited ||
+              e.status == UserStatusType.inviting,
+        )
+        .toList();
 
-    if (members.length > 8) {
-      return _buildMembersSummaryCard(members);
+    if (allMembers.length > 8) {
+      return _buildMembersSummaryCard(allMembers);
     }
 
     // Show responsive grid preview for up to 8 members
@@ -317,7 +324,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
         ),
-        children: members.map((rm) {
+        children: allMembers.map((rm) {
           // Update self member info if needed
           if (rm.idPubkey == identity.secp256k1PKHex) {
             rm.contact?.avatarLocalPath = identity.avatarLocalPath;

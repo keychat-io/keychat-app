@@ -535,39 +535,52 @@ class ChatController extends GetxController {
     }
 
     if (xfile == null) return;
+    Future<void> sendImage() async {
+      if (_isUploading) {
+        EasyLoading.showToast('File uploading, please wait...');
+        return;
+      }
+      _isUploading = true;
+      try {
+        await FileService.instance.handleSendMediaFile(
+          roomObs.value,
+          xfile!,
+          MessageMediaType.image,
+        );
+        Get.back<void>();
+      } finally {
+        _isUploading = false;
+      }
+    }
+
     Get.dialog(
-      CupertinoAlertDialog(
-        content: SizedBox(
-          width: 300,
-          child: FileService.instance.getImageView(File(xfile.path)),
+      Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            sendImage();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: CupertinoAlertDialog(
+          content: SizedBox(
+            width: 300,
+            child: FileService.instance.getImageView(File(xfile.path)),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: Get.back,
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: sendImage,
+              child: const Text('Send'),
+            ),
+          ],
         ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: Get.back,
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              if (_isUploading) {
-                EasyLoading.showToast('File uploading, please wait...');
-                return;
-              }
-              _isUploading = true;
-              try {
-                await FileService.instance.handleSendMediaFile(
-                  roomObs.value,
-                  xfile!,
-                  MessageMediaType.image,
-                );
-                Get.back<void>();
-              } finally {
-                _isUploading = false;
-              }
-            },
-            child: const Text('Send'),
-          ),
-        ],
       ),
     );
   }

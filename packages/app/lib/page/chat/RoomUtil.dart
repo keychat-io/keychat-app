@@ -200,6 +200,14 @@ class RoomUtil {
     );
   }
 
+  /// Wraps a table widget with horizontal scrolling support.
+  static Widget tableWrapper(Widget child) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: child,
+    );
+  }
+
   /// Shows the add member to group dialog.
   ///
   /// Retrieves the list of contacts that can be added to the group,
@@ -1068,10 +1076,10 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
   /// since the parent [SelectionArea] in [MessageWidget] handles selection
   /// with a custom context menu.
   static Widget getMarkdownView(
-    String data, [
+    String data, {
     int? id,
     bool selectable = false,
-  ]) {
+  }) {
     return MarkdownBlock(
       key: id != null ? ObjectKey('mk:$id') : null,
       data: Utils.formartTextToLinkText(data),
@@ -1095,7 +1103,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
         errorCallback(
           child: getMarkdownView(
             message.realMessage ?? message.content,
-            message.id,
+            id: message.id,
           ),
         ),
         const SizedBox(height: 10),
@@ -1187,7 +1195,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return errorCallback(
             child: getMarkdownView(
               message.realMessage ?? message.content,
-              message.id,
+              id: message.id,
             ),
           );
         case MessageMediaType.video:
@@ -1275,7 +1283,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     return errorCallback(
       child: getMarkdownView(
         message.realMessage ?? message.content,
-        message.id,
+        id: message.id,
       ),
     );
   }
@@ -1661,6 +1669,7 @@ $link
             textStyle: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
+          TableConfig(wrapper: RoomUtil.tableWrapper),
         ],
       );
 
@@ -1678,6 +1687,7 @@ $link
             wrapper: RoomUtil.codeWrapper,
             textStyle: TextStyle(fontSize: 14),
           ),
+          const TableConfig(wrapper: RoomUtil.tableWrapper),
         ],
       );
 

@@ -148,11 +148,19 @@ class _DeskBrowserState extends State<DeskBrowser> {
           ),
         ),
         Expanded(
-          child: IndexedStack(
+          child: Stack(
             key: stackKey,
-            sizing: StackFit.expand,
-            index: currentTabIndex,
-            children: controller.tabs.map((e) => e.tab).toList(),
+            fit: StackFit.expand,
+            children: [
+              for (int i = 0; i < controller.tabs.length; i++)
+                Offstage(
+                  offstage: currentTabIndex != i,
+                  child: TickerMode(
+                    enabled: currentTabIndex == i,
+                    child: controller.tabs[i].tab,
+                  ),
+                ),
+            ],
           ),
         ),
       ],

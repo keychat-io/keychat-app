@@ -72,13 +72,12 @@ class MessageService {
     Room room,
   ) async {
     RoomService.getController(model.roomId)?.addMessage(model);
-    final hc = Get.find<HomeController>();
-    hc.roomLastMessage[model.roomId] = model;
-    hc.loadIdentityRoomList(model.identityId);
+    Get.find<HomeController>().updateSingleRoom(
+      room.identityId,
+      model.roomId,
+      model,
+    );
 
-    if (GetPlatform.isDesktop && !model.isRead) {
-      Get.find<HomeController>().addUnreadCount();
-    }
     // show snackbar in other page
     if (model.isRead ||
         isCurrentPage ||

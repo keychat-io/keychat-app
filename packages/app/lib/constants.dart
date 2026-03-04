@@ -23,6 +23,7 @@ class KeyChatEventKinds {
   // share key group
   static const int groupInvite = 11;
   static const int groupSharedKeyMessage = 12;
+  @Deprecated('not used')
   static const int groupHi = 14;
   static const int groupChangeNickname = 15;
   static const int groupSelfLeave = 16;

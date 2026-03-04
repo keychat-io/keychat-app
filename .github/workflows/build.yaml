@@ -576,6 +576,10 @@ jobs:
           melos bootstrap
       - name: Flutter doctor -v
         run: flutter doctor -v
+      - name: Install build tools
+        run: |
+          brew install yq
+          npm install -g create-dmg
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -626,59 +630,56 @@ jobs:
           # import provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo $MACOS_PROVISIONING_PROFILE_BASE64 | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/b4d153f3-08ed-42a2-8b2e-1b930b592df0.provisionprofile
-      - name: Build-Mac-app
+      - name: Generate ExportOptions.plist
+        run: echo "$EXPORT_OPTIONS_PLIST_BASE64" | base64 --decode > scripts/ExportOptions.plist
+        env:
+          EXPORT_OPTIONS_PLIST_BASE64: ${{ secrets.EXPORT_OPTIONS_PLIST_BASE64 }}
+
+      - name: Build macOS app
         working-directory: ./packages/app/
         run: |
           export PROTOC=$(which protoc)
-          flutter build macos --release 
-          # mkdir ../../dist
-          # cp -r ./packages/app/build/macos/Build/Products/Release/*.app ../../dist/
-      - name: Code Signing
-        run: /usr/bin/codesign --deep --force -s "$DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY" --options runtime Keychat.app -v
-        working-directory: ./packages/app/build/macos/Build/Products/Release
-        env:
-          DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY }}
+          flutter build macos --release
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -workspace packages/app/macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath packages/app/build/macos/archive/Keychat.xcarchive \
+            -quiet
+
+      - name: Export signed app
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath packages/app/build/macos/archive/Keychat.xcarchive \
+            -exportPath packages/app/build/macos/export \
+            -exportOptionsPlist scripts/ExportOptions.plist
 
       - name: Notarize app
+        working-directory: ./packages/app/build/macos/export
         run: |
-          # We can't notarize an app bundle directly, but we need to compress it as an archive.
-          # Therefore, we create a zip file containing our app bundle, so that we can send it to the
-          # notarization service
-          echo "Creating temp notarization archive"
           ditto -c -k --keepParent "Keychat.app" "Keychat.zip"
-
-          # Here we send the notarization request to the Apple's Notarization service, waiting for the result.
-          # This typically takes a few seconds inside a CI environment, but it might take more depending on the App
-          # characteristics. Visit the Notarization docs for more information and strategies on how to optimize it if
-          # you're curious
-          echo "Notarize app"
-          xcrun notarytool submit "Keychat.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_2FA_PASSWORD" --wait
-
-          # Finally, we need to "attach the staple" to our executable, which will allow our app to be
-          # validated by macOS even when an internet connection is not available.
-          echo "Attach staple"
+          xcrun notarytool submit "Keychat.zip" \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_2FA_PASSWORD" --wait
           xcrun stapler staple "Keychat.app"
-        working-directory: ./packages/app/build/macos/Build/Products/Release
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_2FA_PASSWORD: ${{ secrets.APPLE_2FA_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Verify notarization
+        working-directory: ./packages/app/build/macos/export
+        run: spctl --assess --type execute --verbose "Keychat.app"
 
       - name: Build DMG
-        run: bash scripts/build-dmg.sh
-
-      # Package the build.
-      - name: Copy build for dmg
-        working-directory: ./packages/app
         run: |
-          echo "VERSION: $BUILD_NAME+$BUILD_NUMBER"
-          ls -la *.dmg
-          mkdir -p ../../dist
-          cp Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
-        env:
-          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
-          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+          VERSION=$(yq '.version' packages/app/pubspec.yaml)
+          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
+          create-dmg "packages/app/build/macos/export/Keychat.app" --overwrite --dmg-title='Keychat'
+          mkdir -p dist
+          mv "Keychat ${VERSION_SHORT}.dmg" "dist/Keychat-${VERSION}-macos-arm64.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -696,6 +697,7 @@ jobs:
           fi
           rm -f .env
           rm -f macos/Runner/GoogleService-Info.plist
+          rm -f ../../scripts/ExportOptions.plist
   upload:
     if: ${{ always() }}
     permissions: write-all

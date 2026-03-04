@@ -391,21 +391,28 @@ class RoomService extends BaseChatService {
         .statusEqualTo(RoomStatus.groupUser) // not include init
         .sortByCreatedAtDesc()
         .findAll();
+
+    // Batch fetch unread counts and last messages in parallel
+    final roomIds = list.map((r) => r.id).toList();
+    final results = await Future.wait([
+      _batchUnreadCounts(roomIds),
+      _batchLastMessages(roomIds),
+    ]);
+    final unreadCounts = results[0] as Map<int, int>;
+    final lastMessages = results[1] as Map<int, Message?>;
+
+    final hc = Utils.getGetxController<HomeController>();
     final friendsRoom = <Room>[];
     final approving = <Room>[];
     final requesting = <Room>[];
     for (final room in list) {
-      room.unReadCount = await MessageService.instance.unreadCountByRoom(
-        room.id,
-      );
-      final lastMessageModel = await MessageService.instance
-          .getLastMessageByRoom(room.id);
+      room.unReadCount = unreadCounts[room.id] ?? 0;
+      final lastMessageModel = lastMessages[room.id];
       if (lastMessageModel != null) {
         if (lastMessageModel.content.length > 50) {
           lastMessageModel.content = lastMessageModel.content.substring(0, 50);
         }
-        Utils.getGetxController<HomeController>()?.roomLastMessage[room.id] =
-            lastMessageModel;
+        hc?.roomLastMessage[room.id] = lastMessageModel;
       }
       if (room.type != RoomType.common) {
         friendsRoom.add(room);
@@ -434,6 +441,32 @@ class RoomService extends BaseChatService {
       'approving': approving,
       'requesting': requesting,
     };
+  }
+
+  /// Batch fetch unread counts for multiple rooms in parallel.
+  Future<Map<int, int>> _batchUnreadCounts(List<int> roomIds) async {
+    final futures = roomIds.map(
+      (id) => MessageService.instance.unreadCountByRoom(id),
+    );
+    final counts = await Future.wait(futures);
+    final map = <int, int>{};
+    for (var i = 0; i < roomIds.length; i++) {
+      map[roomIds[i]] = counts[i];
+    }
+    return map;
+  }
+
+  /// Batch fetch last messages for multiple rooms in parallel.
+  Future<Map<int, Message?>> _batchLastMessages(List<int> roomIds) async {
+    final futures = roomIds.map(
+      (id) => MessageService.instance.getLastMessageByRoom(id),
+    );
+    final messages = await Future.wait(futures);
+    final map = <int, Message?>{};
+    for (var i = 0; i < roomIds.length; i++) {
+      map[roomIds[i]] = messages[i];
+    }
+    return map;
   }
 
   Future<Room> getRoomOrFail(String from, String to) async {

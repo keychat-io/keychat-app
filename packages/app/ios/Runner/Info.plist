@@ -106,7 +106,7 @@
     <key>NSCameraUsageDescription</key>
     <string>Can we access your camera in order to scan barcodes?</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Enable this to calling</string>
+    <string>Keychat needs microphone access to record voice messages.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>Enable this to save file to gallery</string>
     <key>NSPhotoLibraryUsageDescription</key>

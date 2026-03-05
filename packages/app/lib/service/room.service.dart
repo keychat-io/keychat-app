@@ -33,6 +33,11 @@ import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:queue/queue.dart';
 
+/// Central service that coordinates rooms, message routing, and send logic.
+///
+/// Acts as a dispatcher: routes outgoing messages to the correct protocol
+/// service (Signal, MLS, NIP-04, NIP-17) based on room settings, and routes
+/// incoming events to the correct room via [processKeychatMessage].
 class RoomService extends BaseChatService {
   // Avoid self instance
   RoomService._();
@@ -42,6 +47,7 @@ class RoomService extends BaseChatService {
   static final GroupService groupService = GroupService.instance;
   static final ContactService contactService = ContactService.instance;
 
+  /// Throws if [room] is in a terminal state (dissolved or removed from group).
   Future<void> checkRoomStatus(Room room) async {
     if (room.status == RoomStatus.dissolved) {
       throw Exception('Room had been dissolved');
@@ -52,6 +58,10 @@ class RoomService extends BaseChatService {
     }
   }
 
+  /// Creates a new private (1:1) room for [identity] ↔ [toMainPubkey].
+  ///
+  /// Returns the existing room if one already exists.  Allocates a new [SignalId]
+  /// if [signalId] is not provided.  Sets the default encrypt mode to NIP-17.
   Future<Room> createPrivateRoom({
     required String toMainPubkey,
     required Identity identity,
@@ -101,6 +111,12 @@ class RoomService extends BaseChatService {
     return room;
   }
 
+  /// Permanently deletes [room] and all associated data.
+  ///
+  /// Cascades to: messages, room members, event status records, Signal sessions,
+  /// MLS group state, shared SignalIds, receive keys, and file attachments.
+  /// Also unsubscribes the room's listen pubkeys from the relay and notification server.
+  /// [websocketInited] controls whether WebSocket unsubscription is attempted.
   Future<void> deleteRoom(Room room, {bool websocketInited = true}) async {
     final database = DBProvider.database;
     final identityId = room.identityId;
@@ -199,6 +215,7 @@ class RoomService extends BaseChatService {
     Get.find<HomeController>().loadIdentityRoomList(identityId);
   }
 
+  /// Deletes all messages and file attachments for [room] without deleting the room itself.
   Future<void> deleteRoomMessage(Room room) async {
     await FileService.instance.deleteFolderByRoomId(room.identityId, room.id);
 
@@ -210,6 +227,9 @@ class RoomService extends BaseChatService {
     });
   }
 
+  /// Returns all group rooms that use shared-key or KDF encryption modes.
+  ///
+  /// These rooms have a dedicated [Mykey] that must be subscribed to on relays.
   Future<List<Room>> getGroupsSharedKey() async {
     return DBProvider.database.rooms
         .filter()
@@ -223,6 +243,7 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
+  /// Returns all MLS group rooms that have a one-time-key receive address.
   Future<List<Room>> getMlsRooms() async {
     return DBProvider.database.rooms
         .filter()
@@ -232,6 +253,7 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
+  /// Returns non-muted MLS group rooms that have a one-time-key receive address.
   Future<List<Room>> getMlsRoomsSkipMute() async {
     return DBProvider.database.rooms
         .filter()
@@ -241,7 +263,10 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
-  // get room by send_pubkey and bob_pubkey
+  /// Returns an existing room where [from] is the contact and [to] is the identity
+  /// pubkey, creating one if it does not exist.
+  ///
+  /// [from] is the sender's main pubkey; [to] is the receiving identity's pubkey.
   Future<Room> getOrCreateRoom(
     String from,
     String to,
@@ -271,6 +296,7 @@ class RoomService extends BaseChatService {
     );
   }
 
+  /// Returns the room for [toMainPubkey] under [identity], creating one if absent.
   Future<Room> getOrCreateRoomByIdentity(
     String toMainPubkey,
     Identity identity,
@@ -288,6 +314,9 @@ class RoomService extends BaseChatService {
     );
   }
 
+  /// Resolves a room from an incoming event's `from` pubkey and receiving `to` pubkey.
+  ///
+  /// Checks Signal ratchet receive keys first, then common rooms, then group shared-key rooms.
   Future<Room?> getRoom(String from, String to, [Identity? identity]) async {
     final database = DBProvider.database;
 
@@ -336,17 +365,23 @@ class RoomService extends BaseChatService {
     return DBProvider.database.rooms.filter().onetimekeyEqualTo(to).findFirst();
   }
 
+  /// Returns the room with the given Isar [id], or null if not found.
   Future<Room?> getRoomById(int id) async {
     final database = DBProvider.database;
 
     return database.rooms.filter().idEqualTo(id).findFirst();
   }
 
+  /// Returns all rooms that share the same [signalIdPubkey].
+  ///
+  /// Used to determine whether a SignalId can be safely deleted when a room
+  /// is removed.
   Future<List<Room>> getRoomBySignalIdPubkey(String pubkey) async {
     final database = DBProvider.database;
     return database.rooms.filter().signalIdPubkeyEqualTo(pubkey).findAll();
   }
 
+  /// Returns the room where [from] is the peer pubkey and [identityId] is the local identity.
   Future<Room?> getRoomByIdentity(String from, int identityId) async {
     final database = DBProvider.database;
 
@@ -357,6 +392,9 @@ class RoomService extends BaseChatService {
         .findFirst();
   }
 
+  /// Returns the room only if it exists AND has an active Signal session.
+  ///
+  /// Used to quickly check whether a session is ready before attempting decryption.
   Future<Room?> getRoomAndContainSession(String from, int identityId) async {
     final room = await DBProvider.database.rooms
         .filter()
@@ -371,16 +409,26 @@ class RoomService extends BaseChatService {
     return null;
   }
 
+  /// Returns the room with [id], throwing if not found.
   Future<Room> getRoomByIdOrFail(int id) async {
     final exist = await getRoomById(id);
     if (exist == null) throw Exception('room is null');
     return exist;
   }
 
+  /// Synchronously returns the room with [id], or null if not found.
   Room? getRoomByIdSync(int id) {
     return DBProvider.database.rooms.filter().idEqualTo(id).findFirstSync();
   }
 
+  /// Returns a categorised room list for [indetityId].
+  ///
+  /// The result map has three keys:
+  /// - `'friends'`: active chat rooms (enabled + groups)
+  /// - `'approving'`: rooms awaiting the peer's acceptance
+  /// - `'requesting'`: rooms where the peer is waiting for our acceptance
+  ///
+  /// Unread counts and last messages are batch-fetched in parallel for performance.
   Future<Map<String, List<Room>>> getRoomList(int indetityId) async {
     final database = DBProvider.database;
 
@@ -469,12 +517,18 @@ class RoomService extends BaseChatService {
     return map;
   }
 
+  /// Returns the room for [from] ↔ [to], throwing if not found.
   Future<Room> getRoomOrFail(String from, String to) async {
     final room = await getRoom(from, to);
     if (room == null) throw Exception('room is null');
     return room;
   }
 
+  /// Routes a decrypted [KeychatMessage] to the correct room and protocol handler.
+  ///
+  /// [event] is the inner decrypted event; [sourceEvent] is the outer wrapper if any.
+  /// Resolves or creates the room from the event's recipient address, then
+  /// delegates to [km.service.proccessMessage].
   Future<void> processKeychatMessage(
     KeychatMessage km,
     NostrEventModel event, // as subEvent
@@ -524,6 +578,9 @@ class RoomService extends BaseChatService {
     return;
   }
 
+  // DEPRECATED: WebRTC call handling was removed; all cases are commented out.
+  // This override is now a no-op and should be removed once the BaseChatService
+  // contract no longer requires it — candidate for removal.
   @override
   Future<void> proccessMessage({
     required Room room,
@@ -555,6 +612,9 @@ class RoomService extends BaseChatService {
     }
   }
 
+  /// Saves an incoming decrypted direct message to the database and notifies the UI.
+  ///
+  /// Handles reply parsing, profile-request media types, and sender resolution.
   Future<void> receiveDM(
     Room room,
     NostrEventModel event, {
@@ -808,6 +868,7 @@ class RoomService extends BaseChatService {
     await queue.onComplete;
   }
 
+  /// Persists [room] to the database, optionally saving its linked [Mykey] as well.
   Future<Room> updateRoom(Room room, {bool updateMykey = false}) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.rooms.put(room);
@@ -818,6 +879,7 @@ class RoomService extends BaseChatService {
     return room;
   }
 
+  /// Persists [room] and pushes the updated model to any open [ChatController].
   Future<void> updateRoomAndRefresh(
     Room room, {
     bool refreshContact = false,
@@ -828,6 +890,7 @@ class RoomService extends BaseChatService {
     await refreshRoom(room, refreshContact: refreshContact);
   }
 
+  /// Throws if there is no network connection or no online relay.
   Future<void> checkWebsocketConnect() async {
     final netStatus =
         Utils.getGetxController<HomeController>()!.isConnectedNetwork.value;
@@ -840,6 +903,10 @@ class RoomService extends BaseChatService {
     }
   }
 
+  /// Resolves a room from a Signal ratchet receive-key address.
+  ///
+  /// Looks up the [ContactReceiveKey] record whose `receiveKeys` list contains
+  /// [address], then returns the matching room.
   Future<Room?> getRoomByReceiveKey(String address) async {
     final crk = await DBProvider.database.contactReceiveKeys
         .filter()
@@ -888,6 +955,8 @@ class RoomService extends BaseChatService {
     }
   }
 
+  /// Returns the [ChatController] for [roomId] if the chat screen is currently open,
+  /// or null otherwise.
   static ChatController? getController(int roomId) {
     ChatController? cc;
     try {
@@ -897,6 +966,11 @@ class RoomService extends BaseChatService {
     return cc;
   }
 
+  /// Creates a room for [input] (hex or bech32 pubkey) and sends a Signal hello message.
+  ///
+  /// If [input] is the current identity's own pubkey, creates a self-chat room.
+  /// Returns null if [input] is not a valid 64/63-character pubkey.
+  /// [autoJump] navigates the UI to the newly created room.
   Future<Room?> createRoomAndsendInvite(
     String input, {
     bool autoJump = true,
@@ -966,6 +1040,9 @@ class RoomService extends BaseChatService {
     return null;
   }
 
+  /// Marks all unread messages in [room] as read and refreshes the room list.
+  ///
+  /// Returns true if any messages were updated.
   Future<bool> markAllRead(Room room) async {
     final refresh = await MessageService.instance.setViewedMessage(room.id);
     if (refresh) {
@@ -977,6 +1054,9 @@ class RoomService extends BaseChatService {
     return false;
   }
 
+  /// Marks all messages as read only if the room has unread messages.
+  ///
+  /// A lightweight variant that skips the DB call if unread count is already zero.
   Future<void> markAllReadSimple(Room room) async {
     final homeRoom = Get.find<HomeController>().getRoomByIdentity(
       room.identityId,
@@ -987,6 +1067,9 @@ class RoomService extends BaseChatService {
     await markAllRead(room);
   }
 
+  /// Mutes or unmutes [room] by updating the notification server and local state.
+  ///
+  /// Throttled to once per second per room to prevent rapid toggling.
   Future<void> mute(Room room, bool value) async {
     EasyThrottle.throttle(
       'mute_notification:${room.id}',
@@ -1025,7 +1108,9 @@ class RoomService extends BaseChatService {
     );
   }
 
-  // mls group , signal private chat room
+  /// Returns the room that uses [pubkey] as its receive address.
+  ///
+  /// Checks Signal private-chat rooms first, then MLS group rooms.
   Future<Room?> getRoomByMyReceiveKey(String pubkey) async {
     final room = await SignalChatService.instance.getSignalChatRoomByTo(pubkey);
     if (room != null) {
@@ -1035,6 +1120,7 @@ class RoomService extends BaseChatService {
     return mlsRoom;
   }
 
+  /// Returns all common (non-group) rooms where [hexPubkey] is the peer.
   Future<List<Room>> getCommonRoomByPubkey(String hexPubkey) async {
     return DBProvider.database.rooms
         .filter()
@@ -1043,6 +1129,7 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
+  /// Pushes an updated [room] model to the open [ChatController], if any.
   Future<void> refreshRoom(Room room, {bool refreshContact = false}) async {
     final cc = RoomService.getController(room.id);
     if (cc == null) return;

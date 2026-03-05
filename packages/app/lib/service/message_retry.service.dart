@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mutex/mutex.dart';
 
+/// Represents a single in-flight Nostr event pending acknowledgement from a relay.
 class MessageRetryItem {
   MessageRetryItem({
     required this.eventId,
@@ -36,6 +37,12 @@ class MessageRetryItem {
   }
 }
 
+/// Manages retry logic for Nostr events that have not received an OK/NOTICE
+/// acknowledgement from a relay within the timeout window.
+///
+/// Uses exponential backoff (3 s, 6 s, 12 s, 24 s) with a maximum of 4 retries.
+/// Also tracks per-event delivery status across multiple relays and updates the
+/// [Message.sent] flag once at least one relay confirms success.
 class MessageRetryService extends GetxService {
   MessageRetryService._();
   static MessageRetryService? _instance;
@@ -44,9 +51,14 @@ class MessageRetryService extends GetxService {
 
   // Key: "eventId:relay"
   final Map<String, MessageRetryItem> _retryQueue = {};
-  final Map<String, Set<String>> _eventRelays = {}; // eventId -> Set<relay>
+  // Maps eventId → set of relay URLs for fast cleanup when an event succeeds.
+  final Map<String, Set<String>> _eventRelays = {};
   final _fillSubscriptionMutex = Mutex();
 
+  /// Registers a newly sent event for timeout-and-retry tracking.
+  ///
+  /// A 5-second timeout timer is started immediately; if no OK is received by
+  /// then, exponential-backoff retries begin.
   void addMessage({
     required String eventId,
     required String relay,
@@ -76,6 +88,7 @@ class MessageRetryService extends GetxService {
     loggerNoLine.d('Added message to retry queue: $eventId -> $relay');
   }
 
+  /// Cancels the retry timer for [eventId] on [relay] and removes it from the queue.
   void markSuccess(String eventId, String relay) {
     final key = _getKey(eventId, relay);
     final item = _retryQueue[key];
@@ -93,6 +106,9 @@ class MessageRetryService extends GetxService {
     }
   }
 
+  /// Retries all pending messages for [relay] (throttled to once every 5 seconds).
+  ///
+  /// Called when a relay reconnects after a disconnect.
   Future<void> retryPendingMessages(String relay) async {
     EasyThrottle.throttle(
       'retryPendingMessages:$relay',
@@ -111,6 +127,7 @@ class MessageRetryService extends GetxService {
     );
   }
 
+  /// Cancels all pending retries for [eventId] across all relays.
   void clearEventMessages(String eventId) {
     final relays = _eventRelays[eventId];
     if (relays != null) {
@@ -124,6 +141,7 @@ class MessageRetryService extends GetxService {
     }
   }
 
+  /// Returns all items currently in the retry queue.
   List<MessageRetryItem> getPendingMessages() {
     return _retryQueue.values.toList();
   }
@@ -195,6 +213,7 @@ class MessageRetryService extends GetxService {
 
   String _getKey(String eventId, String relay) => '$eventId:$relay';
 
+  /// Cancels all timers and clears the retry queue.
   void clear() {
     for (final item in _retryQueue.values) {
       item.timeoutTimer?.cancel();
@@ -207,6 +226,7 @@ class MessageRetryService extends GetxService {
   Map<String, DateTime> essAddTime = <String, DateTime>{};
   int fillSubscriptionCount = 0;
 
+  /// Registers a [NostrEventStatus] record so it can be updated when the relay responds.
   void addNostrEventStatus(NostrEventStatus ess) {
     final set = essMap[ess.eventId] ?? <NostrEventStatus>{}
       ..add(ess);
@@ -214,6 +234,11 @@ class MessageRetryService extends GetxService {
     essAddTime[ess.eventId] = DateTime.now();
   }
 
+  /// Processes a relay OK/NOTICE response for [eventId] on [relay].
+  ///
+  /// Updates the [NostrEventStatus] record, cancels the retry timer, and refreshes
+  /// the [Message.sent] field if any relay has now confirmed delivery.
+  /// Periodically prunes the status map to avoid unbounded memory growth.
   Future<void> fillSubscription({
     required String eventId,
     required String relay,

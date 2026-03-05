@@ -14,6 +14,7 @@ obfuscate/
 
 # dotenv environment variables file
 .env*
+!.env.example
 *.env
 
 # Avoid committing generated Javascript files:

@@ -631,8 +631,8 @@ class MlsGroupService extends BaseChatService {
     }
   }
 
-  // DEPRECATED: superseded by proccessMLSPrososalMessage (and the dispatch in decryptMessage) - candidate for removal
-  @Deprecated('use proccessMLSPrososalMessage instead')
+  // DEPRECATED: superseded by decryptMessage (commit dispatch handled by _proccessTryProposalIn) - candidate for removal
+  @Deprecated('use decryptMessage instead')
   @override
   Future<void> processMessage({
     required Room room,

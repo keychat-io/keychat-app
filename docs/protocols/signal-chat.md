@@ -111,7 +111,7 @@ Nostr relay → WebSocket → kind 4 or kind 1059 event
   |     |-- [if onetimekey != destination] clear room.onetimekey
   |     |
   |     |-- NostrAPI.tryGetKeyChatMessage(plaintext)
-  |           |-- [if KeychatMessage] → SignalChatService.proccessMessage()
+  |           |-- [if KeychatMessage] → SignalChatService.processMessage()
   |           |-- [else]             → RoomService.receiveDM()
 ```
 
@@ -128,7 +128,7 @@ Nostr relay → event arrives on Bob's one-time Nostr key
   |     |-- rust_signal.decryptSignal(..., isPrekey=true)
   |     |-- SignalChatUtil.verifySignedMessage()   ← verify Schnorr sig
   |     |-- RoomService.createPrivateRoom() or update existing room
-  |     |-- dispatch to proccessMessage() or receiveDM()
+  |     |-- dispatch to processMessage() or receiveDM()
 ```
 
 ---
@@ -208,7 +208,7 @@ Used as the plaintext payload in the very first Signal message (PreKeySignalMess
 | `setRoomSignalDecodeStatus(room, bool)` | Update `room.signalDecodeError` flag |
 | `getSignalChatRoomByTo(to)` | Resolve a receive-key address to its Room |
 | `processListenAddrs(address, mapKey)` | Manage the rolling window of up to 3 receive addresses |
-| `proccessMessage(room, event, km, ...)` | Dispatch an already-decrypted KeychatMessage by type |
+| `processMessage(room, event, km, ...)` | Dispatch an already-decrypted KeychatMessage by type |
 
 ### SignalIdService
 

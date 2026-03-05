@@ -135,7 +135,7 @@ Recipient
   |
   |-- receives NIP-04/NIP-17 event from sender's identity pubkey
   |-- SignalChatService decrypts → KeychatMessage
-  |-- GroupService.proccessMessage()
+  |-- GroupService.processMessage()
   |     |-- type == groupSendToAllMessage
   |     |-- decode inner GroupMessage (group pubkey, actual content)
   |     |-- look up groupRoom by GroupMessage.pubkey
@@ -158,7 +158,7 @@ Recipient
 | `sendToAllMessage(room, message)` | Sends an encrypted message to all members |
 | `sendMessageToGroup(room, message)` | Routes message to MLS or sendAll handler |
 | `processGroupMessage(room, event, gm)` | Processes and persists an incoming group message |
-| `proccessMessage(room, km, event)` | Top-level dispatch for group-typed messages |
+| `processMessage(room, km, event)` | Top-level dispatch for group-typed messages |
 | `removeMember(room, rm)` | Removes a member from the group |
 | `selfExitGroup(room)` | Current user exits the group |
 | `dissolveGroup(room)` | Admin permanently closes the group |
@@ -212,7 +212,7 @@ await GroupService.instance.inviteToJoinGroup(
 
 ### Handling Incoming Group Events
 
-Incoming events are dispatched by `ChatService` → `GroupService.proccessMessage()`.
+Incoming events are dispatched by `ChatService` → `GroupService.processMessage()`.
 No manual routing is needed at the UI layer.
 
 ### Joining a Group (from Invitation)

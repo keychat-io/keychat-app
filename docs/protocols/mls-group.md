@@ -138,7 +138,7 @@ Nostr relay → WebSocket → kind 445 event
 ```
 Inviter                               Invitee
   │                                     │
-  ├── addMemeberToGroup()               │
+  ├── addMemberToGroup()               │
   │     ├── rust_mls.addMembers()       │
   │     └── _sendInviteMessage()        │
   │           └── NIP-17 kind 444 ────►│
@@ -220,7 +220,7 @@ Stored in the MLS group context extensions (fetched via `rust_mls.getGroupExtens
 | `initIdentities([identities])` | Bootstrap MLS state for each identity |
 | `createGroup(name, identity, toUsers, groupRelays)` | Create a new MLS group |
 | `createGroupFromInvitation(event, identity, message, groupId)` | Join a group via Welcome message |
-| `addMemeberToGroup(groupRoom, toUsers)` | Add members to an existing group |
+| `addMemberToGroup(groupRoom, toUsers)` | Add members to an existing group |
 | `removeMembers(room, list)` | Remove members (admin only) |
 | `sendSelfLeaveMessage(room)` | Signal intent to leave the group |
 | `dissolve(room)` | Dissolve the group (admin only) |
@@ -252,7 +252,7 @@ Stored in the MLS group context extensions (fetched via `rust_mls.getGroupExtens
 | `initMlsDb` | `initIdentities` | Initialize Rust MLS state for one identity |
 | `createMlsGroup` | `createGroup` | Create MLS group in Rust |
 | `joinMlsGroup` | `createGroupFromInvitation` | Join group using Welcome blob |
-| `addMembers` | `addMemeberToGroup`, `createGroup` | Produce add commit + Welcome |
+| `addMembers` | `addMemberToGroup`, `createGroup` | Produce add commit + Welcome |
 | `removeMembers` | `removeMembers` | Produce remove commit |
 | `selfUpdate` | `_selfUpdateKeyLocal` | Produce self-update proposal |
 | `selfCommit` | multiple | Finalize pending proposals into a commit |
@@ -348,7 +348,7 @@ await MlsGroupService.instance.handleWelcomeEvent(
 
 | Symbol | Location | Reason | Action |
 |--------|----------|--------|--------|
-| `proccessMessage()` | `mls_group.service.dart:557` | Superseded by `decryptMessage` dispatch logic | Remove; callers should use `decryptMessage` |
+| `processMessage()` | `mls_group.service.dart:557` | Superseded by `decryptMessage` dispatch logic | Remove; callers should use `decryptMessage` |
 | Commented-out `getMembers()` call | `existExpiredMember` | Replaced by direct lifetime query | Remove commented line |
 
 ### Known Limitations
@@ -361,4 +361,4 @@ await MlsGroupService.instance.handleWelcomeEvent(
 
 - **TODO: key package consumption tracking** — `uploadKeyPackages` does not yet verify whether an existing key package has already been used in an `addMembers` operation. This could result in the same key package being reused, which the MLS spec prohibits. See the TODO comment in `uploadKeyPackages`.
 
-- **Method name typo** — `addMemeberToGroup` has a typo (`Memeber` should be `Member`). Renaming is deferred to avoid breaking all call sites simultaneously.
+- **Method name typo** — `addMemberToGroup` has a typo (`Memeber` should be `Member`). Renaming is deferred to avoid breaking all call sites simultaneously.

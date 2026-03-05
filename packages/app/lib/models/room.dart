@@ -143,6 +143,10 @@ class Room extends Equatable {
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
+  @Deprecated('use groupType == GroupType.shareKey instead')
+  bool get isShareKeyGroup => groupType == GroupType.shareKey;
+  @Deprecated('use groupType == GroupType.kdf instead')
+  bool get isKDFGroup => groupType == GroupType.kdf;
 
   @override
   List<Object?> get props => [

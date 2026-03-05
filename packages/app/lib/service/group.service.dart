@@ -674,6 +674,7 @@ class GroupService extends BaseChatService {
   /// Group messages must be routed through [sendMessageToGroup] or
   /// [sendToAllMessage]. This override satisfies the [BaseChatService]
   /// contract but is intentionally non-functional for group rooms.
+  @Deprecated('use sendMessageToGroup or sendToAllMessage instead')
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,

@@ -144,7 +144,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       );
       final sender = widget.room.getIdentity().displayName;
       if (widget.room.isMLSGroup) {
-        await MlsGroupService.instance.addMemeberToGroup(
+        await MlsGroupService.instance.addMemberToGroup(
           groupRoom,
           selectUsers,
           sender,

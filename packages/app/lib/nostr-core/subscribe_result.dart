@@ -30,17 +30,20 @@ class SubscribeResult {
     return removeSubscripton(subId);
   }
 
+  /// Adds an incoming [nem] event to the pending result set for [subId].
   void fill(String subId, NostrEventModel nem) {
     final list = _map[subId] ?? <NostrEventModel>[];
     list.add(nem);
     _map[subId] = list;
   }
 
+  /// Returns true when the subscription [subId] has received responses from all expected relays.
   bool isFilled(String subId) {
     return (_map[subId] ?? <NostrEventModel>[]).length >=
         (_eventMaxRelay[subId] ?? 0);
   }
 
+  /// Removes and returns all collected events for [subId], deduplicated and sorted by [createdAt].
   List<NostrEventModel> removeSubscripton(String subId) {
     var list = _map[subId] ?? <NostrEventModel>[];
     _map.remove(subId);

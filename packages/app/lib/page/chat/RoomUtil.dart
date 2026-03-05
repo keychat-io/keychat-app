@@ -977,11 +977,7 @@ Let's start an encrypted chat.''';
         return 'Large Group';
       case GroupType.sendAll:
         return 'Small Group';
-      case GroupType.kdf:
-        throw UnimplementedError();
-      case GroupType.shareKey:
-        throw UnimplementedError();
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -1022,9 +1018,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
-      case GroupType.kdf:
-      case GroupType.shareKey:
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }

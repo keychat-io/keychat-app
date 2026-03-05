@@ -18,6 +18,11 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
+/// Service for persisting, querying, and notifying about chat messages.
+///
+/// Acts as the single write path for all message types (text, media, ecash,
+/// system messages). Handles type classification, read-state tracking,
+/// and in-app snackbar notifications for incoming messages.
 class MessageService {
   // Avoid self instance
   MessageService._();
@@ -25,6 +30,11 @@ class MessageService {
   static MessageService get instance => _instance ??= MessageService._();
   static final DBProvider dbProvider = DBProvider.instance;
 
+  /// Persists [model] to the database and notifies the UI.
+  ///
+  /// Auto-classifies the message type (cashu, lightning, image, video, file, bot)
+  /// before saving.  Marks the message as read immediately if the chat screen is
+  /// currently open.  [persist] wraps the write in an Isar transaction when true.
   Future<Message> saveMessageModel(
     Message model, {
     required Room room,
@@ -140,6 +150,7 @@ class MessageService {
     );
   }
 
+  /// Handles a tap on the new-message snackbar by navigating to [room].
   void pressSnackbar(Room room) {
     Get.closeAllSnackbars();
     if (Get.currentRoute.startsWith('/room/')) {
@@ -149,6 +160,9 @@ class MessageService {
     }
   }
 
+  /// Saves a system notification message (e.g. key-exchange confirmations) to [room].
+  ///
+  /// [suffix] is prepended as a bracketed label, e.g. `[SystemMessage]\n<content>`.
   Future<void> saveSystemMessage(
     Room room,
     String content, {
@@ -181,11 +195,13 @@ $content'''
     );
   }
 
+  /// Persists updated [message] and refreshes the in-memory message list.
   Future<void> updateMessageAndRefresh(Message message) async {
     await MessageService.instance.updateMessage(message);
     refreshMessageInPage(message);
   }
 
+  /// Updates the message in the open [ChatController]'s list (debounced 100 ms).
   void refreshMessageInPage(Message message) {
     try {
       final cc = RoomService.getController(message.roomId);
@@ -207,6 +223,10 @@ $content'''
     } catch (e) {}
   }
 
+  /// Constructs a [Message] from the given Nostr event fields and persists it.
+  ///
+  /// This is the main entry point called by all protocol service implementations
+  /// after decryption succeeds.
   Future<Message> saveMessageToDB({
     required String from,
     required String content,
@@ -269,10 +289,12 @@ $content'''
     return saveMessageModel(model, persist: persist, room: room);
   }
 
+  /// Returns the total unread message count across all rooms.
   Future<int> unreadCount() async {
     return DBProvider.database.messages.filter().isReadEqualTo(false).count();
   }
 
+  /// Returns the unread message count for a specific [identityId].
   Future<int> unreadCountById(int identityId) async {
     final database = DBProvider.database;
 
@@ -283,6 +305,7 @@ $content'''
         .count();
   }
 
+  /// Returns the unread message count for a specific [roomId].
   Future<int> unreadCountByRoom(int roomId) async {
     final database = DBProvider.database;
 
@@ -302,6 +325,9 @@ $content'''
         .findAll();
   }
 
+  // DEPRECATED: return type is Future<Future<List<Message>>> which is a double-future
+  // bug — the inner Future is never awaited by callers. No active callers found.
+  // Candidate for removal.
   Future<Future<List<Message>>> distinctByRoomId() async {
     final database = DBProvider.database;
 
@@ -346,6 +372,11 @@ $content'''
         .findAll();
   }
 
+  /// Returns the timestamp from which the relay subscription should request events.
+  ///
+  /// Uses the stored last-message time (per-relay if [relay] is non-null) minus a
+  /// small buffer to catch any messages that arrived slightly before the cutoff.
+  /// Falls back to 14 days ago if no messages have been received yet.
   Future<DateTime> getNostrListenStartAt(String? relay) async {
     var key = StorageKeyString.lastMessageAt;
     if (relay != null) {
@@ -364,6 +395,7 @@ $content'''
     return DateTime.now().subtract(const Duration(days: 14));
   }
 
+  /// Returns up to [limit] messages for [roomId], paginated by [offset], newest first.
   Future<List<Message>> listMessageFromDB({
     required int roomId,
     int limit = 100,
@@ -464,6 +496,7 @@ $content'''
     return m?.createdAt;
   }
 
+  /// Returns the most recent message in [roomId], or null if none exist.
   Future<Message?> getLastMessageByRoom(int roomId) async {
     final m = await DBProvider.database.messages
         .filter()
@@ -487,6 +520,9 @@ $content'''
     });
   }
 
+  /// Marks all unread messages in [roomId] as read.
+  ///
+  /// Returns true if any messages were updated, false if all were already read.
   Future<bool> setViewedMessage(int roomId) async {
     final unreads = await listMessageUnread(roomId);
     final database = DBProvider.database;
@@ -521,6 +557,7 @@ $content'''
     });
   }
 
+  /// Marks the cashu payment in message [id] as successful and refreshes the UI.
   Future<Message?> updateMessageCashuStatus(int id) async {
     final m = await getMessageById(id);
     if (m == null) return null;
@@ -533,6 +570,9 @@ $content'''
     return m;
   }
 
+  /// Returns all messages with a pending cashu payment status.
+  ///
+  /// Used on app startup to resume payment status checks for in-flight transactions.
   Future<List<Message>> getCashuPendingMessage() async {
     final database = DBProvider.database;
     return database.messages
@@ -653,6 +693,8 @@ $content'''
         .findAll();
   }
 
+  /// Checks whether [message] was successfully delivered to at least one relay
+  /// and updates its send-status to success if confirmed.
   Future<void> checkMessageStatus({required Message message}) async {
     final m = await getMessageByMsgId(message.msgid);
     if (m == null || m.sent == SendStatusType.success) return;
@@ -678,6 +720,7 @@ $content'''
     }
   }
 
+  /// Appends an emoji reaction from [replyMessage] to [sourceMessage].
   Future<void> addReactionToMessage({
     required Message sourceMessage,
     required String emoji,

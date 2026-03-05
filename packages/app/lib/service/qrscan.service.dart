@@ -16,12 +16,23 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Service that opens the QR-code scanner and dispatches the scanned result
+/// to the appropriate handler based on content type.
+///
+/// Supported formats: URLs, Keychat app links, Cashu tokens, Lightning invoices,
+/// LNURL, Bitcoin URIs, Nostr pubkeys (npub/hex), NWC URIs, and base64 QR profiles.
 class QrScanService {
   // Avoid self instance
   QrScanService._();
   static QrScanService? _instance;
   static QrScanService get instance => _instance ??= QrScanService._();
 
+  /// Opens the QR-code scanner and returns the raw scanned string.
+  ///
+  /// Only available on mobile and macOS.  Requests camera permission on mobile.
+  /// If [autoProcess] is true, automatically dispatches the result to the matching
+  /// handler (e.g. opens a contact page, processes a cashu token, etc.).
+  /// Returns null if the scan was cancelled or permission was denied.
   Future<String?> handleQRScan({bool autoProcess = false}) async {
     if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
       EasyLoading.showToast('Not available on this devices');
@@ -166,6 +177,9 @@ class QrScanService {
     return handleText(str);
   }
 
+  /// Decodes a BIP-21 Bitcoin URI and extracts an embedded Lightning invoice if present.
+  ///
+  /// Falls back to [handleText] if the URI cannot be decoded or has no invoice.
   Future<void> handleBitcoinUri(
     String str,
     EcashController ecashController,
@@ -193,6 +207,9 @@ class QrScanService {
     }
   }
 
+  /// Presents a dialog offering to copy or open [url] in the in-app browser.
+  ///
+  /// Keychat app links (mainWebsite/u/) are handled directly without a dialog.
   dynamic handleUrl(String url) {
     Uri uri;
     try {
@@ -241,6 +258,9 @@ class QrScanService {
     return;
   }
 
+  /// Presents a dialog displaying [str] with options to copy or dismiss.
+  ///
+  /// Used as a fallback when the scanned content does not match any known format.
   void handleText(String str) {
     Get.dialog<void>(
       CupertinoAlertDialog(

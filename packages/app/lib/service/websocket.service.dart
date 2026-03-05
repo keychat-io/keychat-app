@@ -106,20 +106,30 @@ class WebsocketService extends GetxService {
     return _backoffStates.putIfAbsent(url, _RelayBackoffState.new);
   }
 
+  /// Returns the number of currently connected (active) relay WebSocket channels.
   int activitySocketCount() {
     return channels.values.where((element) => element.isConnected()).length;
   }
 
+  /// Returns the [RelayFileFee] configuration for the relay at [url], or null if not set.
   RelayFileFee? getRelayFileFeeModel(String url) {
     final uri = Uri.parse(url);
     return relayFileFeeModels[uri.host];
   }
 
+  /// Stores the [RelayFileFee] configuration for the relay at [url], keyed by hostname.
   void setRelayFileFeeModel(String url, RelayFileFee fuc) {
     final uri = Uri.parse(url);
     relayFileFeeModels[uri.host] = fuc;
   }
 
+  /// Attaches a Cashu ecash token to a relay event status if the relay requires payment.
+  ///
+  /// Fetches a stamp of the required [payInfoModel.amount] from the configured mints.
+  /// Updates [eventSendStatus] with the token and mint info, then appends the token
+  /// to the raw event JSON string.
+  ///
+  /// Throws if [totalBalanceSat] is 0 or the mint cannot issue the stamp.
   Future<NostrEventStatus> addCashuToMessage(
     int roomId,
     NostrEventStatus eventSendStatus,
@@ -156,7 +166,10 @@ class WebsocketService extends GetxService {
     return eventSendStatus;
   }
 
-  // new a websocket channel for this relay
+  /// Creates and registers a new WebSocket channel for [relay].
+  ///
+  /// If [relay.active] is false, the channel entry is created but not connected.
+  /// Invokes [connectedCallback] after the connection is established.
   Future<void> addChannel(Relay relay, {Function? connectedCallback}) async {
     final ws = this;
     final rw = RelayWebsocket(relay, ws);
@@ -176,6 +189,10 @@ class WebsocketService extends GetxService {
     );
   }
 
+  /// Checks connection health for all (or specified) relays and reconnects as needed.
+  ///
+  /// Uses exponential backoff to skip relays in the cooldown period unless [forceReconnect]
+  /// is true. Pings each connected relay and triggers reconnection if unresponsive.
   Future<void> checkOnlineAndConnect({
     List<RelayWebsocket>? list,
     bool forceReconnect = false,
@@ -229,6 +246,7 @@ class WebsocketService extends GetxService {
     );
   }
 
+  /// Creates WebSocket channels for all relays in [list] concurrently.
   Future<void> createChannels([List<Relay> list = const []]) async {
     final ws = this;
     await Future.wait(
@@ -240,6 +258,7 @@ class WebsocketService extends GetxService {
     );
   }
 
+  /// Deactivates [relay], closes its WebSocket channel, and persists the change.
   Future<void> disableRelay(Relay relay) async {
     relay.active = false;
     relay.errorMessage = null;
@@ -252,6 +271,7 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Returns true if at least one connected relay has zero message fee configured.
   bool existFreeRelay() {
     for (final channel in channels.entries) {
       if (channel.value.isConnected()) {
@@ -263,7 +283,10 @@ class WebsocketService extends GetxService {
     return false;
   }
 
-  // fetch info and wait for response data
+  /// Sends a REQ to one or more relays and waits up to [wait] for responses.
+  ///
+  /// Registers a [SubscribeResult] subscription keyed by [subId] and collects
+  /// events until [waitTimeToFill] or the deadline passes.
   Future<List<NostrEventModel>> fetchInfoFromRelay(
     String subId,
     String eventString, {
@@ -287,6 +310,7 @@ class WebsocketService extends GetxService {
     );
   }
 
+  /// Returns the URLs of all relays that have [active] set to true.
   List<String> getActiveRelayString() {
     final res = <String>{};
     for (final rw in List<RelayWebsocket>.from(channels.values)) {
@@ -297,6 +321,9 @@ class WebsocketService extends GetxService {
     return res.toList();
   }
 
+  /// Maps a WebSocket [ConnectionState] to a status indicator [Color].
+  ///
+  /// Connecting/Reconnecting → yellow, Connected/Reconnected → green, Disconnected → red.
   Color getColorByState(ConnectionState? state) {
     switch (state) {
       case Connecting _:
@@ -313,10 +340,12 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Returns all [RelayWebsocket] instances that are currently connected.
   List<RelayWebsocket> getOnlineSocket() {
     return channels.values.where((element) => element.isConnected()).toList();
   }
 
+  /// Returns the URLs of all currently connected relay WebSocket channels.
   List<String> getOnlineSocketString() {
     final res = <String>[];
     // ignore: omit_local_variable_types
@@ -328,6 +357,7 @@ class WebsocketService extends GetxService {
     return res;
   }
 
+  /// Maps a WebSocket [ConnectionState] to an [EventSendEnum] send status code.
   EventSendEnum getSendStatusByState(ConnectionState? state) {
     if (state == null) {
       return EventSendEnum.noAcitveRelay;
@@ -345,6 +375,9 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Subscribes to events for [pubkeys] of specified [kinds] on all (or given) relays.
+  ///
+  /// Shows a toast if all relays are disconnected.
   void listenPubkey(
     List<String> pubkeys, {
     required List<int> kinds,
@@ -375,6 +408,9 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Subscribes to NIP-17 (gift-wrap, kind 1059) events for [pubkeys].
+  ///
+  /// Returns the [NostrReqModel] sent, or null if [pubkeys] is empty.
   NostrReqModel? listenPubkeyNip17(
     List<String> pubkeys, {
     DateTime? since,
@@ -404,6 +440,9 @@ class WebsocketService extends GetxService {
     return req;
   }
 
+  /// Loads relay message and file fee configurations from local storage into memory.
+  ///
+  /// Called on [onReady] to restore fee settings cached from the last relay info fetch.
   Future<void> localFeesConfigFromLocalStorage() async {
     final map1 = await Storage.getLocalStorageMap(
       StorageKeyString.relayMessageFeeConfig,
@@ -445,6 +484,7 @@ class WebsocketService extends GetxService {
     RelayService.instance.initRelayFeeInfo();
   }
 
+  /// Recomputes and updates [mainRelayStatus] and [relayConnectedCount] based on current connections.
   Future<void> refreshMainRelayStatus() async {
     final success = getOnlineSocket().length;
     relayConnectedCount.value = success;
@@ -462,6 +502,9 @@ class WebsocketService extends GetxService {
     await _setMainRelayStatus(RelayStatusEnum.connecting);
   }
 
+  /// Removes a single [pubkey] from all active relay subscription sets.
+  ///
+  /// Used when a contact is removed or a room is closed to stop receiving their events.
   void removePubkeyFromSubscription(String pubkey) {
     for (final rw in channels.values) {
       final subs = rw.subscriptions;
@@ -473,6 +516,7 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Removes multiple [keys] pubkeys from the first subscription slot of each relay.
   void removePubkeysFromSubscription(List<String> keys) {
     for (final rw in channels.values) {
       final subs = rw.subscriptions;
@@ -483,6 +527,7 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Returns the subscription ID that currently tracks [pubkey], or null if not subscribed.
   String? getSubscriptionIdsByPubkey(String pubkey) {
     for (final rw in List<RelayWebsocket>.from(channels.values)) {
       final subs = rw.subscriptions;
@@ -495,6 +540,10 @@ class WebsocketService extends GetxService {
     return null;
   }
 
+  /// Broadcasts a raw REQ/CLOSE/EVENT string to all (or given) connected relays.
+  ///
+  /// Returns the number of relays the message was sent to.
+  /// Throws if no relays are connected.
   int sendReqToRelays(String content, [List<String>? relays]) {
     final targetRelays = _getTargetRelaysForSending(relays);
     var sent = 0;
@@ -526,6 +575,10 @@ class WebsocketService extends GetxService {
     });
   }
 
+  /// Sends a raw EVENT string and registers an optional OK [callback] for acknowledgment.
+  ///
+  /// If [relays] is specified, sends only to those relays; otherwise broadcasts to all connected.
+  /// The [callback] is called when the relay sends an OK response for the event ID.
   void sendMessageWithCallback(
     String content, {
     List<String>? relays,
@@ -574,6 +627,10 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Sends a [NostrReqModel] REQ to all (or given) relays using slot-limited subscriptions.
+  ///
+  /// Invokes [callback] for each relay the REQ is successfully sent to.
+  /// Throws 'RelayDisconnected' if no relay accepts the request.
   void sendReq(
     NostrReqModel nostrReq, {
     List<String>? relays,
@@ -622,6 +679,10 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Starts or restarts all relay WebSocket connections.
+  ///
+  /// Clears existing connection state and creates fresh channels for all relays in [list].
+  /// Uses [startLock] to prevent concurrent starts.
   Future<void> start([List<Relay>? list]) async {
     if (startLock) return;
     try {
@@ -638,6 +699,9 @@ class WebsocketService extends GetxService {
     }
   }
 
+  /// Closes all relay WebSocket channels and clears connection state.
+  ///
+  /// Cancels all stream subscriptions to prevent memory leaks before reconnecting.
   Future<void> stopListening() async {
     for (final rw in channels.values) {
       // Clean up all subscriptions before closing
@@ -648,6 +712,11 @@ class WebsocketService extends GetxService {
     _backoffStates.clear();
   }
 
+  /// Publishes a Nostr event to connected relays and returns the set of relay URLs it was sent to.
+  ///
+  /// Attaches a Cashu ecash token if the relay requires payment.
+  /// Adds the message to the retry queue for acknowledgment tracking.
+  /// Throws if no active or connected relays are available.
   Future<Set<String>> writeNostrEvent({
     required NostrEventModel event,
     required String eventString,
@@ -895,12 +964,16 @@ class WebsocketService extends GetxService {
     return getOnlineSocketString();
   }
 
+  /// Records a pong response from [relay], used by [RelayWebsocket.checkOnlineStatus].
   void updateRelayPong(String relay) {
     if (channels[relay] != null) {
       channels[relay]!.pong = true;
     }
   }
 
+  /// Re-initializes the WebSocket service from persistent relay configuration.
+  ///
+  /// Equivalent to a full service restart: reloads relays from DB and reconnects all channels.
   Future<void> reinit() async {
     final relays = await RelayService.instance.initRelay();
     logger.i('start init websocket service');

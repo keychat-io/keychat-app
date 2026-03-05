@@ -142,12 +142,6 @@ class Room extends Equatable {
 
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
-  @Deprecated('shareKey Group is deprecated')
-  bool get isShareKeyGroup =>
-      groupType == GroupType.shareKey && type == RoomType.group;
-
-  @Deprecated('KDF Group is deprecated')
-  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
 
   @override

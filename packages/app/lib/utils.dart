@@ -1260,9 +1260,7 @@ Init File: $time \n
         return [const Color(0xffEC6E0E), const Color(0xffDF4D9E)];
       case GroupType.sendAll:
         return [const Color(0xff945BF3), const Color(0xff713CD0)];
-      case GroupType.kdf:
-      case GroupType.shareKey:
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }

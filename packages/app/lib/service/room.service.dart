@@ -177,17 +177,6 @@ class RoomService extends BaseChatService {
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
       await FileService.instance.deleteFolderByRoomId(room.identityId, room.id);
     });
-    if (listenPubkey != null) {
-      if (roomType == RoomType.group &&
-          (groupType == GroupType.shareKey || groupType == GroupType.kdf)) {
-        NotifyService.instance.removePubkeys([listenPubkey]);
-        if (websocketInited) {
-          Get.find<WebsocketService>().removePubkeyFromSubscription(
-            listenPubkey,
-          );
-        }
-      }
-    }
     if (roomType == RoomType.group && groupType == GroupType.mls) {
       if (mlsListenPubkey != null) {
         if (websocketInited) {
@@ -225,22 +214,6 @@ class RoomService extends BaseChatService {
           .roomIdEqualTo(room.id)
           .deleteAll();
     });
-  }
-
-  /// Returns all group rooms that use shared-key or KDF encryption modes.
-  ///
-  /// These rooms have a dedicated [Mykey] that must be subscribed to on relays.
-  Future<List<Room>> getGroupsSharedKey() async {
-    return DBProvider.database.rooms
-        .filter()
-        .typeEqualTo(RoomType.group)
-        .group(
-          (q) => q
-              .groupTypeEqualTo(GroupType.shareKey)
-              .or()
-              .groupTypeEqualTo(GroupType.kdf),
-        )
-        .findAll();
   }
 
   /// Returns all MLS group rooms that have a one-time-key receive address.
@@ -947,10 +920,7 @@ class RoomService extends BaseChatService {
           realMessage: realMessage,
           mediaType: mediaType,
         );
-      case GroupType.shareKey:
-      case GroupType.kdf:
-        throw Exception('not support');
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }

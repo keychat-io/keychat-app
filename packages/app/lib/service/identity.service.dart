@@ -355,20 +355,6 @@ class IdentityService {
     }
     if (pubkeys.isEmpty) return [];
 
-    // sharing group 's mykey
-    final rooms = await RoomService.instance.getGroupsSharedKey();
-    for (final room in rooms) {
-      if (skipedIdentityIDs.contains(room.identityId)) {
-        continue;
-      }
-      if (skipMute && room.isMute) {
-        continue;
-      }
-      final pubkey = room.mykey.value?.pubkey;
-      if (pubkey != null) {
-        pubkeys.add(pubkey);
-      }
-    }
     // my receive onetime key
     final oneTimeKeys = await getOneTimeKeys();
     pubkeys.addAll(oneTimeKeys.map((e) => e.pubkey));

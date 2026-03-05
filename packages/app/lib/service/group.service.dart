@@ -213,8 +213,7 @@ class GroupService extends BaseChatService {
 
   /// Verifies that the given [pubkey] belongs to an admin of [room].
   ///
-  /// For [GroupType.shareKey] groups, checks the room's admin pubkey directly.
-  /// For other group types, checks the [roomMember]'s `isAdmin` flag.
+  /// Checks the [roomMember]'s `isAdmin` flag.
   ///
   /// Throws [Exception] with 'not admin' if the verification fails.
   Future<void> isAdminCheck(
@@ -223,9 +222,7 @@ class GroupService extends BaseChatService {
     RoomMember? roomMember,
   ) async {
     var isAdmin = false;
-    if (room.groupType == GroupType.shareKey) {
-      isAdmin = await room.checkAdminByIdPubkey(pubkey);
-    } else if (roomMember != null) {
+    if (roomMember != null) {
       isAdmin = roomMember.isAdmin;
     }
     if (!isAdmin) {
@@ -346,7 +343,7 @@ class GroupService extends BaseChatService {
   ///
   /// If the local group room does not yet exist and the invite is for a
   /// [GroupType.sendAll] group, creates the room via [GroupTx.joinGroup].
-  /// For [GroupType.kdf] and [GroupType.mls] invites, saves the message as a
+  /// For [GroupType.mls] invites, saves the message as a
   /// pending confirmation request (requires user approval).
   ///
   /// Validates that the inviting sender ([senderIdPubkey]) is an active member
@@ -421,8 +418,7 @@ class GroupService extends BaseChatService {
     }
     if (groupRoom == null) throw Exception('Group not found');
 
-    if (roomProfile.groupType == GroupType.kdf ||
-        roomProfile.groupType == GroupType.mls) {
+    if (roomProfile.groupType == GroupType.mls) {
       await MessageService.instance.saveMessageToDB(
         from: event.pubkey,
         to: event.tags[0][1],
@@ -644,10 +640,7 @@ class GroupService extends BaseChatService {
         );
       case GroupType.sendAll:
         await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
-      case GroupType.shareKey:
-      case GroupType.kdf:
-        break;
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
 
@@ -661,19 +654,13 @@ class GroupService extends BaseChatService {
   /// - [GroupType.sendAll]: sends a pairwise removal notification
   /// - [GroupType.mls]: delegates to [MlsGroupService.removeMembers]
   ///
-  /// Throws [Exception] for legacy group types [GroupType.shareKey] and
-  /// [GroupType.kdf] which do not support member removal.
-  // DEPRECATED: GroupType.shareKey and GroupType.kdf are not supported - candidate for removal
   Future<void> removeMember(Room room, RoomMember rm) async {
     switch (room.groupType) {
       case GroupType.sendAll:
         return _removeMemberPairwise(room, rm);
       case GroupType.mls:
         return MlsGroupService.instance.removeMembers(room, [rm]);
-      case GroupType.shareKey:
-      case GroupType.kdf:
-        throw Exception('not support');
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }

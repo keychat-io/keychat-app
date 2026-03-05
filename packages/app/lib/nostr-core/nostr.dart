@@ -42,6 +42,10 @@ class NostrAPI {
   static NostrAPI? _instance;
   static NostrAPI get instance => _instance ??= NostrAPI._();
 
+  /// Receives a raw WebSocket message from [relay] and dispatches it by response type.
+  ///
+  /// Handles OK (write acknowledgment), EVENT (incoming event), EOSE (end of stored events),
+  /// and NOTICE (relay message) response types defined in NIP-01.
   Future<void> addNostrEventToQueue(Relay relay, dynamic message) async {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     // nostrEventQueue.addJob((_) async { });
@@ -202,6 +206,7 @@ class NostrAPI {
     }
   }
 
+  // DEPRECATED: NIP-02 contact list processing is disabled (body commented out) - candidate for removal
   Future<void> _proccessNip2(NostrEventModel msg) async {
     // List profiles = Nip2.decode(msg);
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
@@ -233,6 +238,9 @@ class NostrAPI {
     }
   }
 
+  /// Sends a REQ to all relays to fetch the NIP-02 contact list for [pubkey].
+  ///
+  /// Returns the [Request] that was sent, which can be used to cancel the subscription.
   Future<Request> syncContact(String pubkey) async {
     final requestWithFilter = Request(generate64RandomHexChars(), [
       Filter(
@@ -246,7 +254,7 @@ class NostrAPI {
     return requestWithFilter;
   }
 
-  /// sync contact to relay
+  // DEPRECATED: contact list sync via NIP-02 is disabled - candidate for removal
   Future<void> sendNip2Message(int identityId) async {
     // List<Contact> contacts = await contactService.getContactList(identityId);
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
@@ -264,6 +272,13 @@ class NostrAPI {
     // return event;
   }
 
+  /// Encrypts and sends a NIP-04 event message to [toPubkey].
+  ///
+  /// Used for both Signal Protocol tunneling (kind 4, no `?iv=`) and plain NIP-04 DMs.
+  /// When [isEncryptedMessage] is true, the content is already encrypted (Signal/MLS)
+  /// and is wrapped in a NIP-59 gift-wrap instead of NIP-04 AES encryption.
+  ///
+  /// Returns [SendMessageResponse] with the sent event and optional saved [Message].
   Future<SendMessageResponse> sendEventMessage(
     String toPubkey,
     String toEncryptText, {
@@ -343,7 +358,15 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
-  // timestampTweaked: true-random timestamp in 0~2days ago
+  /// Encrypts and sends a NIP-17 (gift-wrapped sealed sender) message.
+  ///
+  /// NIP-17 wraps the inner rumor event in a NIP-44 encrypted seal, then in a
+  /// NIP-59 gift-wrap. This hides metadata including sender identity and timestamp.
+  ///
+  /// When [timestampTweaked] is true, the outer event timestamp is randomized
+  /// within a 2-day window to reduce timing correlation.
+  ///
+  /// Only sends to the receiver. For multi-device sync, use [sendAndSaveNostrEventWithSenderCopy].
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     String sourceContent,
@@ -400,6 +423,10 @@ class NostrAPI {
     );
   }
 
+  /// Publishes a pre-encrypted Nostr event and saves it to the local database.
+  ///
+  /// Writes the event to all connected relays and stores a [Message] record.
+  /// Throws if [save] is true and no relays are connected.
   Future<SendMessageResponse> sendAndSaveNostrEvent({
     required String to,
     required String plainContent,
@@ -543,6 +570,12 @@ class NostrAPI {
     return SendMessageResponse(events: events, message: model);
   }
 
+  /// Decrypts the NIP-04 AES-256-CBC encrypted [event] content.
+  ///
+  /// Looks up the recipient's private key via [IdentityService] using the `p` tag pubkey.
+  /// Falls back to Amber signer (NIP-55) if the identity uses an external signer.
+  ///
+  /// Returns the decrypted plaintext, or null if the private key is unavailable.
   Future<String?> decryptNip4Content(NostrEventModel event) async {
     final decodePubkey = event.tags[0][1];
     try {
@@ -690,6 +723,10 @@ class NostrAPI {
     }
   }
 
+  /// Processes an incoming NIP-04 direct message for a plain (non-Signal) identity.
+  ///
+  /// Decrypts the NIP-04 content and routes it as a Keychat protocol message
+  /// or a generic NIP DM depending on whether the content is a [KeychatMessage] JSON.
   Future<void> dmNip4Proccess(
     NostrEventModel sourceEvent,
     Relay relay,
@@ -721,6 +758,10 @@ class NostrAPI {
     );
   }
 
+  /// Attempts to parse [str] as a [KeychatMessage] JSON object.
+  ///
+  /// Returns the parsed [KeychatMessage] if successful, or null if [str] is not
+  /// valid Keychat protocol JSON (e.g. a plain text message from another Nostr client).
   KeychatMessage? tryGetKeyChatMessage(String str) {
     try {
       final decodedContent = jsonDecode(str) as Map<String, dynamic>;
@@ -729,6 +770,10 @@ class NostrAPI {
     return null;
   }
 
+  /// Fetches NIP-01 kind-0 (set_metadata) profile events for the given [pubkeys].
+  ///
+  /// Sends a REQ to all connected relays and waits up to 2 seconds for responses.
+  /// Returns deduplicated events sorted by [createdAt].
   Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {
     final id = generate64RandomHexChars(16);
     final requestWithFilter = Request(id, [
@@ -886,6 +931,11 @@ class NostrAPI {
   }
 
   Map<String, Function> okCallback = {};
+
+  /// Registers a callback to be invoked when the relay sends an OK response for [eventID].
+  ///
+  /// The callback receives relay URL, event ID, success status, and optional error message.
+  /// The callback is automatically removed after 2 seconds via [removeOKCallback].
   void setOKCallback(
     String eventID,
     void Function({
@@ -899,6 +949,10 @@ class NostrAPI {
     NostrAPI.instance.okCallback[eventID] = callback;
   }
 
+  /// Schedules removal of the OK callback for [eventID] after a 2-second debounce.
+  ///
+  /// The delay allows the callback to fire for late-arriving relay responses
+  /// before being cleaned up.
   void removeOKCallback(String eventID) {
     EasyDebounce.debounce(
       '_removeOKCallback$eventID',
@@ -909,6 +963,12 @@ class NostrAPI {
     );
   }
 
+  /// Signs a Nostr event using the given [identity]'s private key.
+  ///
+  /// For hardware/external signer identities (Amber/NIP-55), delegates signing
+  /// to [SignerService]. For local keys, uses the Rust FFI [rust_nostr.signEvent].
+  ///
+  /// Returns the signed event as a JSON string.
   Future<String> signEventByIdentity({
     required Identity identity,
     required String content,

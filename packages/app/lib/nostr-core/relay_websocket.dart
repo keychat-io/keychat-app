@@ -53,6 +53,9 @@ class RelayWebsocket {
     listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
 
+  /// Subscribes to events for [pubkeys] of specified [kinds] since [since].
+  ///
+  /// Splits pubkeys into groups of 120 to stay within relay subscription limits.
   void listenPubkeys(
     List<String> pubkeys,
     DateTime since,
@@ -73,6 +76,11 @@ class RelayWebsocket {
     }
   }
 
+  /// Sends a REQ subscription, reusing an existing subscription slot if the relay's
+  /// max concurrent subscription count [maxReqCount] is reached.
+  ///
+  /// When the limit is reached, merges the new pubkeys into an existing subscription
+  /// using round-robin slot selection to avoid server rejection.
   dynamic sendREQ(NostrReqModel nq) {
     if (subscriptions.keys.length < maxReqCount) {
       if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
@@ -93,18 +101,21 @@ class RelayWebsocket {
     return sendRawREQ(nq.toString());
   }
 
+  /// Returns true if the WebSocket channel is in a [Connected] or [Reconnected] state.
   bool isConnected() {
     if (channel == null) return false;
     return channel?.connection.state is Connected ||
         channel?.connection.state is Reconnected;
   }
 
+  /// Returns true if the WebSocket channel is in a [Disconnected] or [Disconnecting] state.
   bool isDisConnected() {
     if (channel == null) return true;
     return channel?.connection.state is Disconnected ||
         channel?.connection.state is Disconnecting;
   }
 
+  /// Returns true if the WebSocket channel is in a [Connecting] or [Reconnecting] state.
   bool isConnecting() {
     return channel?.connection.state is Connecting ||
         channel?.connection.state is Reconnecting;
@@ -120,13 +131,19 @@ class RelayWebsocket {
     }
   }
 
+  /// Sends a raw REQ/EVENT/CLOSE message string directly to the relay WebSocket.
+  ///
+  /// Throws if the channel is disconnected or null.
   void sendRawREQ(String message) {
     _statusCheck();
     channel!.send(message);
     loggerNoLine.d('TO [${relay.url}]: $message');
   }
 
-  // send ping to relay. if relay not response, socket is closed.
+  /// Sends a ping to the relay and waits up to 1 second for a pong response.
+  ///
+  /// Returns true if the relay responded (pong received), false otherwise.
+  /// If the relay does not respond, the caller should close and reconnect the socket.
   Future<bool> checkOnlineStatus() async {
     if (channel == null || isDisConnected()) {
       return false;
@@ -148,6 +165,10 @@ class RelayWebsocket {
     return false;
   }
 
+  /// Called after a successful WebSocket connection is established.
+  ///
+  /// Resets subscription state, starts listening to required pubkeys,
+  /// and triggers NWC reconnection callbacks.
   Future<void> connectSuccess() async {
     subscriptions.clear();
     maxReqCount = _maxReqCount;

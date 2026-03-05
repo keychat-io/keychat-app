@@ -1198,6 +1198,8 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
+        case MessageMediaType.audio:
+          return errorCallback(text: '[Voice message]');
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(

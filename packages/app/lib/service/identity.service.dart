@@ -27,6 +27,7 @@ class IdentityService {
   static IdentityService? _instance;
   static IdentityService get instance => _instance ??= IdentityService._();
 
+  /// Returns true if [prikey] is already stored in the database.
   Future<bool> checkPrikeyExist(String prikey) async {
     final res = await DBProvider.database.mykeys
         .filter()
@@ -35,11 +36,16 @@ class IdentityService {
     return res != null;
   }
 
+  /// Returns the total number of identities stored in the database.
   Future<int> count() async {
     final database = DBProvider.database;
     return database.identitys.where().count();
   }
 
+  /// Generates a fresh secp256k1 one-time key for [identityId] and persists it.
+  ///
+  /// One-time keys are advertised publicly so other users can initiate a Signal
+  /// session without knowing the recipient's long-term identity key.
   Future<Mykey> createOneTimeKey(int identityId) async {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
@@ -110,6 +116,11 @@ class IdentityService {
     });
   }
 
+  /// Creates a new identity from a freshly generated [account] (mnemonic-derived).
+  ///
+  /// Persists the identity and its keys to the database and secure storage,
+  /// then performs first-account initialisation (relay setup, notifications, MLS).
+  /// Throws if [account.mnemonic] is null or if the identity already exists.
   Future<Identity> createIdentity({
     required String name,
     required rust_nostr.Secp256k1Account account,
@@ -157,6 +168,11 @@ class IdentityService {
     return identity;
   }
 
+  /// Creates a new identity from an existing private key (import flow).
+  ///
+  /// The identity is stored with [index] = -1 to indicate it was imported rather
+  /// than derived from a mnemonic. No mnemonic is persisted.
+  /// Throws if the identity already exists.
   Future<Identity> createIdentityByPrikey({
     required String name,
     required String hexPubkey,
@@ -188,6 +204,11 @@ class IdentityService {
     return identity;
   }
 
+  /// Creates a new identity using a public key from an external signer (e.g. Amber).
+  ///
+  /// No private key is stored; signing is delegated to the external signer app.
+  /// [pubkey] may be either bech32 (npub) or hex format.
+  /// Throws if the identity already exists.
   Future<Identity> createIdentityByAmberPubkey({
     required String name,
     required String pubkey,
@@ -219,6 +240,11 @@ class IdentityService {
     return identity;
   }
 
+  /// Permanently deletes [identity] and all associated data.
+  ///
+  /// Cascades to: rooms, messages, contacts, one-time keys, receive keys,
+  /// Signal sessions, MLS state, and files.  Also removes the identity's
+  /// pubkeys from the notification server.
   Future<void> delete(Identity identity) async {
     final database = DBProvider.database;
 
@@ -282,6 +308,7 @@ class IdentityService {
     await NotifyService.instance.syncPubkeysToServer();
   }
 
+  /// Deletes one-time keys by their Isar [ids].
   Future<void> deleteMykey(List<int> ids) async {
     final database = DBProvider.database;
 
@@ -290,6 +317,7 @@ class IdentityService {
     });
   }
 
+  /// Returns the identity with the given Isar [id], or throws if not found.
   Future<Identity?> getIdentityById(int id) async {
     final database = DBProvider.database;
 
@@ -301,6 +329,7 @@ class IdentityService {
     return identity;
   }
 
+  /// Looks up a [Mykey] record by its secp256k1 public key.
   Future<Mykey?> getMykeyByPubkey(String pubkey) async {
     return DBProvider.database.mykeys
         .filter()
@@ -308,6 +337,10 @@ class IdentityService {
         .findFirst();
   }
 
+  /// Returns all pubkeys that should be subscribed to on Nostr relays.
+  ///
+  /// Includes identity pubkeys, shared-key group pubkeys, and one-time keys.
+  /// If [skipMute] is true, muted rooms are excluded from the result.
   Future<List<String>> getListenPubkeys({bool skipMute = false}) async {
     final pubkeys = <String>{};
 
@@ -343,21 +376,25 @@ class IdentityService {
     return pubkeys.toList();
   }
 
+  /// Returns all [Mykey] records in the database.
   Future<List<Mykey>> getMykeyList() async {
     final database = DBProvider.database;
     return database.mykeys.where().findAll();
   }
 
+  /// Returns all [Mykey] records sorted by creation date ascending.
   Future<List<Mykey>> list() async {
     final database = DBProvider.database;
 
     return database.mykeys.where().sortByCreatedAt().findAll();
   }
 
+  /// Returns all [Identity] records in the database.
   Future<List<Identity>> listIdentity() async {
     return DBProvider.database.identitys.where().findAll();
   }
 
+  /// Persists an updated [Mykey] record to the database.
   Future<void> updateMykey(Mykey my) async {
     final database = DBProvider.database;
 
@@ -366,6 +403,7 @@ class IdentityService {
     });
   }
 
+  /// Persists an updated [Identity] record to the database.
   Future<void> updateIdentity(Identity identity) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
@@ -373,6 +411,8 @@ class IdentityService {
     });
   }
 
+  /// Returns the [Mykey] if [toAddress] is one of this device's one-time keys,
+  /// or null otherwise.
   Future<Mykey?> isFromOnetimeKey(String toAddress) async {
     final res = await DBProvider.database.mykeys
         .filter()
@@ -382,6 +422,7 @@ class IdentityService {
     return res.isNotEmpty ? res[0] : null;
   }
 
+  /// Returns all one-time keys across all identities, sorted by creation date.
   Future<List<Mykey>> getOneTimeKeys() async {
     return DBProvider.database.mykeys
         .filter()
@@ -390,6 +431,7 @@ class IdentityService {
         .findAll();
   }
 
+  /// Returns unused one-time keys for the given [identityId], sorted by creation date.
   Future<List<Mykey>> getOneTimeKeyByIdentity(int identityId) async {
     return DBProvider.database.mykeys
         .filter()
@@ -400,6 +442,10 @@ class IdentityService {
         .findAll();
   }
 
+  /// Deletes one-time keys that were used more than 3 days ago.
+  ///
+  /// Keeps a short grace period so in-flight messages can still be decrypted
+  /// before the keys are purged.
   Future<void> deleteExpiredOneTimeKeys() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.mykeys
@@ -415,10 +461,12 @@ class IdentityService {
     });
   }
 
+  /// Returns all identities stored in the database.
   Future<List<Identity>> getIdentityList() async {
     return DBProvider.database.identitys.where().findAll();
   }
 
+  /// Returns identities that have chat features enabled.
   Future<List<Identity>> getEnableChatIdentityList() async {
     return DBProvider.database.identitys
         .filter()
@@ -426,6 +474,9 @@ class IdentityService {
         .findAll();
   }
 
+  /// Returns Isar IDs of identities that have chat features disabled.
+  ///
+  /// Used to filter out pubkeys from relay subscriptions and notification lists.
   Future<List<int>> getDisableChatIdentityIDList() async {
     final list = await DBProvider.database.identitys
         .filter()
@@ -434,6 +485,7 @@ class IdentityService {
     return list.map((e) => e.id).toList();
   }
 
+  /// Returns identities that have the built-in browser enabled.
   Future<List<Identity>> getEnableBrowserIdentityList() async {
     return DBProvider.database.identitys
         .filter()
@@ -441,6 +493,7 @@ class IdentityService {
         .findAll();
   }
 
+  /// Looks up an identity by its secp256k1 (Nostr) public key.
   Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
     return DBProvider.database.identitys
         .filter()
@@ -448,6 +501,10 @@ class IdentityService {
         .findFirst();
   }
 
+  /// Looks up an identity by its curve25519 (Signal) secret key hex.
+  ///
+  /// Note: the Isar field name is `curve25519SkHex` despite searching by pubkey
+  /// — this is a naming inconsistency in the original schema.
   Future<Identity?> getIdentityBySignalPubkey(String pubkey) async {
     return DBProvider.database.identitys
         .filter()
@@ -455,7 +512,13 @@ class IdentityService {
         .findFirst();
   }
 
+  // In-memory cache of pubkey → private key to avoid repeated secure-storage reads.
   Map<String, String?> prikeys = {};
+
+  /// Returns the secp256k1 private key for [pubkey], using an in-memory cache.
+  ///
+  /// Searches the loaded identities first, then falls back to [Mykey] records.
+  /// Throws 'ExceptionIsFromSigner' if the identity uses an external signer.
   Future<String?> getPrikeyByPubkey(String pubkey) async {
     if (prikeys[pubkey] != null) return prikeys[pubkey];
 
@@ -477,6 +540,9 @@ class IdentityService {
     return prikey;
   }
 
+  /// Returns all Signal-protocol receive pubkeys for enabled identities.
+  ///
+  /// These are the NIP-04 addresses used to receive Signal handshake messages.
   Future<List<String>> getSignalRoomPubkeys() async {
     final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
@@ -486,6 +552,7 @@ class IdentityService {
     return signal;
   }
 
+  /// Returns the receive pubkeys for all MLS group rooms owned by enabled identities.
   Future<List<String>> getMlsRoomPubkeys() async {
     final skipedIdentityIds = await getDisableChatIdentityIDList();
     final mlsPubkeys = <String>{};
@@ -500,6 +567,8 @@ class IdentityService {
     return mlsPubkeys.toList();
   }
 
+  /// Returns all room receive pubkeys (Signal + MLS) for enabled identities,
+  /// excluding muted rooms.
   Future<List<String>> getRoomPubkeysSkipMute() async {
     final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
@@ -518,6 +587,11 @@ class IdentityService {
     return <String>{...signal, ...mlsPubkeys}.toList();
   }
 
+  /// Fetches the latest NIP-01 metadata event for [identity] from connected relays
+  /// and updates the local profile fields (name, avatar, about).
+  ///
+  /// Returns the updated [Identity], or null if no event was found or the local
+  /// version is already up to date.
   Future<Identity?> syncProfileFromRelay(Identity identity) async {
     final list = await NostrAPI.instance.fetchMetadata([
       identity.secp256k1PKHex,

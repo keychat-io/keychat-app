@@ -8,14 +8,26 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:mutex/mutex.dart';
 
+/// Service for managing contacts and their Signal receive-key chains.
+///
+/// Contacts are Nostr public keys that have been added as friends.
+/// Each contact may have a chain of one-time receive keys used for
+/// Signal ratchet sessions (stored in [ContactReceiveKey]).
 class ContactService {
   // Avoid self instance
   ContactService._();
   static ContactService? _instance;
   static ContactService get instance => _instance ??= ContactService._();
+
+  // Maps receive-key pubkey → room ID for fast reverse lookup.
   static Map<String, int> receiveKeyRooms = {};
   final Mutex myReceiveKeyMutex = Mutex();
 
+  /// Adds [address] as the next receive key for [room]'s contact.
+  ///
+  /// Uses a mutex to prevent concurrent modifications to the key chain.
+  /// Returns an empty list if the key is already the latest; otherwise returns
+  /// a single-element list with the newly registered [address].
   Future<List<String>> addReceiveKey(Room room, String address) async {
     await myReceiveKeyMutex.acquire(); // lock
     try {
@@ -38,6 +50,11 @@ class ContactService {
     return [address];
   }
 
+  /// Creates and persists a new [Contact] record.
+  ///
+  /// [pubkey] may be bech32 (npub) or hex; it is normalised to hex before storage.
+  /// [autoCreateFromGroup] marks contacts implicitly created when joining a group,
+  /// which are not shown as "friends" until explicitly confirmed.
   Future<Contact> createContact({
     required String pubkey,
     required int identityId,
@@ -61,6 +78,7 @@ class ContactService {
     return contact;
   }
 
+  /// Deletes a contact record from the database.
   Future<void> deleteContact(Contact contact) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
@@ -68,6 +86,8 @@ class ContactService {
     });
   }
 
+  /// Deletes the contact record for [pubkey] under [identity].
+  /// No-op if no matching contact exists.
   Future<void> deleteContactByPubkey(String pubkey, int identity) async {
     final database = DBProvider.database;
     final contact = await getContact(identity, pubkey);
@@ -77,6 +97,8 @@ class ContactService {
     });
   }
 
+  /// Deletes the receive-key chain for [contact] and unsubscribes those pubkeys
+  /// from the WebSocket service and notification server.
   Future<void> deleteContactReceiveKeys(Contact contact) async {
     final database = DBProvider.database;
     final model = await database.contactReceiveKeys
@@ -100,6 +122,12 @@ class ContactService {
     }
   }
 
+  /// Removes [pubkey] from the receive-key chain for the contact identified by
+  /// [identityId] + [toMainPubkey], pruning old keys while retaining the most recent
+  /// [KeychatGlobal.remainReceiveKeyPerRoom] entries.
+  ///
+  /// Keys that drop off the active list are moved to the `removeReceiveKeys` staging
+  /// area so they can be unsubscribed from the relay in a subsequent batch call.
   Future<void> deleteReceiveKey(
     int identityId,
     String toMainPubkey,
@@ -128,6 +156,10 @@ class ContactService {
     }
   }
 
+  /// Returns all active receive keys across all contacts.
+  ///
+  /// Identities in [skipIDs] are excluded.  Also populates [receiveKeyRooms]
+  /// cache for fast room lookups by receive key.
   Future<List<String>> getAllReceiveKeys({List<int> skipIDs = const []}) async {
     final set = <String>{};
     final list = await DBProvider.database.contactReceiveKeys
@@ -146,6 +178,10 @@ class ContactService {
     return set.toList();
   }
 
+  /// Returns active receive keys for non-muted contacts, excluding [skipIDs].
+  ///
+  /// Used when building the notification server's subscription list so that
+  /// muted rooms do not wake the device.
   Future<List<String>> getAllReceiveKeysSkipMute({
     required List<int> skipIDs,
   }) async {
@@ -162,6 +198,10 @@ class ContactService {
     return set.toList();
   }
 
+  /// Returns all keys that are staged for removal (previously rotated out).
+  ///
+  /// These should be passed to the notification server's remove endpoint so it
+  /// stops delivering wake-up pushes for those addresses.
   Future<List<String>> getAllToRemoveKeys() async {
     final set = <String>{};
     final list = await DBProvider.database.contactReceiveKeys
@@ -174,6 +214,7 @@ class ContactService {
     return set.toList();
   }
 
+  /// Returns the contact for [pubkey] under [identityId], or null if not found.
   Future<Contact?> getContact(int identityId, String pubkey) async {
     return DBProvider.database.contacts
         .filter()
@@ -182,10 +223,13 @@ class ContactService {
         .findFirst();
   }
 
+  /// Returns the contact with the given Isar [id], or null if not found.
   Future<Contact?> getContactById(int id) async {
     return DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
   }
 
+  /// Returns contacts for [identityId] that were explicitly added as friends
+  /// (i.e. not auto-created from a group invitation).
   Future<List<Contact>> getFriendContacts(int identityId) async {
     return DBProvider.database.contacts
         .filter()
@@ -194,6 +238,7 @@ class ContactService {
         .findAll();
   }
 
+  /// Returns all contacts for [identityId], including auto-created group contacts.
   Future<List<Contact>> getContactList(int identityId) async {
     return DBProvider.database.contacts
         .filter()
@@ -201,6 +246,9 @@ class ContactService {
         .findAll();
   }
 
+  /// Synchronously searches contacts by [query] substring in the name field.
+  ///
+  /// Returns results sorted by most-recently created first.
   List<Contact> getContactListSearch(String query, int identityId) {
     final database = DBProvider.database;
 
@@ -212,6 +260,7 @@ class ContactService {
         .findAllSync();
   }
 
+  /// Returns all contact records across all identities that match [pubkey].
   Future<List<Contact>> getContacts(String pubkey) async {
     return DBProvider.database.contacts
         .filter()
@@ -219,6 +268,8 @@ class ContactService {
         .findAll();
   }
 
+  /// Synchronously returns the active receive-key list for [room]'s contact,
+  /// or null if no receive-key record exists.
   List<String>? getMyReceiveKeys(Room room) {
     final crk = DBProvider.database.contactReceiveKeys
         .filter()
@@ -229,6 +280,7 @@ class ContactService {
     return crk?.receiveKeys;
   }
 
+  /// Returns the existing contact for [pubkey], or creates and returns a new one.
   Future<Contact> getOrCreateContact({
     required int identityId,
     required String pubkey,
@@ -252,6 +304,8 @@ class ContactService {
     );
   }
 
+  /// Returns the receive-key record for [identityId] + [toMainPubkey],
+  /// creating an empty one if it does not yet exist.
   Future<ContactReceiveKey> getOrCreateContactReceiveKey(
     int identityId,
     String toMainPubkey, [
@@ -274,6 +328,8 @@ class ContactService {
     return model;
   }
 
+  /// Synchronous variant of [getOrCreateContact] for use in hot paths where
+  /// awaiting is not possible. Creates the record with a synchronous write transaction.
   Contact? getOrCreateContactSync(int identityId, String toMainPubkey) {
     final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: toMainPubkey);
     var c = DBProvider.database.contacts
@@ -293,6 +349,8 @@ class ContactService {
     return c;
   }
 
+  /// Clears the `removeReceiveKeys` staging list for all contacts after the keys
+  /// have been successfully removed from the notification server.
   Future<void> removeAllToRemoveKeys() async {
     final list = await DBProvider.database.contactReceiveKeys
         .filter()
@@ -307,6 +365,7 @@ class ContactService {
     });
   }
 
+  /// Persists [contact] to the database and returns its Isar ID.
   Future<int> saveContact(Contact contact) async {
     final database = DBProvider.database;
     var id = 0;
@@ -317,6 +376,7 @@ class ContactService {
     return id;
   }
 
+  /// Updates an existing contact's mutable fields, creating the record if absent.
   Future<void> updateContact({
     required int identityId,
     required String pubkey,
@@ -349,6 +409,9 @@ class ContactService {
     await saveContact(contact);
   }
 
+  /// Updates the contact name for [room]'s peer, creating the contact if absent.
+  ///
+  /// No-op if [contactName] is null or already matches the stored name.
   Future<void> updateOrCreateByRoom(Room room, String? contactName) async {
     if (contactName == null) return;
     final contact = await getOrCreateContact(
@@ -367,6 +430,7 @@ class ContactService {
     });
   }
 
+  /// Sets the mute flag on the receive-key record for [room]'s contact.
   Future<void> updateReceiveKeyIsMute(Room room, bool value) async {
     final crk = await getOrCreateContactReceiveKey(
       room.identityId,
@@ -378,6 +442,7 @@ class ContactService {
     });
   }
 
+  /// Synchronously returns the first contact matching [pubkey], or null.
   Contact? getContactSync(String pubkey) {
     return DBProvider.database.contacts
         .filter()
@@ -385,6 +450,12 @@ class ContactService {
         .findFirstSync();
   }
 
+  /// Creates or updates a contact from a Keychat QR-code payload.
+  ///
+  /// [version] guards against replaying an older profile — the update is skipped
+  /// if the stored version is already newer.
+  /// If [download] is true and [avatarRemoteUrl] is provided, the avatar is
+  /// downloaded and decrypted to local storage.
   Future<Contact> saveContactFromQrCode({
     required int identityId,
     required String pubkey,
@@ -441,6 +512,8 @@ class ContactService {
     return contact;
   }
 
+  /// Promotes an auto-created (group-origin) contact to an explicit friend,
+  /// and optionally downloads the avatar if not yet cached locally.
   Future<Contact> addContactToFriend({
     required String pubkey,
     required int identityId,
@@ -481,6 +554,7 @@ class ContactService {
     return contact;
   }
 
+  /// Synchronously returns the first contact matching [pubkey] across all identities.
   Contact? getContactByPubkeySync(String pubkey) {
     return DBProvider.database.contacts
         .filter()

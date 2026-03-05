@@ -93,6 +93,10 @@ class LocalNotificationService {
         ?.createNotificationChannel(channel);
   }
 
+  // DEPRECATED: iOS foreground notification callback — no longer wired up since the
+  // iOS initialization settings block was removed from initialize().
+  // Candidate for removal once confirmed that no iOS-specific foreground handling
+  // is needed.
   /// Callback when notification is received while app is in foreground (iOS only)
   void onDidReceiveLocalNotification(
     int id,

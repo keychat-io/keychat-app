@@ -528,7 +528,7 @@ class RoomService extends BaseChatService {
   ///
   /// [event] is the inner decrypted event; [sourceEvent] is the outer wrapper if any.
   /// Resolves or creates the room from the event's recipient address, then
-  /// delegates to [km.service.proccessMessage].
+  /// delegates to [km.service.processMessage].
   Future<void> processKeychatMessage(
     KeychatMessage km,
     NostrEventModel event, // as subEvent
@@ -568,7 +568,7 @@ class RoomService extends BaseChatService {
       );
     }
 
-    await km.service.proccessMessage(
+    await km.service.processMessage(
       room: room,
       event: event,
       km: km,
@@ -582,7 +582,7 @@ class RoomService extends BaseChatService {
   // This override is now a no-op and should be removed once the BaseChatService
   // contract no longer requires it — candidate for removal.
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,

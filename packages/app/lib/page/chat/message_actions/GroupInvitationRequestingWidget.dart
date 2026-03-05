@@ -117,7 +117,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                             },
                           ];
 
-                          await MlsGroupService.instance.addMemeberToGroup(
+                          await MlsGroupService.instance.addMemberToGroup(
                             groupRoom,
                             users,
                             cc.roomObs.value.getIdentity().displayName,

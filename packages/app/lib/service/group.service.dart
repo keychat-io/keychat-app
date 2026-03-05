@@ -494,7 +494,7 @@ class GroupService extends BaseChatService {
   /// - [KeyChatEventKinds.groupSendToAllMessage]: processes a broadcast group message
   /// - [KeyChatEventKinds.inviteToGroupRequest]: handles non-admin invite request to admin
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required KeychatMessage km,
     required NostrEventModel event,

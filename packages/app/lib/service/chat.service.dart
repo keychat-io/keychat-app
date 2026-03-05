@@ -14,7 +14,7 @@ abstract class BaseChatService {
   /// [sourceEvent] is the outer wrapper event (e.g. a NIP-59 gift-wrap), if any.
   /// [msgKeyHash] is the Signal ratchet key hash, used for decrypt-failure recovery.
   /// [failedCallback] is called with an error string if processing fails non-fatally.
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,

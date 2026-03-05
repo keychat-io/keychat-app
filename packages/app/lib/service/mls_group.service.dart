@@ -45,7 +45,7 @@ class MlsGroupService extends BaseChatService {
   ///
   /// Throws [ExpiredMembersException] if any current group member's key package
   /// has expired. Throws [Exception] if [keyPackages] is empty or invalid.
-  Future<void> addMemeberToGroup(
+  Future<void> addMemberToGroup(
     Room groupRoom,
     List<Map<String, dynamic>> toUsers, [
     String? sender,
@@ -634,7 +634,7 @@ class MlsGroupService extends BaseChatService {
   // DEPRECATED: superseded by proccessMLSPrososalMessage (and the dispatch in decryptMessage) - candidate for removal
   @Deprecated('use proccessMLSPrososalMessage instead')
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,

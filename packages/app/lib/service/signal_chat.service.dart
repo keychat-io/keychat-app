@@ -248,7 +248,7 @@ class SignalChatService extends BaseChatService {
     final km = NostrAPI.instance.tryGetKeyChatMessage(decodeString);
 
     if (km != null) {
-      await km.service.proccessMessage(
+      await km.service.processMessage(
         room: room,
         event: event,
         km: km,
@@ -296,7 +296,7 @@ class SignalChatService extends BaseChatService {
   /// - [KeyChatEventKinds.signalRelaySyncInvite]:
   ///   stores the relay sync invitation for user review.
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,
@@ -688,7 +688,7 @@ ${relays.join('\n')}
       // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
-      await km.service.proccessMessage(
+      await km.service.processMessage(
         room: room,
         event: event,
         km: km,

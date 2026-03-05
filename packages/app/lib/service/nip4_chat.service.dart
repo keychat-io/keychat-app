@@ -24,7 +24,7 @@ class Nip4ChatService extends BaseChatService {
   ///
   /// Currently handles only [KeyChatEventKinds.dm] (direct message) type.
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,

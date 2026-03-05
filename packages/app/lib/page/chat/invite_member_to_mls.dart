@@ -70,7 +70,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       );
       final sender = widget.room.getIdentity().displayName;
 
-      await MlsGroupService.instance.addMemeberToGroup(
+      await MlsGroupService.instance.addMemberToGroup(
         groupRoom,
         selectUsers,
         sender,

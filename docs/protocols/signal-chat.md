@@ -1,122 +1,195 @@
-# Signal Protocol — Private Chat
+# Signal Protocol — 1:1 Chat
 
 ## Overview
 
-Keychat implements the Signal Protocol for end-to-end encrypted one-to-one messaging.
-The Signal Protocol combines the **X3DH** (Extended Triple Diffie-Hellman) key agreement
-for session establishment with the **Double Ratchet** algorithm for ongoing message
-encryption, providing both forward secrecy and break-in recovery.
+Keychat uses the Signal Protocol (Double Ratchet + X3DH) for end-to-end encrypted 1:1
+direct messaging. The Dart service layer (`SignalChatService`) wraps a Rust
+implementation via Flutter FFI (`keychat_rust_ffi_plugin/api_signal`). Nostr relays serve
+as the transport layer; messages are published as NIP-04 events (kind 4) or wrapped in
+NIP-17 gift-wraps (kind 1059).
 
-Messages are delivered over the **Nostr** network (NIP-04 encrypted DM events, kind 4)
-using ephemeral sender keypairs to prevent correlation. The Signal session state is
-managed by the Rust FFI layer (`api_signal.dart` / `api_signal.rs`).
+### Key Properties
 
-**Key source files:**
-- `packages/app/lib/service/signal_chat.service.dart` — main send/receive logic
-- `packages/app/lib/service/signal_chat_util.dart` — signing utilities
-- `packages/app/lib/service/signalId.service.dart` — Signal identity key management
+- **Forward secrecy** — each message is encrypted under a unique ratchet-derived key.
+  Compromising one key does not expose past messages.
+- **Post-compromise security** — after a key exchange, a previously compromised session
+  cannot decrypt future messages.
+- **Sender anonymity** — outbound messages use an ephemeral Nostr keypair generated per
+  message (`rust_nostr.generateSimple()`), so the real identity pubkey is never the
+  Nostr event author.
+- **Rotating receive addresses** — the Signal ratchet periodically generates a new
+  Nostr pubkey that becomes the receive address for the next message. Up to 3 past
+  receive addresses are retained simultaneously.
 
 ---
 
 ## Message Flow
 
-### 1. Session Establishment (X3DH Hello)
+### Session Establishment (X3DH)
+
+The Signal session must be bootstrapped before any encrypted message can be sent. This
+is done via a "hello message":
 
 ```
-Alice                                           Bob
+Alice (initiator)                              Bob (responder)
   |                                               |
-  |-- createSignalId() ----------------------->  |
-  |   (generate Curve25519 identity key + prekey bundle)
+  |-- SignalIdService.createSignalId() ---------->| (local: generate identity key + prekeys)
+  |
+  |-- sendHelloMessage(room, identity) ---------->| NIP-17 kind 1059
+  |     |-- KeychatMessage {                      |   (unencrypted Signal prekey bundle)
+  |     |     type: dmAddContactFromAlice,        |
+  |     |     payload: QRUserModel {              |
+  |     |       curve25519PkHex,                  |
+  |     |       signedId, signedPublic,           |
+  |     |       signedSignature,                  |
+  |     |       prekeyId, prekeyPubkey,           |
+  |     |       sig (Schnorr over nostrId+signalId+time)
+  |     |     }                                   |
+  |     |   }                                     |
   |                                               |
-  |-- sendHelloMessage() ----------------------> |
-  |   NIP-17 message containing:                 |
-  |   - KeychatMessage { type: dmAddContactFromAlice }
-  |   - PrekeyMessageModel {                      |
-  |       nostrId, signalId, time,                |
-  |       signedId, signedPublic, signedSignature,|
-  |       prekeyId, prekeyPubkey,                 |
-  |       sig (Schnorr over nostrId+signalId+time)|
-  |     }                                         |
-  |                                               |
-  |                          decryptPreKeyMessage()|
-  |                          verifySignedMessage() |
-  |                          addRoomKPA()          |
-  |                          (session established) |
-  |                                               |
-  |                    <-- sendMessage() ---------|
-  |                       (first Signal-encrypted |
-  |                        response message)       |
+  |                            Bob._processHelloMessage()
+  |                              |-- verify Schnorr sig
+  |                              |-- ChatxService.addRoomKPA() [X3DH import]
+  |                              |-- room.encryptMode = signal
+  |                              |-- auto-reply sendHelloMessage → Alice
+  |
+  |<-- hello reply (pairwise Signal session now active) -------|
 ```
 
-### 2. Ongoing Messaging (Double Ratchet)
+**Key exchange material in `QRUserModel`:**
+
+| Field               | Description                                         |
+|---------------------|-----------------------------------------------------|
+| `curve25519PkHex`   | Alice's Signal identity public key (Curve25519)     |
+| `signedId`          | ID of Alice's signed prekey                         |
+| `signedPublic`      | Alice's signed prekey public key                    |
+| `signedSignature`   | Signature over the signed prekey                    |
+| `prekeyId`          | ID of Alice's one-time prekey                       |
+| `prekeyPubkey`      | Alice's one-time prekey public key                  |
+| `sig`               | Schnorr signature: `sign(nostrId + signalId + time)`|
+| `onetimekey`        | Optional Nostr one-time key (for anonymous contact) |
+
+### Sending a Message (after session established)
 
 ```
-Sender                                         Receiver
-  |                                               |
-  |-- getRoomKPA() (get protocol address) ------> |
-  |-- encryptSignal() (Rust FFI) -------------->  |
-  |   ciphertext = base64(encrypted bytes)        |
-  |   newReceiving = derived ratchet address      |
-  |   msgKeyHash = hash of message key            |
-  |                                               |
-  |-- sendEventMessage() (NIP-04, kind 4) ------> |
-  |   from: ephemeral Nostr keypair               |
-  |   to:   ratchet address (or onetimekey)       |
-  |                                               |
-  |                          decryptMessage()      |
-  |                          decryptSignal() (FFI) |
-  |                          deleteReceiveKey()    |
-  |                          receiveDM()           |
+Sender
+  |
+  |-- cs.getRoomKPA(room)              ← retrieve prekey address for session
+  |-- room.getKeyPair()                ← load Signal keypair
+  |-- _getSignalToAddress(keypair, room)
+  |     |-- rust_signal.getSession()   ← look up Bob's current ratchet address
+  |     |-- map to Nostr pubkey (via rust_nostr.generateSeedFromRatchetkeyPair)
+  |     |-- if onetimekey present → use onetimekey as destination
+  |
+  |-- [optional] SignalChatUtil.getSignalPrekeyMessage()
+  |     (wraps message in PrekeyMessageModel with Schnorr sig — for first message after session reset)
+  |
+  |-- rust_signal.encryptSignal(keyPair, plaintext, remoteAddress)
+  |     └── returns (ciphertext, newRatchetKeyHex?, msgKeyHashSeed)
+  |
+  |-- [if newRatchetKeyHex] rust_nostr.generateSeedFromRatchetkeyPair()
+  |     └── derive new receive Nostr pubkey → ContactService.addReceiveKey()
+  |     └── WebsocketService.listenPubkey() on new address
+  |
+  |-- rust_nostr.generateMessageKeyHash(seedKey)  ← derive dedup/audit hash
+  |-- rust_nostr.generateSimple()                 ← ephemeral sender keypair
+  |-- NostrAPI.sendEventMessage(toPubkey, base64(ciphertext), encryptType: signal)
 ```
 
-### 3. Receive Address Rotation
+### Receiving a Message (regular Signal message)
 
-The Double Ratchet produces a new receive address after each message. Keychat
-maintains a rolling window of **3 active receive addresses** per room
-(`processListenAddrs`). Old addresses are unsubscribed from the WebSocket relay
-as new ones are registered.
+```
+Nostr relay → WebSocket → kind 4 or kind 1059 event
+  |
+  |-- SignalChatService.decryptMessage(room, event, relay)
+  |     |-- cs.getRoomKPA(room)           ← get session prekey address
+  |     |-- room.getKeyPair()             ← load Signal keypair
+  |     |-- rust_signal.decryptSignal(keyPair, ciphertext, remoteAddress, isPrekey=false)
+  |     |     └── returns (plaintext, msgKeyHashSeed?, _)
+  |     |-- rust_nostr.generateMessageKeyHash()   ← compute dedup hash
+  |     |-- ContactService.deleteReceiveKey()     ← mark old receive address consumed
+  |     |-- [if onetimekey != destination] clear room.onetimekey
+  |     |
+  |     |-- NostrAPI.tryGetKeyChatMessage(plaintext)
+  |           |-- [if KeychatMessage] → SignalChatService.proccessMessage()
+  |           |-- [else]             → RoomService.receiveDM()
+```
+
+### Receiving the First Message (PreKey Message / X3DH)
+
+```
+Nostr relay → event arrives on Bob's one-time Nostr key
+  |
+  |-- SignalChatService.decryptPreKeyMessage(to, mykey, event, relay)
+  |     |-- rust_signal.parseIdentityFromPrekeySignalMessage(ciphertext)
+  |     |     └── returns (signalIdPubkey, signalKeyId)
+  |     |-- SignalIdService.getSignalIdByKeyId(signalKeyId)
+  |     |-- ChatxService.setupSignalStoreBySignalId()
+  |     |-- rust_signal.decryptSignal(..., isPrekey=true)
+  |     |-- SignalChatUtil.verifySignedMessage()   ← verify Schnorr sig
+  |     |-- RoomService.createPrivateRoom() or update existing room
+  |     |-- dispatch to proccessMessage() or receiveDM()
+```
 
 ---
 
 ## Key Data Structures
 
-### SignalId (`packages/app/lib/models/signal_id.dart`)
+### Room (Signal-relevant fields)
 
-Represents a Signal identity key pair stored in the Isar database.
+| Field               | Type              | Description                                           |
+|---------------------|-------------------|-------------------------------------------------------|
+| `curve25519PkHex`   | `String?`         | Peer's Signal identity public key                     |
+| `signalIdPubkey`    | `String?`         | Our Signal identity pubkey used in this session       |
+| `onetimekey`        | `String?`         | Destination one-time Nostr key for next message       |
+| `encryptMode`       | `EncryptMode`     | `signal` when Signal session is active                |
+| `signalDecodeError` | `bool`            | True if the last decryption failed                    |
+| `status`            | `RoomStatus`      | Session lifecycle state (see below)                   |
+| `version`           | `int`             | Timestamp used to reject replayed hello messages      |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `pubkey` | `String` | Hex-encoded Curve25519 public key (used as Nostr address) |
-| `prikey` | `String` | Hex-encoded Curve25519 private key |
-| `identityId` | `int` | Owning identity (FK to `Mykey.identityId`) |
-| `signalKeyId` | `int` | Signed prekey ID registered in the Signal store |
-| `keys` | `String?` | JSON blob with `signedId/Public/Signature` and `prekeyId/Pubkey`; includes `signedRecord/prekeyRecord` for group shared keys |
-| `isGroupSharedKey` | `bool` | Whether this ID is used for Signal-based group shared key |
-| `isUsed` | `bool` | Whether this ID has been consumed by a prekey exchange |
+### RoomStatus Lifecycle
 
-### PrekeyMessageModel (`packages/app/lib/models/keychat/prekey_message_model.dart`)
+```
+requesting → approving → enabled
+                       ↘ approvingNoResponse (arrived via one-time key, no reply yet)
+                       ↘ rejected
+                       ↘ disabled
+```
 
-Embedded in the first encrypted Signal message to authenticate the sender's Nostr identity.
+| Status                | Meaning                                                  |
+|-----------------------|----------------------------------------------------------|
+| `requesting`          | Hello sent, waiting for peer's response                  |
+| `approving`           | Hello received from peer, awaiting user acceptance       |
+| `approvingNoResponse` | Hello received via one-time key; no auto-response sent   |
+| `enabled`             | Bidirectional Signal session established                 |
+| `rejected`            | Peer explicitly rejected the contact request             |
 
-| Field | Description |
-|-------|-------------|
-| `nostrId` | Sender's secp256k1 (Nostr) public key hex |
-| `signalId` | Sender's Curve25519 (Signal) public key hex |
-| `time` | Unix timestamp (ms) for replay protection |
-| `sig` | Schnorr signature over `Keychat-<nostrId>-<signalId>-<time>` |
-| `name` | Sender display name |
-| `avatar` | Sender avatar remote URL |
-| `lightning` | Sender Lightning address |
-| `message` | Inner plaintext payload (the actual first message) |
+### SignalId
 
-### KeychatProtocolAddress (`keychat_rust_ffi_plugin`)
+| Field          | Type      | Description                                        |
+|----------------|-----------|----------------------------------------------------|
+| `pubkey`       | `String`  | Curve25519 public key (hex)                        |
+| `prikey`       | `String`  | Curve25519 private key (hex)                       |
+| `identityId`   | `int`     | Owning Nostr identity                              |
+| `signalKeyId`  | `int?`    | Signed prekey ID registered with Signal store      |
+| `keys`         | `String?` | JSON blob: signedId, signedPublic, prekeyId, etc.  |
+| `isUsed`       | `bool`    | True after the Signal session uses this ID         |
+| `isGroupSharedKey` | `bool` | True when shared across a Signal group session  |
 
-Maps a Signal session to a specific device/identity.
+### PrekeyMessageModel
 
-| Field | Description |
-|-------|-------------|
-| `name` | Curve25519 public key hex of the remote party |
-| `deviceId` | Identity ID (integer) of the local identity |
+Used as the plaintext payload in the very first Signal message (PreKeySignalMessage):
+
+| Field          | Description                                            |
+|----------------|--------------------------------------------------------|
+| `nostrId`      | Sender's secp256k1 Nostr pubkey                        |
+| `signalId`     | Sender's Curve25519 Signal pubkey                      |
+| `time`         | Unix timestamp (replay protection)                     |
+| `name`         | Sender's display name                                  |
+| `sig`          | Schnorr signature over `Keychat-{nostrId}-{signalId}-{time}` |
+| `message`      | The actual chat message content                        |
+| `lightning`    | Optional Lightning address                             |
+| `avatar`       | Optional avatar URL                                    |
 
 ---
 
@@ -126,107 +199,114 @@ Maps a Signal session to a specific device/identity.
 
 | Method | Description |
 |--------|-------------|
-| `sendMessage(room, message, ...)` | Encrypt and send via Double Ratchet; handles ratchet address rotation |
-| `decryptMessage(room, event, relay, ...)` | Decrypt incoming Signal message; handles key hash and address cleanup |
-| `decryptPreKeyMessage(to, mykey, ...)` | Decrypt first message from a new contact (X3DH prekey message) |
-| `sendHelloMessage(room, identity, ...)` | Initiate X3DH key exchange; called when adding a contact |
-| `resetSignalSession(room)` | Delete stale session and re-send hello to recover broken sessions |
-| `processListenAddrs(address, mapKey)` | Manage rolling window of 3 ratchet receive addresses |
-| `sendRelaySyncMessage(room, relays)` | Advertise post-office relay list to contact |
-| `proccessMessage(...)` | Dispatch decrypted KeychatMessage to type-specific handler |
-| `setRoomSignalDecodeStatus(room, error)` | Persist Signal decode error flag to room |
-| `getSignalChatRoomByTo(to)` | Look up Room by receive address (cache + DB) |
+| `sendMessage(room, message, ...)` | Encrypt and send a Signal message; rotates receive key if ratchet advances |
+| `decryptMessage(room, event, relay, ...)` | Decrypt an incoming Signal message |
+| `decryptPreKeyMessage(to, mykey, event, relay, ...)` | Decrypt the very first message (X3DH bootstrap) |
+| `sendHelloMessage(room, identity, ...)` | Send Signal prekey bundle to initiate/reset session |
+| `resetSignalSession(room)` | Delete local session and resend hello (throttled 3 s) |
+| `sendRelaySyncMessage(room, relays)` | Share preferred receiving relay list with peer |
+| `setRoomSignalDecodeStatus(room, bool)` | Update `room.signalDecodeError` flag |
+| `getSignalChatRoomByTo(to)` | Resolve a receive-key address to its Room |
+| `processListenAddrs(address, mapKey)` | Manage the rolling window of up to 3 receive addresses |
+| `proccessMessage(room, event, km, ...)` | Dispatch an already-decrypted KeychatMessage by type |
 
 ### SignalIdService
 
 | Method | Description |
 |--------|-------------|
-| `createSignalId(identityId, [isGroupSharedKey])` | Generate + persist a new Signal identity key with signed prekey |
-| `getSignalIdByKeyId(signalKeyId)` | Look up SignalId by signed prekey ID (used in prekey decrypt) |
-| `getSignalIdByPubkey(pubkey)` | Look up SignalId by public key |
-| `getQRCodeData(signalId, time)` | Produce fresh prekey bundle for QR code sharing |
-| `importOrGetSignalId(identityId, roomProfile)` | Import group shared key from RoomProfile |
-| `deleteExpiredSignalIds()` | Prune consumed keys older than `signalIdLifetime` hours |
+| `createSignalId(identityId, [isGroupSharedKey])` | Generate a new Signal identity with signed prekey + one-time prekey |
+| `isFromSignalId(toAddress)` | Look up a SignalId by pubkey (for incoming-message routing) |
+| `getSignalIdByKeyId(signalKeyId)` | Look up a SignalId by signed-prekey ID |
+| `getSignalIdByPubkey(pubkey)` | Look up a SignalId by pubkey |
+| `getSignalIdByIdentity(identityId)` | Get all unused SignalIds for an identity |
+| `importOrGetSignalId(identityId, roomProfile)` | Import a shared Signal identity from a group room profile |
+| `deleteExpiredSignalIds()` | Purge used SignalIds older than `KeychatGlobal.signalIdLifetime` hours |
+| `getQRCodeData(signalId, time)` | Produce the QR-code key material dict for sharing |
 
 ### SignalChatUtil
 
 | Method | Description |
 |--------|-------------|
-| `getToSignMessage(nostrId, signalId, time)` | Canonical string for Schnorr signing |
-| `signByIdentity(identity, content, [id])` | Sign with stored key or external signer (NIP-55) |
-| `verifySignedMessage(pmm, signalIdPubkey)` | Verify PrekeyMessageModel Schnorr signature |
-| `getSignalPrekeyMessage(room, message, signalPubkey)` | Build signed PrekeyMessageModel |
+| `getSignalPrekeyMessage(room, message, signalPubkey)` | Build a signed `PrekeyMessageModel` for session-reset messages |
+| `verifySignedMessage(pmm, signalIdPubkey)` | Verify the Schnorr binding signature on an incoming prekey message |
+| `signByIdentity(identity, content, [id])` | Sign content with the identity's secp256k1 key (or external signer) |
+| `getToSignMessage(nostrId, signalId, time)` | Construct the canonical string to sign: `Keychat-{nostrId}-{signalId}-{time}` |
+| `getPrekeySigContent(ids)` | Sort and join pubkeys for multi-party prekey signature content |
 
 ---
 
 ## Integration Guide
 
-### Adding a New Contact
+### Initiating a Chat
 
 ```dart
-// 1. User scans contact QR code → obtain onetimekey (optional) + nostrId
-// 2. Create or retrieve the Room
-final room = await RoomService.instance.createPrivateRoom(...);
-
-// 3. Send hello (X3DH)
+// After scanning a contact's QR code or receiving their npub:
 await SignalChatService.instance.sendHelloMessage(
   room,
   identity,
-  onetimekey: scannedOnetimeKey,  // optional
+  onetimekey: contact.onetimekey, // optional, for anonymous contact
   greeting: 'Hello!',
 );
-// Room status becomes RoomStatus.requesting
+// room.status becomes RoomStatus.requesting
 ```
 
-### Sending a Message
+### Sending Messages
 
 ```dart
-await RoomService.instance.sendMessage(room, text);
-// Internally calls SignalChatService.sendMessage() which:
-//   1. Gets the session protocol address via ChatxService.getRoomKPA()
-//   2. Calls rust_signal.encryptSignal()
-//   3. Registers new ratchet address if returned
-//   4. Sends via NostrAPI.sendEventMessage() with encryptType = signal
+// Standard send — handles encryption and ratchet advancement automatically:
+await RoomService.instance.sendMessage(room, 'Hello!');
+
+// Internally routes to:
+await SignalChatService.instance.sendMessage(room, 'Hello!');
 ```
-
-### Receiving a Message
-
-The WebSocket service delivers Nostr events to `ChatService`, which routes them
-based on the destination pubkey:
-
-- If destination matches a one-time key → `decryptPreKeyMessage()`
-- If destination matches a known Signal receive address → `decryptMessage()`
 
 ### Resetting a Broken Session
 
 ```dart
-// When decryption fails repeatedly (room.signalDecodeError == true):
+// Use when decryption fails repeatedly (room.signalDecodeError == true):
 await SignalChatService.instance.resetSignalSession(room);
+// Throttled to once per 3 seconds.
+```
+
+### Handling Incoming Events
+
+All routing is handled by `WebsocketService` → `ChatService`. The UI does not need to
+call `decryptMessage` directly. Listen to room state via GetX:
+
+```dart
+final room = Get.find<RoomController>().roomObs.value;
+// room.signalDecodeError — show warning banner if true
+// room.status — show appropriate UI state
 ```
 
 ---
 
-## Known Limitations / Deprecated Features
+## Known Limitations
 
-### `SignalChatUtil.getPrekeySigContent(List<String> ids)`
+### Receive Address Window
 
-**Status:** `DEPRECATED — no callers found after prekey signature format change`
+The rolling receive-address window is capped at 3 addresses (`maxListenAddrs = 3`).
+If the sender advances the ratchet more than 3 steps without the receiver processing
+any messages (e.g., the receiver is offline for an extended period), older messages
+may be unroutable.
 
-This utility method sorts and joins a list of IDs as a comma-separated string,
-originally intended for a multi-ID signature scheme. The current prekey exchange
-uses the `Keychat-<nostrId>-<signalId>-<time>` format exclusively. This method
-has no callers in the codebase and is a candidate for removal.
+### Session Reset Requires Connectivity
 
-### One-Time Key (`Room.onetimekey`) Clearing
+`resetSignalSession` sends a new hello message over the network. If the peer is
+unreachable, the session remains broken until the peer comes back online and processes
+the hello.
 
-The logic for clearing `onetimekey` after the first ratchet message is embedded
-in `decryptMessage`. If a peer sends a second message before the first is processed,
-the onetimekey may not be cleared in time. This is a known edge case that depends
-on Nostr relay delivery ordering.
+### One-Time Prekeys Not Replenished Automatically
 
-### Bot Room Signal Routing
+`SignalId` records are created on demand (per-session or per-group-join) and deleted
+after `KeychatGlobal.signalIdLifetime` hours. There is no automatic background job that
+pre-generates a pool of prekeys and publishes them to relays (unlike the libsignal
+server model). This is by design for the decentralized Nostr transport, but means
+that contacts cannot initiate a new session while the user is offline for a long time.
 
-When `room.type == RoomType.bot`, the send-to address is forced to
-`room.toMainPubkey` while `signalReceiveAddress` is set separately. This is a
-workaround for bots that do not perform address rotation and may be revisited
-if bot behaviour is formalised.
+### No Multi-Device Support
+
+A Signal session is bound to a single `identityId` + `curve25519PkHex` pair. Messages
+sent to one device are not delivered to another device using the same Nostr identity.
+Multi-device support would require a Sealed Sender or multi-device prekey distribution
+mechanism not currently implemented.

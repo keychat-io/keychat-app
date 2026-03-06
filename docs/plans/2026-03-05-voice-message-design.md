@@ -83,11 +83,11 @@ Recording state (after press-and-hold):
 
 **Recording flow:**
 1. Request microphone permission via `permission_handler`
-2. Start recording via `record` package
-3. Collect amplitude samples every 100ms via `onAmplitude` callback
+2. Start recording via `record` package (AAC-LC, 32kbps)
+3. Poll amplitude every 100ms via `_recorder.getAmplitude()`, normalize dBFS to 0.0-1.0
 4. On release: stop recording, get file path
-5. Call existing `FileService.handleSendMediaFile()` for encryption + S3 upload
-6. Call existing `sendMessage()` with `mediaType: MessageMediaType.audio`
+5. Call `FileService.handleSendAudioFile()` which encrypts, uploads, embeds audio metadata, and sends
+6. `sendMessage()` called with `mediaType: MessageMediaType.audio`
 
 **Playback flow:**
 1. Check if audio file is already downloaded locally
@@ -95,10 +95,16 @@ Recording state (after press-and-hold):
 3. Play via `just_audio`
 4. Global singleton playback state — switching tracks auto-stops current
 
+### Changes to existing code
+- `FileService` — added `handleSendAudioFile()` to embed `audioDuration`/`amplitudeSamples` before sending
+- `RoomUtil.getTextViewWidget` — added `MessageMediaType.audio` case routing to `VoiceMessageBubble`
+- `message_widget.dart` — added `audio` to delete, file-info, and forward checks
+- `ChatController.onClose` — stops playback when leaving chat
+
 ### Unchanged (reused as-is)
-- `FileService` — encrypted upload, no changes needed
-- `sendMessage()` — pass `mediaType: audio`, no changes needed
-- File download/decrypt logic — add `audio` type recognition to render correct bubble
+- `FileService.encryptToSendFile()` — encrypted upload
+- `FileService.downloadForMessage()` — download + decrypt for playback
+- `sendMessage()` — pass `mediaType: audio`
 
 ## Error Handling
 

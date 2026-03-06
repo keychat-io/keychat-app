@@ -8,6 +8,8 @@ import 'package:keychat/service/audio_message.service.dart';
 class VoiceRecordIndicator extends StatelessWidget {
   const VoiceRecordIndicator({super.key});
 
+  static const double _height = 44.0;
+
   @override
   Widget build(BuildContext context) {
     final svc = AudioMessageService.instance;
@@ -17,10 +19,10 @@ class VoiceRecordIndicator extends StatelessWidget {
       final seconds = (secs % 60).toString().padLeft(2, '0');
 
       return Container(
-        height: 44,
+        height: _height,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(_height / 2),
           border: Border.all(
             color: Colors.red.withValues(alpha: 0.6),
           ),

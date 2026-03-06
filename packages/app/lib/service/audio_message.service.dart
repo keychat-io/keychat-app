@@ -41,7 +41,14 @@ class AudioMessageService {
   String? _tempAudioPath;
   List<double> _amplitudeSamples = [];
   Room? _pendingRoom;
-  static const int _maxSeconds = 60;
+
+  /// Maximum recording duration in seconds.
+  static const int maxRecordingSeconds = 60;
+  static const int _timerIntervalMs = 100;
+  static const int _samplesPerSecond = 1000 ~/ _timerIntervalMs;
+  static const int _audioBitRate = 32000;
+  static const String _audioFileExtension = 'm4a';
+  static const double _dBFSFloor = 160.0;
 
   /// Returns true if microphone permission is granted.
   Future<bool> requestMicPermission() async =>
@@ -54,11 +61,11 @@ class AudioMessageService {
 
     final dir = await getTemporaryDirectory();
     _tempAudioPath =
-        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.$_audioFileExtension';
     _amplitudeSamples = [];
 
     await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 32000),
+      const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: _audioBitRate),
       path: _tempAudioPath!,
     );
 
@@ -66,15 +73,15 @@ class AudioMessageService {
     recordingSeconds.value = 0;
 
     _recordingTimer =
-        Timer.periodic(const Duration(milliseconds: 100), (_) async {
+        Timer.periodic(const Duration(milliseconds: _timerIntervalMs), (_) async {
       final amp = await _recorder.getAmplitude();
-      // Normalize dBFS (-160 to 0) to 0.0-1.0
-      final normalized = ((amp.current + 160) / 160).clamp(0.0, 1.0);
+      final normalized =
+          ((amp.current + _dBFSFloor) / _dBFSFloor).clamp(0.0, 1.0);
       _amplitudeSamples.add(normalized);
 
-      final secs = _amplitudeSamples.length ~/ 10;
+      final secs = _amplitudeSamples.length ~/ _samplesPerSecond;
       recordingSeconds.value = secs;
-      if (secs >= _maxSeconds) await stopAndSend();
+      if (secs >= maxRecordingSeconds) await stopAndSend();
     });
 
     return true;

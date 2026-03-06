@@ -13,6 +13,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat/constants.dart';
+import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/exceptions/expired_members_exception.dart';
 import 'package:keychat/models/keychat/profile_request_model.dart';
@@ -482,6 +483,7 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    AudioMessageService.instance.stop();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();

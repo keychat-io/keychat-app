@@ -46,6 +46,7 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.lightningInvoice: 'lightningInvoice',
   MessageMediaType.profileRequest: 'profileRequest',
   MessageMediaType.messageReaction: 'messageReaction',
+  MessageMediaType.audio: 'audio',
 };
 
 BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>

@@ -932,7 +932,8 @@ class MessageWidget extends StatelessWidget {
               try {
                 if (message.mediaType == MessageMediaType.file ||
                     message.mediaType == MessageMediaType.image ||
-                    message.mediaType == MessageMediaType.video) {
+                    message.mediaType == MessageMediaType.video ||
+                    message.mediaType == MessageMediaType.audio) {
                   final mfi = MsgFileInfo.fromJson(
                     jsonDecode(message.realMessage!) as Map<String, dynamic>,
                   );
@@ -1087,7 +1088,8 @@ class MessageWidget extends StatelessWidget {
                 // File Info Section
                 if (message.mediaType == MessageMediaType.file ||
                     message.mediaType == MessageMediaType.image ||
-                    message.mediaType == MessageMediaType.video)
+                    message.mediaType == MessageMediaType.video ||
+                    message.mediaType == MessageMediaType.audio)
                   Column(
                     children: [
                       getFileTable(buildContext, message),
@@ -1692,7 +1694,8 @@ class MessageWidget extends StatelessWidget {
                           (message.mediaType == MessageMediaType.text ||
                               message.mediaType == MessageMediaType.image ||
                               message.mediaType == MessageMediaType.video ||
-                              message.mediaType == MessageMediaType.file))
+                              message.mediaType == MessageMediaType.file ||
+                              message.mediaType == MessageMediaType.audio))
                         SettingsTile.navigation(
                           onPressed: _handleForward,
                           leading: const Icon(

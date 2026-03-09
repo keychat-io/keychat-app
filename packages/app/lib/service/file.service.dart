@@ -980,55 +980,13 @@ class FileService {
   }
 
   /// Encrypts, uploads, and sends a voice message.
+  // TODO: Re-enable when voice message feature is ready
   Future<Message?> handleSendAudioFile(
     Room room,
     String audioPath,
     int durationSeconds,
     List<double> amplitudeSamples,
   ) async {
-    final xfile = XFile(audioPath);
-    try {
-      EasyLoading.showProgress(0.1, status: 'Encrypting and Uploading...');
-      final mfi = await FileService.instance.encryptToSendFile(
-        room,
-        xfile,
-        MessageMediaType.audio,
-        onSendProgress: (count, total) =>
-            FileService.instance.onSendProgress('Uploading...', count, total),
-      );
-      if (mfi == null || mfi.fileInfo == null) return null;
-
-      // Embed audio metadata
-      mfi
-        ..audioDuration = durationSeconds
-        ..amplitudeSamples = amplitudeSamples;
-
-      EasyLoading.showProgress(1, status: 'Uploading...');
-      final smr = await RoomService.instance.sendMessage(
-        room,
-        mfi.getUriString(MessageMediaType.audio.name),
-        realMessage: mfi.toString(),
-        mediaType: MessageMediaType.audio,
-      );
-      Future.delayed(const Duration(milliseconds: 500)).then((_) {
-        EasyLoading.dismiss();
-      });
-
-      // Clean up temp file
-      final f = File(audioPath);
-      if (f.existsSync()) await f.delete();
-
-      return smr.message;
-    } catch (e, s) {
-      final msg = Utils.getErrorMessage(e);
-      logger.e('handleSendAudioFile: $msg', error: e, stackTrace: s);
-      EasyLoading.showError(msg);
-    } finally {
-      RoomService.getController(room.id)?.hideAdd.value = true;
-      Future.delayed(const Duration(seconds: 2)).then((_) {
-        EasyLoading.dismiss();
-      });
-    }
     return null;
   }
 

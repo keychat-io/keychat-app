@@ -16,9 +16,6 @@ import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/chat/widgets/voice_record_button.dart';
-import 'package:keychat/page/chat/widgets/voice_record_indicator.dart';
-import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/routes.dart';
@@ -337,9 +334,9 @@ class _ChatPage2State extends State<ChatPage> {
                   icon: const Icon(Icons.emoji_emotions_outlined),
                 ),
                 Obx(() {
-                  if (AudioMessageService.instance.isRecording.value) {
-                    return const Expanded(child: VoiceRecordIndicator());
-                  }
+                  // Read reactive variable unconditionally so Obx always
+                  // subscribes, even on desktop where the value is unused.
+                  final enterAction = hc.keyboardEnterAction.value;
                   return Expanded(
                     child: KeyboardListener(
                     focusNode: controller.keyboardFocus,
@@ -422,10 +419,9 @@ class _ChatPage2State extends State<ChatPage> {
                         ),
                         textInputAction: GetPlatform.isDesktop
                             ? TextInputAction.send
-                            : hc.keyboardEnterAction.value,
+                            : enterAction,
                         onEditingComplete: GetPlatform.isDesktop ||
-                                hc.keyboardEnterAction.value ==
-                                    TextInputAction.send
+                                enterAction == TextInputAction.send
                             ? controller.handleSubmitted
                             : null,
                         contextMenuBuilder: (context, editableTextState) {
@@ -518,7 +514,6 @@ class _ChatPage2State extends State<ChatPage> {
                   ),
                   );
                 }),
-                VoiceRecordButton(room: controller.roomObs.value),
                 IconButton(
                   iconSize: 28,
                   padding: EdgeInsets.zero,

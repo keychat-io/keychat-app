@@ -403,6 +403,7 @@ class _ChatPage2State extends State<ChatPage> {
                       child: TextFormField(
                         controller: controller.textEditingController,
                         keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
                         focusNode: controller.chatContentFocus,
                         autofocus: GetPlatform.isDesktop,
                         decoration: const InputDecoration(
@@ -412,8 +413,14 @@ class _ChatPage2State extends State<ChatPage> {
                           focusedBorder: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
                         ),
-                        textInputAction: TextInputAction.send,
-                        onEditingComplete: controller.handleSubmitted,
+                        textInputAction: GetPlatform.isDesktop
+                            ? TextInputAction.send
+                            : hc.keyboardEnterAction.value,
+                        onEditingComplete: GetPlatform.isDesktop ||
+                                hc.keyboardEnterAction.value ==
+                                    TextInputAction.send
+                            ? controller.handleSubmitted
+                            : null,
                         contextMenuBuilder: (context, editableTextState) {
                           final selection = editableTextState
                               .currentTextEditingValue

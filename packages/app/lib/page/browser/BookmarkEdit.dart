@@ -52,6 +52,7 @@ class _BookmarkEditState extends State<BookmarkEdit> {
           children: [
             TextField(
               controller: _titleController,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Title'),
             ),
             TextField(

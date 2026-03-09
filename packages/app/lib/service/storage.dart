@@ -56,6 +56,7 @@ class StorageKeyString {
 
   static const String ecashDBVersion = 'ecashDBVersion';
   static const String recentEmojis = 'recentEmojis';
+  static const String keyboardEnterAction = 'keyboardEnterAction';
 
   // Push notification type: 'fcm' or 'unifiedpush'
   static const String pushNotificationType = 'pushNotificationType';

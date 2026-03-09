@@ -190,6 +190,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                   child: TextField(
                                     controller: usernameController,
                                     autofocus: true,
+                                    textCapitalization: TextCapitalization.words,
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: (value) => handleUpdateName(
                                       usernameController.text.trim(),

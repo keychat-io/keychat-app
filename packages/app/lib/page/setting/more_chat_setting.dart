@@ -77,6 +77,24 @@ class MoreChatSetting extends GetView<HomeController> {
             ),
             SettingsSection(
               tiles: [
+                if (GetPlatform.isMobile)
+                  SettingsTile.switchTile(
+                    leading: const Icon(Icons.keyboard_return),
+                    title: const Text('Enter to Send'),
+                    initialValue:
+                        controller.keyboardEnterAction.value ==
+                        TextInputAction.send,
+                    onToggle: (isSend) async {
+                      final newAction = isSend
+                          ? TextInputAction.send
+                          : TextInputAction.newline;
+                      await Storage.setString(
+                        StorageKeyString.keyboardEnterAction,
+                        newAction.name,
+                      );
+                      controller.keyboardEnterAction.value = newAction;
+                    },
+                  ),
                 SettingsTile.switchTile(
                   leading: const Icon(Icons.message),
                   title: const Text('Direct Messages'),
@@ -85,7 +103,7 @@ class MoreChatSetting extends GetView<HomeController> {
                   ),
                   onPressed: (context) async {},
                   initialValue: controller.enableDMFromNostrApp.value,
-                  onToggle: (bool value) async {
+                  onToggle: (value) async {
                     await Storage.setBool(
                       StorageKeyString.enableDMFromNostrApp,
                       value,

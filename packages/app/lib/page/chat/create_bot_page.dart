@@ -70,6 +70,7 @@ class _AddBotPageState extends State<AddBotPage> {
                     children: [
                       TextField(
                         textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
                         controller: _nameController,
                         decoration: const InputDecoration(
                           labelText: 'Bot Name',

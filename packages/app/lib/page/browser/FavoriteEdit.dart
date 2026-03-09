@@ -52,6 +52,7 @@ class _FavoriteEditState extends State<FavoriteEdit> {
           children: [
             TextField(
               controller: _titleController,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Title'),
             ),
             TextField(

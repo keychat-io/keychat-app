@@ -96,6 +96,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     const SizedBox(height: 10),
                     TextField(
                       textInputAction: TextInputAction.done,
+                      textCapitalization: TextCapitalization.sentences,
                       maxLines: null,
                       controller: _helloController,
                       decoration: const InputDecoration(

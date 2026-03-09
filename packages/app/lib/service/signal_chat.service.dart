@@ -149,9 +149,11 @@ class SignalChatService extends BaseChatService {
     }
     var to = bobSession.bobAddress ?? bobSession.address;
 
-    if (to.startsWith('05')) {
+    if (_isRawSignalIdentityKey(to)) {
+      // No ratchet yet, fall back to the room's main Nostr pubkey
       to = room.toMainPubkey;
     } else {
+      // Ratchet key available, derive Nostr address from it
       to = await rust_nostr.generateSeedFromRatchetkeyPair(seedKey: to);
     }
 
@@ -163,6 +165,14 @@ class SignalChatService extends BaseChatService {
 
     return to;
   }
+
+  /// Whether [address] is a raw Signal curve25519 identity key (not a ratchet key).
+  ///
+  /// Signal curve25519 public keys are 33 bytes (66 hex chars) with a 0x05 DJB
+  /// type prefix. These are NOT valid Nostr addresses (which are secp256k1
+  /// x-only keys, 32 bytes / 64 hex chars).
+  static bool _isRawSignalIdentityKey(String address) =>
+      address.startsWith('05') && address.length == 66;
 
   /// Decrypts an incoming Signal-encrypted message for the given [room].
   ///

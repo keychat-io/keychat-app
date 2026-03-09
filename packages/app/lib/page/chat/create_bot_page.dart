@@ -212,14 +212,14 @@ class _AddBotPageState extends State<AddBotPage> {
     }
 
     // Check if it's self pubkey
-    if (hexPubkey == selectedIdentity.secp256k1PKHex) {
+    if (hexPubkey == selectedIdentity.nostrIdentityKey) {
       EasyLoading.showError('Cannot add yourself as a bot');
       return;
     }
 
     // Check if it's another identity's pubkey
     for (final iden in homeController.allIdentities.values) {
-      if (iden.secp256k1PKHex == hexPubkey) {
+      if (iden.nostrIdentityKey == hexPubkey) {
         EasyLoading.showError("Cannot add other identity's pubkey as a bot");
         return;
       }
@@ -244,7 +244,7 @@ class _AddBotPageState extends State<AddBotPage> {
       // Create bot room
       final room = await RoomService.instance.getOrCreateRoom(
         hexPubkey,
-        selectedIdentity.secp256k1PKHex,
+        selectedIdentity.nostrIdentityKey,
         RoomStatus.enabled,
         contactName: name,
         type: RoomType.freebot,

@@ -46,7 +46,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     cc = controller;
     super.initState();
     identity = cc.roomObs.value.getIdentity();
-    final myRoomMember = cc.getMemberByIdPubkey(identity.secp256k1PKHex);
+    final myRoomMember = cc.getMemberByIdPubkey(identity.nostrIdentityKey);
     myAlias = myRoomMember?.name ?? cc.roomObs.value.getIdentity().displayName;
     isAdmin = myRoomMember?.isAdmin ?? false;
     textEditingController = TextEditingController(text: cc.roomObs.value.name);
@@ -326,7 +326,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         ),
         children: allMembers.map((rm) {
           // Update self member info if needed
-          if (rm.idPubkey == identity.secp256k1PKHex) {
+          if (rm.idPubkey == identity.nostrIdentityKey) {
             rm.contact?.avatarLocalPath = identity.avatarLocalPath;
             rm.contact?.name = identity.displayName;
           }
@@ -464,7 +464,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
       rm: rm,
       badge: _resolveMemberBadge(rm),
       onTap: () async {
-        if (identity.secp256k1PKHex == rm.idPubkey) {
+        if (identity.nostrIdentityKey == rm.idPubkey) {
           await EasyLoading.showToast("It's me");
           return;
         }
@@ -487,7 +487,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     if (rm.isAdmin) {
       return RoomUtil.adminBadge(context);
     }
-    if (rm.idPubkey == identity.secp256k1PKHex) {
+    if (rm.idPubkey == identity.nostrIdentityKey) {
       return RoomUtil.meBadge(context);
     }
     if (rm.status == UserStatusType.inviting) {

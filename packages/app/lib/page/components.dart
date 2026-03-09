@@ -664,7 +664,7 @@ Future<String> _generateQRCodeData(
       : jsonDecode(signalId.keys!) as Map<String, dynamic>;
 
   final content = SignalChatUtil.getToSignMessage(
-    nostrId: identity.secp256k1PKHex,
+    nostrId: identity.nostrIdentityKey,
     signalId: signalId.pubkey,
     time: time,
   );
@@ -677,7 +677,7 @@ Future<String> _generateQRCodeData(
   final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 
   final data = <String, dynamic>{
-    'pubkey': identity.secp256k1PKHex,
+    'pubkey': identity.nostrIdentityKey,
     'curve25519PkHex': signalId.pubkey,
     'name': identity.displayName,
     'time': time,

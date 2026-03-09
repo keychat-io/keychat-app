@@ -141,7 +141,7 @@ class SignalChatService extends BaseChatService {
   ) async {
     final bobSession = await rust_signal.getSession(
       keyPair: keyPair,
-      address: room.curve25519PkHex!,
+      address: room.peerSignalIdentityKey!,
       deviceId: room.identityId.toString(),
     );
     if (bobSession == null) {
@@ -166,13 +166,15 @@ class SignalChatService extends BaseChatService {
     return to;
   }
 
+  static const signalIdentityKeyPrefix = '05';
+
   /// Whether [address] is a raw Signal curve25519 identity key (not a ratchet key).
   ///
   /// Signal curve25519 public keys are 33 bytes (66 hex chars) with a 0x05 DJB
   /// type prefix. These are NOT valid Nostr addresses (which are secp256k1
   /// x-only keys, 32 bytes / 64 hex chars).
   static bool _isRawSignalIdentityKey(String address) =>
-      address.startsWith('05') && address.length == 66;
+      address.startsWith(signalIdentityKeyPrefix) && address.length == 66;
 
   /// Decrypts an incoming Signal-encrypted message for the given [room].
   ///
@@ -441,11 +443,11 @@ class SignalChatService extends BaseChatService {
     room.onetimekey = model.onetimekey;
 
     // delete old session
-    if (room.curve25519PkHex != null) {
+    if (room.peerSignalIdentityKey != null) {
       await Get.find<ChatxService>().deleteSignalSessionKPA(room);
     }
     // must be delete session then give a new data
-    room.curve25519PkHex = model.curve25519PkHex;
+    room.peerSignalIdentityKey = model.signalIdentityKey;
 
     final res = await Get.find<ChatxService>().addRoomKPA(
       room: room,
@@ -544,7 +546,7 @@ ${relays.join('\n')}
     var room = room0;
     final signalId = await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
-    room.signalIdPubkey = signalId.pubkey;
+    room.mySignalIdentityKey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     final sm =
         await KeychatMessage(
@@ -676,7 +678,7 @@ ${relays.join('\n')}
       name: prekeyMessageModel.name,
       status: RoomStatus.enabled,
       encryptMode: EncryptMode.signal,
-      curve25519PkHex: signalIdPubkey,
+      peerSignalIdentityKey: signalIdPubkey,
       signalId: signalId,
       contact: contact,
     );
@@ -684,7 +686,7 @@ ${relays.join('\n')}
     room
       ..status = RoomStatus.enabled
       ..encryptMode = EncryptMode.signal
-      ..curve25519PkHex = signalIdPubkey
+      ..peerSignalIdentityKey = signalIdPubkey
       ..contact = contact;
 
     await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);

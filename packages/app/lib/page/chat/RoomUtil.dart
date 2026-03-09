@@ -221,7 +221,7 @@ class RoomUtil {
     var memberPubkeys = <String>{};
     if (room.isMLSGroup) {
       final existedPubkeys = await rust_mls.getGroupMembers(
-        nostrId: room.getIdentity().secp256k1PKHex,
+        nostrId: room.getIdentity().nostrIdentityKey,
         groupId: room.toMainPubkey,
       );
       memberPubkeys = Set.from(existedPubkeys);
@@ -241,7 +241,7 @@ class RoomUtil {
     contactList = contactList.reversed.toList();
     for (var i = 0; i < contactList.length; i++) {
       final c = contactList[i];
-      if (c.pubkey == identity.secp256k1PKHex) continue;
+      if (c.pubkey == identity.nostrIdentityKey) continue;
       var exist = false;
       if (memberPubkeys.contains(c.pubkey)) {
         exist = true;
@@ -937,7 +937,7 @@ Let's start an encrypted chat.''';
     final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
-      signalId: model.curve25519PkHex,
+      signalId: model.signalIdentityKey,
       nostrId: model.pubkey,
       time: model.time,
       name: model.name,
@@ -949,12 +949,12 @@ Let's start an encrypted chat.''';
 
     await SignalChatUtil.verifySignedMessage(
       pmm: pmm,
-      signalIdPubkey: model.curve25519PkHex,
+      signalIdPubkey: model.signalIdentityKey,
     );
 
     final contact = Contact(pubkey: pubkey, identityId: identity.id)
       ..npubkey = npub
-      ..curve25519PkHex = model.curve25519PkHex
+      ..signalIdentityKey = model.signalIdentityKey
       ..name = model.name
       ..avatarRemoteUrl = model.avatar
       ..lightning = model.lightning;

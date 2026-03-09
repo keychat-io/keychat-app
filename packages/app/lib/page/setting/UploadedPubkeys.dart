@@ -66,7 +66,7 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
       if (skipedIdentityIds.contains(item.id)) {
         continue;
       }
-      idkeys.add(item.secp256k1PKHex);
+      idkeys.add(item.nostrIdentityKey);
     }
 
     // mls room's receive key

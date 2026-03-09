@@ -139,7 +139,7 @@ class IdentityService {
             secp256k1PKHex: account.pubkey,
             npub: account.pubkeyBech32,
           )
-          ..curve25519PkHex = account.curve25519PkHex
+          ..signalIdentityKey = account.curve25519PkHex
           ..index = index;
 
     // Save to database with keys
@@ -149,11 +149,11 @@ class IdentityService {
         account.mnemonic!,
       );
       await SecureStorage.instance.write(
-        identity.secp256k1PKHex,
+        identity.nostrIdentityKey,
         account.prikey,
       );
       await SecureStorage.instance.write(
-        identity.curve25519PkHex!,
+        identity.signalIdentityKey!,
         account.curve25519SkHex!,
       );
     });
@@ -249,8 +249,8 @@ class IdentityService {
     final database = DBProvider.database;
 
     final id = identity.id;
-    final secp256k1PKHex = identity.secp256k1PKHex;
-    final curve25519PkHex = identity.curve25519PkHex;
+    final nostrIdentityKey = identity.nostrIdentityKey;
+    final signalIdentityKey = identity.signalIdentityKey;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -276,7 +276,7 @@ class IdentityService {
             .roomIdEqualTo(element.id)
             .deleteAll();
         try {
-          final signalIdPubkey = element.signalIdPubkey;
+          final signalIdPubkey = element.mySignalIdentityKey;
           rust_signal.KeychatIdentityKeyPair? keyPair;
           final chatxService = Get.find<ChatxService>();
           if (signalIdPubkey != null) {
@@ -299,9 +299,9 @@ class IdentityService {
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await FileService.instance.deleteAllByIdentity(id);
-      await SecureStorage.instance.deletePrikey(secp256k1PKHex);
-      if (curve25519PkHex != null) {
-        await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      await SecureStorage.instance.deletePrikey(nostrIdentityKey);
+      if (signalIdentityKey != null) {
+        await SecureStorage.instance.deletePrikey(signalIdentityKey);
       }
     });
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -351,7 +351,7 @@ class IdentityService {
         skipedIdentityIDs.add(identity.id);
         continue;
       }
-      pubkeys.add(identity.secp256k1PKHex);
+      pubkeys.add(identity.nostrIdentityKey);
     }
     if (pubkeys.isEmpty) return [];
 
@@ -509,14 +509,14 @@ class IdentityService {
     if (prikeys[pubkey] != null) return prikeys[pubkey];
 
     final identities = Get.find<HomeController>().allIdentities.values
-        .where((element) => element.secp256k1PKHex == pubkey)
+        .where((element) => element.nostrIdentityKey == pubkey)
         .toList();
     String? prikey;
     if (identities.isNotEmpty) {
       if (identities[0].isFromSigner) {
         throw Exception('ExceptionIsFromSigner');
       }
-      prikey = await identities[0].getSecp256k1SKHex();
+      prikey = await identities[0].getNostrPrivateKey();
     } else {
       final mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);
       if (mykey == null) return null;
@@ -580,11 +580,11 @@ class IdentityService {
   /// version is already up to date.
   Future<Identity?> syncProfileFromRelay(Identity identity) async {
     final list = await NostrAPI.instance.fetchMetadata([
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
     ]);
     if (list.isEmpty) {
       logger.d(
-        'No metadata event found from relay for ${identity.secp256k1PKHex}',
+        'No metadata event found from relay for ${identity.nostrIdentityKey}',
       );
       return null;
     }
@@ -608,7 +608,7 @@ class IdentityService {
         identity.avatarFromRelay = avatarFromRelay;
         final localPath = await FileService.instance.downloadAndSaveAvatar(
           avatarFromRelay,
-          identity.secp256k1PKHex,
+          identity.nostrIdentityKey,
         );
         if (localPath != null) {
           identity.avatarFromRelayLocalPath = localPath;
@@ -627,7 +627,7 @@ class IdentityService {
 
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();
-    Utils.removeAvatarCacheByPubkey(identity.secp256k1PKHex);
+    Utils.removeAvatarCacheByPubkey(identity.nostrIdentityKey);
     Get.find<HomeController>().tabBodyDatas.refresh();
     return identity;
   }

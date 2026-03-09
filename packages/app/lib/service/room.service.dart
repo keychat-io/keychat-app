@@ -69,7 +69,7 @@ class RoomService extends BaseChatService {
     EncryptMode? encryptMode,
     String? name,
     Contact? contact,
-    String? curve25519PkHex,
+    String? peerSignalIdentityKey,
     String? onetimekey,
     SignalId? signalId,
     RoomType? type,
@@ -90,14 +90,14 @@ class RoomService extends BaseChatService {
           ..status = status
           ..type = type ?? RoomType.common
           ..encryptMode = encryptMode ?? EncryptMode.nip17
-          ..curve25519PkHex = curve25519PkHex
-          ..signalIdPubkey = signalId.pubkey;
+          ..peerSignalIdentityKey = peerSignalIdentityKey
+          ..mySignalIdentityKey = signalId.pubkey;
     // set bot room's name
     if (room.type == RoomType.bot) {
       room.name = name;
     }
     // chat with myself
-    if (toMainPubkey == identity.secp256k1PKHex) {
+    if (toMainPubkey == identity.nostrIdentityKey) {
       room.encryptMode = EncryptMode.nip04;
       name = KeychatGlobal.selfName;
     }
@@ -128,7 +128,7 @@ class RoomService extends BaseChatService {
     final toMainPubkey = room.toMainPubkey;
     final mlsListenPubkey = room.onetimekey;
     // delete room's signalId
-    final signalIdPubkey = room.signalIdPubkey;
+    final signalIdPubkey = room.mySignalIdentityKey;
     var sameSignalIdrooms = <Room>[];
     if (signalIdPubkey != null) {
       sameSignalIdrooms = await RoomService.instance.getRoomBySignalIdPubkey(
@@ -189,7 +189,7 @@ class RoomService extends BaseChatService {
       final identity = await IdentityService.instance.getIdentityById(
         room.identityId,
       );
-      final myIdPubkey = identity?.secp256k1PKHex;
+      final myIdPubkey = identity?.nostrIdentityKey;
       if (myIdPubkey != null) {
         try {
           await rust_mls.deleteGroup(
@@ -306,7 +306,7 @@ class RoomService extends BaseChatService {
       identity ??= await IdentityService.instance.getIdentityById(
         room.identityId,
       );
-      if (identity != null && identity.secp256k1PKHex == to) {
+      if (identity != null && identity.nostrIdentityKey == to) {
         return room;
       }
     }
@@ -375,7 +375,7 @@ class RoomService extends BaseChatService {
         .identityIdEqualTo(identityId)
         .findFirst();
     if (room == null) return null;
-    if (room.curve25519PkHex != null) {
+    if (room.peerSignalIdentityKey != null) {
       final res = await Get.find<ChatxService>().getRoomKPA(room);
       return res == null ? null : room;
     }
@@ -443,7 +443,7 @@ class RoomService extends BaseChatService {
         room.contact = await contactService.getOrCreateContact(
           identityId: room.identityId,
           pubkey: room.toMainPubkey,
-          curve25519PkHex: room.curve25519PkHex,
+          signalIdentityKey: room.peerSignalIdentityKey,
         );
       }
       if (room.status == RoomStatus.requesting) {
@@ -519,7 +519,7 @@ class RoomService extends BaseChatService {
       final identities = Utils.getGetxController<HomeController>()!
           .allIdentities
           .values
-          .where((element) => element.secp256k1PKHex == toAddress)
+          .where((element) => element.nostrIdentityKey == toAddress)
           .toList();
       if (identities.isNotEmpty) {
         identity = identities[0];
@@ -828,7 +828,7 @@ class RoomService extends BaseChatService {
       queue.add(() async {
         if (tasks.isEmpty) return;
         final room = tasks.removeFirst() as Room;
-        if (room.toMainPubkey == identity.secp256k1PKHex) return;
+        if (room.toMainPubkey == identity.nostrIdentityKey) return;
         await RoomService.instance.sendMessage(
           room,
           message,
@@ -962,7 +962,7 @@ class RoomService extends BaseChatService {
     try {
       late Room room;
       // add myself
-      if (identity.secp256k1PKHex == hexPubkey) {
+      if (identity.nostrIdentityKey == hexPubkey) {
         room = await RoomService.instance.getOrCreateRoomByIdentity(
           hexPubkey,
           identity,
@@ -970,7 +970,7 @@ class RoomService extends BaseChatService {
         );
       } else {
         for (final iden in hc.allIdentities.values) {
-          if (iden.secp256k1PKHex == hexPubkey) {
+          if (iden.nostrIdentityKey == hexPubkey) {
             throw Exception("Can not add other identity' pubkey");
           }
         }

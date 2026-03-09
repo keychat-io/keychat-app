@@ -162,7 +162,7 @@ class ContactPage extends StatelessWidget {
                           identity: identity,
                           name: contact.displayName,
                           status: RoomStatus.enabled,
-                          curve25519PkHex: model?.curve25519PkHex,
+                          peerSignalIdentityKey: model?.signalIdentityKey,
                           onetimekey: model?.onetimekey,
                           encryptMode: EncryptMode.signal,
                           contact: contact,
@@ -173,11 +173,11 @@ class ContactPage extends StatelessWidget {
                           await Get.find<ChatxService>().deleteSignalSessionKPA(
                             room,
                           );
-                          if (model?.curve25519PkHex != null) {
-                            room.curve25519PkHex = model?.curve25519PkHex;
+                          if (model?.signalIdentityKey != null) {
+                            room.peerSignalIdentityKey = model?.signalIdentityKey;
                           }
                         }
-                        if (room0.curve25519PkHex != null &&
+                        if (room0.peerSignalIdentityKey != null &&
                             model?.signedId != null) {
                           if (model == null) {
                             EasyLoading.showError(

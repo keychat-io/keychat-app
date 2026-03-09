@@ -2090,6 +2090,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) =>
             $enumDecodeNullable(_$UserStatusTypeEnumMap, json['status']) ??
             UserStatusType.invited,
       )
+      ..signalIdentityKey = json['signalIdentityKey'] as String?
       ..createdAt = json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String)
@@ -2102,6 +2103,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
     <String, dynamic>{
       'idPubkey': instance.idPubkey,
+      'signalIdentityKey': ?instance.signalIdentityKey,
       'roomId': instance.roomId,
       'name': ?instance.name,
       'createdAt': ?instance.createdAt?.toIso8601String(),

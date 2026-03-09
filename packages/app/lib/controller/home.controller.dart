@@ -340,7 +340,7 @@ class HomeController extends GetxController
 
   Identity? getIdentityByPubkey(String pubkey) {
     for (final identity in allIdentities.values) {
-      if (identity.secp256k1PKHex == pubkey) {
+      if (identity.nostrIdentityKey == pubkey) {
         return identity;
       }
     }

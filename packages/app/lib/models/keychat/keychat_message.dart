@@ -76,7 +76,7 @@ class KeychatMessage {
     );
 
     final content = SignalChatUtil.getToSignMessage(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       signalId: signalId.pubkey,
       time: time,
     );
@@ -91,7 +91,7 @@ class KeychatMessage {
 
     final data = <String, dynamic>{
       'name': identity.displayName,
-      'pubkey': identity.secp256k1PKHex,
+      'pubkey': identity.nostrIdentityKey,
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
       'time': time,

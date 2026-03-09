@@ -18,7 +18,7 @@ class QRUserModel {
       ..name = values[0].replaceAll('"', '')
       ..relay = values[1]
       ..pubkey = values[2]
-      ..curve25519PkHex = values[3]
+      ..signalIdentityKey = values[3]
       ..onetimekey = values[4]
       ..signedId = int.parse(values[5])
       ..signedPublic = values[6]
@@ -32,7 +32,8 @@ class QRUserModel {
   }
   late String name; // user define name
   late String pubkey;
-  late String curve25519PkHex;
+  @JsonKey(name: 'curve25519PkHex')
+  late String signalIdentityKey;
   late String onetimekey;
   late int signedId;
   late String signedPublic;
@@ -52,7 +53,7 @@ class QRUserModel {
 
   String toShortStringForQrcode() {
     final data =
-        '"$name",$relay,$pubkey,$curve25519PkHex,$onetimekey,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign,$avatar,$lightning';
+        '"$name",$relay,$pubkey,$signalIdentityKey,$onetimekey,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign,$avatar,$lightning';
 
     final compressedData = gzip.encode(utf8.encode(data));
 

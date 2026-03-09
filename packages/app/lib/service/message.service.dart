@@ -174,11 +174,11 @@ class MessageService {
     await saveMessageModel(
       Message(
         msgid: Utils.randomString(16),
-        idPubkey: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
+        idPubkey: isMeSend ? identity.nostrIdentityKey : room.toMainPubkey,
         identityId: room.identityId,
         roomId: room.id,
-        from: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
-        to: isMeSend ? room.toMainPubkey : identity.secp256k1PKHex,
+        from: isMeSend ? identity.nostrIdentityKey : room.toMainPubkey,
+        to: isMeSend ? room.toMainPubkey : identity.nostrIdentityKey,
         content: suffix.isNotEmpty
             ? '''[$suffix]
 $content'''

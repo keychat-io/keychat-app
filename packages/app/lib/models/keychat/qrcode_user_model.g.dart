@@ -9,7 +9,7 @@ part of 'qrcode_user_model.dart';
 QRUserModel _$QRUserModelFromJson(Map<String, dynamic> json) => QRUserModel()
   ..name = json['name'] as String
   ..pubkey = json['pubkey'] as String
-  ..curve25519PkHex = json['curve25519PkHex'] as String
+  ..signalIdentityKey = json['curve25519PkHex'] as String
   ..onetimekey = json['onetimekey'] as String
   ..signedId = (json['signedId'] as num).toInt()
   ..signedPublic = json['signedPublic'] as String
@@ -26,7 +26,7 @@ Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
     <String, dynamic>{
       'name': instance.name,
       'pubkey': instance.pubkey,
-      'curve25519PkHex': instance.curve25519PkHex,
+      'curve25519PkHex': instance.signalIdentityKey,
       'onetimekey': instance.onetimekey,
       'signedId': instance.signedId,
       'signedPublic': instance.signedPublic,

@@ -687,7 +687,7 @@ class ChatController extends GetxController {
       newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
-    roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh
+    roomObs.value.peerSignalIdentityKey = newRoom.peerSignalIdentityKey; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();
@@ -791,7 +791,7 @@ class ChatController extends GetxController {
       try {
         final identity = roomObs.value.getIdentity();
         final prm = ProfileRequestModel(
-          pubkey: identity.secp256k1PKHex,
+          pubkey: identity.nostrIdentityKey,
           name: identity.name,
           avatar: await identity.getRemoteAvatarUrl(),
           bio: identity.displayAbout,
@@ -910,7 +910,7 @@ class ChatController extends GetxController {
             (value) async {
               await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
               final isAdmin = await roomObs.value.checkAdminByIdPubkey(
-                roomObs.value.getIdentity().secp256k1PKHex,
+                roomObs.value.getIdentity().nostrIdentityKey,
               );
               // Check if there are any users in expired status
               if (isAdmin) {

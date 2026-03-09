@@ -114,7 +114,7 @@ class GroupTx {
     Identity identity, [
     Message? message,
   ]) async {
-    final toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
+    final toMainPubkey = roomProfile.groupId ?? roomProfile.pubkey;
     final toRoomPriKey = roomProfile.prikey;
     final version = roomProfile.updatedAt;
     final users = roomProfile.users;

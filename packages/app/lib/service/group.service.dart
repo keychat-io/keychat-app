@@ -375,9 +375,9 @@ class GroupService extends BaseChatService {
         throw Exception("You are not in the group, so can't invite me.");
       }
     }
-    // roomProfile.oldToRoomPubKey is room unique key
+    // roomProfile.groupId is room unique key
     var groupRoom = await roomService.getRoomByIdentity(
-      roomProfile.oldToRoomPubKey!,
+      roomProfile.groupId!,
       idRoom.identityId,
     );
 
@@ -1204,7 +1204,7 @@ ${rm.idPubkey}
             groupRoom.groupType,
             DateTime.now().millisecondsSinceEpoch,
           )
-          ..oldToRoomPubKey = groupRoom.toMainPubkey
+          ..groupId = groupRoom.toMainPubkey
           ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
     if (mlsWelcome != null) {

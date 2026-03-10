@@ -59,12 +59,12 @@ class KeychatMessage {
     String? greeting,
     bool fromNpub = false,
   }) async {
-    final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
+    final inboxKeys = await Get.find<ChatxService>().getInboxKeys(
       identity.id,
     );
-    var onetimekey = '';
-    if (oneTimeKeys.isNotEmpty) {
-      onetimekey = oneTimeKeys.first.pubkey;
+    var receiveAddr = '';
+    if (inboxKeys.isNotEmpty) {
+      receiveAddr = inboxKeys.first.pubkey;
     }
 
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
@@ -91,9 +91,9 @@ class KeychatMessage {
 
     final data = <String, dynamic>{
       'name': identity.displayName,
-      'pubkey': identity.nostrIdentityKey,
-      'curve25519PkHex': signalId.pubkey,
-      'onetimekey': onetimekey,
+      'nostrIdentityKey': identity.nostrIdentityKey,
+      'signalIdentityKey': signalId.pubkey,
+      'receiveAddress': receiveAddr,
       'time': time,
       'relay': '',
       'lightning': identity.lightning ?? '',

@@ -60,6 +60,7 @@ enum RoomStatus {
     'keyPair',
     'peerSignalIdentityKey',
     'mySignalIdentityKey',
+    'receiveAddress',
   },
 )
 // ignore: must_be_immutable
@@ -138,7 +139,16 @@ class Room extends Equatable {
   Contact? contact; // room'contact info
   Room? parentRoom; // for group room
 
+  @Deprecated('Use receiveAddress instead')
   String? onetimekey;
+
+  /// Nostr temporary inbox pubkey: used as first-message delivery address
+  /// (Signal 1:1) or ongoing group listening key (MLS).
+  // ignore: deprecated_member_use_from_same_package
+  String? get receiveAddress => onetimekey;
+  // ignore: deprecated_member_use_from_same_package
+  set receiveAddress(String? v) => onetimekey = v;
+
   String? sharedSignalID; // a shared virtual signal id for group
 
   // bot

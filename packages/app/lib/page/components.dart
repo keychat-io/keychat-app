@@ -627,21 +627,18 @@ Future<void> showMyQrCode(
 }
 
 Future<String> getOneTimeLink(Identity identity) async {
-  // get one time keys from db
-  final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
-    identity.id,
-  );
+  final inboxKeys = await Get.find<ChatxService>().getInboxKeys(identity.id);
 
   // create signalId
   final signalId = await SignalIdService.instance.createSignalId(identity.id);
 
-  final oneTimeKey = oneTimeKeys.first.pubkey;
+  final inboxPubkey = inboxKeys.first.pubkey;
   final time = RoomUtil.getValidateTime();
 
   // Generate QR code data
   final qrString = await _generateQRCodeData(
     identity,
-    oneTimeKey,
+    inboxPubkey,
     signalId,
     time,
   );
@@ -655,7 +652,7 @@ Future<String> getOneTimeLink(Identity identity) async {
 
 Future<String> _generateQRCodeData(
   Identity identity,
-  String onetimekey,
+  String receiveAddress,
   SignalId signalId,
   int time,
 ) async {
@@ -677,14 +674,14 @@ Future<String> _generateQRCodeData(
   final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 
   final data = <String, dynamic>{
-    'pubkey': identity.nostrIdentityKey,
-    'curve25519PkHex': signalId.pubkey,
+    'nostrIdentityKey': identity.nostrIdentityKey,
+    'signalIdentityKey': signalId.pubkey,
     'name': identity.displayName,
     'time': time,
     'relay': '',
     'avatar': avatarRemoteUrl ?? '',
     'lightning': identity.lightning ?? '',
-    'onetimekey': onetimekey,
+    'receiveAddress': receiveAddress,
     'globalSign': sig,
     ...userInfo.map(MapEntry.new),
   };

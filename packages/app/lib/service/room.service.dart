@@ -68,7 +68,7 @@ class RoomService extends BaseChatService {
     String? name,
     Contact? contact,
     String? peerSignalIdentityKey,
-    String? onetimekey,
+    String? receiveAddress,
     SignalId? signalId,
     RoomType? type,
   }) async {
@@ -84,7 +84,7 @@ class RoomService extends BaseChatService {
             status: status,
             npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
           )
-          ..onetimekey = onetimekey
+          ..receiveAddress = receiveAddress
           ..status = status
           ..type = type ?? RoomType.common
           ..encryptMode = encryptMode ?? EncryptMode.nip17
@@ -124,7 +124,7 @@ class RoomService extends BaseChatService {
     final roomType = room.type;
     final roomId = room.id;
     final toMainPubkey = room.toMainPubkey;
-    final mlsListenPubkey = room.onetimekey;
+    final mlsListenPubkey = room.receiveAddress;
     // delete room's signalId
     final signalIdPubkey = room.mySignalIdentityKey;
     var sameSignalIdrooms = <Room>[];
@@ -205,7 +205,7 @@ class RoomService extends BaseChatService {
     });
   }
 
-  /// Returns all MLS group rooms that have a one-time-key receive address.
+  /// Returns all MLS group rooms that have a receive address.
   Future<List<Room>> getMlsRooms() async {
     return DBProvider.database.rooms
         .filter()
@@ -215,7 +215,7 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
-  /// Returns non-muted MLS group rooms that have a one-time-key receive address.
+  /// Returns non-muted MLS group rooms that have a receive address.
   Future<List<Room>> getMlsRoomsSkipMute() async {
     return DBProvider.database.rooms
         .filter()
@@ -323,7 +323,7 @@ class RoomService extends BaseChatService {
         .findFirst();
   }
 
-  Future<Room?> getRoomByOnetimeKey(String to) async {
+  Future<Room?> getRoomByReceiveAddress(String to) async {
     return DBProvider.database.rooms.filter().onetimekeyEqualTo(to).findFirst();
   }
 
@@ -961,8 +961,8 @@ class RoomService extends BaseChatService {
         final pubkeys = <String>[];
 
         if (room.type == RoomType.group) {
-          if (room.isMLSGroup && room.onetimekey != null) {
-            pubkeys.add(room.onetimekey!);
+          if (room.isMLSGroup && room.receiveAddress != null) {
+            pubkeys.add(room.receiveAddress!);
           } else if (room.mykey.value?.pubkey != null) {
             pubkeys.add(room.mykey.value!.pubkey);
           }
@@ -999,7 +999,7 @@ class RoomService extends BaseChatService {
     if (room != null) {
       return room;
     }
-    final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
+    final mlsRoom = await RoomService.instance.getRoomByReceiveAddress(pubkey);
     return mlsRoom;
   }
 

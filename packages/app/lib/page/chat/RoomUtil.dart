@@ -926,19 +926,19 @@ Let's start an encrypted chat.''';
     bool fromAddPage = false,
     Identity? identity,
   }) async {
-    if (model.time + 1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime <
+    if (model.time + 1000 * 3600 * KeychatGlobal.inboxKeysLifetime <
         DateTime.now().millisecondsSinceEpoch) {
       EasyLoading.showToast('QR Code expired');
       return;
     }
     identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
+    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.nostrIdentityKey);
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.nostrIdentityKey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
       signalId: model.signalIdentityKey,
-      nostrId: model.pubkey,
+      nostrId: model.nostrIdentityKey,
       time: model.time,
       name: model.name,
       sig: globalSign,

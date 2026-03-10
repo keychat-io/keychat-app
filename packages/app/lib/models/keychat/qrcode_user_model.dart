@@ -17,9 +17,9 @@ class QRUserModel {
     return QRUserModel()
       ..name = values[0].replaceAll('"', '')
       ..relay = values[1]
-      ..pubkey = values[2]
+      ..nostrIdentityKey = values[2]
       ..signalIdentityKey = values[3]
-      ..onetimekey = values[4]
+      ..receiveAddress = values[4]
       ..signedId = int.parse(values[5])
       ..signedPublic = values[6]
       ..signedSignature = values[7]
@@ -30,11 +30,28 @@ class QRUserModel {
       ..avatar = values.length > 12 ? values[12] : null
       ..lightning = values.length > 13 ? values[13] : null;
   }
-  late String name; // user define name
-  late String pubkey;
-  @JsonKey(name: 'curve25519PkHex')
+  late String name; // user display name
+
+  /// Nostr identity pubkey (secp256k1 hex).
+  @JsonKey(readValue: _readNostrIdentityKey)
+  late String nostrIdentityKey;
+
+  /// Signal identity pubkey (curve25519 hex).
+  @JsonKey(readValue: _readSignalIdentityKey)
   late String signalIdentityKey;
-  late String onetimekey;
+  /// Nostr temporary inbox pubkey for first-message delivery (NOT a Signal one-time prekey).
+  /// Reads from both `"receiveAddress"` (v2) and `"onetimekey"` (v1) for backward compatibility.
+  @JsonKey(readValue: _readReceiveAddress)
+  late String receiveAddress;
+
+  static Object? _readNostrIdentityKey(Map json, String key) =>
+      json['nostrIdentityKey'] ?? json['pubkey'];
+
+  static Object? _readSignalIdentityKey(Map json, String key) =>
+      json['signalIdentityKey'] ?? json['curve25519PkHex'];
+
+  static Object? _readReceiveAddress(Map json, String key) =>
+      json['receiveAddress'] ?? json['onetimekey'];
   late int signedId;
   late String signedPublic;
   late String signedSignature;
@@ -53,7 +70,7 @@ class QRUserModel {
 
   String toShortStringForQrcode() {
     final data =
-        '"$name",$relay,$pubkey,$signalIdentityKey,$onetimekey,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign,$avatar,$lightning';
+        '"$name",$relay,$nostrIdentityKey,$signalIdentityKey,$receiveAddress,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign,$avatar,$lightning';
 
     final compressedData = gzip.encode(utf8.encode(data));
 

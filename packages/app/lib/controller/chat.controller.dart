@@ -855,7 +855,7 @@ class ChatController extends GetxController {
         unawaited(
           Future.delayed(const Duration(seconds: 3)).then(
             (value) async {
-              await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
+              await MlsGroupService.instance.fixMlsReceiveAddress([roomObs.value]);
               final isAdmin = await roomObs.value.checkAdminByIdPubkey(
                 roomObs.value.getIdentity().nostrIdentityKey,
               );

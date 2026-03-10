@@ -668,7 +668,7 @@ class MlsGroupService extends BaseChatService {
   /// Only the group admin should call this method.
   Future<void> removeMembers(Room room, List<RoomMember> list) async {
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -714,10 +714,10 @@ class MlsGroupService extends BaseChatService {
   /// updates the WebSocket subscription, and removes the old key.
   ///
   /// Must be called after every successful commit (add/remove/update/dissolve).
-  /// Returns the updated [Room] with the new [Room.onetimekey].
+  /// Returns the updated [Room] with the new [Room.receiveAddress].
   Future<Room> replaceListenPubkey(Room room) async {
     loggerNoLine.i(
-      '[MLS] replaceListenPubkey START - roomId: ${room.id}, currentKey: ${room.onetimekey}',
+      '[MLS] replaceListenPubkey START - roomId: ${room.id}, currentKey: ${room.receiveAddress}',
     );
     final newPubkey = await rust_mls
         .getListenKeyFromExportSecret(
@@ -726,7 +726,7 @@ class MlsGroupService extends BaseChatService {
         )
         .timeout(const Duration(seconds: 2));
 
-    if (newPubkey == room.onetimekey) {
+    if (newPubkey == room.receiveAddress) {
       loggerNoLine.i(
         '[MLS] replaceListenPubkey END - no change for room: ${room.id}',
       );
@@ -736,14 +736,14 @@ class MlsGroupService extends BaseChatService {
 
     loggerNoLine.i(
       '[MLS] new pubkey for room: ${room.toMainPubkey}, '
-      'old: ${room.onetimekey}, new: $newPubkey',
+      'old: ${room.receiveAddress}, new: $newPubkey',
     );
-    final toDeletePubkey = room.onetimekey;
+    final toDeletePubkey = room.receiveAddress;
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
-    room.onetimekey = newPubkey;
+    room.receiveAddress = newPubkey;
     loggerNoLine.i(
       '[MLS] Updating room with new key $newPubkey for room: ${room.id}',
     );
@@ -807,7 +807,7 @@ class MlsGroupService extends BaseChatService {
   }) async {
     // waiting for the old pubkey to be Eosed. means that all events proccessed
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -830,7 +830,7 @@ class MlsGroupService extends BaseChatService {
   /// anonymity. The payload is sent as NIP-17 (kind 1059 wrapping kind 445).
   /// Used for system messages like commit notifications and group state changes.
   ///
-  /// Throws [Exception] if the group's [Room.onetimekey] is null.
+  /// Throws [Exception] if the group's [Room.receiveAddress] is null.
   Future<SendMessageResponse> sendEncryptedMessage(
     Room room,
     String message, {
@@ -839,13 +839,13 @@ class MlsGroupService extends BaseChatService {
     String? realMessage,
     List<List<String>>? additionalTags,
   }) async {
-    if (room.onetimekey == null) {
+    if (room.receiveAddress == null) {
       throw Exception('Receiving pubkey is null');
     }
 
     final randomAccount = await rust_nostr.generateSimple();
     final smr = await NostrAPI.instance.sendEventMessage(
-      room.onetimekey!,
+      room.receiveAddress!,
       message,
       prikey: randomAccount.prikey,
       from: randomAccount.pubkey,
@@ -861,7 +861,7 @@ class MlsGroupService extends BaseChatService {
       additionalTags:
           additionalTags ??
           [
-            [EventKindTags.pubkey, room.onetimekey!],
+            [EventKindTags.pubkey, room.receiveAddress!],
           ],
     );
     return smr;
@@ -925,7 +925,7 @@ class MlsGroupService extends BaseChatService {
   /// publishes it as a NIP-17 kind 1059 event to the group's one-time key.
   /// Supports optional [reply] threading and custom [mediaType].
   ///
-  /// Throws [Exception] if [room.onetimekey] is null.
+  /// Throws [Exception] if [room.receiveAddress] is null.
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,
@@ -938,7 +938,7 @@ class MlsGroupService extends BaseChatService {
     if (reply != null) {
       message = KeychatMessage.getTextMessage(MessageType.mls, message, reply);
     }
-    if (room.onetimekey == null) {
+    if (room.receiveAddress == null) {
       throw Exception('Receiving pubkey is null');
     }
     final identity = room.getIdentity();
@@ -954,7 +954,7 @@ class MlsGroupService extends BaseChatService {
     }
     final randomAccount = await rust_nostr.generateSimple();
     final smr = await NostrAPI.instance.sendEventMessage(
-      room.onetimekey!,
+      room.receiveAddress!,
       enctypted.encryptMsg,
       prikey: randomAccount.prikey,
       from: randomAccount.pubkey,
@@ -962,7 +962,7 @@ class MlsGroupService extends BaseChatService {
       encryptType: MessageEncryptType.mls,
       kind: EventKinds.nip17,
       additionalTags: [
-        [EventKindTags.pubkey, room.onetimekey!],
+        [EventKindTags.pubkey, room.receiveAddress!],
       ],
       save: save,
       mediaType: mediaType,
@@ -1015,7 +1015,7 @@ class MlsGroupService extends BaseChatService {
   /// Returns the updated [Room] with the new listening key.
   Future<Room> updateGroupName(Room room, String newName) async {
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -1562,12 +1562,12 @@ class MlsGroupService extends BaseChatService {
 
   /// Repairs the one-time listening key for MLS group rooms after app restart.
   ///
-  /// Compares each room's stored [Room.onetimekey] against the value derived
+  /// Compares each room's stored [Room.receiveAddress] against the value derived
   /// from the current MLS export secret. Updates the room and re-subscribes
   /// to the correct key if they differ.
   ///
   /// Called during app initialization to recover from interrupted epoch rotations.
-  Future<void> fixMlsOnetimeKey(List<Room> rooms) async {
+  Future<void> fixMlsReceiveAddress(List<Room> rooms) async {
     await Utils.waitRelayOnline();
     for (final room in rooms) {
       try {
@@ -1589,9 +1589,9 @@ class MlsGroupService extends BaseChatService {
             )
             .timeout(const Duration(seconds: 2));
         logger.i('[MLS] Fetched new pubkey for room ${room.id}: $newPubkey');
-        if (room.onetimekey == null || room.onetimekey != newPubkey) {
-          loggerNoLine.i('[MLS] Room ${room.id} update onetime key $newPubkey');
-          room.onetimekey = newPubkey;
+        if (room.receiveAddress == null || room.receiveAddress != newPubkey) {
+          loggerNoLine.i('[MLS] Room ${room.id} update receive address $newPubkey');
+          room.receiveAddress = newPubkey;
           await RoomService.instance.updateRoomAndRefresh(room);
           Get.find<WebsocketService>().listenPubkeyNip17(
             [newPubkey],

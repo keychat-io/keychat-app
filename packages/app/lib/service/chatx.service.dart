@@ -35,13 +35,12 @@ class ChatxService extends GetxService {
   // Cache of pubkey → KeychatIdentityKeyPair to avoid repeated secure-storage reads.
   final Map<String, KeychatIdentityKeyPair> _keypairs = {};
 
-  /// Ensures the one-time-key pool for [identityId] is at least
-  /// [KeychatGlobal.oneTimePubkeysPoolLength] keys deep, generating new keys
+  /// Ensures the inbox key pool for [identityId] is at least
+  /// [KeychatGlobal.inboxKeysPoolLength] keys deep, generating new keys
   /// if necessary, and subscribes all keys to the WebSocket and notification server.
-  Future<List<Mykey>> getOneTimePubkey(int identityId) async {
-    // delete expired one time keys
-    await IdentityService.instance.deleteExpiredOneTimeKeys();
-    final newKeys = await IdentityService.instance.getOneTimeKeyByIdentity(
+  Future<List<Mykey>> getInboxKeys(int identityId) async {
+    await IdentityService.instance.deleteExpiredInboxKeys();
+    final newKeys = await IdentityService.instance.getInboxKeysByIdentity(
       identityId,
     );
 
@@ -50,10 +49,10 @@ class ChatxService extends GetxService {
       needListen.add(key.pubkey);
     }
 
-    if (needListen.length < KeychatGlobal.oneTimePubkeysPoolLength) {
-      final newKeys2 = await _generateOneTimePubkeys(
+    if (needListen.length < KeychatGlobal.inboxKeysPoolLength) {
+      final newKeys2 = await _generateInboxKeys(
         identityId,
-        KeychatGlobal.oneTimePubkeysPoolLength - needListen.length,
+        KeychatGlobal.inboxKeysPoolLength - needListen.length,
       );
       for (final key in newKeys2) {
         needListen.add(key.pubkey);
@@ -401,17 +400,14 @@ class ChatxService extends GetxService {
     roomKPA.remove(key);
   }
 
-  // generate onetime pubkey to receive add new friends message
-  Future<List<Mykey>> _generateOneTimePubkeys(int identityId, int num) async {
-    final onetimekeys = <Mykey>[];
-    // create three one time keys
+  /// Generates [num] inbox keys for [identityId] to receive first-contact messages.
+  Future<List<Mykey>> _generateInboxKeys(int identityId, int num) async {
+    final keys = <Mykey>[];
     for (var i = 0; i < num; i++) {
-      final onetimekey = await IdentityService.instance.createOneTimeKey(
-        identityId,
-      );
-      onetimekeys.add(onetimekey);
+      final key = await IdentityService.instance.createInboxKey(identityId);
+      keys.add(key);
     }
-    return onetimekeys;
+    return keys;
   }
 
   Future<List<SignalId>> _generateSignalIds(int identityId, int num) async {

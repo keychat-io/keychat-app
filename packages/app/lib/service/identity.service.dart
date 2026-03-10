@@ -42,11 +42,11 @@ class IdentityService {
     return database.identitys.where().count();
   }
 
-  /// Generates a fresh secp256k1 one-time key for [identityId] and persists it.
+  /// Generates a fresh secp256k1 inbox key for [identityId] and persists it.
   ///
-  /// One-time keys are advertised publicly so other users can initiate a Signal
-  /// session without knowing the recipient's long-term identity key.
-  Future<Mykey> createOneTimeKey(int identityId) async {
+  /// Inbox keys are temporary Nostr receive addresses advertised publicly so
+  /// other users can send a first-contact (hello) message to this identity.
+  Future<Mykey> createInboxKey(int identityId) async {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
     final ontTimeKey =
@@ -356,8 +356,8 @@ class IdentityService {
     if (pubkeys.isEmpty) return [];
 
     // my receive onetime key
-    final oneTimeKeys = await getOneTimeKeys();
-    pubkeys.addAll(oneTimeKeys.map((e) => e.pubkey));
+    final inboxKeys = await getInboxKeys();
+    pubkeys.addAll(inboxKeys.map((e) => e.pubkey));
 
     return pubkeys.toList();
   }
@@ -397,9 +397,9 @@ class IdentityService {
     });
   }
 
-  /// Returns the [Mykey] if [toAddress] is one of this device's one-time keys,
+  /// Returns the [Mykey] if [toAddress] is one of this device's inbox keys,
   /// or null otherwise.
-  Future<Mykey?> isFromOnetimeKey(String toAddress) async {
+  Future<Mykey?> findInboxKey(String toAddress) async {
     final res = await DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
@@ -408,8 +408,8 @@ class IdentityService {
     return res.isNotEmpty ? res[0] : null;
   }
 
-  /// Returns all one-time keys across all identities, sorted by creation date.
-  Future<List<Mykey>> getOneTimeKeys() async {
+  /// Returns all inbox keys across all identities, sorted by creation date.
+  Future<List<Mykey>> getInboxKeys() async {
     return DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
@@ -417,8 +417,8 @@ class IdentityService {
         .findAll();
   }
 
-  /// Returns unused one-time keys for the given [identityId], sorted by creation date.
-  Future<List<Mykey>> getOneTimeKeyByIdentity(int identityId) async {
+  /// Returns unused inbox keys for the given [identityId], sorted by creation date.
+  Future<List<Mykey>> getInboxKeysByIdentity(int identityId) async {
     return DBProvider.database.mykeys
         .filter()
         .identityIdEqualTo(identityId)
@@ -428,11 +428,11 @@ class IdentityService {
         .findAll();
   }
 
-  /// Deletes one-time keys that were used more than 3 days ago.
+  /// Deletes inbox keys that were used more than 3 days ago.
   ///
-  /// Keeps a short grace period so in-flight messages can still be decrypted
+  /// Keeps a short grace period so in-flight messages can still be delivered
   /// before the keys are purged.
-  Future<void> deleteExpiredOneTimeKeys() async {
+  Future<void> deleteExpiredInboxKeys() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.mykeys
           .filter()
@@ -548,7 +548,7 @@ class IdentityService {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
-      mlsPubkeys.add(room.onetimekey!);
+      mlsPubkeys.add(room.receiveAddress!);
     }
     return mlsPubkeys.toList();
   }
@@ -568,7 +568,7 @@ class IdentityService {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
-      mlsPubkeys.add(room.onetimekey!);
+      mlsPubkeys.add(room.receiveAddress!);
     }
     return <String>{...signal, ...mlsPubkeys}.toList();
   }

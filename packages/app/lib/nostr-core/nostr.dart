@@ -793,9 +793,9 @@ class NostrAPI {
     Relay relay,
     void Function(String) failedCallback,
   ) async {
-    // mls group room. receive address is one-time-key field
+    // mls group room. receive address stored in Room.receiveAddress
     final to = event.getTagByKey(EventKindTags.pubkey)!;
-    final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
+    final mlsRoom = await RoomService.instance.getRoomByReceiveAddress(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
       await MlsGroupService.instance.decryptMessage(mlsRoom, event, (
         String msg,

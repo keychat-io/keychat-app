@@ -1167,7 +1167,7 @@ class _ChatPage2State extends State<ChatPage> {
             );
 
             while (true) {
-              final receivingKey = room.onetimekey!;
+              final receivingKey = room.receiveAddress!;
               EasyLoading.show(status: 'Receiving from: $receivingKey');
               await MlsGroupService.instance.waitingForEose(
                 receivingKey: receivingKey,
@@ -1178,7 +1178,7 @@ class _ChatPage2State extends State<ChatPage> {
                 controller.roomObs.value.id,
               );
 
-              if (receivingKey == room.onetimekey &&
+              if (receivingKey == room.receiveAddress &&
                   DateTime.now()
                           .difference(controller.lastMessageAddedAt)
                           .inSeconds >

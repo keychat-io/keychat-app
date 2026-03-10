@@ -163,7 +163,7 @@ class ContactPage extends StatelessWidget {
                           name: contact.displayName,
                           status: RoomStatus.enabled,
                           peerSignalIdentityKey: model?.signalIdentityKey,
-                          onetimekey: model?.onetimekey,
+                          receiveAddress: model?.receiveAddress,
                           encryptMode: EncryptMode.signal,
                           contact: contact,
                         );

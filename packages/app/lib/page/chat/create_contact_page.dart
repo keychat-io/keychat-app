@@ -216,38 +216,6 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
       // check if input is a bot npub
       final npub = rust_nostr.getBech32PubkeyByHex(hex: input);
       final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
-      for (final bot in homeController.recommendBots) {
-        if (bot['npub'] != npub) {
-          continue;
-        }
-        try {
-          final room = await RoomService.instance.getOrCreateRoom(
-            hexPubkey,
-            selectedIdentity.nostrIdentityKey,
-            RoomStatus.enabled,
-            contactName: bot['name'] as String?,
-            type: RoomType.bot,
-            identity: selectedIdentity,
-          );
-          await SignalChatService.instance.sendHelloMessage(
-            room,
-            selectedIdentity,
-          );
-          await ContactService.instance.addContactToFriend(
-            pubkey: hexPubkey,
-            identityId: selectedIdentity.id,
-            name: bot['name'] as String?,
-          );
-          await Utils.toNamedRoom(room);
-        } catch (e) {
-          logger.e('Failed to create room for bot: $e');
-          EasyLoading.showToast(
-            'Failed to create room for bot: ${Utils.getErrorMessage(e)}',
-          );
-        }
-        return;
-      }
-
       final exitRoom = await RoomService.instance.getRoomByIdentity(
         hexPubkey,
         selectedIdentity.id,

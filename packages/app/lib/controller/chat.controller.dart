@@ -687,7 +687,8 @@ class ChatController extends GetxController {
       newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
-    roomObs.value.peerSignalIdentityKey = newRoom.peerSignalIdentityKey; // force refresh
+    roomObs.value.peerSignalIdentityKey =
+        newRoom.peerSignalIdentityKey; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();
@@ -847,60 +848,6 @@ class ChatController extends GetxController {
     }
   }
 
-  Future<void> _initBotInfo() async {
-    final list = await NostrAPI.instance.fetchMetadata([
-      roomObs.value.toMainPubkey,
-    ]);
-    if (list.isEmpty) return;
-    final res = list.last;
-    final metadata = Map<String, dynamic>.from(
-      jsonDecode(res.content) as Map<String, dynamic>,
-    );
-    if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
-      botCommands.value = List<Map<String, dynamic>>.from(
-        (metadata['commands'] ?? []) as Iterable,
-      );
-      return;
-    }
-    // not a bot account
-    if (metadata['type'] == null) return;
-    if (!metadata['type'].toString().toLowerCase().endsWith('bot')) {
-      return;
-    }
-    roomObs.value.type = RoomType.bot;
-    roomObs.value.status = RoomStatus.enabled;
-
-    roomObs.value.botInfoUpdatedAt = res.createdAt;
-    botCommands.value = List<Map<String, dynamic>>.from(
-      (metadata['commands'] ?? []) as Iterable,
-    );
-
-    final metadataString = jsonEncode(metadata);
-    roomObs.value.botInfo = metadataString;
-    roomObs.value.name = metadata['name'] as String? ?? roomObs.value.name;
-    roomObs.value.description = metadata['description'] as String?;
-
-    // save config for botPricePerMessageRequest
-    if (metadata['botPricePerMessageRequest'] != null) {
-      try {
-        final config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService.instance.saveSystemMessage(
-          roomObs.value,
-          config,
-          suffix: '',
-          isMeSend: false,
-        );
-      } catch (e) {
-        logger.e(
-          'botPricePerMessageRequest: $e',
-          error: e,
-          stackTrace: StackTrace.current,
-        );
-      }
-    }
-    await RoomService.instance.updateRoomAndRefresh(roomObs.value);
-  }
-
   Future<void> _initRoom() async {
     // group
     if (roomObs.value.type == RoomType.group) {
@@ -954,8 +901,7 @@ class ChatController extends GetxController {
         fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
-        ).then((Contact? item) {
-          if (item == null) return;
+        ).then((item) {
           roomContact.value = item;
           roomObs.value.contact = item;
           roomObs.refresh();
@@ -1244,7 +1190,7 @@ class ChatController extends GetxController {
     bool compress = true,
   ]) async {
     /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
+    reader.getFile(format, (file) async {
       var suggestedName = await reader.getSuggestedName();
       final mimeType = format.mimeTypes?.first;
 
@@ -1369,7 +1315,7 @@ class ChatController extends GetxController {
         gifUrl,
         filePath,
         options: Options(responseType: ResponseType.bytes),
-        onReceiveProgress: (int received, int total) {
+        onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
             EasyLoading.showProgress(

@@ -11,7 +11,6 @@ import 'package:flutter_json_view/flutter_json_view.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/chat/LongTextPreviewPage.dart';
@@ -612,26 +611,10 @@ class MessageWidget extends StatelessWidget {
         }
       }
 
-      BotClientMessageModel? bcmm;
-      rust_cashu.TokenInfo? token;
-      if (message.isMeSend && cc.roomObs.value.type == RoomType.bot) {
-        try {
-          bcmm = BotClientMessageModel.fromJson(
-            jsonDecode(message.content) as Map<String, dynamic>,
-          );
-          if (bcmm.payToken != null) {
-            token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
-          }
-          // ignore: empty_catches
-        } catch (e) {}
-      }
       await _showRawData(
         message,
         ess,
         event,
-        botClientMessageModel: bcmm,
-        payToken: token,
-        payTokenString: bcmm?.payToken,
       );
       return;
     }
@@ -968,7 +951,6 @@ class MessageWidget extends StatelessWidget {
     Message message,
     List<NostrEventStatus> ess,
     NostrEventModel? event, {
-    BotClientMessageModel? botClientMessageModel,
     rust_cashu.TokenInfo? payToken,
     String? payTokenString,
   }) {
@@ -993,39 +975,6 @@ class MessageWidget extends StatelessWidget {
               children: [
                 relayStatusList(buildContext, ess),
                 const SizedBox(height: 12),
-
-                // Bot Payment Section
-                if (botClientMessageModel != null &&
-                    botClientMessageModel.priceModel != null)
-                  Column(
-                    children: [
-                      _buildSectionCard(
-                        buildContext,
-                        title: 'Pay To Chat',
-                        icon: Icons.payment,
-                        children: [
-                          _buildInfoRow(
-                            'Model',
-                            botClientMessageModel.priceModel ?? '',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Amount',
-                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Token',
-                            payTokenString ?? '',
-                            buildContext,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
 
                 // Encryption Info Section
                 _buildSectionCard(

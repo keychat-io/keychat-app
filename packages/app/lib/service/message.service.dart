@@ -1,7 +1,7 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:keychat/bot/bot_server_message_model.dart';
+import 'package:keychat/controller/chat.controller.dart' show ChatController;
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
@@ -42,13 +42,12 @@ class MessageService {
   }) async {
     model.receiveAt ??= DateTime.now();
     // none text type: media, file, cashu...
-    model = await _fillTypeForMessage(model, room.type == RoomType.bot);
+    model = await _fillTypeForMessage(model);
 
-    var isCurrentPage = dbProvider.isCurrentPage(model.roomId);
+    final isCurrentPage = dbProvider.isCurrentPage(model.roomId);
     if (!model.isRead) {
       if (isCurrentPage) {
-        if ((GetPlatform.isDesktop &&
-                Get.find<HomeController>().resumed == true) ||
+        if ((GetPlatform.isDesktop && Get.find<HomeController>().resumed) ||
             GetPlatform.isMobile) {
           model.isRead = true;
         }
@@ -582,7 +581,7 @@ $content'''
         .findAll();
   }
 
-  Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
+  Future<Message> _fillTypeForMessage(Message m) async {
     // cashu token
     if (m.mediaType == MessageMediaType.cashu ||
         m.content.startsWith('cashu')) {
@@ -615,18 +614,6 @@ $content'''
       return m;
     }
 
-    // bot message
-    if (isBot && !m.isMeSend) {
-      BotServerMessageModel? bmm;
-      try {
-        final map = jsonDecode(m.content) as Map<String, dynamic>;
-        bmm = BotServerMessageModel.fromJson(map);
-        m.mediaType = bmm.type;
-        m.realMessage = bmm.message;
-      } catch (e) {
-        // logger.i(e, stackTrace: s);
-      }
-    }
     return m;
   }
 

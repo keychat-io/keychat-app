@@ -1,7 +1,5 @@
 import 'dart:collection' as collection;
 import 'dart:convert' show jsonDecode, jsonEncode;
-
-import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
@@ -141,15 +139,6 @@ class RoomService extends BaseChatService {
           await database.mykeys.filter().idEqualTo(roomMykeyId).deleteFirst();
         }
         await database.roomMembers.filter().roomIdEqualTo(roomId).deleteAll();
-
-        // remove shared signalId
-        if (room.isKDFGroup && room.sharedSignalID != null) {
-          await DBProvider.database.signalIds
-              .filter()
-              .identityIdEqualTo(room.identityId)
-              .pubkeyEqualTo(room.sharedSignalID!)
-              .deleteAll();
-        }
       } else {
         if (signalIdPubkey != null && sameSignalIdrooms.length <= 1) {
           await DBProvider.database.signalIds
@@ -687,15 +676,6 @@ class RoomService extends BaseChatService {
         mediaType: mediaType,
       );
     }
-    // bot room
-    if (room.type == RoomType.bot && !content.startsWith('cashu')) {
-      return sendMessageToBot(
-        room,
-        room.getIdentity(),
-        content,
-        realMessage: realMessage,
-      );
-    }
 
     // signal chat
     if (room.encryptMode == EncryptMode.signal) {
@@ -744,73 +724,6 @@ class RoomService extends BaseChatService {
       );
     }
     throw Exception('not support encrypt mode');
-  }
-
-  Future<SendMessageResponse> sendMessageToBot(
-    Room room,
-    Identity identity,
-    String message, {
-    String? realMessage,
-  }) async {
-    BotClientMessageModel? cmm;
-    try {
-      cmm = BotClientMessageModel.fromJson(
-        jsonDecode(message) as Map<String, dynamic>,
-      );
-      // ignore: empty_catches
-    } catch (e) {}
-    if (cmm == null) {
-      cmm ??= BotClientMessageModel(
-        type: MessageMediaType.botText,
-        message: message,
-      );
-      final bmd = room.getBotMessagePriceModel();
-      if (bmd != null && !message.startsWith('/')) {
-        String? cashuTokenString;
-        if (bmd.price > 0) {
-          final cashuToken = await EcashUtils.getStamp(
-            amount: bmd.price,
-            token: bmd.unit,
-            mints: bmd.mints ?? [],
-          );
-          cashuTokenString = cashuToken.token;
-          final ecashBill = EcashBill(
-            amount: cashuToken.amount,
-            unit: cashuToken.unit ?? 'sat',
-            token: cashuTokenString,
-            roomId: room.id,
-            createdAt: DateTime.now(),
-          );
-          await DBProvider.database.writeTxn(() async {
-            await DBProvider.database.ecashBills.put(ecashBill);
-          });
-        }
-        cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
-      }
-    }
-    if (realMessage == null && message.startsWith('/')) {
-      realMessage = message;
-    }
-
-    final toSendMessage = jsonEncode(cmm.toJson());
-    logger.i('sendMessageToBot: $toSendMessage');
-    if (room.encryptMode == EncryptMode.signal) {
-      try {
-        return await SignalChatService.instance.sendMessage(
-          room,
-          toSendMessage,
-          realMessage: realMessage ?? message,
-        );
-      } catch (e) {
-        logger.e('send signal message to bot error', error: e);
-      }
-    }
-    return NostrAPI.instance.sendNip17Message(
-      room,
-      toSendMessage,
-      identity,
-      realMessage: realMessage ?? message,
-    );
   }
 
   Future<void> sendMessageToMultiRooms({

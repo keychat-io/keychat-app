@@ -1236,21 +1236,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
             markdownConfig,
             errorCallback,
           );
-        // bot
-        case MessageMediaType.botPricePerMessageRequest:
-          return _getActionWidget(
-            BotPricePerMessageRequestWidget(cc, message),
-            message,
-            markdownConfig,
-            errorCallback,
-          );
-        case MessageMediaType.botOneTimePaymentRequest:
-          return _getActionWidget(
-            BotOneTimePaymentRequestWidget(cc, message),
-            message,
-            markdownConfig,
-            errorCallback,
-          );
         case MessageMediaType.groupInvitationInfo:
           return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
@@ -1266,11 +1251,19 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           throw UnimplementedError();
         case MessageMediaType.pdf:
           throw UnimplementedError();
+        case MessageMediaType.messageReaction:
+          throw UnimplementedError();
         case MessageMediaType.botText:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.botPricePerMessageRequest:
+          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botSelectionRequest:
+          // TODO: Handle this case.
           throw UnimplementedError();
-        case MessageMediaType.messageReaction:
+        case MessageMediaType.botOneTimePaymentRequest:
+          // TODO: Handle this case.
           throw UnimplementedError();
       }
     } catch (e, s) {
@@ -1666,7 +1659,7 @@ $link
             textStyle: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
-          TableConfig(wrapper: RoomUtil.tableWrapper),
+          const TableConfig(wrapper: RoomUtil.tableWrapper),
         ],
       );
 

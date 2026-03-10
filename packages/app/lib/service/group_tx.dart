@@ -138,17 +138,6 @@ class GroupTx {
       roomUpdateAt: roomProfile.updatedAt,
     );
 
-    // import signalId for kdf group
-    if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
-      if (message != null) {
-        message.content = '******';
-        await DBProvider.database.messages.put(message);
-      }
-      await SignalIdService.instance.importOrGetSignalId(
-        groupRoom.identityId,
-        roomProfile,
-      );
-    }
     return groupRoom;
   }
 }

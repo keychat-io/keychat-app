@@ -247,7 +247,7 @@ class _AddBotPageState extends State<AddBotPage> {
         selectedIdentity.nostrIdentityKey,
         RoomStatus.enabled,
         contactName: name,
-        type: RoomType.freebot,
+        type: RoomType.agent,
         identity: selectedIdentity,
         encryptMode: encryptMode,
       );

@@ -208,10 +208,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     },
                     leading: const Icon(CupertinoIcons.mail),
                   ),
-                if (cc.roomObs.value.isShareKeyGroup ||
-                    cc.roomObs.value.isKDFGroup ||
-                    cc.roomObs.value.isMLSGroup)
-                  RoomUtil.muteSection(cc),
+                if (cc.roomObs.value.isMLSGroup) RoomUtil.muteSection(cc),
                 SettingsTile.navigation(
                   leading: const Icon(CupertinoIcons.search),
                   title: const Text('Search History'),
@@ -636,9 +633,6 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   }
 
   Future<void> _handleUpdateMyNickname(BuildContext context) async {
-    if (cc.roomObs.value.isKDFGroup || cc.roomObs.value.isShareKeyGroup) {
-      return;
-    }
     final userNameController = TextEditingController(
       text: myAlias,
     );

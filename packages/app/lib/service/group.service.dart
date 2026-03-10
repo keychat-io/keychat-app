@@ -233,7 +233,6 @@ class GroupService extends BaseChatService {
   /// Processes an incoming group message and persists it to the database.
   ///
   /// Handles system subtypes dispatched via [groupMessage.subtype]:
-  /// - [KeyChatEventKinds.groupHi]: new member join greeting
   /// - [KeyChatEventKinds.groupChangeNickname]: member nickname update
   /// - [KeyChatEventKinds.groupSelfLeave]: voluntary member exit
   /// - [KeyChatEventKinds.groupDissolve]: admin-initiated group dissolution
@@ -280,11 +279,7 @@ class GroupService extends BaseChatService {
     if (subType != null) {
       toSaveMsg.isSystem = true;
     }
-    final updatedAt = timestampToDateTime(event.createdAt * 1000);
     switch (subType) {
-      case KeyChatEventKinds.groupHi:
-        final newName = groupMessage.message.split(joinGreeting)[0];
-        await _processHelloMessage(room, signPubkey, updatedAt, newName);
       case KeyChatEventKinds.groupChangeNickname:
         if (groupMessage.ext != null) {
           await room.updateMemberName(
@@ -529,10 +524,8 @@ class GroupService extends BaseChatService {
         }
         final member = await groupRoom.getMemberByIdPubkey(room.toMainPubkey);
         if (member == null) {
-          if (gm.subtype != KeyChatEventKinds.groupHi) {
-            logger.i('Not a member in group ${groupRoom.id}');
-            return;
-          }
+          logger.i('Not a member in group ${groupRoom.id}');
+          return;
         }
         return processGroupMessage(
           groupRoom,
@@ -810,31 +803,6 @@ class GroupService extends BaseChatService {
     RoomService.getController(roomId)?.resetMembers();
   }
 
-  /// Updates the shared key (mykey) associated with a shareKey group room.
-  ///
-  /// No-ops if the room is not a share-key group or if the new key is already
-  /// set. Replaces the previous mykey record in the database with [newMykey]
-  /// and removes the old record.
-  Future<void> updateRoomMykey(Room room, Mykey newMykey) async {
-    if (!room.isShareKeyGroup) {
-      return;
-    }
-    final database = DBProvider.database;
-    final mykeyId = room.mykey.value?.id;
-    if (mykeyId != null && mykeyId == newMykey.id) {
-      return;
-    }
-    await database.writeTxn(() async {
-      room.mykey.value = newMykey;
-      await database.rooms.put(room);
-      await room.mykey.save();
-
-      if (mykeyId != null) {
-        await database.mykeys.filter().idEqualTo(mykeyId).deleteFirst();
-      }
-    });
-  }
-
   // Creates a new group room record in the database.
   // For sendAll groups, also creates a Signal identity and initializes the member list.
   Future<Room> _createGroupToDB(
@@ -1009,27 +977,6 @@ class GroupService extends BaseChatService {
     await queue.onComplete;
   }
 
-  // Updates the member's join status and name after receiving a groupHi greeting.
-  Future<void> _processHelloMessage(
-    Room groupRoom,
-    String idPubkey,
-    DateTime updatedAt,
-    String name,
-  ) async {
-    final rm = await groupRoom.getMemberByIdPubkey(idPubkey);
-    if (rm == null) {
-      logger.i('Not a member in group ${groupRoom.id}, $idPubkey');
-      return;
-    }
-
-    rm.status = UserStatusType.invited;
-    rm.updatedAt = updatedAt;
-    rm.name = name;
-    await groupRoom.updateMember(rm);
-
-    updateChatControllerMembers(groupRoom.id);
-  }
-
   // Received the news that I was baned from the group
   // Handles a pairwise DM notification that the local user has been removed from a group.
   Future<void> _processGroupRemoveSingleMember(
@@ -1169,7 +1116,7 @@ ${rm.idPubkey}
     NostrEventModel event,
     KeychatMessage km,
   ) async {
-    RoomService.instance.receiveDM(
+    await RoomService.instance.receiveDM(
       room,
       event,
       decodedContent: km.name,

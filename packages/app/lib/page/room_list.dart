@@ -164,13 +164,6 @@ class RoomList extends GetView<HomeController> {
                     return const SizedBox();
                   }
                   if (index == 1) {
-                    return Container();
-                    // return RecommendBots(
-                    //   data.identity,
-                    //   List<Room>.from(rooms.sublist(4)),
-                    // );
-                  }
-                  if (index == 2) {
                     return getNewFriendsWidget(
                       data,
                       rooms[2] as List<Room>,
@@ -180,7 +173,7 @@ class RoomList extends GetView<HomeController> {
                       context,
                     );
                   }
-                  if (index == 3) {
+                  if (index == 2) {
                     return getRequestingWidget(
                       data,
                       rooms[3] as List<Room>,

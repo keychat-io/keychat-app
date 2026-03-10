@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:keychat/bot/bot_server_message_model.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/service/chatx.service.dart';
@@ -21,7 +18,7 @@ enum RoomType {
   group,
   @Deprecated('use keychat agent instead')
   bot,
-  freebot,
+  agent,
 }
 
 enum GroupType {
@@ -157,10 +154,6 @@ class Room extends Equatable {
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
-  @Deprecated('use groupType == GroupType.shareKey instead')
-  bool get isShareKeyGroup => groupType == GroupType.shareKey;
-  @Deprecated('use groupType == GroupType.kdf instead')
-  bool get isKDFGroup => groupType == GroupType.kdf;
 
   @override
   List<Object?> get props => [
@@ -501,10 +494,6 @@ class Room extends Equatable {
     if (type == RoomType.group) {
       return name ?? getPublicKeyDisplay(npub);
     }
-    if (type == RoomType.bot) {
-      return name ?? getPublicKeyDisplay(npub);
-    }
-
     contact ??= DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(toMainPubkey)
@@ -567,20 +556,5 @@ class Room extends Equatable {
 $error
 Room: $id, ${getRoomName()} $toMainPubkey,
 Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
-  }
-
-  BotMessageData? getBotMessagePriceModel() {
-    if (botLocalConfig == null) return null;
-    BotMessageData? bmd;
-    try {
-      final Map config = jsonDecode(botLocalConfig!) as Map<String, dynamic>;
-      bmd = BotMessageData.fromJson(
-        config[MessageMediaType.botPricePerMessageRequest.name]
-            as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return null;
-    }
-    return bmd;
   }
 }

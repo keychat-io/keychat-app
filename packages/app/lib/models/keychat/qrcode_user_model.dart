@@ -39,6 +39,7 @@ class QRUserModel {
   /// Signal identity pubkey (curve25519 hex).
   @JsonKey(readValue: _readSignalIdentityKey)
   late String signalIdentityKey;
+
   /// Nostr temporary inbox pubkey for first-message delivery (NOT a Signal one-time prekey).
   /// Reads from both `"receiveAddress"` (v2) and `"onetimekey"` (v1) for backward compatibility.
   @JsonKey(readValue: _readReceiveAddress)
@@ -66,7 +67,13 @@ class QRUserModel {
   @override
   String toString() => jsonEncode(toJson());
 
-  Map<String, dynamic> toJson() => _$QRUserModelToJson(this);
+  Map<String, dynamic> toJson() => {
+    ..._$QRUserModelToJson(this),
+    // Legacy key aliases for backward compatibility with old clients
+    'pubkey': nostrIdentityKey,
+    'curve25519PkHex': signalIdentityKey,
+    'onetimekey': receiveAddress,
+  };
 
   String toShortStringForQrcode() {
     final data =

@@ -14,8 +14,13 @@ const MsgReplySchema = Schema(
   id: 7553635655516899327,
   properties: {
     r'content': PropertySchema(id: 0, name: r'content', type: IsarType.string),
-    r'id': PropertySchema(id: 1, name: r'id', type: IsarType.string),
-    r'user': PropertySchema(id: 2, name: r'user', type: IsarType.string),
+    r'eventId': PropertySchema(id: 1, name: r'eventId', type: IsarType.string),
+    r'userId': PropertySchema(id: 2, name: r'userId', type: IsarType.string),
+    r'userName': PropertySchema(
+      id: 3,
+      name: r'userName',
+      type: IsarType.string,
+    ),
   },
 
   estimateSize: _msgReplyEstimateSize,
@@ -32,12 +37,23 @@ int _msgReplyEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.content.length * 3;
   {
-    final value = object.id;
+    final value = object.eventId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.user.length * 3;
+  {
+    final value = object.userId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.userName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -48,8 +64,9 @@ void _msgReplySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.content);
-  writer.writeString(offsets[1], object.id);
-  writer.writeString(offsets[2], object.user);
+  writer.writeString(offsets[1], object.eventId);
+  writer.writeString(offsets[2], object.userId);
+  writer.writeString(offsets[3], object.userName);
 }
 
 MsgReply _msgReplyDeserialize(
@@ -60,8 +77,9 @@ MsgReply _msgReplyDeserialize(
 ) {
   final object = MsgReply();
   object.content = reader.readString(offsets[0]);
-  object.id = reader.readStringOrNull(offsets[1]);
-  object.user = reader.readString(offsets[2]);
+  object.eventId = reader.readStringOrNull(offsets[1]);
+  object.userId = reader.readStringOrNull(offsets[2]);
+  object.userName = reader.readStringOrNull(offsets[3]);
   return object;
 }
 
@@ -77,7 +95,9 @@ P _msgReplyDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -231,30 +251,30 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idIsNull() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'id'),
+        const FilterCondition.isNull(property: r'eventId'),
       );
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idIsNotNull() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'id'),
+        const FilterCondition.isNotNull(property: r'eventId'),
       );
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idEqualTo(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -262,7 +282,7 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idGreaterThan(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -271,7 +291,7 @@ extension MsgReplyQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -279,7 +299,7 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idLessThan(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -288,7 +308,7 @@ extension MsgReplyQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -296,7 +316,7 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idBetween(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -306,7 +326,7 @@ extension MsgReplyQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'id',
+          property: r'eventId',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -317,14 +337,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idStartsWith(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -332,14 +352,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idEndsWith(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -347,14 +367,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idContains(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdContains(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'id',
+          property: r'eventId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -362,14 +382,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idMatches(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdMatches(
     String pattern, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'id',
+          property: r'eventId',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -377,30 +397,46 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idIsEmpty() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'id', value: ''),
+        FilterCondition.equalTo(property: r'eventId', value: ''),
       );
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> idIsNotEmpty() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> eventIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'id', value: ''),
+        FilterCondition.greaterThan(property: r'eventId', value: ''),
       );
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userEqualTo(
-    String value, {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'userId'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'userId'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdEqualTo(
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -408,8 +444,8 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userGreaterThan(
-    String value, {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdGreaterThan(
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -417,7 +453,7 @@ extension MsgReplyQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -425,8 +461,8 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userLessThan(
-    String value, {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdLessThan(
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -434,7 +470,7 @@ extension MsgReplyQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -442,9 +478,9 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userBetween(
-    String lower,
-    String upper, {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdBetween(
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -452,7 +488,7 @@ extension MsgReplyQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'user',
+          property: r'userId',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -463,14 +499,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userStartsWith(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -478,14 +514,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userEndsWith(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -493,14 +529,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userContains(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdContains(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'user',
+          property: r'userId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -508,14 +544,14 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userMatches(
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdMatches(
     String pattern, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'user',
+          property: r'userId',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -523,18 +559,180 @@ extension MsgReplyQueryFilter
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIsEmpty() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'user', value: ''),
+        FilterCondition.equalTo(property: r'userId', value: ''),
       );
     });
   }
 
-  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIsNotEmpty() {
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'user', value: ''),
+        FilterCondition.greaterThan(property: r'userId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'userName'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'userName'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'userName',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'userName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'userName',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'userName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<MsgReply, MsgReply, QAfterFilterCondition> userNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'userName', value: ''),
       );
     });
   }
@@ -548,12 +746,14 @@ extension MsgReplyQueryObject
 // **************************************************************************
 
 MsgReply _$MsgReplyFromJson(Map<String, dynamic> json) => MsgReply()
-  ..id = json['id'] as String?
-  ..user = json['user'] as String
-  ..content = json['content'] as String;
+  ..eventId = json['eventId'] as String?
+  ..content = json['content'] as String
+  ..userId = json['userId'] as String?
+  ..userName = json['userName'] as String?;
 
 Map<String, dynamic> _$MsgReplyToJson(MsgReply instance) => <String, dynamic>{
-  'id': ?instance.id,
-  'user': instance.user,
+  'eventId': ?instance.eventId,
   'content': instance.content,
+  'userId': ?instance.userId,
+  'userName': ?instance.userName,
 };

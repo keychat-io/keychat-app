@@ -224,7 +224,6 @@ class MlsGroupService extends BaseChatService {
     return room;
   }
 
-  /// Decrypts and processes an incoming MLS message (Nostr kind 445).
   ///
   /// Parses the message type via Rust FFI [rust_mls.parseMlsMsgType], then
   /// routes to [_proccessTryProposalIn] for commit messages (member add/remove/
@@ -232,7 +231,6 @@ class MlsGroupService extends BaseChatService {
   ///
   /// Ignores duplicate events already stored in the database.
   /// Calls [failedCallback] with an error description on decryption failure.
-  // kind 445
   Future<void> decryptMessage(
     Room room,
     NostrEventModel event,
@@ -827,7 +825,7 @@ class MlsGroupService extends BaseChatService {
   /// Sends a raw MLS-encrypted message payload to the group's one-time key.
   ///
   /// Uses a freshly generated random Nostr keypair as the sender to preserve
-  /// anonymity. The payload is sent as NIP-17 (kind 1059 wrapping kind 445).
+  /// anonymity. The payload is sent as NIP-17.
   /// Used for system messages like commit notifications and group state changes.
   ///
   /// Throws [Exception] if the group's [Room.receiveAddress] is null.
@@ -972,39 +970,6 @@ class MlsGroupService extends BaseChatService {
       isEncryptedMessage: true,
     );
     return smr;
-  }
-
-  /// Shares a group invitation with one or more contacts.
-  ///
-  /// Sends a [KeyChatEventKinds.groupInvitationInfo] message to each contact
-  /// in [toUsers], containing the group's name, pubkey, and sender identity.
-  /// Recipients can use this to send a join request to the group admin.
-  Future<void> shareToFriends(
-    Room room,
-    List<Room> toUsers,
-    String realMessage,
-  ) async {
-    final gim = GroupInvitationModel(
-      name: room.name ?? room.toMainPubkey,
-      pubkey: room.toMainPubkey,
-      sender: room.myIdPubkey,
-      time: DateTime.now().millisecondsSinceEpoch,
-      sig: '',
-    );
-    final sm =
-        KeychatMessage(
-            c: MessageType.mls,
-            type: KeyChatEventKinds.groupInvitationInfo,
-          )
-          ..name = gim.toString()
-          ..msg = realMessage;
-    await RoomService.instance.sendMessageToMultiRooms(
-      message: sm.toString(),
-      realMessage: sm.msg!,
-      rooms: toUsers,
-      identity: room.getIdentity(),
-      mediaType: MessageMediaType.groupInvitationInfo,
-    );
   }
 
   /// Updates the MLS group name by committing a group context extension change.
@@ -1590,7 +1555,9 @@ class MlsGroupService extends BaseChatService {
             .timeout(const Duration(seconds: 2));
         logger.i('[MLS] Fetched new pubkey for room ${room.id}: $newPubkey');
         if (room.receiveAddress == null || room.receiveAddress != newPubkey) {
-          loggerNoLine.i('[MLS] Room ${room.id} update receive address $newPubkey');
+          loggerNoLine.i(
+            '[MLS] Room ${room.id} update receive address $newPubkey',
+          );
           room.receiveAddress = newPubkey;
           await RoomService.instance.updateRoomAndRefresh(room);
           Get.find<WebsocketService>().listenPubkeyNip17(

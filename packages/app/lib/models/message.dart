@@ -40,6 +40,7 @@ enum MessageMediaType {
   botSelectionRequest,
   @Deprecated('not used')
   botOneTimePaymentRequest,
+  @Deprecated('not used')
   groupInvitationInfo,
   groupInvitationRequesting,
   lightningInvoice,

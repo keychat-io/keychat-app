@@ -275,10 +275,10 @@ class ChatController extends GetxController {
       if (sourceMessage != null) {
         reply = MsgReply()
           ..content = sourceMessage.realMessage ?? sourceMessage.content
-          ..user = sourceMessage.fromContact?.name ?? '';
+          ..userName = sourceMessage.fromContact?.name ?? '';
         // if it is not text, show media type name
         if (sourceMessage.mediaType != MessageMediaType.text) {
-          reply.id = sourceMessage.msgid;
+          reply.eventId = sourceMessage.msgid;
         }
       }
       if (GetPlatform.isMobile) {
@@ -1374,10 +1374,10 @@ class ChatController extends GetxController {
     }
     final reply = MsgReply()
       ..content = message.realMessage ?? message.content
-      ..user = message.fromContact?.name ?? '';
+      ..userName = message.fromContact?.name ?? '';
     // if it is not text, show media type name
     if (message.mediaType != MessageMediaType.text) {
-      reply.id = message.msgid;
+      reply.eventId = message.msgid;
     }
     return RoomService.instance.sendMessage(
       roomObs.value,

@@ -933,7 +933,9 @@ Let's start an encrypted chat.''';
     }
     identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.nostrIdentityKey);
+    final pubkey = rust_nostr.getHexPubkeyByBech32(
+      bech32: model.nostrIdentityKey,
+    );
     final npub = rust_nostr.getBech32PubkeyByHex(hex: model.nostrIdentityKey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
@@ -1236,8 +1238,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
             markdownConfig,
             errorCallback,
           );
-        case MessageMediaType.groupInvitationInfo:
-          return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
           return GroupInvitationRequestingWidget(cc, message, errorCallback);
         case MessageMediaType.profileRequest:
@@ -1263,6 +1263,9 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botOneTimePaymentRequest:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.groupInvitationInfo:
           // TODO: Handle this case.
           throw UnimplementedError();
       }

@@ -766,7 +766,7 @@ class MessageWidget extends StatelessWidget {
 
   Widget _getReplyWidget() {
     Widget? subTitleChild;
-    if (message.reply!.id == null) {
+    if (message.reply!.eventId == null) {
       subTitleChild = GestureDetector(
         onDoubleTap: () {
           Get.to(
@@ -788,7 +788,7 @@ class MessageWidget extends StatelessWidget {
       );
     } else {
       final msg = MessageService.instance.getMessageByMsgIdSync(
-        message.reply!.id!,
+        message.reply!.eventId!,
       );
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
@@ -838,7 +838,7 @@ class MessageWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  message.reply!.user,
+                  message.reply!.userName ?? message.reply!.userId ?? '',
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
                     color: Colors.purple.shade300,

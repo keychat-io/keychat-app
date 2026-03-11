@@ -14,11 +14,23 @@ QRUserModel _$QRUserModelFromJson(Map<String, dynamic> json) => QRUserModel()
       QRUserModel._readSignalIdentityKey(json, 'signalIdentityKey') as String
   ..receiveAddress =
       QRUserModel._readReceiveAddress(json, 'receiveAddress') as String
-  ..signedId = (json['signedId'] as num).toInt()
-  ..signedPublic = json['signedPublic'] as String
-  ..signedSignature = json['signedSignature'] as String
-  ..prekeyId = (json['prekeyId'] as num).toInt()
-  ..prekeyPubkey = json['prekeyPubkey'] as String
+  ..signalSignedPrekeyId =
+      (QRUserModel._readSignalSignedPrekeyId(json, 'signalSignedPrekeyId')
+              as num)
+          .toInt()
+  ..signalSignedPrekey =
+      QRUserModel._readSignalSignedPrekey(json, 'signalSignedPrekey') as String
+  ..signalSignedPrekeySignature =
+      QRUserModel._readSignalSignedPrekeySignature(
+              json, 'signalSignedPrekeySignature')
+          as String
+  ..signalOneTimePrekeyId =
+      (QRUserModel._readSignalOneTimePrekeyId(json, 'signalOneTimePrekeyId')
+              as num)
+          .toInt()
+  ..signalOneTimePrekey =
+      QRUserModel._readSignalOneTimePrekey(json, 'signalOneTimePrekey')
+          as String
   ..globalSign = json['globalSign'] as String
   ..relay = json['relay'] as String
   ..time = (json['time'] as num).toInt()
@@ -31,11 +43,11 @@ Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
       'nostrIdentityKey': instance.nostrIdentityKey,
       'signalIdentityKey': instance.signalIdentityKey,
       'receiveAddress': instance.receiveAddress,
-      'signedId': instance.signedId,
-      'signedPublic': instance.signedPublic,
-      'signedSignature': instance.signedSignature,
-      'prekeyId': instance.prekeyId,
-      'prekeyPubkey': instance.prekeyPubkey,
+      'signalSignedPrekeyId': instance.signalSignedPrekeyId,
+      'signalSignedPrekey': instance.signalSignedPrekey,
+      'signalSignedPrekeySignature': instance.signalSignedPrekeySignature,
+      'signalOneTimePrekeyId': instance.signalOneTimePrekeyId,
+      'signalOneTimePrekey': instance.signalOneTimePrekey,
       'globalSign': instance.globalSign,
       'relay': instance.relay,
       'time': instance.time,

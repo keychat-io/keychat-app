@@ -178,7 +178,7 @@ class ContactPage extends StatelessWidget {
                           }
                         }
                         if (room0.peerSignalIdentityKey != null &&
-                            model?.signedId != null) {
+                            model?.signalSignedPrekeyId != null) {
                           if (model == null) {
                             EasyLoading.showError(
                               'Signal Session create failed. Please generate a new QR Code',
@@ -187,16 +187,16 @@ class ContactPage extends StatelessWidget {
                           }
                           final res = await Get.find<ChatxService>().addRoomKPA(
                             room: room0,
-                            bobSignedId: model!.signedId,
+                            bobSignedId: model!.signalSignedPrekeyId,
                             bobSignedPublic: Uint8List.fromList(
-                              hex.decode(model!.signedPublic),
+                              hex.decode(model!.signalSignedPrekey),
                             ),
                             bobSignedSignature: Uint8List.fromList(
-                              hex.decode(model!.signedSignature),
+                              hex.decode(model!.signalSignedPrekeySignature),
                             ),
-                            bobPrekeyId: model!.prekeyId,
+                            bobPrekeyId: model!.signalOneTimePrekeyId,
                             bobPrekeyPublic: Uint8List.fromList(
-                              hex.decode(model!.prekeyPubkey),
+                              hex.decode(model!.signalOneTimePrekey),
                             ),
                           );
                           if (!res) {

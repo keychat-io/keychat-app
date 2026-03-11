@@ -457,13 +457,13 @@ class SignalChatService extends BaseChatService {
 
     final res = await Get.find<ChatxService>().addRoomKPA(
       room: room,
-      bobSignedId: model.signedId,
-      bobSignedPublic: Uint8List.fromList(hex.decode(model.signedPublic)),
+      bobSignedId: model.signalSignedPrekeyId,
+      bobSignedPublic: Uint8List.fromList(hex.decode(model.signalSignedPrekey)),
       bobSignedSignature: Uint8List.fromList(
-        hex.decode(model.signedSignature),
+        hex.decode(model.signalSignedPrekeySignature),
       ),
-      bobPrekeyId: model.prekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)),
+      bobPrekeyId: model.signalOneTimePrekeyId,
+      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.signalOneTimePrekey)),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;

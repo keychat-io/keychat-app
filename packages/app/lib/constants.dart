@@ -65,9 +65,6 @@ class KeyChatEventKinds {
 
   /// Share MLS group invitation info with a contact (1:1 channel).
   static const int groupInvitationInfo = 3008;
-
-  /// Request to join an MLS group (sent to existing member via 1:1 channel).
-  static const int groupInvitationRequesting = 3009;
 }
 
 class EventKindTags {

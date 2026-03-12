@@ -865,58 +865,6 @@ class MlsGroupService extends BaseChatService {
     return smr;
   }
 
-  /// Sends a join request to the group admin via private message.
-  ///
-  /// Creates or reuses a direct message room with the group admin ([gim.sender])
-  /// and sends a [KeyChatEventKinds.groupInvitationRequesting] message containing
-  /// the requester's display name.
-  ///
-  /// Throws [Exception] if [identity] is already a member of the group.
-  Future<void> sendJoinGroupRequest(
-    GroupInvitationModel gim,
-    Identity identity,
-  ) async {
-    if (gim.pubkey == identity.nostrIdentityKey) {
-      throw Exception('You are already in this group');
-    }
-    final girm = GroupInvitationRequestModel(
-      name: gim.name,
-      roomPubkey: gim.pubkey,
-      myPubkey: identity.nostrIdentityKey,
-      myName: identity.displayName,
-      time: DateTime.now().millisecondsSinceEpoch,
-      mlsPK: '',
-      sig: '',
-    );
-    var room = await RoomService.instance.getRoomByIdentity(
-      gim.sender,
-      identity.id,
-    );
-    if (room == null) {
-      room = await RoomService.instance.createRoomAndsendInvite(
-        gim.sender,
-        identity: identity,
-        autoJump: false,
-      );
-      await Future.delayed(const Duration(seconds: 1));
-    }
-    if (room == null) {
-      throw Exception('Room not found or create failed');
-    }
-    final sm =
-        KeychatMessage(
-            c: MessageType.mls,
-            type: KeyChatEventKinds.groupInvitationRequesting,
-          )
-          ..name = girm.toString()
-          ..msg = 'Request to join group: ${gim.name}';
-    await RoomService.instance.sendMessage(
-      room,
-      sm.toString(),
-      realMessage: sm.msg,
-    );
-  }
-
   /// Encrypts and sends a user message to the MLS group.
   ///
   /// Encrypts [message] using the MLS Rust FFI [rust_mls.createMessage], then

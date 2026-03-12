@@ -1238,8 +1238,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
             markdownConfig,
             errorCallback,
           );
-        case MessageMediaType.groupInvitationRequesting:
-          return GroupInvitationRequestingWidget(cc, message, errorCallback);
         case MessageMediaType.profileRequest:
           return ProfileRequestWidget(
             cc,
@@ -1266,6 +1264,9 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.groupInvitationInfo:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.groupInvitationRequesting:
           // TODO: Handle this case.
           throw UnimplementedError();
       }

@@ -42,6 +42,7 @@ enum MessageMediaType {
   botOneTimePaymentRequest,
   @Deprecated('not used')
   groupInvitationInfo,
+  @Deprecated('not used')
   groupInvitationRequesting,
   lightningInvoice,
   profileRequest, // sync my profile to others

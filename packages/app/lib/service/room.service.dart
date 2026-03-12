@@ -90,10 +90,6 @@ class RoomService extends BaseChatService {
           ..encryptMode = encryptMode ?? EncryptMode.nip17
           ..peerSignalIdentityKey = peerSignalIdentityKey
           ..mySignalIdentityKey = signalId.pubkey;
-    // set bot room's name
-    if (room.type == RoomType.bot) {
-      room.name = name;
-    }
     // chat with myself
     if (toMainPubkey == identity.nostrIdentityKey) {
       room.encryptMode = EncryptMode.nip04;
@@ -595,7 +591,7 @@ class RoomService extends BaseChatService {
     String? requestId,
   }) async {
     var content = decodedContent ?? km?.msg ?? event.content;
-    senderPubkey ??= (room.type == RoomType.common || room.type == RoomType.bot)
+    senderPubkey ??= (room.type == RoomType.common)
         ? room.toMainPubkey
         : event.pubkey;
     final isMeSend = senderPubkey == room.myIdPubkey;

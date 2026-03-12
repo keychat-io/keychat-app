@@ -140,8 +140,7 @@ class NostrAPI {
     final event = NostrEventModel.deserialize(eventList, verify: false);
 
     // Skip duplicates already in pool or already handled
-    if (handledEventIds.contains(event.id) ||
-        !_poolEventIds.add(event.id)) {
+    if (handledEventIds.contains(event.id) || !_poolEventIds.add(event.id)) {
       return;
     }
 
@@ -295,15 +294,11 @@ class NostrAPI {
     String? realMessage,
     String? sourceContent,
     bool isEncryptedMessage = false,
-    String? signalReceiveAddress,
     String? msgKeyHash,
   }) async {
     late String encryptedEvent;
     if (isEncryptedMessage) {
       final receiverPubkeys = [toPubkey];
-      if (signalReceiveAddress != null) {
-        receiverPubkeys.add(signalReceiveAddress);
-      }
       encryptedEvent = await rust_nostr.getUnencryptEvent(
         senderKeys: prikey,
         receiverPubkeys: receiverPubkeys,
@@ -798,7 +793,7 @@ class NostrAPI {
     final mlsRoom = await RoomService.instance.getRoomByReceiveAddress(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
       await MlsGroupService.instance.decryptMessage(mlsRoom, event, (
-        String msg,
+        msg,
       ) async {
         failedCallback(msg);
         await RoomUtil.appendMessageOrCreate(

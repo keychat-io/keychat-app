@@ -113,9 +113,8 @@ class SignalChatService extends BaseChatService {
     }
 
     final senderKey = await rust_nostr.generateSimple();
-    final toPubkey = room.type == RoomType.bot ? room.toMainPubkey : to;
     final smr = await NostrAPI.instance.sendEventMessage(
-      toPubkey,
+      to,
       base64.encode(ciphertext),
       save: save,
       prikey: senderKey.prikey,
@@ -129,7 +128,6 @@ class SignalChatService extends BaseChatService {
       mediaType: mediaType,
       isEncryptedMessage: true,
       msgKeyHash: msgKeyHash,
-      signalReceiveAddress: room.type == RoomType.bot ? to : null,
     );
     smr.toAddPubkeys = toAddPubkeys;
     return smr;
@@ -249,7 +247,8 @@ class SignalChatService extends BaseChatService {
       // if receive address is signalAddress, then remove room.receiveAddress
       if (room.receiveAddress != null) {
         final toAddress = (sourceEvent ?? event).tags[0][1];
-        if (toAddress != room.toMainPubkey && toAddress != room.receiveAddress!) {
+        if (toAddress != room.toMainPubkey &&
+            toAddress != room.receiveAddress!) {
           room.receiveAddress = null;
           await RoomService.instance.updateRoom(room);
         }
@@ -463,7 +462,9 @@ class SignalChatService extends BaseChatService {
         hex.decode(model.signalSignedPrekeySignature),
       ),
       bobPrekeyId: model.signalOneTimePrekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.signalOneTimePrekey)),
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(model.signalOneTimePrekey),
+      ),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;

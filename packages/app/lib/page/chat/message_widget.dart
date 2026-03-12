@@ -1306,11 +1306,7 @@ class MessageWidget extends StatelessWidget {
         label: 'Copy All',
         onPressed: () {
           ContextMenuController.removeAny();
-          var content = message.content;
-          if (message.realMessage != null &&
-              cc.roomObs.value.type == RoomType.bot) {
-            content = message.realMessage!;
-          }
+          final content = message.content;
           Clipboard.setData(ClipboardData(text: content));
           EasyLoading.showToast('Copied');
         },
@@ -1384,11 +1380,7 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
           onTap: () async {
-            var content = message.content;
-            if (message.realMessage != null &&
-                cc.roomObs.value.type == RoomType.bot) {
-              content = message.realMessage!;
-            }
+            final content = message.content;
             await Clipboard.setData(ClipboardData(text: content));
             EasyLoading.showToast('Copied');
           },
@@ -1624,13 +1616,10 @@ class MessageWidget extends StatelessWidget {
                         title: const Text('Copy'),
                         leading: const Icon(Icons.copy),
                         onPressed: (context) async {
-                          var conent = message.content;
-                          if (message.realMessage != null &&
-                              cc.roomObs.value.type == RoomType.bot) {
-                            conent = message.realMessage!;
-                          }
-                          Clipboard.setData(ClipboardData(text: conent));
-                          EasyLoading.showToast('Copied');
+                          await Clipboard.setData(
+                            ClipboardData(text: message.content),
+                          );
+                          await EasyLoading.showToast('Copied');
                           Get.back<void>();
                         },
                       ),

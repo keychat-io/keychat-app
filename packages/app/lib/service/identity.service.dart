@@ -42,11 +42,11 @@ class IdentityService {
     return database.identitys.where().count();
   }
 
-  /// Generates a fresh secp256k1 one-time key for [identityId] and persists it.
+  /// Generates a fresh secp256k1 inbox key for [identityId] and persists it.
   ///
-  /// One-time keys are advertised publicly so other users can initiate a Signal
-  /// session without knowing the recipient's long-term identity key.
-  Future<Mykey> createOneTimeKey(int identityId) async {
+  /// Inbox keys are temporary Nostr receive addresses advertised publicly so
+  /// other users can send a first-contact (hello) message to this identity.
+  Future<Mykey> createInboxKey(int identityId) async {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
     final ontTimeKey =
@@ -139,7 +139,7 @@ class IdentityService {
             secp256k1PKHex: account.pubkey,
             npub: account.pubkeyBech32,
           )
-          ..curve25519PkHex = account.curve25519PkHex
+          ..signalIdentityKey = account.curve25519PkHex
           ..index = index;
 
     // Save to database with keys
@@ -149,11 +149,11 @@ class IdentityService {
         account.mnemonic!,
       );
       await SecureStorage.instance.write(
-        identity.secp256k1PKHex,
+        identity.nostrIdentityKey,
         account.prikey,
       );
       await SecureStorage.instance.write(
-        identity.curve25519PkHex!,
+        identity.signalIdentityKey!,
         account.curve25519SkHex!,
       );
     });
@@ -249,8 +249,8 @@ class IdentityService {
     final database = DBProvider.database;
 
     final id = identity.id;
-    final secp256k1PKHex = identity.secp256k1PKHex;
-    final curve25519PkHex = identity.curve25519PkHex;
+    final nostrIdentityKey = identity.nostrIdentityKey;
+    final signalIdentityKey = identity.signalIdentityKey;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -276,7 +276,7 @@ class IdentityService {
             .roomIdEqualTo(element.id)
             .deleteAll();
         try {
-          final signalIdPubkey = element.signalIdPubkey;
+          final signalIdPubkey = element.mySignalIdentityKey;
           rust_signal.KeychatIdentityKeyPair? keyPair;
           final chatxService = Get.find<ChatxService>();
           if (signalIdPubkey != null) {
@@ -299,9 +299,9 @@ class IdentityService {
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await FileService.instance.deleteAllByIdentity(id);
-      await SecureStorage.instance.deletePrikey(secp256k1PKHex);
-      if (curve25519PkHex != null) {
-        await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      await SecureStorage.instance.deletePrikey(nostrIdentityKey);
+      if (signalIdentityKey != null) {
+        await SecureStorage.instance.deletePrikey(signalIdentityKey);
       }
     });
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -351,13 +351,13 @@ class IdentityService {
         skipedIdentityIDs.add(identity.id);
         continue;
       }
-      pubkeys.add(identity.secp256k1PKHex);
+      pubkeys.add(identity.nostrIdentityKey);
     }
     if (pubkeys.isEmpty) return [];
 
     // my receive onetime key
-    final oneTimeKeys = await getOneTimeKeys();
-    pubkeys.addAll(oneTimeKeys.map((e) => e.pubkey));
+    final inboxKeys = await getInboxKeys();
+    pubkeys.addAll(inboxKeys.map((e) => e.pubkey));
 
     return pubkeys.toList();
   }
@@ -397,9 +397,9 @@ class IdentityService {
     });
   }
 
-  /// Returns the [Mykey] if [toAddress] is one of this device's one-time keys,
+  /// Returns the [Mykey] if [toAddress] is one of this device's inbox keys,
   /// or null otherwise.
-  Future<Mykey?> isFromOnetimeKey(String toAddress) async {
+  Future<Mykey?> findInboxKey(String toAddress) async {
     final res = await DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
@@ -408,8 +408,8 @@ class IdentityService {
     return res.isNotEmpty ? res[0] : null;
   }
 
-  /// Returns all one-time keys across all identities, sorted by creation date.
-  Future<List<Mykey>> getOneTimeKeys() async {
+  /// Returns all inbox keys across all identities, sorted by creation date.
+  Future<List<Mykey>> getInboxKeys() async {
     return DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
@@ -417,8 +417,8 @@ class IdentityService {
         .findAll();
   }
 
-  /// Returns unused one-time keys for the given [identityId], sorted by creation date.
-  Future<List<Mykey>> getOneTimeKeyByIdentity(int identityId) async {
+  /// Returns unused inbox keys for the given [identityId], sorted by creation date.
+  Future<List<Mykey>> getInboxKeysByIdentity(int identityId) async {
     return DBProvider.database.mykeys
         .filter()
         .identityIdEqualTo(identityId)
@@ -428,11 +428,11 @@ class IdentityService {
         .findAll();
   }
 
-  /// Deletes one-time keys that were used more than 3 days ago.
+  /// Deletes inbox keys that were used more than 3 days ago.
   ///
-  /// Keeps a short grace period so in-flight messages can still be decrypted
+  /// Keeps a short grace period so in-flight messages can still be delivered
   /// before the keys are purged.
-  Future<void> deleteExpiredOneTimeKeys() async {
+  Future<void> deleteExpiredInboxKeys() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.mykeys
           .filter()
@@ -509,14 +509,14 @@ class IdentityService {
     if (prikeys[pubkey] != null) return prikeys[pubkey];
 
     final identities = Get.find<HomeController>().allIdentities.values
-        .where((element) => element.secp256k1PKHex == pubkey)
+        .where((element) => element.nostrIdentityKey == pubkey)
         .toList();
     String? prikey;
     if (identities.isNotEmpty) {
       if (identities[0].isFromSigner) {
         throw Exception('ExceptionIsFromSigner');
       }
-      prikey = await identities[0].getSecp256k1SKHex();
+      prikey = await identities[0].getNostrPrivateKey();
     } else {
       final mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);
       if (mykey == null) return null;
@@ -548,7 +548,7 @@ class IdentityService {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
-      mlsPubkeys.add(room.onetimekey!);
+      mlsPubkeys.add(room.receiveAddress!);
     }
     return mlsPubkeys.toList();
   }
@@ -568,7 +568,7 @@ class IdentityService {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
-      mlsPubkeys.add(room.onetimekey!);
+      mlsPubkeys.add(room.receiveAddress!);
     }
     return <String>{...signal, ...mlsPubkeys}.toList();
   }
@@ -580,11 +580,11 @@ class IdentityService {
   /// version is already up to date.
   Future<Identity?> syncProfileFromRelay(Identity identity) async {
     final list = await NostrAPI.instance.fetchMetadata([
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
     ]);
     if (list.isEmpty) {
       logger.d(
-        'No metadata event found from relay for ${identity.secp256k1PKHex}',
+        'No metadata event found from relay for ${identity.nostrIdentityKey}',
       );
       return null;
     }
@@ -608,7 +608,7 @@ class IdentityService {
         identity.avatarFromRelay = avatarFromRelay;
         final localPath = await FileService.instance.downloadAndSaveAvatar(
           avatarFromRelay,
-          identity.secp256k1PKHex,
+          identity.nostrIdentityKey,
         );
         if (localPath != null) {
           identity.avatarFromRelayLocalPath = localPath;
@@ -627,7 +627,7 @@ class IdentityService {
 
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();
-    Utils.removeAvatarCacheByPubkey(identity.secp256k1PKHex);
+    Utils.removeAvatarCacheByPubkey(identity.nostrIdentityKey);
     Get.find<HomeController>().tabBodyDatas.refresh();
     return identity;
   }

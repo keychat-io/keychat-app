@@ -11,7 +11,6 @@ import 'package:flutter_json_view/flutter_json_view.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat/app.dart';
-import 'package:keychat/bot/bot_client_message_model.dart';
 import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/chat/LongTextPreviewPage.dart';
@@ -612,26 +611,10 @@ class MessageWidget extends StatelessWidget {
         }
       }
 
-      BotClientMessageModel? bcmm;
-      rust_cashu.TokenInfo? token;
-      if (message.isMeSend && cc.roomObs.value.type == RoomType.bot) {
-        try {
-          bcmm = BotClientMessageModel.fromJson(
-            jsonDecode(message.content) as Map<String, dynamic>,
-          );
-          if (bcmm.payToken != null) {
-            token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
-          }
-          // ignore: empty_catches
-        } catch (e) {}
-      }
       await _showRawData(
         message,
         ess,
         event,
-        botClientMessageModel: bcmm,
-        payToken: token,
-        payTokenString: bcmm?.payToken,
       );
       return;
     }
@@ -783,7 +766,7 @@ class MessageWidget extends StatelessWidget {
 
   Widget _getReplyWidget() {
     Widget? subTitleChild;
-    if (message.reply!.id == null) {
+    if (message.reply!.eventId == null) {
       subTitleChild = GestureDetector(
         onDoubleTap: () {
           Get.to(
@@ -805,7 +788,7 @@ class MessageWidget extends StatelessWidget {
       );
     } else {
       final msg = MessageService.instance.getMessageByMsgIdSync(
-        message.reply!.id!,
+        message.reply!.eventId!,
       );
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
@@ -855,7 +838,7 @@ class MessageWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  message.reply!.user,
+                  message.reply!.userName ?? message.reply!.userId ?? '',
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
                     color: Colors.purple.shade300,
@@ -968,7 +951,6 @@ class MessageWidget extends StatelessWidget {
     Message message,
     List<NostrEventStatus> ess,
     NostrEventModel? event, {
-    BotClientMessageModel? botClientMessageModel,
     rust_cashu.TokenInfo? payToken,
     String? payTokenString,
   }) {
@@ -993,39 +975,6 @@ class MessageWidget extends StatelessWidget {
               children: [
                 relayStatusList(buildContext, ess),
                 const SizedBox(height: 12),
-
-                // Bot Payment Section
-                if (botClientMessageModel != null &&
-                    botClientMessageModel.priceModel != null)
-                  Column(
-                    children: [
-                      _buildSectionCard(
-                        buildContext,
-                        title: 'Pay To Chat',
-                        icon: Icons.payment,
-                        children: [
-                          _buildInfoRow(
-                            'Model',
-                            botClientMessageModel.priceModel ?? '',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Amount',
-                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
-                            buildContext,
-                            copyable: false,
-                          ),
-                          _buildInfoRow(
-                            'Token',
-                            payTokenString ?? '',
-                            buildContext,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
 
                 // Encryption Info Section
                 _buildSectionCard(
@@ -1357,11 +1306,7 @@ class MessageWidget extends StatelessWidget {
         label: 'Copy All',
         onPressed: () {
           ContextMenuController.removeAny();
-          var content = message.content;
-          if (message.realMessage != null &&
-              cc.roomObs.value.type == RoomType.bot) {
-            content = message.realMessage!;
-          }
+          final content = message.content;
           Clipboard.setData(ClipboardData(text: content));
           EasyLoading.showToast('Copied');
         },
@@ -1435,11 +1380,7 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
           onTap: () async {
-            var content = message.content;
-            if (message.realMessage != null &&
-                cc.roomObs.value.type == RoomType.bot) {
-              content = message.realMessage!;
-            }
+            final content = message.content;
             await Clipboard.setData(ClipboardData(text: content));
             EasyLoading.showToast('Copied');
           },
@@ -1675,13 +1616,10 @@ class MessageWidget extends StatelessWidget {
                         title: const Text('Copy'),
                         leading: const Icon(Icons.copy),
                         onPressed: (context) async {
-                          var conent = message.content;
-                          if (message.realMessage != null &&
-                              cc.roomObs.value.type == RoomType.bot) {
-                            conent = message.realMessage!;
-                          }
-                          Clipboard.setData(ClipboardData(text: conent));
-                          EasyLoading.showToast('Copied');
+                          await Clipboard.setData(
+                            ClipboardData(text: message.content),
+                          );
+                          await EasyLoading.showToast('Copied');
                           Get.back<void>();
                         },
                       ),

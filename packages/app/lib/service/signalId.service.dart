@@ -54,13 +54,13 @@ class SignalIdService {
 
     signalId.signalKeyId = signKeyResult.$1;
     final data = <String, dynamic>{};
-    data['signedId'] = signKeyResult.$1;
-    data['signedPublic'] = hex.encode(signKeyResult.$2);
-    data['signedSignature'] = hex.encode(signKeyResult.$3);
+    data['signalSignedPrekeyId'] = signKeyResult.$1;
+    data['signalSignedPrekey'] = hex.encode(signKeyResult.$2);
+    data['signalSignedPrekeySignature'] = hex.encode(signKeyResult.$3);
 
     final prekeyResult = await rust_signal.generatePrekeyApi(keyPair: keypair);
-    data['prekeyId'] = prekeyResult.$1;
-    data['prekeyPubkey'] = hex.encode(prekeyResult.$2);
+    data['signalOneTimePrekeyId'] = prekeyResult.$1;
+    data['signalOneTimePrekey'] = hex.encode(prekeyResult.$2);
     if (isGroupSharedKey) {
       data['signedRecord'] = hex.encode(signKeyResult.$4);
       data['prekeyRecord'] = hex.encode(prekeyResult.$3);
@@ -171,7 +171,8 @@ class SignalIdService {
   ///
   /// Regenerates the signed key for [signalId], updates [SignalId.signalKeyId], and
   /// returns a map with the fields required by the QR code scanner:
-  /// `signedId`, `signedPublic`, `signedSignature`, `prekeyId`, `prekeyPubkey`, `time`.
+  /// `signalSignedPrekeyId`, `signalSignedPrekey`, `signalSignedPrekeySignature`,
+  /// `signalOneTimePrekeyId`, `signalOneTimePrekey`, `time`.
   ///
   /// [time] is included verbatim in the returned map for replay-protection on the
   /// receiving side.
@@ -190,13 +191,13 @@ class SignalIdService {
     signalId.signalKeyId = res.$1;
     await SignalIdService.instance.updateSignalId(signalId);
     final data = <String, dynamic>{};
-    data['signedId'] = res.$1;
-    data['signedPublic'] = hex.encode(res.$2);
-    data['signedSignature'] = hex.encode(res.$3);
+    data['signalSignedPrekeyId'] = res.$1;
+    data['signalSignedPrekey'] = hex.encode(res.$2);
+    data['signalSignedPrekeySignature'] = hex.encode(res.$3);
 
     final res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
-    data['prekeyId'] = res2.$1;
-    data['prekeyPubkey'] = hex.encode(res2.$2);
+    data['signalOneTimePrekeyId'] = res2.$1;
+    data['signalOneTimePrekey'] = hex.encode(res2.$2);
     data['time'] = time;
     return data;
   }
@@ -240,13 +241,17 @@ class SignalIdService {
 
     await rust_signal.storePrekeyApi(
       keyPair: keyPair,
-      prekeyId: keys['prekeyId'] as int,
-      record: hex.decode(keys['prekeyRecord'] as String),
+      prekeyId: (keys['signalOneTimePrekeyId'] ?? keys['prekeyId']) as int,
+      record: hex.decode(
+        (keys['prekeyRecord'] as String),
+      ),
     );
     await rust_signal.storeSignedKeyApi(
       keyPair: keyPair,
-      signedKeyId: keys['signedId'] as int,
-      record: hex.decode(keys['signedRecord'] as String),
+      signedKeyId: (keys['signalSignedPrekeyId'] ?? keys['signedId']) as int,
+      record: hex.decode(
+        (keys['signedRecord'] as String),
+      ),
     );
 
     return signalId;

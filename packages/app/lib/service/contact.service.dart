@@ -60,12 +60,12 @@ class ContactService {
     required int identityId,
     String? petname,
     String? name,
-    String? curve25519PkHex,
+    String? signalIdentityKey,
     bool autoCreateFromGroup = false,
   }) async {
     final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final contact = Contact(pubkey: pubKeyHex, identityId: identityId)
-      ..curve25519PkHex = curve25519PkHex
+      ..signalIdentityKey = signalIdentityKey
       ..autoCreateFromGroup = autoCreateFromGroup;
     if (name != null) {
       contact.name = name.trim();
@@ -285,7 +285,7 @@ class ContactService {
     required int identityId,
     required String pubkey,
     String? name,
-    String? curve25519PkHex,
+    String? signalIdentityKey,
     bool autoCreateFromGroup = false,
   }) async {
     final hex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
@@ -299,7 +299,7 @@ class ContactService {
       identityId: identityId,
       pubkey: pubkey,
       name: name,
-      curve25519PkHex: curve25519PkHex,
+      signalIdentityKey: signalIdentityKey,
       autoCreateFromGroup: autoCreateFromGroup,
     );
   }

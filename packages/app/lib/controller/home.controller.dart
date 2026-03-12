@@ -70,7 +70,6 @@ class HomeController extends GetxController
   RxBool debugSendMessageRunning = false.obs;
   int debugModelClickCount = 0;
 
-  RxList recommendBots = [].obs;
   RxMap recommendWebstore = {}.obs;
   RxMap remoteAppConfig = {}.obs;
 
@@ -310,8 +309,6 @@ class HomeController extends GetxController
       logger.e('Failed to get config: $url - ${(e as DioException).message}');
     }
 
-    recommendBots.value = config['bots'] as List<dynamic>;
-
     final recommendUrls = config['browserRecommend'] as List;
     recommendWebstore.value = recommendUrls
         .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
@@ -340,7 +337,7 @@ class HomeController extends GetxController
 
   Identity? getIdentityByPubkey(String pubkey) {
     for (final identity in allIdentities.values) {
-      if (identity.secp256k1PKHex == pubkey) {
+      if (identity.nostrIdentityKey == pubkey) {
         return identity;
       }
     }
@@ -452,7 +449,6 @@ class HomeController extends GetxController
 
         final datas = <dynamic>[
           KeychatGlobal.search,
-          KeychatGlobal.recommendRooms,
           approving,
           requesting,
           ...rooms,
@@ -517,7 +513,6 @@ class HomeController extends GetxController
 
       final datas = [
         KeychatGlobal.search,
-        KeychatGlobal.recommendRooms,
         approving,
         requesting,
         ...rooms,

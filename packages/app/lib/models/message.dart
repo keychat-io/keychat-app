@@ -32,11 +32,17 @@ enum MessageMediaType {
   file,
   groupInviteConfirm, // For administrators to use to accept or deny new users from joining the group
   // bot message from the bot service
+  @Deprecated('not used')
   botText,
+  @Deprecated('not used')
   botPricePerMessageRequest,
+  @Deprecated('not used')
   botSelectionRequest,
+  @Deprecated('not used')
   botOneTimePaymentRequest,
+  @Deprecated('not used')
   groupInvitationInfo,
+  @Deprecated('not used')
   groupInvitationRequesting,
   lightningInvoice,
   profileRequest, // sync my profile to others

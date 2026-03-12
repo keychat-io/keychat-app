@@ -115,8 +115,11 @@ class RoomList extends GetView<HomeController> {
                 },
                 itemCount: data.rooms.length,
                 itemBuilder: (context, index) {
+                  // search bar
                   if (index == 0) {
-                    if (data.rooms.length > 4) {
+                    // search, new friends, requesting, at least one room will be displayed,
+                    // so the search bar will not be too lonely
+                    if (data.rooms.length > 3) {
                       return GestureDetector(
                         onTap: () {
                           Get.to(() => const SearchPage());
@@ -163,33 +166,29 @@ class RoomList extends GetView<HomeController> {
                     }
                     return const SizedBox();
                   }
+                  // new friends
                   if (index == 1) {
-                    return Container();
-                    // return RecommendBots(
-                    //   data.identity,
-                    //   List<Room>.from(rooms.sublist(4)),
-                    // );
-                  }
-                  if (index == 2) {
                     return getNewFriendsWidget(
                       data,
-                      rooms[2] as List<Room>,
+                      rooms[index] as List<Room>,
                       Get.isDarkMode
                           ? const Color(0xFF202020)
                           : const Color(0xFFEDEDED),
                       context,
                     );
                   }
-                  if (index == 3) {
+                  // requesting
+                  if (index == 2) {
                     return getRequestingWidget(
                       data,
-                      rooms[3] as List<Room>,
+                      rooms[index] as List<Room>,
                       Get.isDarkMode
                           ? const Color(0xFF202020)
                           : const Color(0xFFEDEDED),
                       context,
                     );
                   }
+                  // room item start from index 3
                   final room = rooms[index] as Room;
                   return GestureDetector(
                     key: ObjectKey('${index}_room${room.id}'),

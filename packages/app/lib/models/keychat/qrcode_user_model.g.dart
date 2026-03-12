@@ -8,14 +8,29 @@ part of 'qrcode_user_model.dart';
 
 QRUserModel _$QRUserModelFromJson(Map<String, dynamic> json) => QRUserModel()
   ..name = json['name'] as String
-  ..pubkey = json['pubkey'] as String
-  ..curve25519PkHex = json['curve25519PkHex'] as String
-  ..onetimekey = json['onetimekey'] as String
-  ..signedId = (json['signedId'] as num).toInt()
-  ..signedPublic = json['signedPublic'] as String
-  ..signedSignature = json['signedSignature'] as String
-  ..prekeyId = (json['prekeyId'] as num).toInt()
-  ..prekeyPubkey = json['prekeyPubkey'] as String
+  ..nostrIdentityKey =
+      QRUserModel._readNostrIdentityKey(json, 'nostrIdentityKey') as String
+  ..signalIdentityKey =
+      QRUserModel._readSignalIdentityKey(json, 'signalIdentityKey') as String
+  ..receiveAddress =
+      QRUserModel._readReceiveAddress(json, 'receiveAddress') as String
+  ..signalSignedPrekeyId =
+      (QRUserModel._readSignalSignedPrekeyId(json, 'signalSignedPrekeyId')
+              as num)
+          .toInt()
+  ..signalSignedPrekey =
+      QRUserModel._readSignalSignedPrekey(json, 'signalSignedPrekey') as String
+  ..signalSignedPrekeySignature =
+      QRUserModel._readSignalSignedPrekeySignature(
+              json, 'signalSignedPrekeySignature')
+          as String
+  ..signalOneTimePrekeyId =
+      (QRUserModel._readSignalOneTimePrekeyId(json, 'signalOneTimePrekeyId')
+              as num)
+          .toInt()
+  ..signalOneTimePrekey =
+      QRUserModel._readSignalOneTimePrekey(json, 'signalOneTimePrekey')
+          as String
   ..globalSign = json['globalSign'] as String
   ..relay = json['relay'] as String
   ..time = (json['time'] as num).toInt()
@@ -25,14 +40,14 @@ QRUserModel _$QRUserModelFromJson(Map<String, dynamic> json) => QRUserModel()
 Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
     <String, dynamic>{
       'name': instance.name,
-      'pubkey': instance.pubkey,
-      'curve25519PkHex': instance.curve25519PkHex,
-      'onetimekey': instance.onetimekey,
-      'signedId': instance.signedId,
-      'signedPublic': instance.signedPublic,
-      'signedSignature': instance.signedSignature,
-      'prekeyId': instance.prekeyId,
-      'prekeyPubkey': instance.prekeyPubkey,
+      'nostrIdentityKey': instance.nostrIdentityKey,
+      'signalIdentityKey': instance.signalIdentityKey,
+      'receiveAddress': instance.receiveAddress,
+      'signalSignedPrekeyId': instance.signalSignedPrekeyId,
+      'signalSignedPrekey': instance.signalSignedPrekey,
+      'signalSignedPrekeySignature': instance.signalSignedPrekeySignature,
+      'signalOneTimePrekeyId': instance.signalOneTimePrekeyId,
+      'signalOneTimePrekey': instance.signalOneTimePrekey,
       'globalSign': instance.globalSign,
       'relay': instance.relay,
       'time': instance.time,

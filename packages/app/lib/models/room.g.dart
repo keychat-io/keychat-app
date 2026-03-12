@@ -478,14 +478,14 @@ const _RoomtypeEnumValueMap = {
   'private': 1,
   'group': 2,
   'bot': 3,
-  'freebot': 4,
+  'agent': 4,
 };
 const _RoomtypeValueEnumMap = {
   0: RoomType.common,
   1: RoomType.private,
   2: RoomType.group,
   3: RoomType.bot,
-  4: RoomType.freebot,
+  4: RoomType.agent,
 };
 
 Id _roomGetId(Room object) {

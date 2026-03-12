@@ -275,10 +275,10 @@ class ChatController extends GetxController {
       if (sourceMessage != null) {
         reply = MsgReply()
           ..content = sourceMessage.realMessage ?? sourceMessage.content
-          ..user = sourceMessage.fromContact?.name ?? '';
+          ..userName = sourceMessage.fromContact?.name ?? '';
         // if it is not text, show media type name
         if (sourceMessage.mediaType != MessageMediaType.text) {
-          reply.id = sourceMessage.msgid;
+          reply.eventId = sourceMessage.msgid;
         }
       }
       if (GetPlatform.isMobile) {
@@ -687,7 +687,8 @@ class ChatController extends GetxController {
       newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
-    roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh
+    roomObs.value.peerSignalIdentityKey =
+        newRoom.peerSignalIdentityKey; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();
@@ -791,7 +792,7 @@ class ChatController extends GetxController {
       try {
         final identity = roomObs.value.getIdentity();
         final prm = ProfileRequestModel(
-          pubkey: identity.secp256k1PKHex,
+          pubkey: identity.nostrIdentityKey,
           name: identity.name,
           avatar: await identity.getRemoteAvatarUrl(),
           bio: identity.displayAbout,
@@ -847,60 +848,6 @@ class ChatController extends GetxController {
     }
   }
 
-  Future<void> _initBotInfo() async {
-    final list = await NostrAPI.instance.fetchMetadata([
-      roomObs.value.toMainPubkey,
-    ]);
-    if (list.isEmpty) return;
-    final res = list.last;
-    final metadata = Map<String, dynamic>.from(
-      jsonDecode(res.content) as Map<String, dynamic>,
-    );
-    if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
-      botCommands.value = List<Map<String, dynamic>>.from(
-        (metadata['commands'] ?? []) as Iterable,
-      );
-      return;
-    }
-    // not a bot account
-    if (metadata['type'] == null) return;
-    if (!metadata['type'].toString().toLowerCase().endsWith('bot')) {
-      return;
-    }
-    roomObs.value.type = RoomType.bot;
-    roomObs.value.status = RoomStatus.enabled;
-
-    roomObs.value.botInfoUpdatedAt = res.createdAt;
-    botCommands.value = List<Map<String, dynamic>>.from(
-      (metadata['commands'] ?? []) as Iterable,
-    );
-
-    final metadataString = jsonEncode(metadata);
-    roomObs.value.botInfo = metadataString;
-    roomObs.value.name = metadata['name'] as String? ?? roomObs.value.name;
-    roomObs.value.description = metadata['description'] as String?;
-
-    // save config for botPricePerMessageRequest
-    if (metadata['botPricePerMessageRequest'] != null) {
-      try {
-        final config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService.instance.saveSystemMessage(
-          roomObs.value,
-          config,
-          suffix: '',
-          isMeSend: false,
-        );
-      } catch (e) {
-        logger.e(
-          'botPricePerMessageRequest: $e',
-          error: e,
-          stackTrace: StackTrace.current,
-        );
-      }
-    }
-    await RoomService.instance.updateRoomAndRefresh(roomObs.value);
-  }
-
   Future<void> _initRoom() async {
     // group
     if (roomObs.value.type == RoomType.group) {
@@ -908,9 +855,9 @@ class ChatController extends GetxController {
         unawaited(
           Future.delayed(const Duration(seconds: 3)).then(
             (value) async {
-              await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
+              await MlsGroupService.instance.fixMlsReceiveAddress([roomObs.value]);
               final isAdmin = await roomObs.value.checkAdminByIdPubkey(
-                roomObs.value.getIdentity().secp256k1PKHex,
+                roomObs.value.getIdentity().nostrIdentityKey,
               );
               // Check if there are any users in expired status
               if (isAdmin) {
@@ -954,8 +901,7 @@ class ChatController extends GetxController {
         fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
-        ).then((Contact? item) {
-          if (item == null) return;
+        ).then((item) {
           roomContact.value = item;
           roomObs.value.contact = item;
           roomObs.refresh();
@@ -1244,7 +1190,7 @@ class ChatController extends GetxController {
     bool compress = true,
   ]) async {
     /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
+    reader.getFile(format, (file) async {
       var suggestedName = await reader.getSuggestedName();
       final mimeType = format.mimeTypes?.first;
 
@@ -1369,7 +1315,7 @@ class ChatController extends GetxController {
         gifUrl,
         filePath,
         options: Options(responseType: ResponseType.bytes),
-        onReceiveProgress: (int received, int total) {
+        onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
             EasyLoading.showProgress(
@@ -1428,10 +1374,10 @@ class ChatController extends GetxController {
     }
     final reply = MsgReply()
       ..content = message.realMessage ?? message.content
-      ..user = message.fromContact?.name ?? '';
+      ..userName = message.fromContact?.name ?? '';
     // if it is not text, show media type name
     if (message.mediaType != MessageMediaType.text) {
-      reply.id = message.msgid;
+      reply.eventId = message.msgid;
     }
     return RoomService.instance.sendMessage(
       roomObs.value,

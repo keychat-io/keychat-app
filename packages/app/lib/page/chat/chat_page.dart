@@ -71,14 +71,6 @@ class _ChatPage2State extends State<ChatPage> {
                     isMute: controller.roomObs.value.isMute,
                     memberCount: controller.enableMembers.length,
                   ),
-                  if (controller.roomObs.value.type == RoomType.bot)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 5),
-                      child: Icon(
-                        Icons.android_outlined,
-                        color: Colors.purple,
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -179,7 +171,7 @@ class _ChatPage2State extends State<ChatPage> {
                           shrinkWrap: true,
                           itemCount: controller.messages.length,
                           controller: controller.scrollController,
-                          itemBuilder: (BuildContext context, int index) {
+                          itemBuilder: (context, index) {
                             final message = controller.messages[index];
                             RoomMember? rm;
                             if (!message.isMeSend &&
@@ -339,179 +331,181 @@ class _ChatPage2State extends State<ChatPage> {
                   final enterAction = hc.keyboardEnterAction.value;
                   return Expanded(
                     child: KeyboardListener(
-                    focusNode: controller.keyboardFocus,
-                    onKeyEvent: (KeyEvent event) async {
-                      if (event is KeyDownEvent) {
-                        if (event.logicalKey == LogicalKeyboardKey.enter &&
-                            !HardwareKeyboard.instance.isControlPressed &&
-                            !HardwareKeyboard.instance.isMetaPressed &&
-                            !HardwareKeyboard.instance.isShiftPressed &&
-                            !HardwareKeyboard.instance.isAltPressed) {
-                          await controller.handleSubmitted();
-                          return;
-                        }
-
-                        final isCmdPressed =
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.metaLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.metaRight);
-                        if (event.logicalKey == LogicalKeyboardKey.keyV &&
-                            isCmdPressed) {
-                          await controller.handlePasteboardFile();
-                          return;
-                        }
-                        final isShiftPressed =
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.shiftLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.altLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.controlLeft);
-
-                        if (event.logicalKey == LogicalKeyboardKey.enter &&
-                            isShiftPressed) {
-                          final text = controller.textEditingController.text;
-                          final selection =
-                              controller.textEditingController.selection;
-
-                          controller.textEditingController.value = controller
-                              .textEditingController
-                              .value
-                              .copyWith(
-                                text: text.replaceRange(
-                                  selection.start,
-                                  selection.end,
-                                  '\n',
-                                ),
-                                selection: TextSelection.collapsed(
-                                  offset: selection.start + 1,
-                                ),
-                              );
-                        }
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(4),
-                        ),
-                        color: Get.isDarkMode
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade100,
-                      ),
-                      child: TextFormField(
-                        controller: controller.textEditingController,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.sentences,
-                        focusNode: controller.chatContentFocus,
-                        autofocus: GetPlatform.isDesktop,
-                        decoration: const InputDecoration(
-                          isCollapsed: true,
-                          hintText: 'Write a message...',
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        textInputAction: GetPlatform.isDesktop
-                            ? TextInputAction.send
-                            : enterAction,
-                        onEditingComplete: GetPlatform.isDesktop ||
-                                enterAction == TextInputAction.send
-                            ? controller.handleSubmitted
-                            : null,
-                        contextMenuBuilder: (context, editableTextState) {
-                          final selection = editableTextState
-                              .currentTextEditingValue
-                              .selection;
-                          final text =
-                              editableTextState.currentTextEditingValue.text;
-                          final hasSelection = !selection.isCollapsed;
-                          final hasText = text.isNotEmpty;
-                          final canSelectAll =
-                              hasText &&
-                              (selection.start != 0 ||
-                                  selection.end != text.length);
-
-                          final buttonItems = <ContextMenuButtonItem>[];
-
-                          if (hasSelection) {
-                            buttonItems
-                              ..add(
-                                ContextMenuButtonItem(
-                                  onPressed: () {
-                                    editableTextState.cutSelection(
-                                      SelectionChangedCause.toolbar,
-                                    );
-                                  },
-                                  type: ContextMenuButtonType.cut,
-                                ),
-                              )
-                              ..add(
-                                ContextMenuButtonItem(
-                                  onPressed: () {
-                                    editableTextState.copySelection(
-                                      SelectionChangedCause.toolbar,
-                                    );
-                                  },
-                                  type: ContextMenuButtonType.copy,
-                                ),
-                              );
+                      focusNode: controller.keyboardFocus,
+                      onKeyEvent: (event) async {
+                        if (event is KeyDownEvent) {
+                          if (event.logicalKey == LogicalKeyboardKey.enter &&
+                              !HardwareKeyboard.instance.isControlPressed &&
+                              !HardwareKeyboard.instance.isMetaPressed &&
+                              !HardwareKeyboard.instance.isShiftPressed &&
+                              !HardwareKeyboard.instance.isAltPressed) {
+                            await controller.handleSubmitted();
+                            return;
                           }
 
-                          buttonItems.add(
-                            ContextMenuButtonItem(
-                              onPressed: () async {
-                                await controller.handlePasteboard();
-                                editableTextState.hideToolbar();
-                              },
-                              type: ContextMenuButtonType.paste,
-                            ),
-                          );
+                          final isCmdPressed =
+                              HardwareKeyboard.instance.logicalKeysPressed
+                                  .contains(LogicalKeyboardKey.metaLeft) ||
+                              HardwareKeyboard.instance.logicalKeysPressed
+                                  .contains(LogicalKeyboardKey.metaRight);
+                          if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                              isCmdPressed) {
+                            await controller.handlePasteboardFile();
+                            return;
+                          }
+                          final isShiftPressed =
+                              HardwareKeyboard.instance.logicalKeysPressed
+                                  .contains(LogicalKeyboardKey.shiftLeft) ||
+                              HardwareKeyboard.instance.logicalKeysPressed
+                                  .contains(LogicalKeyboardKey.altLeft) ||
+                              HardwareKeyboard.instance.logicalKeysPressed
+                                  .contains(LogicalKeyboardKey.controlLeft);
 
-                          if (canSelectAll) {
+                          if (event.logicalKey == LogicalKeyboardKey.enter &&
+                              isShiftPressed) {
+                            final text = controller.textEditingController.text;
+                            final selection =
+                                controller.textEditingController.selection;
+
+                            controller.textEditingController.value = controller
+                                .textEditingController
+                                .value
+                                .copyWith(
+                                  text: text.replaceRange(
+                                    selection.start,
+                                    selection.end,
+                                    '\n',
+                                  ),
+                                  selection: TextSelection.collapsed(
+                                    offset: selection.start + 1,
+                                  ),
+                                );
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(4),
+                          ),
+                          color: Get.isDarkMode
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                        ),
+                        child: TextFormField(
+                          controller: controller.textEditingController,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.sentences,
+                          focusNode: controller.chatContentFocus,
+                          autofocus: GetPlatform.isDesktop,
+                          decoration: const InputDecoration(
+                            isCollapsed: true,
+                            hintText: 'Write a message...',
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          textInputAction: GetPlatform.isDesktop
+                              ? TextInputAction.send
+                              : enterAction,
+                          onEditingComplete:
+                              GetPlatform.isDesktop ||
+                                  enterAction == TextInputAction.send
+                              ? controller.handleSubmitted
+                              : null,
+                          contextMenuBuilder: (context, editableTextState) {
+                            final selection = editableTextState
+                                .currentTextEditingValue
+                                .selection;
+                            final text =
+                                editableTextState.currentTextEditingValue.text;
+                            final hasSelection = !selection.isCollapsed;
+                            final hasText = text.isNotEmpty;
+                            final canSelectAll =
+                                hasText &&
+                                (selection.start != 0 ||
+                                    selection.end != text.length);
+
+                            final buttonItems = <ContextMenuButtonItem>[];
+
+                            if (hasSelection) {
+                              buttonItems
+                                ..add(
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.cutSelection(
+                                        SelectionChangedCause.toolbar,
+                                      );
+                                    },
+                                    type: ContextMenuButtonType.cut,
+                                  ),
+                                )
+                                ..add(
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.copySelection(
+                                        SelectionChangedCause.toolbar,
+                                      );
+                                    },
+                                    type: ContextMenuButtonType.copy,
+                                  ),
+                                );
+                            }
+
                             buttonItems.add(
                               ContextMenuButtonItem(
-                                onPressed: () {
-                                  editableTextState.selectAll(
-                                    SelectionChangedCause.toolbar,
-                                  );
+                                onPressed: () async {
+                                  await controller.handlePasteboard();
+                                  editableTextState.hideToolbar();
                                 },
-                                type: ContextMenuButtonType.selectAll,
+                                type: ContextMenuButtonType.paste,
                               ),
                             );
-                          }
 
-                          return AdaptiveTextSelectionToolbar.buttonItems(
-                            anchors: editableTextState.contextMenuAnchors,
-                            buttonItems: buttonItems,
-                          );
-                        },
-                        enableInteractiveSelection: true,
-                        maxLines: 8,
-                        minLines: 1,
-                        scrollController: controller.textFieldScrollController,
-                        textAlign: TextAlign.left,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(fontSize: 16),
-                        cursorColor: Colors.green,
-                        onTap: () {
-                          controller.hideEmoji.value = true;
-                          controller.hideAdd.value = true;
-                        },
-                        onChanged: handleOnChanged,
-                        onFieldSubmitted: (c) async {
-                          await controller.handleSubmitted();
-                        },
-                        enabled: true,
+                            if (canSelectAll) {
+                              buttonItems.add(
+                                ContextMenuButtonItem(
+                                  onPressed: () {
+                                    editableTextState.selectAll(
+                                      SelectionChangedCause.toolbar,
+                                    );
+                                  },
+                                  type: ContextMenuButtonType.selectAll,
+                                ),
+                              );
+                            }
+
+                            return AdaptiveTextSelectionToolbar.buttonItems(
+                              anchors: editableTextState.contextMenuAnchors,
+                              buttonItems: buttonItems,
+                            );
+                          },
+                          enableInteractiveSelection: true,
+                          maxLines: 8,
+                          minLines: 1,
+                          scrollController:
+                              controller.textFieldScrollController,
+                          textAlign: TextAlign.left,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(fontSize: 16),
+                          cursorColor: Colors.green,
+                          onTap: () {
+                            controller.hideEmoji.value = true;
+                            controller.hideAdd.value = true;
+                          },
+                          onChanged: handleOnChanged,
+                          onFieldSubmitted: (c) async {
+                            await controller.handleSubmitted();
+                          },
+                          enabled: true,
+                        ),
                       ),
                     ),
-                  ),
                   );
                 }),
                 IconButton(
@@ -666,10 +660,6 @@ class _ChatPage2State extends State<ChatPage> {
   Future<void> handleMessageSend() async {
     if (controller.textEditingController.text.isNotEmpty) {
       await controller.handleSubmitted();
-      return;
-    }
-    if (controller.roomObs.value.type == RoomType.bot) {
-      EasyLoading.showToast('Not supported in bot chat now');
       return;
     }
     controller.hideAdd.trigger(!controller.hideAdd.value);
@@ -836,7 +826,7 @@ class _ChatPage2State extends State<ChatPage> {
               ),
               body: ListView.separated(
                 controller: ScrollController(),
-                separatorBuilder: (BuildContext context2, int index) => Divider(
+                separatorBuilder: (context2, index) => Divider(
                   color: Theme.of(
                     context,
                   ).dividerTheme.color?.withValues(alpha: 0.05),
@@ -1177,7 +1167,7 @@ class _ChatPage2State extends State<ChatPage> {
             );
 
             while (true) {
-              final receivingKey = room.onetimekey!;
+              final receivingKey = room.receiveAddress!;
               EasyLoading.show(status: 'Receiving from: $receivingKey');
               await MlsGroupService.instance.waitingForEose(
                 receivingKey: receivingKey,
@@ -1188,7 +1178,7 @@ class _ChatPage2State extends State<ChatPage> {
                 controller.roomObs.value.id,
               );
 
-              if (receivingKey == room.onetimekey &&
+              if (receivingKey == room.receiveAddress &&
                   DateTime.now()
                           .difference(controller.lastMessageAddedAt)
                           .inSeconds >

@@ -12,17 +12,23 @@ import 'package:keychat/models/signal_id.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/signalId.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
+
+/// Reads a Signal prekey bundle field from [keys], trying the new name first
+/// and falling back to the legacy name for backward compatibility.
+T _readSignalKey<T>(
+  Map<String, dynamic> keys,
+  String newKey,
+  String legacyKey,
+) => (keys[newKey] ?? keys[legacyKey]) as T;
 
 /// Cross-protocol helper service for Signal session state management.
 ///
@@ -141,8 +147,9 @@ class ChatxService extends GetxService {
 
   /// Creates a Signal session using a shared SignalId (KDF group invite flow).
   ///
-  /// [sginalKeys] is a JSON string containing signedId, signedPublic,
-  /// signedSignature, prekeyId, and prekeyPubkey fields.
+  /// [sginalKeys] is a JSON string containing signalSignedPrekeyId,
+  /// signalSignedPrekey, signalSignedPrekeySignature, signalOneTimePrekeyId,
+  /// and signalOneTimePrekey fields (with legacy name fallback).
   Future<bool> addKPAForSharedSignalId(
     Identity identity,
     String sharedPubkey,
@@ -164,16 +171,34 @@ class ChatxService extends GetxService {
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'] as int,
+      bobSignedId: _readSignalKey<int>(
+        keys,
+        'signalSignedPrekeyId',
+        'signedId',
+      ),
       bobSignedPublic: Uint8List.fromList(
-        hex.decode(keys['signedPublic'] as String),
+        hex.decode(
+          _readSignalKey<String>(keys, 'signalSignedPrekey', 'signedPublic'),
+        ),
       ),
       bobSigedSig: Uint8List.fromList(
-        hex.decode(keys['signedSignature'] as String),
+        hex.decode(
+          _readSignalKey<String>(
+            keys,
+            'signalSignedPrekeySignature',
+            'signedSignature',
+          ),
+        ),
       ),
-      bobPrekeyId: keys['prekeyId'] as int,
+      bobPrekeyId: _readSignalKey<int>(
+        keys,
+        'signalOneTimePrekeyId',
+        'prekeyId',
+      ),
       bobPrekeyPublic: Uint8List.fromList(
-        hex.decode(keys['prekeyPubkey'] as String),
+        hex.decode(
+          _readSignalKey<String>(keys, 'signalOneTimePrekey', 'prekeyPubkey'),
+        ),
       ),
     );
     return true;
@@ -201,16 +226,34 @@ class ChatxService extends GetxService {
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'] as int,
+      bobSignedId: _readSignalKey<int>(
+        keys,
+        'signalSignedPrekeyId',
+        'signedId',
+      ),
       bobSignedPublic: Uint8List.fromList(
-        hex.decode(keys['signedPublic'] as String),
+        hex.decode(
+          _readSignalKey<String>(keys, 'signalSignedPrekey', 'signedPublic'),
+        ),
       ),
       bobSigedSig: Uint8List.fromList(
-        hex.decode(keys['signedSignature'] as String),
+        hex.decode(
+          _readSignalKey<String>(
+            keys,
+            'signalSignedPrekeySignature',
+            'signedSignature',
+          ),
+        ),
       ),
-      bobPrekeyId: keys['prekeyId'] as int,
+      bobPrekeyId: _readSignalKey<int>(
+        keys,
+        'signalOneTimePrekeyId',
+        'prekeyId',
+      ),
       bobPrekeyPublic: Uint8List.fromList(
-        hex.decode(keys['prekeyPubkey'] as String),
+        hex.decode(
+          _readSignalKey<String>(keys, 'signalOneTimePrekey', 'prekeyPubkey'),
+        ),
       ),
     );
     return true;

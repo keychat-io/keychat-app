@@ -650,6 +650,25 @@ Future<String> getOneTimeLink(Identity identity) async {
   return url;
 }
 
+/// Migrates legacy Signal key field names to the current naming convention.
+/// Handles cached [SignalId.keys] that were persisted before the rename.
+Map<String, dynamic> _migrateSignalKeyNames(Map<String, dynamic> json) {
+  const mapping = {
+    'signedId': 'signalSignedPrekeyId',
+    'signedPublic': 'signalSignedPrekey',
+    'signedSignature': 'signalSignedPrekeySignature',
+    'prekeyId': 'signalOneTimePrekeyId',
+    'prekeyPubkey': 'signalOneTimePrekey',
+  };
+  final result = Map<String, dynamic>.of(json);
+  for (final entry in mapping.entries) {
+    if (result.containsKey(entry.key) && !result.containsKey(entry.value)) {
+      result[entry.value] = result.remove(entry.key);
+    }
+  }
+  return result;
+}
+
 Future<String> _generateQRCodeData(
   Identity identity,
   String receiveAddress,
@@ -658,7 +677,9 @@ Future<String> _generateQRCodeData(
 ) async {
   final userInfo = signalId.keys == null
       ? await SignalIdService.instance.getQRCodeData(signalId, time)
-      : jsonDecode(signalId.keys!) as Map<String, dynamic>;
+      : _migrateSignalKeyNames(
+          jsonDecode(signalId.keys!) as Map<String, dynamic>,
+        );
 
   final content = SignalChatUtil.getToSignMessage(
     nostrId: identity.nostrIdentityKey,

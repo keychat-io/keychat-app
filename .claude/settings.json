@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git stash list*)",
+      "Bash(git worktree list*)",
+      "Bash(git submodule*)",
+      "Bash(ls*)",
+      "Bash(pwd)",
+      "Bash(which*)",
+      "Bash(wc*)",
+      "Bash(melos *)",
+      "Bash(flutter *)",
+      "Bash(dart *)",
+      "Bash(fvm *)",
+      "Bash(cargo *)",
+      "Bash(pod *)",
+      "Bash(gh *)"
+    ],
+    "deny": []
+  }
+}

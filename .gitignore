@@ -58,3 +58,6 @@ docs_local/
 logs/
 *.log
 scripts/ExportOptions.plist
+
+# Claude Code worktree build artifacts
+.claude/worktrees/**/build/

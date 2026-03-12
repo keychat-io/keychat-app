@@ -1,7 +1,3 @@
-import 'package:keychat/app.dart' show GroupMessage;
-import 'package:keychat/models/keychat/group_message.dart' show GroupMessage;
-import 'package:keychat/models/models.dart' show GroupMessage;
-
 const String appDefaultTitle = 'Keychat';
 const String nip04MessageKeyword = '?iv=';
 
@@ -19,7 +15,7 @@ class NostrResponseKinds {
 /// Application-level message type constants used inside the encrypted payload.
 ///
 /// These are NOT Nostr event kinds. They live inside the decrypted message body
-/// (`KeychatMessage.type` / `GroupMessage.subtype`) to distinguish different
+/// (`KeychatMessage.type` / GroupMessage.subtype) to distinguish different
 /// application-level operations within a single Nostr event.
 class KeyChatEventKinds {
   // ── Signal 1:1 ──
@@ -56,7 +52,7 @@ class KeyChatEventKinds {
   /// Admin changes the group name.
   static const int groupChangeRoomName = 20;
 
-  /// Broadcast message envelope: wraps a [GroupMessage] sent to all members.
+  /// Broadcast message envelope: wraps a GroupMessage sent to all members.
   static const int groupSendToAllMessage = 30;
 
   /// Admin removes a single member from the group.

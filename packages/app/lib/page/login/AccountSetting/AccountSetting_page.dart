@@ -360,6 +360,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                           autofocus: true,
                                           maxLines: 5,
                                           maxLength: 200,
+                                          textCapitalization: TextCapitalization.sentences,
                                           textInputAction:
                                               TextInputAction.newline,
                                           decoration: const InputDecoration(
@@ -620,6 +621,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             child: TextField(
               controller: usernameController,
               autofocus: true,
+              textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.done,
               decoration: const InputDecoration(
                 labelText: 'Name',

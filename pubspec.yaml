@@ -43,7 +43,7 @@ melos:
     run:ios:
       name: run_ios
       description: "run app on ios device"
-      run: cd packages/app && flutter run -d 000 -v
+      run: cd packages/app && flutter run -d 000
     run:android:
       name: run_android
       description: "run app on android device"
@@ -131,7 +131,7 @@ melos:
         - melos exec -c 4 --fail-fast -- "flutter clean"
         - melos exec -c 4 --fail-fast -- "flutter pub run build_runner clean"
         - melos exec -c 4 --fail-fast -- "melos bootstrap"
-        - melos exec -c 4 --fail-fast -- "flutter pub run build_runner build --delete-conflicting-outputs"
+        - melos exec -c 1 --fail-fast -- "flutter pub run build_runner build --delete-conflicting-outputs"
         - cd packages/app/ios && rm -rf Podfile.lock && pod repo update && pod install --repo-update
         - cd packages/app/macos && rm -rf Podfile.lock && pod repo update && pod install --repo-update
       description: Run Flutter clean for a specific package in this project.

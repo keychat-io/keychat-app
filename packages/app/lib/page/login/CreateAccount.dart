@@ -113,6 +113,7 @@ class _CreateAccountState extends State<CreateAccount> {
                 controller: textEditingController,
                 focusNode: focusNode,
                 autofocus: true,
+                textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
                   labelText: 'Nick Name',
                   border: OutlineInputBorder(),

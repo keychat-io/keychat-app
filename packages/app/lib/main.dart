@@ -14,6 +14,7 @@ import 'package:keychat/page/app_theme.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/pages.dart';
 import 'package:keychat/page/routes.dart';
+import 'package:keychat/page/startup_error_page.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/storage.dart';
@@ -48,6 +49,17 @@ void main(List<String> args) async {
   // Set edge-to-edge mode early
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
+  try {
+    await _startApp(widgetsBinding);
+  } catch (e, s) {
+    // Remove splash screen so user can see the error page
+    FlutterNativeSplash.remove();
+    _runErrorApp(e, s, widgetsBinding);
+  }
+}
+
+/// Normal app startup flow
+Future<void> _startApp(WidgetsBinding widgetsBinding) async {
   final stopwatch = Stopwatch()..start();
   final sc = await initServices(widgetsBinding);
 
@@ -91,6 +103,30 @@ void main(List<String> args) async {
   });
 }
 
+/// Show error page when startup fails
+void _runErrorApp(
+  Object error,
+  StackTrace stackTrace,
+  WidgetsBinding widgetsBinding,
+) {
+  runApp(
+    StartupErrorPage(
+      error: error,
+      stackTrace: stackTrace,
+      onRetry: () async {
+        // Reset GetX state for a clean retry
+        Get.reset();
+        try {
+          await _startApp(widgetsBinding);
+        } catch (e, s) {
+          logger.e('_startApp failed', error: e, stackTrace: s);
+          _runErrorApp(e, s, widgetsBinding);
+        }
+      },
+    ),
+  );
+}
+
 Future<String> getInitRoute({required bool isLogin}) async {
   return isLogin ? Routes.root : Routes.login;
   // int onboarding = await Storage.getIntOrZero(StorageKeyString.onboarding);
@@ -128,7 +164,7 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   final dbPath = Utils.dbPath;
   logStep('appFolder done');
 
-  await dotenv.load();
+  await dotenv.load(isOptional: true);
   logStep('dotenv done');
 
   await Storage.init();

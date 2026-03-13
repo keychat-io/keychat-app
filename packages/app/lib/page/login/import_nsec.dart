@@ -111,6 +111,7 @@ class _ImportNsec extends State<ImportNsec> {
                   controller: nameController,
                   textInputAction: TextInputAction.next,
                   autofocus: true,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'My Nickname',
                     hintText: 'Show to friends',

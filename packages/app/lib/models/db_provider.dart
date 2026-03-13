@@ -44,6 +44,11 @@ class DBProvider {
       ],
       directory: dbFolder,
       name: 'keychat',
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        throw TimeoutException('Isar.open() timed out after 10s');
+      },
     );
     logger.i('[db] isar opened');
     await performMigrationIfNeeded(database);

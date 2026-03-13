@@ -62,6 +62,7 @@ class HomeController extends GetxController
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;
   RxBool enableDMFromNostrApp = true.obs;
+  Rx<TextInputAction> keyboardEnterAction = TextInputAction.newline.obs;
 
   //debug mode
   RxBool debugModel = false.obs;
@@ -584,6 +585,7 @@ class HomeController extends GetxController
     // show dot on add friends menu
     await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
     await initEnableDMFromNostrApp();
+    initKeyboardEnterAction();
 
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription = Connectivity().onConnectivityChanged.listen(
@@ -956,6 +958,13 @@ ${file.message}
   Future<void> initEnableDMFromNostrApp() async {
     final res = Storage.getBool(StorageKeyString.enableDMFromNostrApp) ?? true;
     enableDMFromNostrApp.value = res;
+  }
+
+  void initKeyboardEnterAction() {
+    final stored = Storage.getString(StorageKeyString.keyboardEnterAction);
+    keyboardEnterAction.value = stored == TextInputAction.send.name
+        ? TextInputAction.send
+        : TextInputAction.newline;
   }
 
   int _notificationState = NotifySettingStatus.enable;

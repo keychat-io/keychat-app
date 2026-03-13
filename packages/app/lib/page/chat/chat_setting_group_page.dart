@@ -538,6 +538,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           padding: const EdgeInsets.only(top: 15),
           child: TextField(
             controller: textEditingController,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'New Group Name',
@@ -652,6 +653,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               padding: const EdgeInsets.only(top: 15),
               child: TextField(
                 controller: userNameController,
+                textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(
                   labelText: 'Name',

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:get/get.dart';
@@ -21,6 +22,7 @@ class DBProvider {
     if (_isInitializing) return database;
 
     _isInitializing = true;
+    logger.i('[db] opening isar...');
     database = await Isar.open(
       [
         ContactSchema,
@@ -43,7 +45,9 @@ class DBProvider {
       directory: dbFolder,
       name: 'keychat',
     );
+    logger.i('[db] isar opened');
     await performMigrationIfNeeded(database);
+    logger.i('[db] migration done');
     return database;
   }
 
@@ -100,12 +104,25 @@ class DBProvider {
   /// and writes a WalletConnection record to Isar. Deletes the old key
   /// after successful migration.
   static Future<void> migrationTo36() async {
-    // Migrate NWC connections
+    // Migrate NWC connections from SecureStorage to Isar.
+    // Keychain access can hang indefinitely on some iOS devices (e.g. after
+    // system update, first-unlock state, or iOS beta), so we guard every
+    // SecureStorage call with a timeout to prevent blocking app startup.
+    logger.i('[db] migration v36 start: reading keychain...');
     try {
-      final nwcJson =
-          await SecureStorage.storage.read(key: 'nwc_connections_list');
+      final nwcJson = await SecureStorage.storage
+          .read(key: 'nwc_connections_list')
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              logger.w('Keychain read timed out for nwc_connections_list');
+              return null;
+            },
+          );
+      logger.i('[db] migration v36 keychain read done, hasData: ${nwcJson != null}');
       if (nwcJson != null) {
         final jsonList = jsonDecode(nwcJson) as List<dynamic>;
+        logger.i('[db] migration v36 migrating ${jsonList.length} NWC connections...');
         final crypto = WalletConnectionCrypto.instance;
 
         await database.writeTxn(() async {
@@ -128,7 +145,13 @@ class DBProvider {
                 .findFirst();
             if (existing != null) continue;
 
-            final encryptedUri = await crypto.encryptText(uri);
+            final encryptedUri = await crypto.encryptText(uri).timeout(
+              const Duration(seconds: 3),
+              onTimeout: () {
+                logger.w('Keychain access timed out during NWC encryption');
+                throw TimeoutException('Keychain encryption timed out');
+              },
+            );
             final connection = WalletConnection.create(
               protocol: WalletProtocol.nwc,
               identifier: identifier,
@@ -141,11 +164,18 @@ class DBProvider {
         });
 
         // Delete old key after successful migration
-        await SecureStorage.storage.delete(key: 'nwc_connections_list');
+        await SecureStorage.storage
+            .delete(key: 'nwc_connections_list')
+            .timeout(const Duration(seconds: 3), onTimeout: () {
+          logger.w('Keychain delete timed out for nwc_connections_list');
+        });
         logger.i('Migrated ${jsonList.length} NWC connections to Isar');
       }
     } catch (e, s) {
-      logger.e('NWC migration failed', error: e, stackTrace: s);
+      logger.e('NWC migration failed, will retry on next launch',
+          error: e, stackTrace: s);
+      // Don't rethrow — allow app startup to continue.
+      // Version is bumped to 36 regardless to avoid re-hanging on next launch.
     }
   }
 

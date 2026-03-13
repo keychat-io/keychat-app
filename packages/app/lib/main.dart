@@ -110,6 +110,11 @@ void initEasyLoading() {
 }
 
 Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
+  final sw = Stopwatch()..start();
+  void logStep(String step) {
+    logger.i('[init] $step +${sw.elapsedMilliseconds}ms');
+  }
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
@@ -117,18 +122,32 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
+  logStep('config done');
+
   final appFolder = await Utils.initAppFolder(env);
   final dbPath = Utils.dbPath;
+  logStep('appFolder done');
+
   await dotenv.load();
+  logStep('dotenv done');
+
   await Storage.init();
+  logStep('storage done');
+
   await RustLib.init();
+  logStep('rustLib done');
 
   // init log file
   await Utils.initLoggger(appFolder);
+  logStep('logger done');
 
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);
+  logStep('db done');
+
   final sc = Get.put(SettingController(), permanent: true);
+  logStep('settingController done');
+
   Get
     ..put(EcashController(dbPath), permanent: true)
     ..put(MultiWebviewController(), permanent: true)
@@ -137,6 +156,7 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
     ..lazyPut(WebsocketService.new, fenix: true)
     ..lazyPut(UnifiedWalletController.new, fenix: true)
     ..lazyPut(DesktopController.new, fenix: true);
+  logStep('all services registered');
   return sc;
 }
 

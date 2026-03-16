@@ -550,6 +550,7 @@ class HomeController extends GetxController
 
   @override
   Future<void> onInit() async {
+    super.onInit();
     tabController = TabController(vsync: this, length: 0);
     await loadSelectedTab();
     cupertinoTabController = CupertinoTabController(
@@ -558,31 +559,36 @@ class HomeController extends GetxController
     cupertinoTabController.addListener(() async {
       await setSelectedTab(cupertinoTabController.index);
     });
-    super.onInit();
-    await loadNotificationConfig();
-    final mys = await loadRoomList(init: true);
-    if (mys.isNotEmpty) {
-      // Ecash Init
-      Get.find<EcashController>().initIdentity(mys[0]);
 
-      // init notify service when identity exists (without requesting permission on startup)
-      Future.delayed(const Duration(seconds: 3)).then((_) async {
-        // Initialize based on user's push type preference
-        final pushType = NotifyService.instance.currentPushType;
-        if (pushType == PushType.unifiedpush &&
-            (GetPlatform.isAndroid || GetPlatform.isLinux)) {
-          await UnifiedPushService.instance.init(args: appLaunchArgs);
-        } else {
-          NotifyService.instance.init().catchError((Object e, StackTrace s) {
-            logger.e('initNotifycation error', error: e, stackTrace: s);
-          });
-        }
-      });
+    try {
+      await loadNotificationConfig();
+      final mys = await loadRoomList(init: true);
+      if (mys.isNotEmpty) {
+        // Ecash Init
+        Get.find<EcashController>().initIdentity(mys[0]);
+
+        // init notify service when identity exists (without requesting permission on startup)
+        Future.delayed(const Duration(seconds: 3)).then((_) async {
+          // Initialize based on user's push type preference
+          final pushType = NotifyService.instance.currentPushType;
+          if (pushType == PushType.unifiedpush &&
+              (GetPlatform.isAndroid || GetPlatform.isLinux)) {
+            await UnifiedPushService.instance.init(args: appLaunchArgs);
+          } else {
+            NotifyService.instance.init().catchError((Object e, StackTrace s) {
+              logger.e('initNotifycation error', error: e, stackTrace: s);
+            });
+          }
+        });
+      }
+    } catch (e, s) {
+      logger.e('HomeController.onInit failed', error: e, stackTrace: s);
+    } finally {
+      FlutterNativeSplash.remove();
     }
-    FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
 
-    // show dot on add friends menu
+    // Non-critical initialization below, errors won't block startup
     await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
     await initEnableDMFromNostrApp();
     initKeyboardEnterAction();

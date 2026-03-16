@@ -199,11 +199,15 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   Get
     ..put(EcashController(dbPath), permanent: true)
     ..put(MultiWebviewController(), permanent: true)
-    ..putAsync(() => ChatxService().init(dbPath), permanent: true)
-    ..put(HomeController(), permanent: true)
     ..lazyPut(WebsocketService.new, fenix: true)
     ..lazyPut(UnifiedWalletController.new, fenix: true)
     ..lazyPut(DesktopController.new, fenix: true);
+  logStep('controllers registered');
+
+  await Get.putAsync(() => ChatxService().init(dbPath), permanent: true);
+  logStep('chatxService done');
+
+  Get.put(HomeController(), permanent: true);
   logStep('all services registered');
   return sc;
 }

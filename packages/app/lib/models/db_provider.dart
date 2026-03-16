@@ -45,9 +45,9 @@ class DBProvider {
       directory: dbFolder,
       name: 'keychat',
     ).timeout(
-      const Duration(seconds: 10),
+      const Duration(seconds: 5),
       onTimeout: () {
-        throw TimeoutException('Isar.open() timed out after 10s');
+        throw TimeoutException('Isar.open() timed out after 5s');
       },
     );
     logger.i('[db] isar opened');

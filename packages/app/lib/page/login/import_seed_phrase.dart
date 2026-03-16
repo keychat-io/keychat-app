@@ -66,6 +66,9 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
                       );
                       return;
                     }
+                    // Clear clipboard and text field to remove sensitive data
+                    _privateKeyController.clear();
+                    Clipboard.setData(const ClipboardData(text: ''));
                     final res = await Get.to(
                       () => CreateAccount(mnemonic: input),
                     );

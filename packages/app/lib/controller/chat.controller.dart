@@ -309,16 +309,6 @@ class ChatController extends GetxController {
       _handleSendLightning,
       _handleSendProfile,
     ];
-    // disable webrtc
-    // bool isCommonRoom = roomObs.value.type == RoomType.common;
-    // if (isCommonRoom) {
-    //   featuresIcons.addAll(
-    //       [CupertinoIcons.video_camera_solid, CupertinoIcons.phone_fill]);
-    //   featuresTitles.add('Video Call');
-    //   featuresTitles.add('Audio Call');
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.video));
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.audio));
-    // }
   }
 
   void jumpToBottom(int milliseconds) {
@@ -949,8 +939,7 @@ class ChatController extends GetxController {
         fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
-        ).then((Contact? item) {
-          if (item == null) return;
+        ).then((item) {
           roomContact.value = item;
           roomObs.value.contact = item;
           roomObs.refresh();
@@ -1040,6 +1029,15 @@ class ChatController extends GetxController {
               );
 
               if (shouldDownload != true) {
+                // Mark as checked so we don't ask again until a new version
+                contact
+                  ..avatarFromRelay = avatarFromRelay
+                  ..nameFromRelay = nameFromRelay
+                  ..aboutFromRelay = description
+                  ..metadataFromRelay = res.content
+                  ..fetchFromRelayAt = DateTime.now()
+                  ..versionFromRelay = res.createdAt;
+                await ContactService.instance.saveContact(contact);
                 return contact;
               }
               final localPath = await FileService.instance
@@ -1239,7 +1237,7 @@ class ChatController extends GetxController {
     bool compress = true,
   ]) async {
     /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
+    reader.getFile(format, (file) async {
       var suggestedName = await reader.getSuggestedName();
       final mimeType = format.mimeTypes?.first;
 
@@ -1364,7 +1362,7 @@ class ChatController extends GetxController {
         gifUrl,
         filePath,
         options: Options(responseType: ResponseType.bytes),
-        onReceiveProgress: (int received, int total) {
+        onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
             EasyLoading.showProgress(

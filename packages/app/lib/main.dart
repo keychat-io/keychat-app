@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -90,6 +92,11 @@ Future<void> _startApp(WidgetsBinding widgetsBinding) async {
   );
 
   runApp(getMaterialApp);
+
+  // Fallback: ensure splash is removed even if HomeController.onInit() hangs.
+  // Normal removal happens in HomeController.onInit() after loadRoomList().
+  Future.delayed(const Duration(seconds: 8), FlutterNativeSplash.remove);
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
     stopwatch.stop();
     logger.i('app launched: ${stopwatch.elapsedMilliseconds} ms');
@@ -170,7 +177,12 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   await Storage.init();
   logStep('storage done');
 
-  await RustLib.init();
+  await RustLib.init().timeout(
+    const Duration(seconds: 5),
+    onTimeout: () {
+      throw TimeoutException('RustLib.init() timed out after 5s');
+    },
+  );
   logStep('rustLib done');
 
   // init log file

@@ -48,15 +48,6 @@ class KeyChatEventKinds {
   static const int signalRelaySyncRefuse = 47;
   static const int signalSendProfile = 48;
 
-  // > 2000, common proccess
-  // WebRTC
-  static const int webrtcVideoCall = 2001; // video call
-  static const int webrtcAudioCall = 2002; // audio call
-  static const int webrtcSignaling = 2003; // candidate, offer, answer
-  static const int webrtcCancel = 2004; // cancel call when waiting page
-  static const int webrtcReject = 2005;
-  static const int webrtcEnd = 2006;
-
   // kdf group
   static const int groupHelloMessage = 3001;
   static const int groupWelcomeMessage = 3002;

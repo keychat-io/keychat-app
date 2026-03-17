@@ -1,6 +1,6 @@
 // ignore_for_file: unreachable_from_main
 
-import 'dart:async' show TimeoutException;
+import 'dart:async' show TimeoutException, unawaited;
 
 import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:firebase_core/firebase_core.dart';
@@ -293,12 +293,18 @@ class NotifyService {
 
   /// Setup FCM message listeners
   void _setupFCMListeners() {
-    // fcm onMessage listen
+    // fcm onMessage listen (app in foreground)
     FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) {
         logger.i('notification: ${message.data}');
         if (message.notification != null) {
           debugPrint('notification: ${message.notification?.body}');
+        }
+        // Reset badge to correct value when FCM arrives in foreground
+        // FCM push may arrive after WebSocket already delivered and read the message,
+        // causing the APNs badge to be incorrectly set
+        if (GetPlatform.isDesktop) {
+          unawaited(Get.find<HomeController>().resetBadge());
         }
       },
       onError: (Object e) {
@@ -417,6 +423,14 @@ class NotifyService {
     }
     logger.i('Setup FcmToken: $fcmToken');
     await Get.find<HomeController>().enableNotification();
+
+    // Disable FCM foreground notification on macOS/iOS
+    // Messages are already handled via WebSocket when app is in foreground
+    if (GetPlatform.isMacOS || GetPlatform.isIOS) {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions();
+    }
+
     // Handle initial message if app was opened from notification
     FirebaseMessaging.instance.getInitialMessage().then((initialMessage) async {
       if (initialMessage == null) return;

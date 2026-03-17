@@ -76,6 +76,13 @@ class _WebviewTabState extends State<WebviewTab> {
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
 
+  // Whether to disable SafeArea because page handles safe area itself
+  bool _disableBottomSafeArea = false;
+
+  // Whether the device uses gesture navigation
+  bool _isGestureNavigation = false;
+  static bool? _cachedIsGestureNavigation;
+
   // Add tooltip key
   final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
 
@@ -95,6 +102,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
     initBrowserConnect(WebUri(widget.initUrl));
     initPullToRefreshController();
+    _detectNavigationMode();
 
     // Show tooltip after widget is built
     if (GetPlatform.isMobile && multiWebviewController.browserConfig.showFAB) {
@@ -110,6 +118,30 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _detectNavigationMode() async {
+    if (!GetPlatform.isAndroid) return;
+    if (_cachedIsGestureNavigation != null) {
+      _isGestureNavigation = _cachedIsGestureNavigation!;
+      return;
+    }
+    try {
+      const channel = MethodChannel('com.keychat.io/system');
+      final mode = await channel.invokeMethod<int>('getNavigationMode');
+      // 0 = 3-button, 1 = 2-button, 2 = gesture
+      final isGesture = mode == 2;
+      _cachedIsGestureNavigation = isGesture;
+      logger.d('navigationMode: $mode, isGestureNavigation: $isGesture');
+      if (mounted && isGesture != _isGestureNavigation) {
+        setState(() {
+          _isGestureNavigation = isGesture;
+        });
+      }
+    } catch (e) {
+      logger.e('Failed to detect navigation mode', error: e);
+    }
     // Cancel pending debounce/throttle operations for this tab
     EasyDebounce.cancel('saveScroll:${tabController.url.value}');
     EasyDebounce.cancel('onUpdateVisitedHistory:${tabController.url.value}');
@@ -317,14 +349,10 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            // Android with traditional navigation bar (not gesture navigation)
-            // needs bottom safe area to avoid content being obscured
             bottom:
-                (GetPlatform.isAndroid &&
-                    MediaQuery.of(context).systemGestureInsets.bottom == 0) ||
-                multiWebviewController.bottomSafeHosts.contains(
-                  WebUri(widget.initUrl).host,
-                ),
+                GetPlatform.isAndroid &&
+                !_isGestureNavigation &&
+                !_disableBottomSafeArea,
             child: Column(
               children: [
                 Expanded(
@@ -714,6 +742,7 @@ class _WebviewTabState extends State<WebviewTab> {
         initialUserScripts: UnmodifiableListView([
           multiWebviewController.textSizeUserScript,
         ]),
+
         onScrollChanged: (controller, x, y) async {
           // Save scroll position by current URL
           if (GetPlatform.isAndroid) {
@@ -882,6 +911,23 @@ class _WebviewTabState extends State<WebviewTab> {
           if (url == null) return;
           logger.d('onLoadStop: $url');
           await _checkGoBackState(url.toString());
+
+          // Check if page has viewport-fit=cover in viewport meta tag.
+          // Pages with viewport-fit=cover handle safe area via CSS env(),
+          // so disable Flutter SafeArea to avoid double padding.
+          if (GetPlatform.isAndroid) {
+            final result = await controller.evaluateJavascript(
+              source:
+                  "(function(){var m=document.querySelector('meta[name=\"viewport\"]');return m&&/viewport-fit\\s*=\\s*cover/i.test(m.content);})()",
+            );
+            final shouldDisable = result == true;
+            if (shouldDisable != _disableBottomSafeArea) {
+              setState(() {
+                _disableBottomSafeArea = shouldDisable;
+              });
+            }
+          }
+
           await controller.injectJavascriptFileFromAsset(
             assetFilePath: 'assets/js/nostr.js',
           );

@@ -309,16 +309,6 @@ class ChatController extends GetxController {
       _handleSendLightning,
       _handleSendProfile,
     ];
-    // disable webrtc
-    // bool isCommonRoom = roomObs.value.type == RoomType.common;
-    // if (isCommonRoom) {
-    //   featuresIcons.addAll(
-    //       [CupertinoIcons.video_camera_solid, CupertinoIcons.phone_fill]);
-    //   featuresTitles.add('Video Call');
-    //   featuresTitles.add('Audio Call');
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.video));
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.audio));
-    // }
   }
 
   void jumpToBottom(int milliseconds) {
@@ -991,6 +981,15 @@ class ChatController extends GetxController {
               );
 
               if (shouldDownload != true) {
+                // Mark as checked so we don't ask again until a new version
+                contact
+                  ..avatarFromRelay = avatarFromRelay
+                  ..nameFromRelay = nameFromRelay
+                  ..aboutFromRelay = description
+                  ..metadataFromRelay = res.content
+                  ..fetchFromRelayAt = DateTime.now()
+                  ..versionFromRelay = res.createdAt;
+                await ContactService.instance.saveContact(contact);
                 return contact;
               }
               final localPath = await FileService.instance

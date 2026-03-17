@@ -19,7 +19,6 @@ class StorageKeyString {
   static String getViewKeychatFutures = 'getViewKeychatFutures';
   static String autoDeleteMessageDays = 'autoDeleteMessageDays';
   static String lastMessageAt = 'lastMessageAt';
-  static String defaultWebRTCServers = 'defaultWebRTCServers';
   static String relayMessageFeeConfig = 'relayMessageFeeConfig';
   static String relayFileFeeConfig = 'relayFileFeeConfig';
 

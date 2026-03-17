@@ -556,9 +556,7 @@ class FileService {
   }) async {
     final iv = IV.fromSecureRandom(16);
     final salt = SecureRandom(16).bytes;
-    final key = Key.fromUtf8(
-      Random(16).nextInt(10).toString(),
-    ).stretch(32, salt: salt);
+    final key = Key.fromSecureRandom(32).stretch(32, salt: salt);
     final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
     final fileName = path.basename(input.path);
     final encryptedBytes = encrypter.encryptBytes(

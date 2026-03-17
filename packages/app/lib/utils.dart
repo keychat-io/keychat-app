@@ -947,22 +947,6 @@ Init File: $time \n
     }
   }
 
-  static Future<List<dynamic>> getWebRTCServers() async {
-    final config = Storage.getString(StorageKeyString.defaultWebRTCServers);
-    if (config != null) {
-      try {
-        return jsonDecode(config) as List<dynamic>;
-      } catch (e) {
-        // logger.i(e, error: e);
-      }
-    }
-    await Storage.setString(
-      StorageKeyString.defaultWebRTCServers,
-      jsonEncode(KeychatGlobal.webrtcIceServers),
-    );
-    return KeychatGlobal.webrtcIceServers;
-  }
-
   static Future<Identity?> handleAmberLogin() async {
     final controller = TextEditingController();
     final focusNode = FocusNode();

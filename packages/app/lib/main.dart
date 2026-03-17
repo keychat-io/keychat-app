@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -90,6 +92,11 @@ Future<void> _startApp(WidgetsBinding widgetsBinding) async {
   );
 
   runApp(getMaterialApp);
+
+  // Fallback: ensure splash is removed even if HomeController.onInit() hangs.
+  // Normal removal happens in HomeController.onInit() after loadRoomList().
+  Future.delayed(const Duration(seconds: 8), FlutterNativeSplash.remove);
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
     stopwatch.stop();
     logger.i('app launched: ${stopwatch.elapsedMilliseconds} ms');
@@ -146,6 +153,11 @@ void initEasyLoading() {
 }
 
 Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
+  final sw = Stopwatch()..start();
+  void logStep(String step) {
+    logger.i('[init] $step +${sw.elapsedMilliseconds}ms');
+  }
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
@@ -153,26 +165,50 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
+  logStep('config done');
+
   final appFolder = await Utils.initAppFolder(env);
   final dbPath = Utils.dbPath;
+  logStep('appFolder done');
+
   await dotenv.load(isOptional: true);
+  logStep('dotenv done');
+
   await Storage.init();
-  await RustLib.init();
+  logStep('storage done');
+
+  await RustLib.init().timeout(
+    const Duration(seconds: 5),
+    onTimeout: () {
+      throw TimeoutException('RustLib.init() timed out after 5s');
+    },
+  );
+  logStep('rustLib done');
 
   // init log file
   await Utils.initLoggger(appFolder);
+  logStep('logger done');
 
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);
+  logStep('db done');
+
   final sc = Get.put(SettingController(), permanent: true);
+  logStep('settingController done');
+
   Get
     ..put(EcashController(dbPath), permanent: true)
     ..put(MultiWebviewController(), permanent: true)
-    ..putAsync(() => ChatxService().init(dbPath), permanent: true)
-    ..put(HomeController(), permanent: true)
     ..lazyPut(WebsocketService.new, fenix: true)
     ..lazyPut(UnifiedWalletController.new, fenix: true)
     ..lazyPut(DesktopController.new, fenix: true);
+  logStep('controllers registered');
+
+  await Get.putAsync(() => ChatxService().init(dbPath), permanent: true);
+  logStep('chatxService done');
+
+  Get.put(HomeController(), permanent: true);
+  logStep('all services registered');
   return sc;
 }
 

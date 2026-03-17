@@ -361,63 +361,16 @@ class MessageWidget extends StatelessWidget {
             _chatBubbleContainer,
           )
         : _getReplyWidget();
-    // Desktop: SelectionArea enables mouse-drag text selection.
-    // When text is selected, right-click shows an inline toolbar (rendered by
-    // contextMenuBuilder) so the selection highlight is preserved.
-    // When no text is selected, right-click shows our custom popup via showMenu.
-    // Mobile: no SelectionArea; long press shows bottom sheet menu.
-    final Widget interactiveChild;
-    String? selectedText;
-    if (GetPlatform.isDesktop) {
-      interactiveChild = SelectionArea(
-        onSelectionChanged: (value) {
-          selectedText = value?.plainText;
-        },
-        contextMenuBuilder:
-            (
-              context,
-              selectableRegionState,
-            ) {
-              final buttonItems = selectableRegionState.contextMenuButtonItems;
-              final hasSelection = buttonItems.any(
-                (item) => item.type == ContextMenuButtonType.copy,
-              );
-
-              if (hasSelection) {
-                // Text is selected — build unified menu items inline
-                // so selection highlight is preserved (no focus steal).
-                final menuItems = _buildContextMenuButtonItems(
-                  selectedText: selectedText,
-                );
-                // Prepend system Copy Selected at the top
-                return AdaptiveTextSelectionToolbar.buttonItems(
-                  anchors: selectableRegionState.contextMenuAnchors,
-                  buttonItems: menuItems,
-                );
-              }
-
-              // No text selected — suppress, let GestureDetector handle it
-              return const SizedBox.shrink();
-            },
-        child: widget,
-      );
-    } else {
-      interactiveChild = widget;
-    }
 
     final messageBody = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPress: _handleTextLongPress,
       onSecondaryTapDown: GetPlatform.isDesktop
           ? (details) {
-              // Only trigger when no text is selected (selected case handled
-              // by contextMenuBuilder above)
-              if (selectedText == null || selectedText!.isEmpty) {
-                _onSecondaryTapDown(Get.context!, details);
-              }
+              _onSecondaryTapDown(Get.context!, details);
             }
           : null,
-      child: interactiveChild,
+      child: widget,
     );
 
     if (message.isMeSend) {

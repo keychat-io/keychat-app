@@ -27,6 +27,7 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   @override
   Future<void> onInit() async {
+    super.onInit();
     await loadBiometricsStatus();
     // viewKeychatFutures.value = await getViewKeychatFutures();
     autoCleanMessageDays.value = Storage.getIntOrZero(
@@ -57,7 +58,6 @@ class SettingController extends GetxController with StateMixin<Type> {
       Utils.logErrorToFile(errorDetails.toString());
       return true;
     };
-    super.onInit();
     initMediaServer();
   }
 

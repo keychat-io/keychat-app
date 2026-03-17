@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import UserNotifications
 import app_links
 
 @main
@@ -10,6 +11,11 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     return true
+  }
+
+  override func applicationDidBecomeActive(_ notification: Notification) {
+    // Clear all delivered notifications from notification center when app becomes active
+    UNUserNotificationCenter.current().removeAllDeliveredNotifications()
   }
 
   public override func application(

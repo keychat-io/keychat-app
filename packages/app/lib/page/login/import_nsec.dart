@@ -85,6 +85,9 @@ class _ImportNsec extends State<ImportNsec> {
                             prikey: input,
                             hexPubkey: hexPubkey,
                           );
+                      // Clear clipboard and text field to remove sensitive data
+                      _privateKeyController.clear();
+                      Clipboard.setData(const ClipboardData(text: ''));
                       EasyLoading.showSuccess('Import successfully');
                       Get.back(result: newIdentity);
                     } catch (e, s) {

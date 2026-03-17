@@ -550,21 +550,6 @@ class RoomService extends BaseChatService {
     Function(String error)? failedCallback,
   }) async {
     switch (km.type) {
-      // case KeyChatEventKinds.webrtcAudioCall:
-      // case KeyChatEventKinds.webrtcVideoCall:
-      //   await _processWebRTCCall(room, event, km, sourceEvent);
-      //   break;
-      // case KeyChatEventKinds.webrtcCancel:
-      //   await _processWebRTCCancel(room, event, km, sourceEvent);
-      //   break;
-      // case KeyChatEventKinds.webrtcEnd:
-      //   await _processWebRTCEnd(room, event, km, sourceEvent);
-      //   break;
-      // case KeyChatEventKinds.webrtcSignaling:
-      // WebRTCController? wc = getGetxController<WebRTCController>();
-      // receiveDM(room, event, km, sourceEvent,
-      //     realMessage: km.msg, isSystem: true, isRead: true);
-      // wc?.signaling?.onMessage(jsonDecode(km.msg!));
       default:
         logger.e('not processed!!!');
     }

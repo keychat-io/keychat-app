@@ -9,7 +9,6 @@ class KeychatGlobal {
   static const String bot = 'Bot';
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';
-  static const String recommendRooms = 'recommendRooms';
   static const int remainReceiveKeyPerRoom = 2;
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
@@ -26,9 +25,9 @@ class KeychatGlobal {
   static const String defaultFileServer = 'https://relay.keychat.io';
   static const String defaultRelay = 'wss://relay.keychat.io';
 
-  static const int oneTimePubkeysPoolLength = 1;
+  static const int inboxKeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
-  static const int oneTimePubkeysLifetime = 24; // hours
+  static const int inboxKeysLifetime = 24; // hours
   static const int signalIdLifetime = 168; // hours
   static const int defaultOpenTabIndex = 2; // 0: chat, 1: browser, 2: me
   static const List<String> keychatIntros = [

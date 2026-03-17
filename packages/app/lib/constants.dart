@@ -12,51 +12,59 @@ class NostrResponseKinds {
   static const String event = 'EVENT';
 }
 
+/// Application-level message type constants used inside the encrypted payload.
+///
+/// These are NOT Nostr event kinds. They live inside the decrypted message body
+/// (`KeychatMessage.type` / GroupMessage.subtype) to distinguish different
+/// application-level operations within a single Nostr event.
 class KeyChatEventKinds {
-  static const int start = 1; // default
-  static const int dm = 100; // one to one private chat
-  static const int dmAddContactFromAlice = 101; // request to add friend
-  static const int dmDeleteHistory = 103; // delete history
-  static const int dmReject = 104; // reject to add friend
-  static const int dmEnd = 200; // chat end
+  // ── Signal 1:1 ──
 
-  // share key group
-  static const int groupInvite = 11;
-  static const int groupSharedKeyMessage = 12;
-  static const int groupHi = 14;
-  static const int groupChangeNickname = 15;
-  static const int groupSelfLeave = 16;
-  static const int groupDissolve = 17;
-  static const int groupSyncMembers = 18;
-  static const int groupChangeSignKey =
-      19; //  update shared key or delete room meber
-  static const int groupChangeRoomName = 20;
-  static const int groupSendToAllMessage = 30; // send message to all
-  static const int groupRemoveMember = 31; // remove room member
-  static const int groupRemoveSingleMember = 32; // remove single room member
-  static const int groupSelfLeaveConfirm = 33; // confirm to remove member
+  /// Regular direct message, may contain reply metadata in `name` field.
+  static const int dm = 100;
 
-  static const int groupShreKeyEnd = 39;
+  /// X3DH handshake: sender initiates encrypted session with key exchange data.
+  static const int dmAddContactFromAlice = 101;
 
-  static const int signal = 40;
-  static const int signalInvite = 41;
-  static const int signalInviteReply = 42;
-  static const int signalInviteReply2 = 43;
-  // static const int signalDM = 44;
+  /// Reject a friend request / handshake.
+  static const int dmReject = 104;
+
+  /// Invite the recipient to sync relay configuration.
   static const int signalRelaySyncInvite = 45;
-  static const int signalRelaySyncConfirm = 46;
-  static const int signalRelaySyncRefuse = 47;
+
+  /// Send sender's profile (name, avatar, lightning, bio) to the recipient.
   static const int signalSendProfile = 48;
 
-  // kdf group
-  static const int groupHelloMessage = 3001;
-  static const int groupWelcomeMessage = 3002;
-  static const int inviteNewMember = 3004;
+  // ── Signal Group (sendAll) ──
+
+  /// Admin sends group invitation with RoomProfile to a contact.
+  static const int groupInvite = 11;
+
+  /// Member changes their nickname within the group.
+  static const int groupChangeNickname = 15;
+
+  /// Member voluntarily leaves the group.
+  static const int groupSelfLeave = 16;
+
+  /// Admin dissolves the entire group.
+  static const int groupDissolve = 17;
+
+  /// Admin changes the group name.
+  static const int groupChangeRoomName = 20;
+
+  /// Broadcast message envelope: wraps a GroupMessage sent to all members.
+  static const int groupSendToAllMessage = 30;
+
+  /// Admin removes a single member from the group.
+  static const int groupRemoveSingleMember = 32;
+
+  /// Non-admin member requests to invite a contact into the group via admin.
   static const int inviteToGroupRequest = 3005;
-  static const int groupUpdateKeys = 3006;
-  static const int groupAdminRemoveMembers = 3007;
+
+  // ── MLS Group ──
+
+  /// Share MLS group invitation info with a contact (1:1 channel).
   static const int groupInvitationInfo = 3008;
-  static const int groupInvitationRequesting = 3009;
 }
 
 class EventKindTags {
@@ -86,7 +94,6 @@ class EventKinds {
   // static const int nip104RelaysListEvent = 10051;
   static const int mlsNipKeypackages = 10443;
   static const int mlsNipWelcome = 444;
-  // static const int nip104GroupEvent = 445;
 
   // Channels
   // CHANNEL_CREATION = 40;

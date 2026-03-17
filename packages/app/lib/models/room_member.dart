@@ -16,6 +16,7 @@ enum UserStatusType { inviting, invited, blocked, removed, unknown }
     'mlsPKExpired',
     'contact',
     'displayName',
+    'signalIdentityKey',
   },
 )
 // ignore: must_be_immutable
@@ -41,7 +42,14 @@ class RoomMember extends Equatable {
   late String idPubkey; // secp256k1
 
   @JsonKey(includeToJson: false, includeFromJson: false)
+  @Deprecated('Use signalIdentityKey instead')
   String? curve25519PkHex;
+
+  /// The member's Signal identity key (curve25519 hex).
+  // ignore: deprecated_member_use_from_same_package
+  String? get signalIdentityKey => curve25519PkHex;
+  // ignore: deprecated_member_use_from_same_package
+  set signalIdentityKey(String? v) => curve25519PkHex = v;
 
   late int roomId;
 

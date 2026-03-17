@@ -120,7 +120,7 @@ class EncryptModeWidget extends StatelessWidget {
       EasyLoading.showError("Can't switch to signal mode with yourself");
       return;
     }
-    if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
+    if (mode == EncryptMode.signal && room.peerSignalIdentityKey == null) {
       await SignalChatService.instance.sendHelloMessage(
         room,
         room.getIdentity(),

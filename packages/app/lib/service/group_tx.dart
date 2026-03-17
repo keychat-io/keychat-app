@@ -9,12 +9,23 @@ import 'package:keychat/service/signalId.service.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
+/// Handles group-related database transactions that must run atomically.
+///
+/// All write operations in this class are designed to be executed within
+/// an Isar [writeTxn] block to ensure consistency.
 class GroupTx {
   // Avoid self instance
   GroupTx._();
   static GroupTx? _instance;
   static GroupTx get instance => _instance ??= GroupTx._();
 
+  /// Imports or retrieves a [Mykey] record for the given [keychain].
+  ///
+  /// Looks up an existing key by [identityId] and public key. If not found,
+  /// creates and persists a new [Mykey] record. Optionally associates it with
+  /// [roomId].
+  ///
+  /// Returns the persisted [Mykey] instance.
   Future<Mykey> importMykeyTx(
     int identityId,
     rust_nostr.Secp256k1Account keychain, [
@@ -36,6 +47,8 @@ class GroupTx {
     return (await database.mykeys.get(savedId))!;
   }
 
+  // Creates the room record and initializes the member list within a transaction.
+  // Must be called from within an Isar writeTxn block.
   Future<Room> _createGroupToDB(
     String toMainPubkey,
     String groupName, {
@@ -64,7 +77,7 @@ class GroupTx {
 
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
-    final me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+    final me = await room.getMemberByIdPubkey(identity.nostrIdentityKey);
 
     if (me != null && me.status != UserStatusType.invited) {
       me.status = UserStatusType.invited;
@@ -73,6 +86,10 @@ class GroupTx {
     return room;
   }
 
+  /// Persists [room] to the database.
+  ///
+  /// If [updateMykey] is `true`, also saves the associated [Mykey] link.
+  /// Returns the updated [Room] instance.
   Future<Room> updateRoom(Room room, {bool updateMykey = false}) async {
     await DBProvider.database.rooms.put(room);
     if (updateMykey) {
@@ -81,12 +98,23 @@ class GroupTx {
     return room;
   }
 
+  /// Joins a group from a received [RoomProfile] invitation.
+  ///
+  /// Imports the shared room private key (if present), creates the group
+  /// room via [_createGroupToDB], and sets up the member list from
+  /// [roomProfile.users]. For KDF groups that include a Signal pubkey,
+  /// also imports the Signal identity via [SignalIdService].
+  ///
+  /// Optionally updates [message] content to hide the raw private key
+  /// before it is persisted.
+  ///
+  /// Returns the newly created [Room].
   Future<Room> joinGroup(
     RoomProfile roomProfile,
     Identity identity, [
     Message? message,
   ]) async {
-    final toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
+    final toMainPubkey = roomProfile.groupId ?? roomProfile.pubkey;
     final toRoomPriKey = roomProfile.prikey;
     final version = roomProfile.updatedAt;
     final users = roomProfile.users;
@@ -110,17 +138,6 @@ class GroupTx {
       roomUpdateAt: roomProfile.updatedAt,
     );
 
-    // import signalId for kdf group
-    if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
-      if (message != null) {
-        message.content = '******';
-        await DBProvider.database.messages.put(message);
-      }
-      await SignalIdService.instance.importOrGetSignalId(
-        groupRoom.identityId,
-        roomProfile,
-      );
-    }
     return groupRoom;
   }
 }

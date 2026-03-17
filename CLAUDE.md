@@ -98,6 +98,20 @@ flutter run -d <device>
 
 **Flutter version**: 3.38.2 (managed via FVM - see `.fvmrc`)
 
+### Git Worktree Setup
+
+When working in a git worktree (e.g. `.claude/worktrees/<name>`), submodules and `.env` are NOT automatically available. You **must** run:
+
+```bash
+# Initialize submodules in the worktree
+git submodule update --init --recursive
+
+# Create .env file (required by pubspec.yaml assets)
+touch packages/app/.env
+```
+
+Without these steps, `flutter pub get`, `flutter test`, and `flutter run` will fail.
+
 ## Common Commands
 
 ```bash

@@ -977,6 +977,17 @@ class FileService {
     return null;
   }
 
+  /// Encrypts, uploads, and sends a voice message.
+  // TODO: Re-enable when voice message feature is ready
+  Future<Message?> handleSendAudioFile(
+    Room room,
+    String audioPath,
+    int durationSeconds,
+    List<double> amplitudeSamples,
+  ) async {
+    return null;
+  }
+
   // check text is image
   bool isImage(String text) {
     final regex = RegExp(

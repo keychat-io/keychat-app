@@ -112,7 +112,7 @@ class _SearchPageState extends State<SearchPage> {
         try {
           final room = await RoomService.instance.getOrCreateRoom(
             contact.pubkey,
-            identity.secp256k1PKHex,
+            identity.nostrIdentityKey,
             RoomStatus.enabled,
           );
           room.contact = contact;

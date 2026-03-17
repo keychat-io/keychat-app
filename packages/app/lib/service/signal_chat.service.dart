@@ -35,6 +35,18 @@ class SignalChatService extends BaseChatService {
   static SignalChatService? _instance;
   static SignalChatService get instance => _instance ??= SignalChatService._();
 
+  /// Encrypts and sends a message to [room] using the Signal Double Ratchet protocol.
+  ///
+  /// When a receive address is pending ([Room.receiveAddress] is set and matches the
+  /// current send address), wraps the plaintext in a signed [PrekeyMessageModel] so the
+  /// recipient can verify the sender's identity on first contact.
+  /// After encryption, any newly derived ratchet receive address is registered with the
+  /// WebSocket subscription and (if the room is not muted) the push notification service.
+  ///
+  /// Returns a [SendMessageResponse] containing the sent event details and any newly
+  /// added receive pubkeys that should be monitored.
+  ///
+  /// Throws [SignalSessionNotCreatedException] if no active Signal session exists for the room.
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,
@@ -52,10 +64,10 @@ class SignalChatService extends BaseChatService {
     }
     final message0 = message;
     final keypair = await room.getKeyPair();
-    final to = await _getSignalToAddress(keypair, room);
+    final to = await _resolveDeliveryAddress(keypair, room);
     PrekeyMessageModel? pmm;
-    if (room.onetimekey != null) {
-      if (to == room.onetimekey) {
+    if (room.receiveAddress != null) {
+      if (to == room.receiveAddress) {
         final si = room.getMySignalId();
         pmm = await SignalChatUtil.getSignalPrekeyMessage(
           room: room,
@@ -101,9 +113,8 @@ class SignalChatService extends BaseChatService {
     }
 
     final senderKey = await rust_nostr.generateSimple();
-    final toPubkey = room.type == RoomType.bot ? room.toMainPubkey : to;
     final smr = await NostrAPI.instance.sendEventMessage(
-      toPubkey,
+      to,
       base64.encode(ciphertext),
       save: save,
       prikey: senderKey.prikey,
@@ -117,19 +128,24 @@ class SignalChatService extends BaseChatService {
       mediaType: mediaType,
       isEncryptedMessage: true,
       msgKeyHash: msgKeyHash,
-      signalReceiveAddress: room.type == RoomType.bot ? to : null,
     );
     smr.toAddPubkeys = toAddPubkeys;
     return smr;
   }
 
-  Future<String> _getSignalToAddress(
+  /// Resolves the Nostr delivery address for an outgoing Signal message.
+  ///
+  /// Reads the Double Ratchet session to obtain the current ratchet key, then
+  /// derives a Nostr pubkey from it.  Falls back to [Room.receiveAddress] (the
+  /// peer's inbox key from the hello handshake) when no ratchet has been
+  /// established yet, or to [Room.toMainPubkey] as a last resort.
+  Future<String> _resolveDeliveryAddress(
     KeychatIdentityKeyPair keyPair,
     Room room,
   ) async {
     final bobSession = await rust_signal.getSession(
       keyPair: keyPair,
-      address: room.curve25519PkHex!,
+      address: room.peerSignalIdentityKey!,
       deviceId: room.identityId.toString(),
     );
     if (bobSession == null) {
@@ -137,21 +153,45 @@ class SignalChatService extends BaseChatService {
     }
     var to = bobSession.bobAddress ?? bobSession.address;
 
-    if (to.startsWith('05')) {
+    if (_isRawSignalIdentityKey(to)) {
+      // No ratchet yet, fall back to the room's main Nostr pubkey
       to = room.toMainPubkey;
     } else {
+      // Ratchet key available, derive Nostr address from it
       to = await rust_nostr.generateSeedFromRatchetkeyPair(seedKey: to);
     }
 
-    final isSendToOnetimeKey =
-        to == room.toMainPubkey && room.onetimekey != null;
-    if (isSendToOnetimeKey) {
-      to = room.onetimekey!;
+    final isSendToReceiveAddress =
+        to == room.toMainPubkey && room.receiveAddress != null;
+    if (isSendToReceiveAddress) {
+      to = room.receiveAddress!;
     }
 
     return to;
   }
 
+  static const signalIdentityKeyPrefix = '05';
+
+  /// Whether [address] is a raw Signal curve25519 identity key (not a ratchet key).
+  ///
+  /// Signal curve25519 public keys are 33 bytes (66 hex chars) with a 0x05 DJB
+  /// type prefix. These are NOT valid Nostr addresses (which are secp256k1
+  /// x-only keys, 32 bytes / 64 hex chars).
+  static bool _isRawSignalIdentityKey(String address) =>
+      address.startsWith(signalIdentityKeyPrefix) && address.length == 66;
+
+  /// Decrypts an incoming Signal-encrypted message for the given [room].
+  ///
+  /// Attempts symmetric decryption via [rust_signal.decryptSignal]. On failure,
+  /// stores an error placeholder in the decoded content so the UI can show a
+  /// "decrypt failed" indicator, and sets [Room.signalDecodeError] accordingly.
+  ///
+  /// After successful decryption, computes the message key hash, removes the consumed
+  /// one-time receive key from the contact store, and clears [Room.receiveAddress] if the
+  /// message arrived on a ratchet address rather than the primary address.
+  ///
+  /// The [failedCallback] is invoked with an error description if decryption fails.
+  /// Returns the decoded plaintext string (may be an error message string on failure).
   Future<String> decryptMessage(
     Room room,
     NostrEventModel event,
@@ -204,11 +244,12 @@ class SignalChatService extends BaseChatService {
           ),
         );
       }
-      // if receive address is signalAddress, then remove room.onetimekey
-      if (room.onetimekey != null) {
+      // if receive address is signalAddress, then remove room.receiveAddress
+      if (room.receiveAddress != null) {
         final toAddress = (sourceEvent ?? event).tags[0][1];
-        if (toAddress != room.toMainPubkey && toAddress != room.onetimekey!) {
-          room.onetimekey = null;
+        if (toAddress != room.toMainPubkey &&
+            toAddress != room.receiveAddress!) {
+          room.receiveAddress = null;
           await RoomService.instance.updateRoom(room);
         }
       }
@@ -224,7 +265,7 @@ class SignalChatService extends BaseChatService {
     final km = NostrAPI.instance.tryGetKeyChatMessage(decodeString);
 
     if (km != null) {
-      await km.service.proccessMessage(
+      await km.service.processMessage(
         room: room,
         event: event,
         km: km,
@@ -246,6 +287,10 @@ class SignalChatService extends BaseChatService {
     return decodeString;
   }
 
+  /// Updates [Room.signalDecodeError] and persists the change via [RoomService].
+  ///
+  /// No-op if [signalDecodeError] already matches the current room flag, avoiding
+  /// unnecessary database writes and UI refreshes.
   Future<void> setRoomSignalDecodeStatus(
     Room room,
     bool signalDecodeError,
@@ -256,8 +301,19 @@ class SignalChatService extends BaseChatService {
     await RoomService.instance.updateRoomAndRefresh(room);
   }
 
+  /// Dispatches a decrypted [KeychatMessage] to the appropriate Signal handler.
+  ///
+  /// Routes by [km.type]:
+  /// - [KeyChatEventKinds.signalSendProfile] / [KeyChatEventKinds.dm]:
+  ///   delivers as a regular chat message via [RoomService.receiveDM].
+  /// - [KeyChatEventKinds.dmAddContactFromAlice]:
+  ///   processes the initial X3DH hello and establishes the Signal session.
+  /// - [KeyChatEventKinds.dmReject]:
+  ///   marks the room as rejected and records the system event.
+  /// - [KeyChatEventKinds.signalRelaySyncInvite]:
+  ///   stores the relay sync invitation for user review.
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,
@@ -292,6 +348,14 @@ class SignalChatService extends BaseChatService {
     }
   }
 
+  /// Manages a rolling window of up to 3 listen addresses stored under [mapKey].
+  ///
+  /// Returns a record `(addList, removeList)`:
+  /// - `addList` — new addresses to subscribe to on the WebSocket relay.
+  /// - `removeList` — addresses evicted from the window that should be unsubscribed.
+  ///
+  /// Returns empty lists when [address] is already the most-recently added entry,
+  /// avoiding redundant subscription changes.
   Future<(List<String>, List<String>)> processListenAddrs(
     String address,
     String mapKey,
@@ -362,43 +426,45 @@ class SignalChatService extends BaseChatService {
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     // auto send response
-    final oneTimeKey = await IdentityService.instance.isFromOnetimeKey(
+    final inboxKey = await IdentityService.instance.findInboxKey(
       (sourceEvent ?? event).tags[0][1],
     );
 
-    // expire onetime-key
-    if (oneTimeKey != null) {
-      oneTimeKey
+    // expire inbox key
+    if (inboxKey != null) {
+      inboxKey
         ..oneTimeUsed = true
         ..updatedAt = DateTime.now();
-      await IdentityService.instance.updateMykey(oneTimeKey);
+      await IdentityService.instance.updateMykey(inboxKey);
     }
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
     } else if (room.status != RoomStatus.enabled) {
-      room.status = oneTimeKey != null
+      room.status = inboxKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
     }
-    room.onetimekey = model.onetimekey;
+    room.receiveAddress = model.receiveAddress;
 
     // delete old session
-    if (room.curve25519PkHex != null) {
+    if (room.peerSignalIdentityKey != null) {
       await Get.find<ChatxService>().deleteSignalSessionKPA(room);
     }
     // must be delete session then give a new data
-    room.curve25519PkHex = model.curve25519PkHex;
+    room.peerSignalIdentityKey = model.signalIdentityKey;
 
     final res = await Get.find<ChatxService>().addRoomKPA(
       room: room,
-      bobSignedId: model.signedId,
-      bobSignedPublic: Uint8List.fromList(hex.decode(model.signedPublic)),
+      bobSignedId: model.signalSignedPrekeyId,
+      bobSignedPublic: Uint8List.fromList(hex.decode(model.signalSignedPrekey)),
       bobSignedSignature: Uint8List.fromList(
-        hex.decode(model.signedSignature),
+        hex.decode(model.signalSignedPrekeySignature),
       ),
-      bobPrekeyId: model.prekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)),
+      bobPrekeyId: model.signalOneTimePrekeyId,
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(model.signalOneTimePrekey),
+      ),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;
@@ -445,6 +511,10 @@ class SignalChatService extends BaseChatService {
     );
   }
 
+  /// Sends a relay sync invitation to [room], advertising the given [relays].
+  ///
+  /// The recipient receives a [KeyChatEventKinds.signalRelaySyncInvite] message and
+  /// can accept it to update their post-office relay configuration for this contact.
   Future<void> sendRelaySyncMessage(Room room, List<String> relays) async {
     final sm = KeychatMessage(
       c: MessageType.signal,
@@ -465,17 +535,25 @@ ${relays.join('\n')}
     );
   }
 
+  /// Initiates the X3DH key exchange by sending a hello message to [room].
+  ///
+  /// Creates a fresh [SignalId] for [identity], builds a signed [KeychatMessage]
+  /// of type [KeyChatEventKinds.dmAddContactFromAlice], and delivers it via NIP-17.
+  ///
+  /// [receiveAddress] — optional receive address pubkey to use as the delivery address.
+  /// [greeting] — optional greeting text included in the message body.
+  /// [fromNpub] — set to `true` when initiating from an npub / QR-code scan flow.
   Future<void> sendHelloMessage(
     Room room0,
     Identity identity, {
-    String? onetimekey,
+    String? receiveAddress,
     String? greeting,
     bool fromNpub = false,
   }) async {
     var room = room0;
     final signalId = await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
-    room.signalIdPubkey = signalId.pubkey;
+    room.mySignalIdentityKey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     final sm =
         await KeychatMessage(
@@ -491,7 +569,7 @@ ${relays.join('\n')}
       room,
       sm.toString(),
       identity,
-      toPubkey: onetimekey,
+      toPubkey: receiveAddress,
       realMessage: sm.msg,
       isSystem: true,
     );
@@ -517,7 +595,16 @@ ${relays.join('\n')}
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
-  // decrypt the first signal message
+  /// Decrypts an incoming Signal prekey message (first message from a new contact).
+  ///
+  /// Parses the sender's [KeychatProtocolAddress] from the ciphertext header, locates
+  /// the matching [SignalId] by key ID, and decrypts with [rust_signal.decryptSignal].
+  /// Creates or updates the [Room] record for the sender, saves the contact profile,
+  /// and delivers the inner message payload to [RoomService.receiveDM].
+  ///
+  /// [to] — the local one-time key address the prekey message was sent to.
+  /// [mykey] — the [Mykey] record for the one-time key address.
+  /// The [failedCallback] is invoked with an error description on any unrecoverable error.
   Future<void> decryptPreKeyMessage(
     String to,
     Mykey mykey, {
@@ -598,7 +685,7 @@ ${relays.join('\n')}
       name: prekeyMessageModel.name,
       status: RoomStatus.enabled,
       encryptMode: EncryptMode.signal,
-      curve25519PkHex: signalIdPubkey,
+      peerSignalIdentityKey: signalIdPubkey,
       signalId: signalId,
       contact: contact,
     );
@@ -606,7 +693,7 @@ ${relays.join('\n')}
     room
       ..status = RoomStatus.enabled
       ..encryptMode = EncryptMode.signal
-      ..curve25519PkHex = signalIdPubkey
+      ..peerSignalIdentityKey = signalIdPubkey
       ..contact = contact;
 
     await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);
@@ -620,7 +707,7 @@ ${relays.join('\n')}
       // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
-      await km.service.proccessMessage(
+      await km.service.processMessage(
         room: room,
         event: event,
         km: km,
@@ -637,6 +724,10 @@ ${relays.join('\n')}
     );
   }
 
+  /// Returns the [Room] associated with the given Signal receive address [to].
+  ///
+  /// First checks the in-memory [ContactService.receiveKeyRooms] cache for a fast
+  /// lookup, then falls back to a database query via [RoomService.getRoomByReceiveKey].
   Future<Room?> getSignalChatRoomByTo(String to) async {
     final roomId = ContactService.receiveKeyRooms[to];
     if (roomId == null) {
@@ -645,6 +736,11 @@ ${relays.join('\n')}
     return RoomService.instance.getRoomByIdOrFail(roomId);
   }
 
+  /// Resets the Signal session for [room] by deleting stale session state and
+  /// re-initiating the X3DH handshake with a new hello message.
+  ///
+  /// Throttled to at most once per 3 seconds to prevent duplicate reset storms.
+  /// Shows a success info toast on completion, or an error toast on failure.
   Future<void> resetSignalSession(Room room) async {
     EasyThrottle.throttle(
       'ResetSessionStatus',

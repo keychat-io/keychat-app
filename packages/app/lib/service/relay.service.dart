@@ -25,6 +25,10 @@ class RelayService {
   static RelayService? _instance;
   static RelayService get instance => _instance ??= RelayService._();
 
+  /// Adds a relay by [url] to the pool and establishes a WebSocket connection.
+  ///
+  /// If already connected, returns false without reconnecting.
+  /// On successful connection, triggers MLS key package upload and fee info fetch.
   Future<bool> addAndConnect(String url) async {
     final ws = Get.find<WebsocketService>();
     final relay = await RelayService.instance.getOrPutRelay(url);
@@ -53,6 +57,10 @@ class RelayService {
     return true;
   }
 
+  /// Persists a new [Relay] record for [url] to the database.
+  ///
+  /// Set [isDefault] to true to mark this relay as the primary relay.
+  /// Does not establish a WebSocket connection — use [addAndConnect] instead.
   Future<Relay> add(String url, [bool isDefault = false]) async {
     final database = DBProvider.database;
     final relay = Relay(url);
@@ -63,6 +71,9 @@ class RelayService {
     return relay;
   }
 
+  /// Returns the existing [Relay] for [url], or creates and persists a new one if not found.
+  ///
+  /// Throws if the relay cannot be read back after insertion.
   Future<Relay> getOrPutRelay(String url) async {
     final database = DBProvider.database;
 
@@ -79,24 +90,13 @@ class RelayService {
     return r;
   }
 
-  // Future<List<Relay>> getReadList() async {
-  //   return (await _DBProvider.database)
-  //       .relays
-  //       .filter()
-  //       .readEqualTo(true)
-  //       .activeEqualTo(true)
-  //       .findAll();
-  // }
+  // DEPRECATED: read/write relay split was removed in favor of a single active flag - candidate for removal
+  // Future<List<Relay>> getReadList() async { ... }
+  // Future<List<Relay>> getWriteList() async { ... }
 
-  // Future<List<Relay>> getWriteList() async {
-  //   return (await _DBProvider.database)
-  //       .relays
-  //       .filter()
-  //       .writeEqualTo(true)
-  //       .activeEqualTo(true)
-  //       .findAll();
-  // }
-
+  /// Deletes the relay record with the given [id] from the database.
+  ///
+  /// Returns true if the record was found and deleted.
   Future<bool> delete(int id) async {
     final database = DBProvider.database;
 
@@ -105,6 +105,7 @@ class RelayService {
     });
   }
 
+  /// Returns all relay records, deduplicated by URL.
   Future<List<Relay>> list() async {
     final list = await DBProvider.database.relays.where().findAll();
 
@@ -115,6 +116,7 @@ class RelayService {
     return newList.values.toList();
   }
 
+  /// Returns the URLs of all active (enabled) relays.
   Future<List<String>> getEnableList() async {
     final list = await DBProvider.database.relays
         .filter()
@@ -128,6 +130,7 @@ class RelayService {
     return newList.toList();
   }
 
+  /// Returns all active (enabled) [Relay] objects.
   Future<List<Relay>> getEnableRelays() async {
     final list = await DBProvider.database.relays
         .filter()
@@ -137,10 +140,12 @@ class RelayService {
     return list;
   }
 
+  /// Returns the total number of relay records in the database.
   Future<int> count() async {
     return DBProvider.database.relays.where().count();
   }
 
+  /// Updates the read/write flags and active status for the relay with [id].
   Future<void> updateReadWrite({
     required int id,
     required bool read,
@@ -163,6 +168,7 @@ class RelayService {
     });
   }
 
+  /// Updates [relay]'s error message and optional timestamp in the database.
   Future<void> updateStatus({
     required Relay relay,
     DateTime? updatedAt,
@@ -183,6 +189,9 @@ class RelayService {
     }
   }
 
+  /// Toggles NIP-104 (MLS key packages) support for the relay at [relayUrl].
+  ///
+  /// Updates both the database and the in-memory [RelayWebsocket] relay object.
   Future<Relay> updateP104(String relayUrl, bool isEnableNip104) async {
     final relay = await getOrPutRelay(relayUrl);
     relay.isEnableNip104 = isEnableNip104;
@@ -195,12 +204,17 @@ class RelayService {
     return relay;
   }
 
+  /// Persists changes to an existing [Relay] record in the database.
   Future<void> update(Relay relay) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.relays.put(relay);
     });
   }
 
+  /// Sets or clears the default flag for [relay].
+  ///
+  /// If [afterValue] is true, first clears [isDefault] on all existing default relays,
+  /// then marks [relay] as the new default.
   Future<void> updateDefault(Relay relay, bool afterValue) async {
     await DBProvider.database.writeTxn(() async {
       if (afterValue) {
@@ -220,6 +234,9 @@ class RelayService {
     });
   }
 
+  /// Ensures at least one relay in [relays] is marked as default.
+  ///
+  /// If none is set, uses [KeychatGlobal.defaultRelay], adding it if necessary.
   Future<List<Relay>> checkDefaultRelay(List<Relay> relays) async {
     for (final r in relays) {
       if (r.isDefault) {
@@ -242,6 +259,10 @@ class RelayService {
     return relays;
   }
 
+  /// Fetches the NIP-11 relay information document from [relay] via HTTPS.
+  ///
+  /// Converts `wss://` to `https://` and sends a request with `Accept: application/nostr+json`.
+  /// Returns the parsed JSON map, or null if the request fails.
   Future<Map<String, dynamic>?> fetchRelayNostrInfo(Relay relay) async {
     final dio = Dio();
     try {
@@ -273,6 +294,9 @@ class RelayService {
     return null;
   }
 
+  /// Fetches and caches fee info (message fee + file fee) for the given [relays].
+  ///
+  /// Skips silently if [WebsocketService] is not yet initialized.
   Future<void> initRelayFeeInfo([List<Relay>? relays]) async {
     try {
       try {
@@ -293,6 +317,7 @@ class RelayService {
     }
   }
 
+  /// Returns the relay currently marked as default, or null if none is set.
   Future<Relay?> getDefault() async {
     return DBProvider.database.relays
         .filter()
@@ -300,6 +325,9 @@ class RelayService {
         .findFirst();
   }
 
+  /// Initializes the relay list from the database, seeding defaults from config if empty.
+  ///
+  /// On first run, populates relays from the `nostrRelays` environment config.
   Future<List<Relay>> initRelay() async {
     final database = DBProvider.database;
     var list = await RelayService.instance.list();
@@ -319,6 +347,9 @@ class RelayService {
     return list;
   }
 
+  /// Fetches Cashu payment requirements for each relay and updates [WebsocketService.relayMessageFeeModels].
+  ///
+  /// Persists the updated fee models to local storage for offline access.
   Future<void> fetchRelayMessageFee([List<Relay>? relays]) async {
     final ws = Get.find<WebsocketService>();
     relays ??= await getEnableRelays();
@@ -346,6 +377,7 @@ class RelayService {
     );
   }
 
+  /// Fetches file upload fee configuration from the default file server and caches it locally.
   Future<void> fetchRelayFileFee() async {
     final ws = Get.find<WebsocketService>();
 
@@ -427,6 +459,9 @@ class RelayService {
     return null;
   }
 
+  /// Fetches and parses the file server info JSON from [url] into a [RelayFileFee] model.
+  ///
+  /// Returns null if the fetch fails or the server returns no useful data.
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
     try {
       final map = await _fetchFileUploadConfig(url);
@@ -446,6 +481,9 @@ class RelayService {
     return null;
   }
 
+  /// Connects to each URL in [relays] that is not already active.
+  ///
+  /// Returns the count of relays successfully added or reconnected.
   Future<int> addOrActiveRelay(List<String> relays) async {
     var success = 0;
     for (final url in relays) {
@@ -457,6 +495,7 @@ class RelayService {
     return success;
   }
 
+  /// Returns the [Relay] record matching [url], or null if not found.
   Future<Relay?> getRelayByUrl(String url) async {
     return DBProvider.database.relays.filter().urlEqualTo(url).findFirst();
   }

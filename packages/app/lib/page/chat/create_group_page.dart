@@ -81,7 +81,7 @@ class _AddGroupPageState extends State<AddGroupPage>
             final list = <Map<String, dynamic>>[];
             for (var i = 0; i < contactList.length; i++) {
               final c = contactList[i];
-              if (c.pubkey == selectedIdentity.secp256k1PKHex) continue;
+              if (c.pubkey == selectedIdentity.nostrIdentityKey) continue;
               const exist = false;
               list.add({
                 'pubkey': c.pubkey,

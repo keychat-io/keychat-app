@@ -104,7 +104,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       EasyLoading.showError('Please select at least one user');
       return;
     }
-    final myPubkey = widget.room.getIdentity().secp256k1PKHex;
+    final myPubkey = widget.room.getIdentity().nostrIdentityKey;
     final isAdmin = await widget.room.checkAdminByIdPubkey(myPubkey);
     // only isSendAllGroup
     if (!isAdmin && widget.room.isSendAllGroup) {
@@ -144,7 +144,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       );
       final sender = widget.room.getIdentity().displayName;
       if (widget.room.isMLSGroup) {
-        await MlsGroupService.instance.addMemeberToGroup(
+        await MlsGroupService.instance.addMemberToGroup(
           groupRoom,
           selectUsers,
           sender,

@@ -627,21 +627,18 @@ Future<void> showMyQrCode(
 }
 
 Future<String> getOneTimeLink(Identity identity) async {
-  // get one time keys from db
-  final oneTimeKeys = await Get.find<ChatxService>().getOneTimePubkey(
-    identity.id,
-  );
+  final inboxKeys = await Get.find<ChatxService>().getInboxKeys(identity.id);
 
   // create signalId
   final signalId = await SignalIdService.instance.createSignalId(identity.id);
 
-  final oneTimeKey = oneTimeKeys.first.pubkey;
+  final inboxPubkey = inboxKeys.first.pubkey;
   final time = RoomUtil.getValidateTime();
 
   // Generate QR code data
   final qrString = await _generateQRCodeData(
     identity,
-    oneTimeKey,
+    inboxPubkey,
     signalId,
     time,
   );
@@ -653,18 +650,39 @@ Future<String> getOneTimeLink(Identity identity) async {
   return url;
 }
 
+/// Migrates legacy Signal key field names to the current naming convention.
+/// Handles cached [SignalId.keys] that were persisted before the rename.
+Map<String, dynamic> _migrateSignalKeyNames(Map<String, dynamic> json) {
+  const mapping = {
+    'signedId': 'signalSignedPrekeyId',
+    'signedPublic': 'signalSignedPrekey',
+    'signedSignature': 'signalSignedPrekeySignature',
+    'prekeyId': 'signalOneTimePrekeyId',
+    'prekeyPubkey': 'signalOneTimePrekey',
+  };
+  final result = Map<String, dynamic>.of(json);
+  for (final entry in mapping.entries) {
+    if (result.containsKey(entry.key) && !result.containsKey(entry.value)) {
+      result[entry.value] = result.remove(entry.key);
+    }
+  }
+  return result;
+}
+
 Future<String> _generateQRCodeData(
   Identity identity,
-  String onetimekey,
+  String receiveAddress,
   SignalId signalId,
   int time,
 ) async {
   final userInfo = signalId.keys == null
       ? await SignalIdService.instance.getQRCodeData(signalId, time)
-      : jsonDecode(signalId.keys!) as Map<String, dynamic>;
+      : _migrateSignalKeyNames(
+          jsonDecode(signalId.keys!) as Map<String, dynamic>,
+        );
 
   final content = SignalChatUtil.getToSignMessage(
-    nostrId: identity.secp256k1PKHex,
+    nostrId: identity.nostrIdentityKey,
     signalId: signalId.pubkey,
     time: time,
   );
@@ -677,14 +695,14 @@ Future<String> _generateQRCodeData(
   final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 
   final data = <String, dynamic>{
-    'pubkey': identity.secp256k1PKHex,
-    'curve25519PkHex': signalId.pubkey,
+    'nostrIdentityKey': identity.nostrIdentityKey,
+    'signalIdentityKey': signalId.pubkey,
     'name': identity.displayName,
     'time': time,
     'relay': '',
     'avatar': avatarRemoteUrl ?? '',
     'lightning': identity.lightning ?? '',
-    'onetimekey': onetimekey,
+    'receiveAddress': receiveAddress,
     'globalSign': sig,
     ...userInfo.map(MapEntry.new),
   };

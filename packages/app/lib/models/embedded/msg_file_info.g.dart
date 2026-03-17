@@ -13,44 +13,54 @@ const MsgFileInfoSchema = Schema(
   name: r'MsgFileInfo',
   id: 3221997742220854116,
   properties: {
-    r'ecashToken': PropertySchema(
+    r'amplitudeSamples': PropertySchema(
       id: 0,
+      name: r'amplitudeSamples',
+      type: IsarType.doubleList,
+    ),
+    r'audioDuration': PropertySchema(
+      id: 1,
+      name: r'audioDuration',
+      type: IsarType.long,
+    ),
+    r'ecashToken': PropertySchema(
+      id: 2,
       name: r'ecashToken',
       type: IsarType.string,
     ),
     r'fileName': PropertySchema(
-      id: 1,
+      id: 3,
       name: r'fileName',
       type: IsarType.string,
     ),
-    r'hash': PropertySchema(id: 2, name: r'hash', type: IsarType.string),
-    r'iv': PropertySchema(id: 3, name: r'iv', type: IsarType.string),
-    r'key': PropertySchema(id: 4, name: r'key', type: IsarType.string),
+    r'hash': PropertySchema(id: 4, name: r'hash', type: IsarType.string),
+    r'iv': PropertySchema(id: 5, name: r'iv', type: IsarType.string),
+    r'key': PropertySchema(id: 6, name: r'key', type: IsarType.string),
     r'localPath': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'localPath',
       type: IsarType.string,
     ),
-    r'size': PropertySchema(id: 6, name: r'size', type: IsarType.long),
+    r'size': PropertySchema(id: 8, name: r'size', type: IsarType.long),
     r'sourceName': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'sourceName',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'status',
       type: IsarType.int,
       enumMap: _MsgFileInfostatusEnumValueMap,
     ),
-    r'suffix': PropertySchema(id: 9, name: r'suffix', type: IsarType.string),
-    r'type': PropertySchema(id: 10, name: r'type', type: IsarType.string),
+    r'suffix': PropertySchema(id: 11, name: r'suffix', type: IsarType.string),
+    r'type': PropertySchema(id: 12, name: r'type', type: IsarType.string),
     r'updateAt': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'updateAt',
       type: IsarType.dateTime,
     ),
-    r'url': PropertySchema(id: 12, name: r'url', type: IsarType.string),
+    r'url': PropertySchema(id: 14, name: r'url', type: IsarType.string),
   },
 
   estimateSize: _msgFileInfoEstimateSize,
@@ -65,6 +75,12 @@ int _msgFileInfoEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.amplitudeSamples;
+    if (value != null) {
+      bytesCount += 3 + value.length * 8;
+    }
+  }
   {
     final value = object.ecashToken;
     if (value != null) {
@@ -129,19 +145,21 @@ void _msgFileInfoSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.ecashToken);
-  writer.writeString(offsets[1], object.fileName);
-  writer.writeString(offsets[2], object.hash);
-  writer.writeString(offsets[3], object.iv);
-  writer.writeString(offsets[4], object.key);
-  writer.writeString(offsets[5], object.localPath);
-  writer.writeLong(offsets[6], object.size);
-  writer.writeString(offsets[7], object.sourceName);
-  writer.writeInt(offsets[8], object.status.index);
-  writer.writeString(offsets[9], object.suffix);
-  writer.writeString(offsets[10], object.type);
-  writer.writeDateTime(offsets[11], object.updateAt);
-  writer.writeString(offsets[12], object.url);
+  writer.writeDoubleList(offsets[0], object.amplitudeSamples);
+  writer.writeLong(offsets[1], object.audioDuration);
+  writer.writeString(offsets[2], object.ecashToken);
+  writer.writeString(offsets[3], object.fileName);
+  writer.writeString(offsets[4], object.hash);
+  writer.writeString(offsets[5], object.iv);
+  writer.writeString(offsets[6], object.key);
+  writer.writeString(offsets[7], object.localPath);
+  writer.writeLong(offsets[8], object.size);
+  writer.writeString(offsets[9], object.sourceName);
+  writer.writeInt(offsets[10], object.status.index);
+  writer.writeString(offsets[11], object.suffix);
+  writer.writeString(offsets[12], object.type);
+  writer.writeDateTime(offsets[13], object.updateAt);
+  writer.writeString(offsets[14], object.url);
 }
 
 MsgFileInfo _msgFileInfoDeserialize(
@@ -151,20 +169,22 @@ MsgFileInfo _msgFileInfoDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = MsgFileInfo();
-  object.ecashToken = reader.readStringOrNull(offsets[0]);
-  object.hash = reader.readStringOrNull(offsets[2]);
-  object.iv = reader.readStringOrNull(offsets[3]);
-  object.key = reader.readStringOrNull(offsets[4]);
-  object.localPath = reader.readStringOrNull(offsets[5]);
-  object.size = reader.readLong(offsets[6]);
-  object.sourceName = reader.readStringOrNull(offsets[7]);
+  object.amplitudeSamples = reader.readDoubleList(offsets[0]);
+  object.audioDuration = reader.readLongOrNull(offsets[1]);
+  object.ecashToken = reader.readStringOrNull(offsets[2]);
+  object.hash = reader.readStringOrNull(offsets[4]);
+  object.iv = reader.readStringOrNull(offsets[5]);
+  object.key = reader.readStringOrNull(offsets[6]);
+  object.localPath = reader.readStringOrNull(offsets[7]);
+  object.size = reader.readLong(offsets[8]);
+  object.sourceName = reader.readStringOrNull(offsets[9]);
   object.status =
-      _MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
+      _MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offsets[10])] ??
       FileStatus.init;
-  object.suffix = reader.readStringOrNull(offsets[9]);
-  object.type = reader.readStringOrNull(offsets[10]);
-  object.updateAt = reader.readDateTimeOrNull(offsets[11]);
-  object.url = reader.readStringOrNull(offsets[12]);
+  object.suffix = reader.readStringOrNull(offsets[11]);
+  object.type = reader.readStringOrNull(offsets[12]);
+  object.updateAt = reader.readDateTimeOrNull(offsets[13]);
+  object.url = reader.readStringOrNull(offsets[14]);
   return object;
 }
 
@@ -176,32 +196,36 @@ P _msgFileInfoDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleList(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (_MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offset)] ??
-              FileStatus.init)
-          as P;
+      return (reader.readLong(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (_MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offset)] ??
+              FileStatus.init)
+          as P;
     case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 14:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -225,6 +249,234 @@ const _MsgFileInfostatusValueEnumMap = {
 
 extension MsgFileInfoQueryFilter
     on QueryBuilder<MsgFileInfo, MsgFileInfo, QFilterCondition> {
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'amplitudeSamples'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'amplitudeSamples'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesElementEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'amplitudeSamples',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesElementGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'amplitudeSamples',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesElementLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'amplitudeSamples',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesElementBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'amplitudeSamples',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'amplitudeSamples', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'amplitudeSamples', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'amplitudeSamples', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'amplitudeSamples', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'amplitudeSamples',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  amplitudeSamplesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'amplitudeSamples',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'audioDuration'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'audioDuration'),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'audioDuration', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'audioDuration',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'audioDuration',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+  audioDurationBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'audioDuration',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
   ecashTokenIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -2037,7 +2289,11 @@ MsgFileInfo _$MsgFileInfoFromJson(Map<String, dynamic> json) => MsgFileInfo()
   ..key = json['key'] as String?
   ..ecashToken = json['ecashToken'] as String?
   ..hash = json['hash'] as String?
-  ..sourceName = json['sourceName'] as String?;
+  ..sourceName = json['sourceName'] as String?
+  ..audioDuration = (json['audioDuration'] as num?)?.toInt()
+  ..amplitudeSamples = (json['amplitudeSamples'] as List<dynamic>?)
+      ?.map((e) => (e as num).toDouble())
+      .toList();
 
 Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
     <String, dynamic>{
@@ -2053,6 +2309,8 @@ Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
       'ecashToken': ?instance.ecashToken,
       'hash': ?instance.hash,
       'sourceName': ?instance.sourceName,
+      'audioDuration': ?instance.audioDuration,
+      'amplitudeSamples': ?instance.amplitudeSamples,
     };
 
 const _$FileStatusEnumMap = {

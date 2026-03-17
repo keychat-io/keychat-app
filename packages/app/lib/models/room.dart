@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:keychat/bot/bot_server_message_model.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/models/models.dart';
 import 'package:keychat/service/chatx.service.dart';
@@ -19,8 +16,9 @@ enum RoomType {
   @Deprecated('use common instead')
   private,
   group,
+  @Deprecated('use keychat agent instead')
   bot,
-  freebot,
+  agent,
 }
 
 enum GroupType {
@@ -60,6 +58,9 @@ enum RoomStatus {
     'isMLSGroup',
     'parentRoom',
     'keyPair',
+    'peerSignalIdentityKey',
+    'mySignalIdentityKey',
+    'receiveAddress',
   },
 )
 // ignore: must_be_immutable
@@ -81,10 +82,22 @@ class Room extends Equatable {
   late String toMainPubkey;
   late String npub;
 
-  // their(Bob) signal id pubkey
+  @Deprecated('Use peerSignalIdentityKey instead')
   String? curve25519PkHex;
-  // my(alice) signal id pubkey
+  @Deprecated('Use mySignalIdentityKey instead')
   String? signalIdPubkey;
+
+  /// Their (Bob's) Signal identity pubkey.
+  // ignore: deprecated_member_use_from_same_package
+  String? get peerSignalIdentityKey => curve25519PkHex;
+  // ignore: deprecated_member_use_from_same_package
+  set peerSignalIdentityKey(String? v) => curve25519PkHex = v;
+
+  /// My (Alice's) Signal identity pubkey for this room.
+  // ignore: deprecated_member_use_from_same_package
+  String? get mySignalIdentityKey => signalIdPubkey;
+  // ignore: deprecated_member_use_from_same_package
+  set mySignalIdentityKey(String? v) => signalIdPubkey = v;
 
   String? avatar;
 
@@ -126,7 +139,16 @@ class Room extends Equatable {
   Contact? contact; // room'contact info
   Room? parentRoom; // for group room
 
+  @Deprecated('Use receiveAddress instead')
   String? onetimekey;
+
+  /// Nostr temporary inbox pubkey: used as first-message delivery address
+  /// (Signal 1:1) or ongoing group listening key (MLS).
+  // ignore: deprecated_member_use_from_same_package
+  String? get receiveAddress => onetimekey;
+  // ignore: deprecated_member_use_from_same_package
+  set receiveAddress(String? v) => onetimekey = v;
+
   String? sharedSignalID; // a shared virtual signal id for group
 
   // bot
@@ -141,12 +163,6 @@ class Room extends Equatable {
 
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
-  @Deprecated('shareKey Group is deprecated')
-  bool get isShareKeyGroup =>
-      groupType == GroupType.shareKey && type == RoomType.group;
-
-  @Deprecated('KDF Group is deprecated')
-  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
 
   @override
@@ -160,12 +176,12 @@ class Room extends Equatable {
     type,
   ];
 
-  String get myIdPubkey => getIdentity().secp256k1PKHex;
+  String get myIdPubkey => getIdentity().nostrIdentityKey;
 
-  // if exist signalIdPubkey return it ,else use identity's keypair
+  // if exist mySignalIdentityKey return it, else use identity's keypair
   Future<KeychatIdentityKeyPair> getKeyPair() async {
     final chatxService = Get.find<ChatxService>();
-    if (signalIdPubkey == null) {
+    if (mySignalIdentityKey == null) {
       return chatxService.getKeyPairByIdentity(getIdentity());
     }
     final si = getMySignalId();
@@ -191,11 +207,11 @@ class Room extends Equatable {
   }
 
   SignalId? getMySignalId() {
-    if (signalIdPubkey == null) return null;
+    if (mySignalIdentityKey == null) return null;
 
     final res = DBProvider.database.signalIds
         .filter()
-        .pubkeyEqualTo(signalIdPubkey!)
+        .pubkeyEqualTo(mySignalIdentityKey!)
         .identityIdEqualTo(identityId)
         .findFirstSync();
     return res;
@@ -316,7 +332,7 @@ class Room extends Equatable {
     required UserStatusType status,
     required DateTime updatedAt,
     required DateTime createdAt,
-    String? curve25519PkHex,
+    String? signalIdentityKey,
     bool isAdmin = false,
   }) async {
     final database = DBProvider.database;
@@ -488,10 +504,6 @@ class Room extends Equatable {
     if (type == RoomType.group) {
       return name ?? getPublicKeyDisplay(npub);
     }
-    if (type == RoomType.bot) {
-      return name ?? getPublicKeyDisplay(npub);
-    }
-
     contact ??= DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(toMainPubkey)
@@ -554,20 +566,5 @@ class Room extends Equatable {
 $error
 Room: $id, ${getRoomName()} $toMainPubkey,
 Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
-  }
-
-  BotMessageData? getBotMessagePriceModel() {
-    if (botLocalConfig == null) return null;
-    BotMessageData? bmd;
-    try {
-      final Map config = jsonDecode(botLocalConfig!) as Map<String, dynamic>;
-      bmd = BotMessageData.fromJson(
-        config[MessageMediaType.botPricePerMessageRequest.name]
-            as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return null;
-    }
-    return bmd;
   }
 }

@@ -172,39 +172,38 @@ class ChatSettingSecurity extends StatelessWidget {
                     );
                   },
                 ),
-                if (cc.roomObs.value.type != RoomType.bot)
-                  SettingsTile.navigation(
-                    title: const Text('ReceiveFrom'),
-                    leading: const Icon(CupertinoIcons.down_arrow),
-                    description: Obx(
-                      () => Text(
-                        cc.roomObs.value.receivingRelays.isNotEmpty
-                            ? cc.roomObs.value.receivingRelays.join(',')
-                            : '',
-                      ),
+                SettingsTile.navigation(
+                  title: const Text('ReceiveFrom'),
+                  leading: const Icon(CupertinoIcons.down_arrow),
+                  description: Obx(
+                    () => Text(
+                      cc.roomObs.value.receivingRelays.isNotEmpty
+                          ? cc.roomObs.value.receivingRelays.join(',')
+                          : '',
                     ),
-                    onPressed: (context) async {
-                      final relays = await Get.bottomSheet<List<String>>(
-                        clipBehavior: Clip.antiAlias,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(4),
-                          ),
-                        ),
-                        SelectRoomRelay(cc.roomObs.value.receivingRelays),
-                      );
-                      if (relays == null) return;
-                      cc.roomObs.value.receivingRelays = relays;
-                      await RoomService.instance.updateRoomAndRefresh(
-                        cc.roomObs.value,
-                      );
-                      await SignalChatService.instance.sendRelaySyncMessage(
-                        cc.roomObs.value,
-                        relays,
-                      );
-                      EasyLoading.showToast('Save Success');
-                    },
                   ),
+                  onPressed: (context) async {
+                    final relays = await Get.bottomSheet<List<String>>(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(4),
+                        ),
+                      ),
+                      SelectRoomRelay(cc.roomObs.value.receivingRelays),
+                    );
+                    if (relays == null) return;
+                    cc.roomObs.value.receivingRelays = relays;
+                    await RoomService.instance.updateRoomAndRefresh(
+                      cc.roomObs.value,
+                    );
+                    await SignalChatService.instance.sendRelaySyncMessage(
+                      cc.roomObs.value,
+                      relays,
+                    );
+                    EasyLoading.showToast('Save Success');
+                  },
+                ),
               ],
             ),
             if (receiveKeys.isNotEmpty)

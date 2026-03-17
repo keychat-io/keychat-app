@@ -107,7 +107,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                             );
                             return;
                           }
-                          await MlsGroupService.instance.addMemeberToGroup(
+                          await MlsGroupService.instance.addMemberToGroup(
                             groupRoom,
                             users,
                             senderName,

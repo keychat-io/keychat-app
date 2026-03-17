@@ -221,7 +221,7 @@ class RoomUtil {
     var memberPubkeys = <String>{};
     if (room.isMLSGroup) {
       final existedPubkeys = await rust_mls.getGroupMembers(
-        nostrId: room.getIdentity().secp256k1PKHex,
+        nostrId: room.getIdentity().nostrIdentityKey,
         groupId: room.toMainPubkey,
       );
       memberPubkeys = Set.from(existedPubkeys);
@@ -241,7 +241,7 @@ class RoomUtil {
     contactList = contactList.reversed.toList();
     for (var i = 0; i < contactList.length; i++) {
       final c = contactList[i];
-      if (c.pubkey == identity.secp256k1PKHex) continue;
+      if (c.pubkey == identity.nostrIdentityKey) continue;
       var exist = false;
       if (memberPubkeys.contains(c.pubkey)) {
         exist = true;
@@ -926,19 +926,21 @@ Let's start an encrypted chat.''';
     bool fromAddPage = false,
     Identity? identity,
   }) async {
-    if (model.time + 1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime <
+    if (model.time + 1000 * 3600 * KeychatGlobal.inboxKeysLifetime <
         DateTime.now().millisecondsSinceEpoch) {
       EasyLoading.showToast('QR Code expired');
       return;
     }
     identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
+    final pubkey = rust_nostr.getHexPubkeyByBech32(
+      bech32: model.nostrIdentityKey,
+    );
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.nostrIdentityKey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
-      signalId: model.curve25519PkHex,
-      nostrId: model.pubkey,
+      signalId: model.signalIdentityKey,
+      nostrId: model.nostrIdentityKey,
       time: model.time,
       name: model.name,
       sig: globalSign,
@@ -949,12 +951,12 @@ Let's start an encrypted chat.''';
 
     await SignalChatUtil.verifySignedMessage(
       pmm: pmm,
-      signalIdPubkey: model.curve25519PkHex,
+      signalIdPubkey: model.signalIdentityKey,
     );
 
     final contact = Contact(pubkey: pubkey, identityId: identity.id)
       ..npubkey = npub
-      ..curve25519PkHex = model.curve25519PkHex
+      ..signalIdentityKey = model.signalIdentityKey
       ..name = model.name
       ..avatarRemoteUrl = model.avatar
       ..lightning = model.lightning;
@@ -977,11 +979,7 @@ Let's start an encrypted chat.''';
         return 'Large Group';
       case GroupType.sendAll:
         return 'Small Group';
-      case GroupType.kdf:
-        throw UnimplementedError();
-      case GroupType.shareKey:
-        throw UnimplementedError();
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -1022,9 +1020,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
-      case GroupType.kdf:
-      case GroupType.shareKey:
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -1204,6 +1200,9 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
+        case MessageMediaType.audio:
+          // TODO: Re-enable when voice message feature is ready
+          return const Text('Voice message not supported yet');
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(
@@ -1239,25 +1238,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
             markdownConfig,
             errorCallback,
           );
-        // bot
-        case MessageMediaType.botPricePerMessageRequest:
-          return _getActionWidget(
-            BotPricePerMessageRequestWidget(cc, message),
-            message,
-            markdownConfig,
-            errorCallback,
-          );
-        case MessageMediaType.botOneTimePaymentRequest:
-          return _getActionWidget(
-            BotOneTimePaymentRequestWidget(cc, message),
-            message,
-            markdownConfig,
-            errorCallback,
-          );
-        case MessageMediaType.groupInvitationInfo:
-          return GroupInvitationInfoWidget(cc, message, errorCallback);
-        case MessageMediaType.groupInvitationRequesting:
-          return GroupInvitationRequestingWidget(cc, message, errorCallback);
         case MessageMediaType.profileRequest:
           return ProfileRequestWidget(
             cc,
@@ -1269,11 +1249,25 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           throw UnimplementedError();
         case MessageMediaType.pdf:
           throw UnimplementedError();
+        case MessageMediaType.messageReaction:
+          throw UnimplementedError();
         case MessageMediaType.botText:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.botPricePerMessageRequest:
+          // TODO: Handle this case.
           throw UnimplementedError();
         case MessageMediaType.botSelectionRequest:
+          // TODO: Handle this case.
           throw UnimplementedError();
-        case MessageMediaType.messageReaction:
+        case MessageMediaType.botOneTimePaymentRequest:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.groupInvitationInfo:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.groupInvitationRequesting:
+          // TODO: Handle this case.
           throw UnimplementedError();
       }
     } catch (e, s) {
@@ -1669,7 +1663,7 @@ $link
             textStyle: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const BlockquoteConfig(textColor: Color(0xFFFFFFFF)),
-          TableConfig(wrapper: RoomUtil.tableWrapper),
+          const TableConfig(wrapper: RoomUtil.tableWrapper),
         ],
       );
 

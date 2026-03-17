@@ -207,9 +207,21 @@ class NostrEventModel {
   /// subscription_id is a random string that should be used to represent a subscription.
   String? subscriptionId;
 
+  /// Optional: the recipient identity pubkey, used when routing to a specific identity.
   String? toIdPubkey;
+
+  /// Returns true if this is a Signal Protocol encrypted message tunneled over NIP-04.
+  ///
+  /// Signal messages use NIP-04 kind but do NOT use the `?iv=` IV separator
+  /// that standard NIP-04 AES-CBC encryption produces.
   bool get isSignal => kind == EventKinds.nip04 && !content.contains('?iv=');
+
+  /// Returns true if this is a standard NIP-04 AES-256-CBC encrypted direct message.
+  ///
+  /// NIP-04 messages use `?iv=` to separate ciphertext from IV in the content field.
   bool get isNip4 => kind == EventKinds.nip04 && content.contains('?iv=');
+
+  /// Derives the encryption type from the event kind and content format.
   MessageEncryptType get encryptType => kind == EventKinds.nip17
       ? MessageEncryptType.nip17
       : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip04);
@@ -238,6 +250,10 @@ class NostrEventModel {
     }
   }
 
+  /// Returns all values for the first tag matching [key], or null if not found.
+  ///
+  /// For example, `getTagsByKey('p')` returns `['<pubkey>', '<relay_hint>']`
+  /// from a `["p", "<pubkey>", "<relay_hint>"]` tag.
   List<String>? getTagsByKey(String key) {
     final tagsMap = <String, List<String>>{};
     for (final tag in tags) {
@@ -246,6 +262,9 @@ class NostrEventModel {
     return tagsMap[key];
   }
 
+  /// Returns the first value for the tag matching [key], or null if not found.
+  ///
+  /// Convenience wrapper around [getTagsByKey] returning only the primary value.
   String? getTagByKey(String key) {
     final tagsMap = getTagsByKey(key);
     return tagsMap?[0];

@@ -44,6 +44,10 @@ class GroupService extends BaseChatService {
   ContactService contactService = ContactService.instance;
   IdentityService identityService = IdentityService.instance;
 
+  /// Changes the current user's display name within the specified group.
+  ///
+  /// Broadcasts the new nickname to all group members using
+  /// [KeyChatEventKinds.groupChangeNickname] and persists the change locally.
   Future<void> changeMyNickname(Room room, String newName) async {
     final database = DBProvider.database;
 
@@ -65,6 +69,14 @@ class GroupService extends BaseChatService {
     });
   }
 
+  /// Changes the group room name.
+  ///
+  /// Only the admin can change the group name. For Signal-based groups
+  /// ([GroupType.sendAll]), broadcasts the change to all members via
+  /// [KeyChatEventKinds.groupChangeRoomName]. For MLS groups, delegates to
+  /// [MlsGroupService.updateGroupName].
+  ///
+  /// Throws [Exception] if the caller is not the group admin.
   Future<void> changeRoomName(int roomId, String newName) async {
     final room = await roomService.getRoomByIdOrFail(roomId);
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
@@ -84,6 +96,10 @@ class GroupService extends BaseChatService {
     }
   }
 
+  /// Checks whether a user with the given [pubkey] exists in [list].
+  ///
+  /// The [list] is expected to contain maps with an 'idPubkey' field.
+  /// Returns `true` if a matching entry is found, `false` otherwise.
   bool checkUserInList(List<dynamic> list, String pubkey) {
     for (final user in list) {
       if (user['idPubkey'] == pubkey) {
@@ -97,7 +113,14 @@ class GroupService extends BaseChatService {
   // 1. Create a new local roomChat and create a new identity key: myRoomKey
   // 2. Create a new sharedPrivateKey shared by the group: bip340
   // 3. Set the name of the group and the encrypted participant list to the relay
-  // 4. Listen for messages from group’s sharedPubkey
+  // 4. Listen for messages from group's sharedPubkey
+  /// Creates a new group with the given [groupName] and [groupType].
+  ///
+  /// Generates a random keypair as the group's shared identity key, persists
+  /// the room to the database, and adds the creator as an admin member.
+  /// For [GroupType.sendAll] groups, also creates a dedicated Signal identity.
+  ///
+  /// Returns the newly created [Room].
   Future<Room> createGroup(
     String groupName,
     Identity identity,
@@ -121,8 +144,8 @@ class GroupService extends BaseChatService {
     await room.addMember(
       name: identity.name,
       isAdmin: true,
-      idPubkey: identity.secp256k1PKHex,
-      curve25519PkHex: identity.curve25519PkHex,
+      idPubkey: identity.nostrIdentityKey,
+      signalIdentityKey: identity.signalIdentityKey,
       status: UserStatusType.invited,
       createdAt: now,
       updatedAt: now,
@@ -130,6 +153,13 @@ class GroupService extends BaseChatService {
     return room;
   }
 
+  /// Dissolves (permanently closes) the group room.
+  ///
+  /// Sends a dissolution notification to all active members via
+  /// [KeyChatEventKinds.groupDissolve] before deleting the room locally.
+  /// For MLS groups, delegates dissolution to [MlsGroupService.dissolve].
+  ///
+  /// Throws [Exception] if the caller is not the group admin.
   Future<void> dissolveGroup(Room room) async {
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('Only admin can exit group');
@@ -149,6 +179,14 @@ class GroupService extends BaseChatService {
     await roomService.deleteRoom(room);
   }
 
+  /// Allows a non-admin member to leave the group voluntarily.
+  ///
+  /// Sends a self-leave notification ([KeyChatEventKinds.groupSelfLeave]) to
+  /// the group and deletes the room locally. For MLS groups, sends a leave
+  /// message via [MlsGroupService.sendSelfLeaveMessage] before deletion.
+  ///
+  /// Throws [Exception] if the caller is the group admin (admins must use
+  /// [dissolveGroup] instead).
   Future<void> selfExitGroup(Room room) async {
     if (await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('admin can not exit group');
@@ -173,15 +211,18 @@ class GroupService extends BaseChatService {
     await roomService.deleteRoom(room);
   }
 
+  /// Verifies that the given [pubkey] belongs to an admin of [room].
+  ///
+  /// Checks the [roomMember]'s `isAdmin` flag.
+  ///
+  /// Throws [Exception] with 'not admin' if the verification fails.
   Future<void> isAdminCheck(
     Room room,
     String pubkey,
     RoomMember? roomMember,
   ) async {
     var isAdmin = false;
-    if (room.groupType == GroupType.shareKey) {
-      isAdmin = await room.checkAdminByIdPubkey(pubkey);
-    } else if (roomMember != null) {
+    if (roomMember != null) {
       isAdmin = roomMember.isAdmin;
     }
     if (!isAdmin) {
@@ -189,6 +230,18 @@ class GroupService extends BaseChatService {
     }
   }
 
+  /// Processes an incoming group message and persists it to the database.
+  ///
+  /// Handles system subtypes dispatched via [groupMessage.subtype]:
+  /// - [KeyChatEventKinds.groupChangeNickname]: member nickname update
+  /// - [KeyChatEventKinds.groupSelfLeave]: voluntary member exit
+  /// - [KeyChatEventKinds.groupDissolve]: admin-initiated group dissolution
+  /// - [KeyChatEventKinds.groupChangeRoomName]: group rename by admin
+  /// - [KeyChatEventKinds.groupRemoveSingleMember]: admin member removal
+  /// - [KeyChatEventKinds.dm]: direct message with optional reply metadata
+  ///
+  /// For [GroupType.sendAll] groups, the sender identity is resolved from the
+  /// nested Signal-encrypted event via [idRoom].
   Future<void> processGroupMessage(
     Room room,
     NostrEventModel event,
@@ -226,11 +279,7 @@ class GroupService extends BaseChatService {
     if (subType != null) {
       toSaveMsg.isSystem = true;
     }
-    final updatedAt = timestampToDateTime(event.createdAt * 1000);
     switch (subType) {
-      case KeyChatEventKinds.groupHi:
-        final newName = groupMessage.message.split(joinGreeting)[0];
-        await _processHelloMessage(room, signPubkey, updatedAt, newName);
       case KeyChatEventKinds.groupChangeNickname:
         if (groupMessage.ext != null) {
           await room.updateMemberName(
@@ -285,6 +334,18 @@ class GroupService extends BaseChatService {
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 
+  /// Processes a group invitation message received from another user.
+  ///
+  /// If the local group room does not yet exist and the invite is for a
+  /// [GroupType.sendAll] group, creates the room via [GroupTx.joinGroup].
+  /// For [GroupType.mls] invites, saves the message as a
+  /// pending confirmation request (requires user approval).
+  ///
+  /// Validates that the inviting sender ([senderIdPubkey]) is an active member
+  /// of the group before applying any roster updates. Updates the room's
+  /// member list and version when the invitation is accepted.
+  ///
+  /// Throws [Exception] if the group room is not found or the invite is expired.
   Future<void> processInvite(
     Room idRoom,
     NostrEventModel event,
@@ -298,7 +359,7 @@ class GroupService extends BaseChatService {
     final senderIdPubkey = groupInviteMsg[1] as String;
     final identity = idRoom.getIdentity();
 
-    if (senderIdPubkey == identity.secp256k1PKHex) {
+    if (senderIdPubkey == identity.nostrIdentityKey) {
       return;
     }
     // check is in group?
@@ -309,9 +370,9 @@ class GroupService extends BaseChatService {
         throw Exception("You are not in the group, so can't invite me.");
       }
     }
-    // roomProfile.oldToRoomPubKey is room unique key
+    // roomProfile.groupId is room unique key
     var groupRoom = await roomService.getRoomByIdentity(
-      roomProfile.oldToRoomPubKey!,
+      roomProfile.groupId!,
       idRoom.identityId,
     );
 
@@ -352,8 +413,7 @@ class GroupService extends BaseChatService {
     }
     if (groupRoom == null) throw Exception('Group not found');
 
-    if (roomProfile.groupType == GroupType.kdf ||
-        roomProfile.groupType == GroupType.mls) {
+    if (roomProfile.groupType == GroupType.mls) {
       await MessageService.instance.saveMessageToDB(
         from: event.pubkey,
         to: event.tags[0][1],
@@ -417,8 +477,15 @@ class GroupService extends BaseChatService {
     await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
+  /// Routes an incoming group-related [KeychatMessage] to the appropriate handler.
+  ///
+  /// Dispatches based on [km.type]:
+  /// - [KeyChatEventKinds.groupInvite]: processes a group invitation
+  /// - [KeyChatEventKinds.groupRemoveSingleMember]: handles removal notification via DM
+  /// - [KeyChatEventKinds.groupSendToAllMessage]: processes a broadcast group message
+  /// - [KeyChatEventKinds.inviteToGroupRequest]: handles non-admin invite request to admin
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required KeychatMessage km,
     required NostrEventModel event,
@@ -457,10 +524,8 @@ class GroupService extends BaseChatService {
         }
         final member = await groupRoom.getMemberByIdPubkey(room.toMainPubkey);
         if (member == null) {
-          if (gm.subtype != KeyChatEventKinds.groupHi) {
-            logger.i('Not a member in group ${groupRoom.id}');
-            return;
-          }
+          logger.i('Not a member in group ${groupRoom.id}');
+          return;
         }
         return processGroupMessage(
           groupRoom,
@@ -485,6 +550,16 @@ class GroupService extends BaseChatService {
   // 1. If the room id already exists locally, check whether the sending user is in the group
   // 2. If not, throw an exception
   // 3. Check if the secret key matches. There is a situation where the roomID is the same, but the shared secret key has been changed.
+  /// Invites one or more users to join an existing group.
+  ///
+  /// Adds [toUsers] to the member list, creating contacts as needed, then
+  /// builds a [RoomProfile] snapshot and sends invitations:
+  /// - [GroupType.mls]: sends private NIP-17 messages to each invitee
+  /// - [GroupType.sendAll]: sends pairwise NIP-04 invitations to all members
+  ///
+  /// Returns the [RoomProfile] that was distributed to invitees.
+  ///
+  /// Throws [Exception] if [toUsers] is empty or the room is not in a valid state.
   Future<RoomProfile> inviteToJoinGroup(
     Room groupRoom,
     Map<String, String> toUsers, {
@@ -558,10 +633,7 @@ class GroupService extends BaseChatService {
         );
       case GroupType.sendAll:
         await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
-      case GroupType.shareKey:
-      case GroupType.kdf:
-        break;
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
 
@@ -569,16 +641,19 @@ class GroupService extends BaseChatService {
     return roomProfile;
   }
 
+  /// Removes a member from the group.
+  ///
+  /// Routes to the protocol-appropriate removal handler:
+  /// - [GroupType.sendAll]: sends a pairwise removal notification
+  /// - [GroupType.mls]: delegates to [MlsGroupService.removeMembers]
+  ///
   Future<void> removeMember(Room room, RoomMember rm) async {
     switch (room.groupType) {
       case GroupType.sendAll:
         return _removeMemberPairwise(room, rm);
       case GroupType.mls:
         return MlsGroupService.instance.removeMembers(room, [rm]);
-      case GroupType.shareKey:
-      case GroupType.kdf:
-        throw Exception('not support');
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -586,6 +661,13 @@ class GroupService extends BaseChatService {
   // Share secret key to send group messages, use double-layer nesting to send information
   // Sub event: sender private key  --> room's pubkey
   // Main event: room's private key--> room's pubkey
+  // DEPRECATED: unsupported override — group messages must be sent via sendMessageToGroup() or sendToAllMessage() instead
+  /// Not supported for group rooms. Always throws [Exception].
+  ///
+  /// Group messages must be routed through [sendMessageToGroup] or
+  /// [sendToAllMessage]. This override satisfies the [BaseChatService]
+  /// contract but is intentionally non-functional for group rooms.
+  @Deprecated('use sendMessageToGroup or sendToAllMessage instead')
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,
@@ -600,6 +682,14 @@ class GroupService extends BaseChatService {
     throw Exception('unsupported method');
   }
 
+  /// Encrypts and sends a message to all enabled members of a sendAll group.
+  ///
+  /// Wraps [message] in a [GroupMessage] and [KeychatMessage] envelope, then
+  /// dispatches pairwise Signal-encrypted events to each member room (up to 10
+  /// concurrent sends). Persists a single outbound [Message] record after all
+  /// sends complete.
+  ///
+  /// Throws [Exception] if there are no active members in the group.
   Future<SendMessageResponse> sendToAllMessage(
     Room room,
     String message, {
@@ -694,8 +784,8 @@ class GroupService extends BaseChatService {
         room: room,
         content: message,
         realMessage: realMessage,
-        from: identity.secp256k1PKHex,
-        senderPubkey: identity.secp256k1PKHex,
+        from: identity.nostrIdentityKey,
+        senderPubkey: identity.nostrIdentityKey,
         to: room.toMainPubkey,
         isMeSend: true,
         encryptType: MessageEncryptType.signal,
@@ -708,30 +798,13 @@ class GroupService extends BaseChatService {
     return SendMessageResponse(events: events, message: model);
   }
 
+  /// Notifies the chat controller for [roomId] to refresh its member list.
   void updateChatControllerMembers(int roomId) {
     RoomService.getController(roomId)?.resetMembers();
   }
 
-  Future<void> updateRoomMykey(Room room, Mykey newMykey) async {
-    if (!room.isShareKeyGroup) {
-      return;
-    }
-    final database = DBProvider.database;
-    final mykeyId = room.mykey.value?.id;
-    if (mykeyId != null && mykeyId == newMykey.id) {
-      return;
-    }
-    await database.writeTxn(() async {
-      room.mykey.value = newMykey;
-      await database.rooms.put(room);
-      await room.mykey.save();
-
-      if (mykeyId != null) {
-        await database.mykeys.filter().idEqualTo(mykeyId).deleteFirst();
-      }
-    });
-  }
-
+  // Creates a new group room record in the database.
+  // For sendAll groups, also creates a Signal identity and initializes the member list.
   Future<Room> _createGroupToDB(
     String toMainPubkey,
     String groupName, {
@@ -758,14 +831,14 @@ class GroupService extends BaseChatService {
 
     if (groupType == GroupType.sendAll) {
       signalId ??= await SignalIdService.instance.createSignalId(identity.id);
-      room.signalIdPubkey = signalId.pubkey;
+      room.mySignalIdentityKey = signalId.pubkey;
     }
 
     room = await roomService.updateRoom(room);
 
     if (groupType == GroupType.sendAll) {
       await room.updateAllMember(members);
-      final me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+      final me = await room.getMemberByIdPubkey(identity.nostrIdentityKey);
 
       if (me != null && me.status != UserStatusType.invited) {
         me.status = UserStatusType.invited;
@@ -775,7 +848,8 @@ class GroupService extends BaseChatService {
     return room;
   }
 
-  // Send a group message to all enabled users
+  // Sends a group invitation to all enabled and inviting members via pairwise NIP-04 messages.
+  // Note: parallel queue execution was replaced with sequential loop to avoid race conditions.
   Future<void> _invitePairwiseGroup(
     String realMessage,
     Identity identity,
@@ -786,14 +860,14 @@ class GroupService extends BaseChatService {
     final enables = (await groupRoom.getEnableMembers()).values.toList();
     final invitings = await groupRoom.getInvitingMembers();
     final tasks = collection.Queue.from([...enables, ...invitings]);
-    km.name = jsonEncode([realMessage, identity.secp256k1PKHex]);
+    km.name = jsonEncode([realMessage, identity.nostrIdentityKey]);
     final events = <NostrEventModel>[];
     final membersLength = tasks.length;
 
     for (var i = 0; i < membersLength; i++) {
       // queue.add(() async {
       final rm = tasks.removeFirst() as RoomMember;
-      if (identity.secp256k1PKHex == rm.idPubkey) continue;
+      if (identity.nostrIdentityKey == rm.idPubkey) continue;
       try {
         final memberRoom = await RoomService.instance.getOrCreateRoomByIdentity(
           rm.idPubkey,
@@ -822,8 +896,8 @@ class GroupService extends BaseChatService {
       msgid: events[0].id,
       eventIds: events.map((e) => e.id).toList(),
       roomId: groupRoom.id,
-      from: identity.secp256k1PKHex,
-      idPubkey: identity.secp256k1PKHex,
+      from: identity.nostrIdentityKey,
+      idPubkey: identity.nostrIdentityKey,
       to: groupRoom.toMainPubkey,
       encryptType: groupRoom.isSendAllGroup
           ? MessageEncryptType.signal
@@ -843,6 +917,12 @@ class GroupService extends BaseChatService {
   }
 
   // send message to users, but skip meMember
+  /// Sends a private message to multiple group members individually.
+  ///
+  /// For each recipient in [toUsers], looks up or creates a pairwise room and
+  /// sends [content] using either NIP-17 (when [nip17] is true or no room
+  /// exists) or the standard room message path. Skips the sender's own identity
+  /// pubkey. Runs up to 5 sends concurrently.
   Future<void> sendPrivateMessageToMembers(
     String realMessage,
     List<String> toUsers,
@@ -863,7 +943,7 @@ class GroupService extends BaseChatService {
         if (tasks.isEmpty) return;
         final idPubkey = tasks.removeFirst() as String;
         final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: idPubkey);
-        if (identity.secp256k1PKHex == hexPubkey) return;
+        if (identity.nostrIdentityKey == hexPubkey) return;
         var room = await roomService.getRoomByIdentity(hexPubkey, identity.id);
         if (room == null) {
           room = await RoomService.instance.createRoomAndsendInvite(
@@ -897,27 +977,8 @@ class GroupService extends BaseChatService {
     await queue.onComplete;
   }
 
-  Future<void> _processHelloMessage(
-    Room groupRoom,
-    String idPubkey,
-    DateTime updatedAt,
-    String name,
-  ) async {
-    final rm = await groupRoom.getMemberByIdPubkey(idPubkey);
-    if (rm == null) {
-      logger.i('Not a member in group ${groupRoom.id}, $idPubkey');
-      return;
-    }
-
-    rm.status = UserStatusType.invited;
-    rm.updatedAt = updatedAt;
-    rm.name = name;
-    await groupRoom.updateMember(rm);
-
-    updateChatControllerMembers(groupRoom.id);
-  }
-
   // Received the news that I was baned from the group
+  // Handles a pairwise DM notification that the local user has been removed from a group.
   Future<void> _processGroupRemoveSingleMember(
     Room idRoom,
     KeychatMessage km,
@@ -955,6 +1016,7 @@ class GroupService extends BaseChatService {
     updateChatControllerMembers(groupRoom.id);
   }
 
+  // Sends a pairwise groupRemoveSingleMember notification and disables the member locally.
   Future<void> _removeMemberPairwise(Room room, RoomMember rm) async {
     final msg =
         '''
@@ -972,6 +1034,11 @@ ${rm.idPubkey}
     updateChatControllerMembers(room.id);
   }
 
+  /// Dispatches a group message to all members via the appropriate protocol.
+  ///
+  /// Routes to [MlsGroupService.sendMessage] for MLS groups, or
+  /// [sendToAllMessage] for Signal sendAll groups. Returns `null` for
+  /// unsupported group types.
   Future<SendMessageResponse?> sendMessageToGroup(
     Room room,
     String message, {
@@ -1004,6 +1071,13 @@ ${rm.idPubkey}
     return null;
   }
 
+  /// Sends a membership invite request to the group admin for approval.
+  ///
+  /// Used by non-admin members who wish to invite [selectAccounts] to the
+  /// group. Sends a [KeyChatEventKinds.inviteToGroupRequest] message directly
+  /// to the admin's pairwise room for confirmation.
+  ///
+  /// Throws [Exception] if no admin is found for the group.
   Future<void> sendInviteToAdmin(
     Room room,
     Map<String, String> selectAccounts,
@@ -1025,7 +1099,7 @@ ${rm.idPubkey}
 
     final adminRoom = await RoomService.instance.getOrCreateRoom(
       roomMember,
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
       RoomStatus.init,
     );
     Get.find<HomeController>().loadIdentityRoomList(adminRoom.identityId);
@@ -1036,12 +1110,13 @@ ${rm.idPubkey}
     );
   }
 
+  // Saves an incoming invite-to-group request as a pending confirmation in the admin's room.
   Future<void> _processinviteToGroupRequest(
     Room room,
     NostrEventModel event,
     KeychatMessage km,
   ) async {
-    RoomService.instance.receiveDM(
+    await RoomService.instance.receiveDM(
       room,
       event,
       decodedContent: km.name,
@@ -1051,6 +1126,12 @@ ${rm.idPubkey}
     );
   }
 
+  /// Builds a [RoomProfile] snapshot of the current group state.
+  ///
+  /// Collects the current member list and packages it with the group name,
+  /// type, and timestamp. Optionally includes a shared private key ([mykey])
+  /// or an MLS welcome message ([mlsWelcome]) for key-agreement group types.
+  /// Used when generating group invitations via [inviteToJoinGroup].
   Future<RoomProfile> getRoomProfile(
     Room groupRoom, {
     SignalId? signalId,
@@ -1070,7 +1151,7 @@ ${rm.idPubkey}
             groupRoom.groupType,
             DateTime.now().millisecondsSinceEpoch,
           )
-          ..oldToRoomPubKey = groupRoom.toMainPubkey
+          ..groupId = groupRoom.toMainPubkey
           ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
     if (mlsWelcome != null) {

@@ -14,6 +14,7 @@ obfuscate/
 
 # dotenv environment variables file
 .env*
+!.env.example
 *.env
 
 # Avoid committing generated Javascript files:
@@ -57,3 +58,6 @@ docs_local/
 logs/
 *.log
 scripts/ExportOptions.plist
+
+# Claude Code worktree build artifacts
+.claude/worktrees/**/build/

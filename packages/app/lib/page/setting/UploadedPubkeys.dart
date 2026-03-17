@@ -66,7 +66,7 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
       if (skipedIdentityIds.contains(item.id)) {
         continue;
       }
-      idkeys.add(item.secp256k1PKHex);
+      idkeys.add(item.nostrIdentityKey);
     }
 
     // mls room's receive key
@@ -76,21 +76,21 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
-      mlsPubkeys.add(room.onetimekey!);
+      mlsPubkeys.add(room.receiveAddress!);
     }
 
     final signalChatRoom = await ContactService.instance
         .getAllReceiveKeysSkipMute(skipIDs: skipedIdentityIds);
-    final oneTimeKeys = <String>[];
-    final newKeys = await IdentityService.instance.getOneTimeKeys();
+    final inboxKeyPubkeys = <String>[];
+    final newKeys = await IdentityService.instance.getInboxKeys();
     for (final key in newKeys) {
-      oneTimeKeys.add(key.pubkey);
+      inboxKeyPubkeys.add(key.pubkey);
     }
     setState(() {
       titles['Identity Keys'] = idkeys;
       titles['MLS Group Keys'] = mlsPubkeys.toList();
       titles['SignalChat Room Keys'] = signalChatRoom;
-      titles['OneTime Keys'] = oneTimeKeys;
+      titles['Inbox Keys'] = inboxKeyPubkeys;
     });
   }
 }

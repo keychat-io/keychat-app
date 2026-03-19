@@ -17,6 +17,7 @@ dependency_overrides:
   flutter_inappwebview_macos: 1.2.0-beta.2
   flutter_inappwebview_web: 1.2.0-beta.2
   flutter_inappwebview_windows: 0.7.0-beta.2
+  flutter_secure_storage_darwin: 0.1.0
 
 dev_dependencies:
   melos: 7.3.0
@@ -33,12 +34,6 @@ melos:
   scripts:
     reset:all:
       run: melos clean && melos bs && melos run generate:all
-      description: Run `melos run clean` and `melos run get` in all packages in this project.
-    reset:macos:
-      run: bash scripts/switch_flutter_secure_storage.sh macos && melos clean && melos bs && melos run generate:all
-      description: Run `melos run clean` and `melos run get` in all packages in this project.
-    reset:no-macos:
-      run: bash scripts/switch_flutter_secure_storage.sh non-macos && melos clean && melos bs && melos run generate:all
       description: Run `melos run clean` and `melos run get` in all packages in this project.
     run:ios:
       name: run_ios

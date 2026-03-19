@@ -899,13 +899,13 @@ packages:
     source: hosted
     version: "10.0.0"
   flutter_secure_storage_darwin:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: flutter_secure_storage_darwin
-      sha256: "8878c25136a79def1668c75985e8e193d9d7d095453ec28730da0315dc69aee3"
+      sha256: f226f2a572bed96bc6542198ebaec227150786e34311d455a7e2d3d06d951845
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.1.0"
   flutter_secure_storage_linux:
     dependency: transitive
     description:

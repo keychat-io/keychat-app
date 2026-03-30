@@ -33,15 +33,15 @@ class RelayWebsocket {
     // id keys
     final pubkeys = await IdentityService.instance.getListenPubkeys();
 
-    listenPubkeys(
-      pubkeys,
-      DateTime.now().subtract(const Duration(days: 2)),
-      [EventKinds.nip17],
-    );
-
     // mls group room
     final since = await MessageService.instance.getNostrListenStartAt(
       relay.url,
+    );
+
+    listenPubkeys(
+      pubkeys,
+      since.subtract(const Duration(days: 2)),
+      [EventKinds.nip17],
     );
     final mlsRoomKeys = await IdentityService.instance.getMlsRoomPubkeys();
     listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);

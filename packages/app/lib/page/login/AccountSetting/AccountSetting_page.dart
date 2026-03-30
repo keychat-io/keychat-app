@@ -518,12 +518,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                         CupertinoDialogAction(
                                           isDefaultAction: true,
                                           onPressed: () {
-                                            Clipboard.setData(
-                                              ClipboardData(
-                                                text: mnemonic ?? '',
-                                              ),
+                                            _copyAndScheduleClear(
+                                              mnemonic ?? '',
                                             );
-                                            EasyLoading.showSuccess('Copied');
                                             Get.back<void>();
                                           },
                                           child: const Text('Copy'),
@@ -585,8 +582,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 CupertinoDialogAction(
                   isDefaultAction: true,
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: nsec));
-                    EasyLoading.showSuccess('Copied');
+                    _copyAndScheduleClear(nsec);
                     Get.back<void>();
                   },
                   child: const Text('Copy'),
@@ -738,6 +734,15 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         ],
       ),
     );
+  }
+
+  /// Copies sensitive text to clipboard and clears it after 30 seconds.
+  void _copyAndScheduleClear(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    EasyLoading.showSuccess('Copied, clipboard will be cleared in 30s');
+    Timer(const Duration(seconds: 30), () {
+      Clipboard.setData(const ClipboardData(text: ''));
+    });
   }
 
   Future<void> _pickAndSaveAvatar(ImageSource source) async {

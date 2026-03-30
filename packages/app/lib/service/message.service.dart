@@ -34,11 +34,10 @@ class MessageService {
     // none text type: media, file, cashu...
     model = await _fillTypeForMessage(model, room.type == RoomType.bot);
 
-    var isCurrentPage = dbProvider.isCurrentPage(model.roomId);
+    final isCurrentPage = dbProvider.isCurrentPage(model.roomId);
     if (!model.isRead) {
       if (isCurrentPage) {
-        if ((GetPlatform.isDesktop &&
-                Get.find<HomeController>().resumed == true) ||
+        if ((GetPlatform.isDesktop && Get.find<HomeController>().resumed) ||
             GetPlatform.isMobile) {
           model.isRead = true;
         }
@@ -362,7 +361,7 @@ $content'''
     final time = await MessageService.instance.getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
 
-    return DateTime.now().subtract(const Duration(days: 14));
+    return DateTime.now().subtract(const Duration(days: 30));
   }
 
   Future<List<Message>> listMessageFromDB({

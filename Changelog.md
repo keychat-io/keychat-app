@@ -3,6 +3,10 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.40.9+6510
+
+Enhance clipboard handling, and adjust message retrieval duration for nip17
+
 ## 1.40.3+6500
 
 ### Performance

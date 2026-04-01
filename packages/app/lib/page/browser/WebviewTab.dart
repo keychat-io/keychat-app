@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:collection' show UnmodifiableListView;
-import 'dart:convert' show base64, jsonDecode;
-import 'dart:io';
+import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,20 +23,17 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/browser/BookmarkEdit.dart';
 import 'package:keychat/page/browser/BrowserNewTab.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
-import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/FavoriteEdit.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/browser/SelectIdentityForBrowser.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/SignerService.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -845,13 +839,11 @@ class _WebviewTabState extends State<WebviewTab> {
           logger.i('shouldOverrideUrlLoading: $uri');
           if (uri == null) return NavigationActionPolicy.ALLOW;
 
-          // download file
-          if (uri.toString().startsWith('blob:')) {
-            await EasyLoading.showError('Blob files are not supported');
+          // Open blob URLs and download requests in the external browser
+          if (uri.toString().startsWith('blob:') ||
+              (navigationAction.shouldPerformDownload ?? false)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
             return NavigationActionPolicy.CANCEL;
-          }
-          if (navigationAction.shouldPerformDownload ?? false) {
-            return NavigationActionPolicy.DOWNLOAD;
           }
 
           try {
@@ -1083,7 +1075,11 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         onDownloadStarting: (controller, request) async {
           logger.d('onDownloadStart $request');
-          await downloadFile(request);
+          // Open download URL in external browser instead of handling internally
+          final url = request.url;
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          }
           return DownloadStartResponse(handled: true);
         },
       ),
@@ -1242,15 +1238,6 @@ class _WebviewTabState extends State<WebviewTab> {
                   await SharePlus.instance.share(ShareParams(uri: uri));
                 },
               ),
-              _buildToolButton(
-                icon: Icons.file_download,
-                label: 'Download',
-                color: Colors.purple,
-                onPressed: () async {
-                  closeMenu();
-                  await Get.to<void>(() => const DownloadManagerPage());
-                },
-              ),
               if (GetPlatform.isMobile)
                 _buildToolButton(
                   icon: Icons.exit_to_app,
@@ -1333,11 +1320,6 @@ class _WebviewTabState extends State<WebviewTab> {
 
     if (method == 'pageFailedToRefresh') {
       await refreshPage();
-      return null;
-    }
-
-    if (method == 'blobFileDownload') {
-      _downloadBlob(data[1] as String, data[2] as String);
       return null;
     }
 
@@ -1640,8 +1622,6 @@ class _WebviewTabState extends State<WebviewTab> {
         await refreshPage();
       case 'close':
         await closeTab();
-      case 'downloads':
-        await Get.to<void>(() => const DownloadManagerPage());
       case 'zoom':
         Get.bottomSheet(
           clipBehavior: Clip.antiAlias,
@@ -1724,175 +1704,6 @@ class _WebviewTabState extends State<WebviewTab> {
     );
     tabController.title.value = title0;
     tabController.url.value = url0;
-  }
-
-  Future<bool> downloadFile(DownloadStartRequest request) async {
-    final url = request.url.toString();
-    final filename = request.suggestedFilename ?? path.basename(url);
-
-    final shouldDownload = await Get.dialog<bool>(
-      CupertinoAlertDialog(
-        title: const Text('Download File'),
-        content: Text(
-          '$filename\n\nSize: ${FileService.instance.getFileSizeDisplay(request.contentLength)}',
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => Get.back(result: true),
-            child: const Text('Download'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldDownload != true) {
-      return false;
-    }
-
-    final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectory == null) {
-      await EasyLoading.showToast('No directory selected');
-      return false;
-    }
-
-    logger.i(
-      'start to download $url, save to: $selectedDirectory filename: $filename ',
-    );
-    await EasyLoading.showToast('Downloading...');
-    final (baseDirectory, directory, filename2) = await Task.split(
-      filePath: '$selectedDirectory/$filename',
-    );
-    final task = DownloadTask(
-      url: url,
-      filename: filename,
-      baseDirectory: baseDirectory,
-      directory: directory,
-    );
-
-    FileDownloader().download(
-      task,
-      onProgress: (progress) {},
-      onStatus: (status) async {
-        logger.i('Status: $status');
-        if (status == TaskStatus.complete) {
-          final shouldOpen = await Get.dialog<bool>(
-            CupertinoAlertDialog(
-              title: const Text('Download Complete'),
-              content: Text('File saved to:\n$selectedDirectory/$filename'),
-              actions: [
-                CupertinoActionSheetAction(
-                  onPressed: () => Get.back(result: false),
-                  child: const Text('Close'),
-                ),
-                CupertinoActionSheetAction(
-                  isDefaultAction: true,
-                  onPressed: () => Get.back(result: true),
-                  child: const Text('Open Folder'),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldOpen ?? false) {
-            try {
-              await launchUrl(Uri.file(selectedDirectory));
-            } catch (e) {
-              logger.e('Failed to open directory: $e');
-              await EasyLoading.showError('Failed to open directory');
-            }
-          }
-        }
-      },
-    );
-    return true;
-  }
-
-  Future<void> _saveBlobFile(String base64String, String mimeType) async {
-    try {
-      if (GetPlatform.isMobile) {
-        final storagePermission = await Permission.storage.request();
-        if (!storagePermission.isGranted) {
-          EasyLoading.showError('Storage permission not granted');
-          return;
-        }
-      }
-
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null) {
-        EasyLoading.dismiss();
-        return;
-      }
-
-      // Decode base64 to bytes
-      final bytes = base64.decode(base64String);
-
-      // Determine file extension from MIME type
-      final extension = _getExtensionFromMimeType(mimeType);
-      final filename =
-          'download_${DateTime.now().millisecondsSinceEpoch}$extension';
-
-      final filePath = path.join(selectedDirectory, filename);
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
-
-      EasyLoading.dismiss();
-
-      final shouldOpen = await Get.dialog<bool>(
-        CupertinoAlertDialog(
-          title: const Text('Download Complete'),
-          content: Text('File saved to:\n$filePath'),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () => Get.back(result: false),
-              child: const Text('Close'),
-            ),
-            CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Get.back(result: true),
-              child: const Text('Open Folder'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldOpen ?? false) {
-        try {
-          await launchUrl(Uri.file(selectedDirectory));
-        } catch (e) {
-          logger.e('Failed to open directory: $e');
-        }
-      }
-    } catch (e, s) {
-      logger.e('Failed to save blob file: $e', stackTrace: s);
-      EasyLoading.showError('Failed to save file');
-    }
-  }
-
-  String _getExtensionFromMimeType(String mimeType) {
-    final mimeMap = {
-      'image/png': '.png',
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/gif': '.gif',
-      'image/webp': '.webp',
-      'image/svg+xml': '.svg',
-      'application/pdf': '.pdf',
-      'application/zip': '.zip',
-      'application/x-zip-compressed': '.zip',
-      'text/plain': '.txt',
-      'text/html': '.html',
-      'application/json': '.json',
-      'video/mp4': '.mp4',
-      'video/webm': '.webm',
-      'audio/mpeg': '.mp3',
-      'audio/wav': '.wav',
-      'application/octet-stream': '.bin',
-    };
-    return mimeMap[mimeType.toLowerCase()] ?? '.bin';
   }
 
   Future<void> renderAssetAsHtml(
@@ -2300,9 +2111,5 @@ img {
       logger.i(e.toString(), error: e);
     }
     return false;
-  }
-
-  void _downloadBlob(String base64content, String ext) {
-    logger.d('base64content: $base64content, ext $ext');
   }
 }

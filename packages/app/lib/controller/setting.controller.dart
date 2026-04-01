@@ -19,7 +19,6 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   RxList<String> mediaServers = [
     KeychatGlobal.defaultFileServer,
-    'https://void.cat',
     'https://nostr.download',
   ].obs;
 
@@ -35,7 +34,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     );
 
     // Catch uncaught Flutter errors
-    FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.onError = (details) {
       FlutterError.presentError(details);
 
       final error = StringBuffer()

@@ -1,6 +1,5 @@
 import 'dart:convert' show base64Encode, utf8;
 import 'dart:io' show Directory, File;
-import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:keychat/controller/setting.controller.dart';
@@ -13,7 +12,6 @@ import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/s3.dart';
 import 'package:keychat/utils.dart';
-import 'package:keychat/utils/config.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:encrypt/encrypt.dart';
@@ -555,8 +553,7 @@ class FileService {
     bool base64Hash = false,
   }) async {
     final iv = IV.fromSecureRandom(16);
-    final salt = SecureRandom(16).bytes;
-    final key = Key.fromSecureRandom(32).stretch(32, salt: salt);
+    final key = Key.fromSecureRandom(32);
     final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
     final fileName = path.basename(input.path);
     final encryptedBytes = encrypter.encryptBytes(

@@ -70,6 +70,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_inappwebview: 6.2.0-beta.2
   encrypt: ^5.0.3
+  hashlib: ^2.3.0
   file_picker: ^10.3.7
   image: ^4.5.2
   pub_semver: ^2.1.5

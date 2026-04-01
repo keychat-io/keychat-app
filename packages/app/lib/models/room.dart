@@ -19,6 +19,7 @@ enum RoomType {
   @Deprecated('use common instead')
   private,
   group,
+  @Deprecated('use keychat agent instead')
   bot,
   freebot,
 }
@@ -141,13 +142,11 @@ class Room extends Equatable {
 
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
-  @Deprecated('shareKey Group is deprecated')
-  bool get isShareKeyGroup =>
-      groupType == GroupType.shareKey && type == RoomType.group;
-
-  @Deprecated('KDF Group is deprecated')
-  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
+  @Deprecated('use groupType == GroupType.shareKey instead')
+  bool get isShareKeyGroup => groupType == GroupType.shareKey;
+  @Deprecated('use groupType == GroupType.kdf instead')
+  bool get isKDFGroup => groupType == GroupType.kdf;
 
   @override
   List<Object?> get props => [

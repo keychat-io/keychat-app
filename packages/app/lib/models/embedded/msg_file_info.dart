@@ -37,6 +37,13 @@ class MsgFileInfo {
   String? hash; // sha256
   String? sourceName;
 
+  // Audio voice message metadata
+  @JsonKey(includeIfNull: false)
+  int? audioDuration; // duration in seconds
+
+  @JsonKey(includeIfNull: false)
+  List<double>? amplitudeSamples; // amplitude per 100ms, for waveform display
+
   @JsonKey(includeFromJson: false, includeToJson: false)
   @ignore
   FileEncryptInfo? fileInfo;

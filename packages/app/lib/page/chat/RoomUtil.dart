@@ -20,6 +20,7 @@ import 'package:keychat/page/chat/add_member_to_group.dart';
 import 'package:keychat/page/chat/contact_page.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
+import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
@@ -977,11 +978,7 @@ Let's start an encrypted chat.''';
         return 'Large Group';
       case GroupType.sendAll:
         return 'Small Group';
-      case GroupType.kdf:
-        throw UnimplementedError();
-      case GroupType.shareKey:
-        throw UnimplementedError();
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -1022,9 +1019,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
-      case GroupType.kdf:
-      case GroupType.shareKey:
-      case GroupType.common:
+      default:
         throw UnimplementedError();
     }
   }
@@ -1204,6 +1199,8 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
+        case MessageMediaType.audio:
+          return VoiceMessageBubble(message, errorCallback);
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(

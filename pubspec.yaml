@@ -58,17 +58,9 @@ melos:
     run:macos:
       run: cd packages/app && fvm flutter run -d macos -v --dart-define=MYENV=prod
       description: Run macOS app in production mode.
-    dmg:
-      run: bash scripts/build-dmg-local.sh
-      description: Build DMG for macOS app.
-
     lint:all:
       run: melos run analyze && melos run format
       description: Run all static analysis checks
-
-    analyze:all:
-      run: melos run analyze && melos run metrics
-      description: Run all
 
     analyze:
       run: |
@@ -82,14 +74,6 @@ melos:
       run: dart format --set-exit-if-changed .
       description: |
         Run `dart format --set-exit-if-changed .` in all packages.
-
-    metrics:
-      run: |
-        melos exec -c 1 --ignore="*example*" -- \
-          flutter pub run dart_code_metrics:metrics analyze lib
-      description: |
-        Run `dart_code_metrics` in all packages.
-        - Note: you can also rely on your IDEs Dart Analysis / Issues window.
 
     generate:all:
       run: melos run generate:dart && melos run generate:flutter
@@ -133,13 +117,6 @@ melos:
       packageFilters:
         flutter: true
 
-    coverage:ignore-file:
-      run: |
-        melos exec -c 5 --fail-fast -- "\$MELOS_ROOT_PATH/.github/workflows/scripts/remove-from-coverage.sh"
-      description: Removes all the ignored files from the coverage report.
-      packageFilters:
-        dirExists: coverage
-
     intl:generate:
       name: app_intl
       description: "generate intl utils for mobile packages"
@@ -159,36 +136,25 @@ melos:
         - cd packages/app/ios && rm -rf Podfile.lock && pod update && pod install --repo-update
         - cd ../macos && rm -rf Podfile.lock && pod update && pod install --repo-update
 
-    core:intl:generate:
-      name: core_intl
-      description: "generate intl utils for core package"
-      run: cd shared/core && fvm flutter pub run intl_utils:generate
-
-    image:gen:
-      name: gen_image
-      description: "generate assets class"
-      run: bash scripts/image_gen.sh
-
-    pre:env:
-      name: prepare_env
-      description: "prepare env"
-      run: bash scripts/prepare_env.sh
-
     build:ios:
       name: build_ios
       description: "build ios"
       run: bash scripts/build_ios.sh
     build:macos:
-      name: build_ios
-      description: "build ios"
+      name: build_macos
+      description: "Build, notarize and package macOS app as DMG"
       run: bash scripts/build_macos.sh
+    build:macos:upload:
+      name: build_macos_upload
+      description: "Build, notarize, package macOS app and upload DMG to Google Drive"
+      run: bash scripts/build_macos.sh --upload
     build:aab:
       name: build_aab
       description: "build aab"
       run: bash scripts/build_aab.sh
     build:android:
-      name: build_ios
-      description: "build android"
+      name: build_android
+      description: "build android apk"
       run: bash scripts/build_android.sh
     build:win:
       name: build_windows

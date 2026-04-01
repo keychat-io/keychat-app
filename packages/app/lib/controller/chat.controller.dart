@@ -21,6 +21,7 @@ import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/expired_members_dialog.dart';
+import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
@@ -472,11 +473,13 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    AudioMessageService.instance.stop();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
+    scrollController.dispose();
     indicatorController.dispose();
     super.onClose();
   }
@@ -670,6 +673,10 @@ class ChatController extends GetxController {
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
       roomContact.refresh();
+    } else {
+      // Preserve existing contact when new room doesn't have one
+      // (contact is an @ignore field not persisted by Isar)
+      newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
     roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh

@@ -41,6 +41,7 @@ enum MessageMediaType {
   lightningInvoice,
   profileRequest, // sync my profile to others
   messageReaction, // reaction to a message
+  audio, // voice message
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }

@@ -17,6 +17,16 @@ class SignalIdService {
   static SignalIdService? _instance;
   static SignalIdService get instance => _instance ??= SignalIdService._();
 
+  /// Creates a new [SignalId] for [identityId] and persists it to the database.
+  ///
+  /// Generates a fresh Curve25519 identity key pair via [rust_signal.generateSignalIds],
+  /// initialises the Signal protocol store, and derives a signed prekey plus one-time prekey.
+  ///
+  /// When [isGroupSharedKey] is `true`, the full signed-key and prekey records are
+  /// serialised into [SignalId.keys] so they can be exported to group members via
+  /// [RoomProfile] for shared-key group messaging.
+  ///
+  /// Returns the persisted [SignalId].
   Future<SignalId> createSignalId(
     int identityId, [
     bool isGroupSharedKey = false,
@@ -68,6 +78,10 @@ class SignalIdService {
     return signalId;
   }
 
+  /// Returns the [SignalId] whose pubkey matches [toAddress], or `null` if not found.
+  ///
+  /// Used to determine whether an incoming Nostr event was addressed to one of our
+  /// own Signal identity keys (as opposed to a ratchet receive address).
   Future<SignalId?> isFromSignalId(String toAddress) async {
     final res = await DBProvider.database.signalIds
         .filter()
@@ -76,6 +90,7 @@ class SignalIdService {
     return res.isNotEmpty ? res[0] : null;
   }
 
+  /// Returns all unused [SignalId]s across all identities, ordered by creation date.
   Future<List<SignalId>> getSignalAllIds() async {
     return DBProvider.database.signalIds
         .filter()
@@ -84,6 +99,7 @@ class SignalIdService {
         .findAll();
   }
 
+  /// Returns all unused [SignalId]s belonging to [identityId], ordered by creation date.
   Future<List<SignalId>> getSignalIdByIdentity(int identityId) async {
     return DBProvider.database.signalIds
         .filter()
@@ -93,6 +109,7 @@ class SignalIdService {
         .findAll();
   }
 
+  /// Returns the [SignalId] matching both [identityId] and [pubkey], or `null`.
   Future<SignalId?> getSignalId(int identityId, String pubkey) async {
     return DBProvider.database.signalIds
         .filter()
@@ -101,6 +118,9 @@ class SignalIdService {
         .findFirst();
   }
 
+  /// Returns the first [SignalId] with the given [pubkey], or `null` if not found.
+  ///
+  /// Returns `null` immediately when [pubkey] is `null`.
   Future<SignalId?> getSignalIdByPubkey(String? pubkey) async {
     if (pubkey == null) return null;
     return DBProvider.database.signalIds
@@ -109,6 +129,10 @@ class SignalIdService {
         .findFirst();
   }
 
+  /// Returns the [SignalId] whose [SignalId.signalKeyId] matches [signalKeyId], or `null`.
+  ///
+  /// Used during prekey message decryption to locate the correct identity key pair
+  /// from the key ID embedded in the prekey message header.
   Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {
     return DBProvider.database.signalIds
         .filter()
@@ -116,6 +140,7 @@ class SignalIdService {
         .findFirst();
   }
 
+  /// Persists changes to [si] in the database (upsert).
   Future<void> updateSignalId(SignalId si) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
@@ -123,6 +148,11 @@ class SignalIdService {
     });
   }
 
+  /// Deletes all used [SignalId]s that were last updated more than
+  /// [KeychatGlobal.signalIdLifetime] hours ago.
+  ///
+  /// Called periodically to prune consumed one-time key material from the database
+  /// and prevent unbounded growth of the signal_ids table.
   Future<void> deleteExpiredSignalIds() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.signalIds
@@ -137,6 +167,14 @@ class SignalIdService {
     });
   }
 
+  /// Generates fresh signed-prekey and one-time prekey data for embedding in a QR code.
+  ///
+  /// Regenerates the signed key for [signalId], updates [SignalId.signalKeyId], and
+  /// returns a map with the fields required by the QR code scanner:
+  /// `signedId`, `signedPublic`, `signedSignature`, `prekeyId`, `prekeyPubkey`, `time`.
+  ///
+  /// [time] is included verbatim in the returned map for replay-protection on the
+  /// receiving side.
   Future<Map<String, dynamic>> getQRCodeData(
     SignalId signalId,
     int time,
@@ -163,6 +201,14 @@ class SignalIdService {
     return data;
   }
 
+  /// Imports a shared [SignalId] from [roomProfile], or returns the existing one.
+  ///
+  /// Used when joining a Signal-based group to import the group's shared identity key.
+  /// Stores the prekey and signed key records in the local Signal protocol store so
+  /// the key can be used for group message encryption and decryption.
+  ///
+  /// Throws an [Exception] if [roomProfile.signalKeys] is `null`, indicating the
+  /// profile does not carry the key material needed for import.
   Future<SignalId> importOrGetSignalId(
     int identityId,
     RoomProfile roomProfile,
@@ -206,6 +252,9 @@ class SignalIdService {
     return signalId;
   }
 
+  /// Deletes [model] from the database.
+  ///
+  /// Returns `true` if a record was deleted, `false` if [model] is `null` or not found.
   Future<bool> deleteSignalId(SignalId? model) async {
     if (model == null) return false;
     return DBProvider.database.signalIds

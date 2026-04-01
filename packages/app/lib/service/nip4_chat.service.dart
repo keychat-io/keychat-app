@@ -9,14 +9,22 @@ import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/utils.dart';
 
+/// Chat service for NIP-04 (AES-256-CBC encrypted direct messages).
+///
+/// Handles sending and receiving of NIP-04 kind-4 events.
+/// Note: NIP-04 is partially superseded by NIP-17 for new peer-to-peer DMs,
+/// but remains active as the transport layer for Signal Protocol sessions.
 class Nip4ChatService extends BaseChatService {
   // Avoid self instance
   Nip4ChatService._();
   static Nip4ChatService? _instance;
   static Nip4ChatService get instance => _instance ??= Nip4ChatService._();
 
+  /// Processes an incoming decrypted NIP-04 [KeychatMessage] for the given [room].
+  ///
+  /// Currently handles only [KeyChatEventKinds.dm] (direct message) type.
   @override
-  Future<void> proccessMessage({
+  Future<void> processMessage({
     required Room room,
     required NostrEventModel event,
     required KeychatMessage km,
@@ -37,6 +45,9 @@ class Nip4ChatService extends BaseChatService {
     }
   }
 
+  /// Persists a system notification message (e.g. session handshake info) to the database.
+  ///
+  /// System messages are not displayed as regular chat bubbles but as status indicators.
   Future<void> saveSystemMessage({
     required Room room,
     required NostrEventModel event,
@@ -69,6 +80,10 @@ class Nip4ChatService extends BaseChatService {
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 
+  /// Encrypts and sends a NIP-04 message to the room's recipient.
+  ///
+  /// For signer-based identities (Amber/NIP-55), builds the event locally and signs
+  /// via [SignerService]. For local keys, delegates to [NostrAPI.sendEventMessage].
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,

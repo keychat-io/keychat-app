@@ -61,11 +61,14 @@ class Filter {
   /// a list of pubkeys that are referenced in a "p" tag
   List<String>? p;
 
+  /// A list of relay URLs referenced via `#r` tag.
   List<String>? r;
 
+  /// A list of hashtags referenced via `#t` tag.
   List<String>? t;
 
-  List<String>? h; // mls group
+  /// A list of MLS group identifiers referenced via `#h` tag.
+  List<String>? h;
 
   /// a timestamp, events must be newer than this to pass
   int? since;

@@ -343,7 +343,8 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            bottom: GetPlatform.isAndroid &&
+            bottom:
+                GetPlatform.isAndroid &&
                 !_isGestureNavigation &&
                 !_disableBottomSafeArea,
             child: Column(

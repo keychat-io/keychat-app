@@ -46,4 +46,5 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.lightningInvoice: 'lightningInvoice',
   MessageMediaType.profileRequest: 'profileRequest',
   MessageMediaType.messageReaction: 'messageReaction',
+  MessageMediaType.audio: 'audio',
 };

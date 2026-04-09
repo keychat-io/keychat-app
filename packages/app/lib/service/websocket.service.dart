@@ -732,10 +732,10 @@ class WebsocketService extends GetxService {
     }
     final connectedRelays = targetRelays.where((relay) {
       final rw = channels[relay];
-      return rw != null && rw.isConnected();
+      return rw != null && rw.isConnected() && rw.supportsKind(event.kind);
     }).toList();
     if (connectedRelays.isEmpty) {
-      throw Exception('No connected relay');
+      throw Exception('No connected relay supports kind ${event.kind}');
     }
     logger.d('try write event: $roomId, $eventString, $connectedRelays');
     unawaited(

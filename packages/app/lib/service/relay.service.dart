@@ -360,8 +360,9 @@ class RelayService {
           update(relay);
         }
 
-        final payInfo = await _fetchCashuPayInfo(relay);
-        // logger.i('fetchRelayMessageFee, $relay: $payInfo');
+        final data = await fetchRelayNostrInfo(relay);
+        _cacheRelaySupportedNips(ws, relay.url, data);
+        final payInfo = _parseCashuPayInfo(data);
         if (payInfo != null) {
           ws.relayMessageFeeModels[relay.url] = payInfo;
           ws.relayMessageFeeModels.refresh();
@@ -393,9 +394,22 @@ class RelayService {
     );
   }
 
+  /// Caches supported_nips from NIP-11 relay info onto the RelayWebsocket.
+  void _cacheRelaySupportedNips(
+    WebsocketService ws,
+    String relayUrl,
+    Map<String, dynamic>? data,
+  ) {
+    final rw = ws.channels[relayUrl];
+    if (rw == null || data == null) return;
+    final nips = data['supported_nips'] as List<dynamic>?;
+    if (nips != null) {
+      rw.supportedNips = nips.whereType<int>().toSet();
+    }
+  }
+
   // curl -H "Accept: application/nostr+json" https://relay.keychat.io
-  Future<RelayMessageFee?> _fetchCashuPayInfo(Relay relay) async {
-    final Map? data = await fetchRelayNostrInfo(relay);
+  RelayMessageFee? _parseCashuPayInfo(Map<String, dynamic>? data) {
     if (data == null || data.isEmpty) return null;
     if (data['limitation'] != null) {
       final payRequired =

@@ -153,6 +153,7 @@ class Room extends Equatable {
   // ignore: deprecated_member_use_from_same_package
   set receiveAddress(String? v) => onetimekey = v;
 
+  @Deprecated('not used anymore')
   String? sharedSignalID; // a shared virtual signal id for group
 
   // bot
@@ -340,7 +341,6 @@ class Room extends Equatable {
     required UserStatusType status,
     required DateTime updatedAt,
     required DateTime createdAt,
-    String? signalIdentityKey,
     bool isAdmin = false,
   }) async {
     final database = DBProvider.database;

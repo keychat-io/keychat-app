@@ -145,7 +145,6 @@ class GroupService extends BaseChatService {
       name: identity.name,
       isAdmin: true,
       idPubkey: identity.nostrIdentityKey,
-      signalIdentityKey: identity.signalIdentityKey,
       status: UserStatusType.invited,
       createdAt: now,
       updatedAt: now,

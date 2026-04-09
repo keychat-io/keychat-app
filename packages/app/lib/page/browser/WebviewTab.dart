@@ -842,6 +842,7 @@ class _WebviewTabState extends State<WebviewTab> {
           // Open blob URLs and download requests in the external browser
           if (uri.toString().startsWith('blob:') ||
               (navigationAction.shouldPerformDownload ?? false)) {
+            await EasyLoading.showInfo('Opening in external browser...');
             await launchUrl(uri, mode: LaunchMode.externalApplication);
             return NavigationActionPolicy.CANCEL;
           }

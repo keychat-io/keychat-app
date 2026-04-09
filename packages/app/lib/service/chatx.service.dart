@@ -12,16 +12,15 @@ import 'package:keychat/models/signal_id.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/notify.service.dart';
-import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/service/secure_storage.dart';
 import 'package:keychat/service/signalId.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/unified_wallet/unified_wallet_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
+    show KeychatIdentityKey, KeychatIdentityKeyPair, KeychatProtocolAddress;
 import 'package:keychat_rust_ffi_plugin/index.dart';
 
 /// Cross-protocol helper service for Signal session state management.
@@ -121,9 +120,9 @@ class ChatxService extends GetxService {
     } else {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
-    await rust_signal.processPrekeyBundleApi(
+    await rust_signal.processPreKeyBundleApi(
       keyPair: keyPair,
-      regId: getRegistrationId(room.curve25519PkHex!),
+      registrationId: getRegistrationId(room.curve25519PkHex!),
       deviceId: room.identityId,
       identityKey: KeychatIdentityKey(
         publicKey: U8Array33(
@@ -131,11 +130,11 @@ class ChatxService extends GetxService {
         ),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: bobSignedId,
-      bobSignedPublic: bobSignedPublic,
-      bobSigedSig: bobSignedSignature,
-      bobPrekeyId: bobPrekeyId,
-      bobPrekeyPublic: bobPrekeyPublic,
+      signedPreKeyId: bobSignedId,
+      signedPreKeyPublic: bobSignedPublic,
+      signedPreKeySignature: bobSignedSignature,
+      preKeyId: bobPrekeyId,
+      preKeyPublic: bobPrekeyPublic,
     );
     return true;
   }
@@ -157,23 +156,23 @@ class ChatxService extends GetxService {
     );
 
     final keys = jsonDecode(sginalKeys) as Map<String, dynamic>;
-    await rust_signal.processPrekeyBundleApi(
+    await rust_signal.processPreKeyBundleApi(
       keyPair: keyPair,
-      regId: getRegistrationId(sharedPubkey),
+      registrationId: getRegistrationId(sharedPubkey),
       deviceId: sharedSignalIdentityId,
       identityKey: KeychatIdentityKey(
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'] as int,
-      bobSignedPublic: Uint8List.fromList(
+      signedPreKeyId: keys['signedId'] as int,
+      signedPreKeyPublic: Uint8List.fromList(
         hex.decode(keys['signedPublic'] as String),
       ),
-      bobSigedSig: Uint8List.fromList(
+      signedPreKeySignature: Uint8List.fromList(
         hex.decode(keys['signedSignature'] as String),
       ),
-      bobPrekeyId: keys['prekeyId'] as int,
-      bobPrekeyPublic: Uint8List.fromList(
+      preKeyId: keys['prekeyId'] as int,
+      preKeyPublic: Uint8List.fromList(
         hex.decode(keys['prekeyPubkey'] as String),
       ),
     );
@@ -194,23 +193,23 @@ class ChatxService extends GetxService {
     );
 
     final keys = jsonDecode(sginalKeys) as Map<String, dynamic>;
-    await rust_signal.processPrekeyBundleApi(
+    await rust_signal.processPreKeyBundleApi(
       keyPair: keyPair,
-      regId: getRegistrationId(sharedPubkey),
+      registrationId: getRegistrationId(sharedPubkey),
       deviceId: sharedSignalIdentityId,
       identityKey: KeychatIdentityKey(
         publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
       ),
       remoteAddress: remoteAddress,
-      bobSignedId: keys['signedId'] as int,
-      bobSignedPublic: Uint8List.fromList(
+      signedPreKeyId: keys['signedId'] as int,
+      signedPreKeyPublic: Uint8List.fromList(
         hex.decode(keys['signedPublic'] as String),
       ),
-      bobSigedSig: Uint8List.fromList(
+      signedPreKeySignature: Uint8List.fromList(
         hex.decode(keys['signedSignature'] as String),
       ),
-      bobPrekeyId: keys['prekeyId'] as int,
-      bobPrekeyPublic: Uint8List.fromList(
+      preKeyId: keys['prekeyId'] as int,
+      preKeyPublic: Uint8List.fromList(
         hex.decode(keys['prekeyPubkey'] as String),
       ),
     );

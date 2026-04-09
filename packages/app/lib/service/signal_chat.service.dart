@@ -27,6 +27,8 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
+    show DecryptResult, KeychatIdentityKeyPair, KeychatProtocolAddress;
 import 'package:keychat_rust_ffi_plugin/index.dart' show AnyhowException;
 
 class SignalChatService extends BaseChatService {
@@ -82,15 +84,15 @@ class SignalChatService extends BaseChatService {
       ptext: pmm?.toString() ?? message0,
       remoteAddress: kpa,
     );
-    final ciphertext = enResult.$1;
+    final ciphertext = enResult.ciphertext;
     String? newReceving;
-    if (enResult.$2 != null) {
+    if (enResult.receiverAddress != null) {
       newReceving = await rust_nostr.generateSeedFromRatchetkeyPair(
-        seedKey: enResult.$2!,
+        seedKey: enResult.receiverAddress!,
       );
     }
     final msgKeyHash = await rust_nostr.generateMessageKeyHash(
-      seedKey: enResult.$3,
+      seedKey: enResult.messageKeysHash,
     );
 
     List<String>? toAddPubkeys;
@@ -194,16 +196,15 @@ class SignalChatService extends BaseChatService {
       }
       try {
         final keypair = await room.getKeyPair();
-        Uint8List? plaintext;
 
-        (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
+        final decryptResult = await rust_signal.decryptSignal(
           keyPair: keypair,
           ciphertext: Uint8List.fromList(base64Decode(event.content)),
           remoteAddress: kpa,
           roomId: room.id,
           isPrekey: false,
         );
-        decodeString = utf8.decode(plaintext);
+        decodeString = utf8.decode(decryptResult.plaintext);
         await setRoomSignalDecodeStatus(room, false);
       } catch (e, s) {
         final msg = Utils.getErrorMessage(e);
@@ -213,20 +214,6 @@ class SignalChatService extends BaseChatService {
           loggerNoLine.e(msg);
         }
         decodeString = 'Decrypt failed: $msg, \nSource: ${event.content}';
-      }
-
-      // get encrypt msg key's hash
-      if (msgKeyHash != null) {
-        msgKeyHash = await rust_nostr.generateMessageKeyHash(
-          seedKey: msgKeyHash,
-        );
-        unawaited(
-          ContactService.instance.deleteReceiveKey(
-            room.identityId,
-            room.toMainPubkey,
-            event.tags[0][1],
-          ),
-        );
       }
       // if receive address is signalAddress, then remove room.onetimekey
       if (room.onetimekey != null) {
@@ -597,9 +584,9 @@ ${relays.join('\n')}
     final prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
       ciphertext: ciphertext,
     );
-    final signalIdPubkey = prekey.$1;
+    final signalIdPubkey = prekey.identityKey;
     final signalId = await SignalIdService.instance.getSignalIdByKeyId(
-      prekey.$2,
+      prekey.signedPreKeyId,
     );
     if (signalId == null) {
       var msg = 'SignalId not found, identityId: ${mykey.identityId}.';
@@ -619,7 +606,7 @@ ${relays.join('\n')}
     final identity =
         Get.find<HomeController>().allIdentities[signalId.identityId]!;
 
-    final (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
+    final decryptResult = await rust_signal.decryptSignal(
       keyPair: keyPair,
       ciphertext: ciphertext,
       remoteAddress: KeychatProtocolAddress(
@@ -629,13 +616,11 @@ ${relays.join('\n')}
       roomId: 0,
       isPrekey: true,
     );
-    final decryptedContent = utf8.decode(plaintext);
+    final decryptedContent = utf8.decode(decryptResult.plaintext);
     final prekeyMessageModel = PrekeyMessageModel.fromJson(
       jsonDecode(decryptedContent) as Map<String, dynamic>,
     );
-    logger.i(
-      'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash',
-    );
+    logger.i('decryptPreKeyMessage, plainrtext: $prekeyMessageModel');
 
     await SignalChatUtil.verifySignedMessage(
       pmm: prekeyMessageModel,
@@ -692,7 +677,7 @@ ${relays.join('\n')}
         room: room,
         event: event,
         km: km,
-        msgKeyHash: msgKeyHash,
+        msgKeyHash: decryptResult.messageKeysHash,
         fromIdPubkey: room.toMainPubkey,
         failedCallback: failedCallback,
       );

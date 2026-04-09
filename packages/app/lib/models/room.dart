@@ -10,7 +10,8 @@ import 'package:keychat/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
+    show KeychatIdentityKeyPair;
 
 part 'room.g.dart';
 

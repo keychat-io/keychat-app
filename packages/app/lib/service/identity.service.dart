@@ -20,6 +20,8 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
+import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
+    show KeychatIdentityKeyPair;
 
 class IdentityService {
   // Avoid self instance
@@ -277,7 +279,7 @@ class IdentityService {
             .deleteAll();
         try {
           final signalIdPubkey = element.signalIdPubkey;
-          rust_signal.KeychatIdentityKeyPair? keyPair;
+          KeychatIdentityKeyPair? keyPair;
           final chatxService = Get.find<ChatxService>();
           if (signalIdPubkey != null) {
             keyPair = await chatxService.setupSignalStoreBySignalId(

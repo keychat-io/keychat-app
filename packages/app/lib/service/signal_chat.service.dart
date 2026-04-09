@@ -39,7 +39,7 @@ class SignalChatService extends BaseChatService {
 
   /// Encrypts and sends a message to [room] using the Signal Double Ratchet protocol.
   ///
-  /// When a one-time key is pending ([Room.onetimekey] is set and matches the current
+  /// When a one-time key is pending ([Room.receiveAddress] is set and matches the current
   /// send address), wraps the plaintext in a signed [PrekeyMessageModel] so the recipient
   /// can verify the sender's identity on first contact.
   /// After encryption, any newly derived ratchet receive address is registered with the
@@ -66,10 +66,10 @@ class SignalChatService extends BaseChatService {
     }
     final message0 = message;
     final keypair = await room.getKeyPair();
-    final to = await _getSignalToAddress(keypair, room);
+    final to = await _resolveDeliveryAddress(keypair, room);
     PrekeyMessageModel? pmm;
-    if (room.onetimekey != null) {
-      if (to == room.onetimekey) {
+    if (room.receiveAddress != null) {
+      if (to == room.receiveAddress) {
         final si = room.getMySignalId();
         pmm = await SignalChatUtil.getSignalPrekeyMessage(
           room: room,
@@ -137,13 +137,13 @@ class SignalChatService extends BaseChatService {
     return smr;
   }
 
-  Future<String> _getSignalToAddress(
+  Future<String> _resolveDeliveryAddress(
     KeychatIdentityKeyPair keyPair,
     Room room,
   ) async {
     final bobSession = await rust_signal.getSession(
       keyPair: keyPair,
-      address: room.curve25519PkHex!,
+      address: room.peerSignalIdentityKey!,
       deviceId: room.identityId.toString(),
     );
     if (bobSession == null) {
@@ -157,10 +157,10 @@ class SignalChatService extends BaseChatService {
       to = await rust_nostr.generateSeedFromRatchetkeyPair(seedKey: to);
     }
 
-    final isSendToOnetimeKey =
-        to == room.toMainPubkey && room.onetimekey != null;
-    if (isSendToOnetimeKey) {
-      to = room.onetimekey!;
+    final isSendToReceiveAddress =
+        to == room.toMainPubkey && room.receiveAddress != null;
+    if (isSendToReceiveAddress) {
+      to = room.receiveAddress!;
     }
 
     return to;
@@ -173,7 +173,7 @@ class SignalChatService extends BaseChatService {
   /// "decrypt failed" indicator, and sets [Room.signalDecodeError] accordingly.
   ///
   /// After successful decryption, computes the message key hash, removes the consumed
-  /// one-time receive key from the contact store, and clears [Room.onetimekey] if the
+  /// one-time receive key from the contact store, and clears [Room.receiveAddress] if the
   /// message arrived on a ratchet address rather than the primary address.
   ///
   /// The [failedCallback] is invoked with an error description if decryption fails.
@@ -215,11 +215,11 @@ class SignalChatService extends BaseChatService {
         }
         decodeString = 'Decrypt failed: $msg, \nSource: ${event.content}';
       }
-      // if receive address is signalAddress, then remove room.onetimekey
-      if (room.onetimekey != null) {
+      // if receive address is signalAddress, then remove room.receiveAddress
+      if (room.receiveAddress != null) {
         final toAddress = (sourceEvent ?? event).tags[0][1];
-        if (toAddress != room.toMainPubkey && toAddress != room.onetimekey!) {
-          room.onetimekey = null;
+        if (toAddress != room.toMainPubkey && toAddress != room.receiveAddress!) {
+          room.receiveAddress = null;
           await RoomService.instance.updateRoom(room);
         }
       }
@@ -396,43 +396,43 @@ class SignalChatService extends BaseChatService {
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     // auto send response
-    final oneTimeKey = await IdentityService.instance.isFromOnetimeKey(
+    final inboxKey = await IdentityService.instance.findInboxKey(
       (sourceEvent ?? event).tags[0][1],
     );
 
-    // expire onetime-key
-    if (oneTimeKey != null) {
-      oneTimeKey
+    // expire inbox key
+    if (inboxKey != null) {
+      inboxKey
         ..oneTimeUsed = true
         ..updatedAt = DateTime.now();
-      await IdentityService.instance.updateMykey(oneTimeKey);
+      await IdentityService.instance.updateMykey(inboxKey);
     }
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
     } else if (room.status != RoomStatus.enabled) {
-      room.status = oneTimeKey != null
+      room.status = inboxKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
     }
-    room.onetimekey = model.onetimekey;
+    room.receiveAddress = model.receiveAddress;
 
     // delete old session
-    if (room.curve25519PkHex != null) {
+    if (room.peerSignalIdentityKey != null) {
       await Get.find<ChatxService>().deleteSignalSessionKPA(room);
     }
     // must be delete session then give a new data
-    room.curve25519PkHex = model.curve25519PkHex;
+    room.peerSignalIdentityKey = model.signalIdentityKey;
 
     final res = await Get.find<ChatxService>().addRoomKPA(
       room: room,
-      bobSignedId: model.signedId,
-      bobSignedPublic: Uint8List.fromList(hex.decode(model.signedPublic)),
+      bobSignedId: model.signalSignedPrekeyId,
+      bobSignedPublic: Uint8List.fromList(hex.decode(model.signalSignedPrekey)),
       bobSignedSignature: Uint8List.fromList(
-        hex.decode(model.signedSignature),
+        hex.decode(model.signalSignedPrekeySignature),
       ),
-      bobPrekeyId: model.prekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)),
+      bobPrekeyId: model.signalOneTimePrekeyId,
+      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.signalOneTimePrekey)),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;
@@ -508,20 +508,20 @@ ${relays.join('\n')}
   /// Creates a fresh [SignalId] for [identity], builds a signed [KeychatMessage]
   /// of type [KeyChatEventKinds.dmAddContactFromAlice], and delivers it via NIP-17.
   ///
-  /// [onetimekey] — optional one-time key pubkey to use as the delivery address.
+  /// [receiveAddress] — optional one-time key pubkey to use as the delivery address.
   /// [greeting] — optional greeting text included in the message body.
   /// [fromNpub] — set to `true` when initiating from an npub / QR-code scan flow.
   Future<void> sendHelloMessage(
     Room room0,
     Identity identity, {
-    String? onetimekey,
+    String? receiveAddress,
     String? greeting,
     bool fromNpub = false,
   }) async {
     var room = room0;
     final signalId = await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
-    room.signalIdPubkey = signalId.pubkey;
+    room.mySignalIdentityKey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     final sm =
         await KeychatMessage(
@@ -537,7 +537,7 @@ ${relays.join('\n')}
       room,
       sm.toString(),
       identity,
-      toPubkey: onetimekey,
+      toPubkey: receiveAddress,
       realMessage: sm.msg,
       isSystem: true,
     );
@@ -584,7 +584,7 @@ ${relays.join('\n')}
     final prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
       ciphertext: ciphertext,
     );
-    final signalIdPubkey = prekey.identityKey;
+    final peerSignalKey = prekey.identityKey;
     final signalId = await SignalIdService.instance.getSignalIdByKeyId(
       prekey.signedPreKeyId,
     );
@@ -610,7 +610,7 @@ ${relays.join('\n')}
       keyPair: keyPair,
       ciphertext: ciphertext,
       remoteAddress: KeychatProtocolAddress(
-        name: signalIdPubkey,
+        name: peerSignalKey,
         deviceId: identity.id,
       ),
       roomId: 0,
@@ -624,7 +624,7 @@ ${relays.join('\n')}
 
     await SignalChatUtil.verifySignedMessage(
       pmm: prekeyMessageModel,
-      signalIdPubkey: signalIdPubkey,
+      signalIdPubkey: peerSignalKey,
     );
 
     var room = await RoomService.instance.getRoomByIdentity(
@@ -651,7 +651,7 @@ ${relays.join('\n')}
       name: prekeyMessageModel.name,
       status: RoomStatus.enabled,
       encryptMode: EncryptMode.signal,
-      curve25519PkHex: signalIdPubkey,
+      peerSignalIdentityKey: peerSignalKey,
       signalId: signalId,
       contact: contact,
     );
@@ -659,7 +659,7 @@ ${relays.join('\n')}
     room
       ..status = RoomStatus.enabled
       ..encryptMode = EncryptMode.signal
-      ..curve25519PkHex = signalIdPubkey
+      ..peerSignalIdentityKey = peerSignalKey
       ..contact = contact;
 
     await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);

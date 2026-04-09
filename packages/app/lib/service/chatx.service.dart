@@ -29,18 +29,18 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 /// resolution logic.  Both Signal private-chat and Signal group-chat
 /// services depend on this service to initialise and retrieve sessions.
 class ChatxService extends GetxService {
-  // In-memory cache: "identityId:curve25519PkHex" → KPA for active sessions.
+  // In-memory cache: "identityId:peerSignalIdentityKey" → KPA for active sessions.
   Map<String, KeychatProtocolAddress> roomKPA = {};
   // Cache of pubkey → KeychatIdentityKeyPair to avoid repeated secure-storage reads.
   final Map<String, KeychatIdentityKeyPair> _keypairs = {};
 
-  /// Ensures the one-time-key pool for [identityId] is at least
-  /// [KeychatGlobal.oneTimePubkeysPoolLength] keys deep, generating new keys
+  /// Ensures the inbox-key pool for [identityId] is at least
+  /// [KeychatGlobal.inboxKeysPoolLength] keys deep, generating new keys
   /// if necessary, and subscribes all keys to the WebSocket and notification server.
-  Future<List<Mykey>> getOneTimePubkey(int identityId) async {
-    // delete expired one time keys
-    await IdentityService.instance.deleteExpiredOneTimeKeys();
-    final newKeys = await IdentityService.instance.getOneTimeKeyByIdentity(
+  Future<List<Mykey>> getInboxKeys(int identityId) async {
+    // delete expired inbox keys
+    await IdentityService.instance.deleteExpiredInboxKeys();
+    final newKeys = await IdentityService.instance.getInboxKeysByIdentity(
       identityId,
     );
 
@@ -49,10 +49,10 @@ class ChatxService extends GetxService {
       needListen.add(key.pubkey);
     }
 
-    if (needListen.length < KeychatGlobal.oneTimePubkeysPoolLength) {
-      final newKeys2 = await _generateOneTimePubkeys(
+    if (needListen.length < KeychatGlobal.inboxKeysPoolLength) {
+      final newKeys2 = await _generateInboxKeys(
         identityId,
-        KeychatGlobal.oneTimePubkeysPoolLength - needListen.length,
+        KeychatGlobal.inboxKeysPoolLength - needListen.length,
       );
       for (final key in newKeys2) {
         needListen.add(key.pubkey);
@@ -93,7 +93,7 @@ class ChatxService extends GetxService {
   ///
   /// Calls [rust_signal.processPrekeyBundleApi] to perform the X3DH key agreement.
   /// Returns true if the session was created (or already exists); false if
-  /// [room.curve25519PkHex] is null (no Signal key exchange possible).
+  /// [room.peerSignalIdentityKey] is null (no Signal key exchange possible).
   Future<bool> addRoomKPA({
     required Room room,
     required int bobSignedId,
@@ -102,7 +102,7 @@ class ChatxService extends GetxService {
     required int bobPrekeyId,
     required Uint8List bobPrekeyPublic,
   }) async {
-    if (room.curve25519PkHex == null) {
+    if (room.peerSignalIdentityKey == null) {
       return false;
     }
     final exist = await getRoomKPA(room);
@@ -110,23 +110,23 @@ class ChatxService extends GetxService {
       return true;
     }
     final remoteAddress = KeychatProtocolAddress(
-      name: room.curve25519PkHex!,
+      name: room.peerSignalIdentityKey!,
       deviceId: room.identityId,
     );
     // Alice Signal id keypair
     KeychatIdentityKeyPair keyPair;
-    if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
+    if (room.mySignalIdentityKey != null) {
+      keyPair = await getKeyPairBySignalIdPubkey(room.mySignalIdentityKey!);
     } else {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
     await rust_signal.processPreKeyBundleApi(
       keyPair: keyPair,
-      registrationId: getRegistrationId(room.curve25519PkHex!),
+      registrationId: getRegistrationId(room.peerSignalIdentityKey!),
       deviceId: room.identityId,
       identityKey: KeychatIdentityKey(
         publicKey: U8Array33(
-          Uint8List.fromList(hex.decode(room.curve25519PkHex!)),
+          Uint8List.fromList(hex.decode(room.peerSignalIdentityKey!)),
         ),
       ),
       remoteAddress: remoteAddress,
@@ -222,14 +222,14 @@ class ChatxService extends GetxService {
   /// Uses the in-memory [roomKPA] cache; falls back to the Rust FFI to check
   /// whether a session record is present in the Signal store.
   Future<KeychatProtocolAddress?> getRoomKPA(Room room) async {
-    if (room.curve25519PkHex == null) return null;
-    final key = '${room.identityId}:${room.curve25519PkHex}';
+    if (room.peerSignalIdentityKey == null) return null;
+    final key = '${room.identityId}:${room.peerSignalIdentityKey}';
     if (roomKPA[key] != null) {
       return roomKPA[key]!;
     }
 
     final remoteAddress = KeychatProtocolAddress(
-      name: room.curve25519PkHex!,
+      name: room.peerSignalIdentityKey!,
       deviceId: room.identityId,
     );
     final keyPair = await _initRoomSignalStore(room);
@@ -298,8 +298,8 @@ class ChatxService extends GetxService {
       await rust_signal.initSignalDb(dbPath: signalPath);
       final identities = await IdentityService.instance.getIdentityList();
       for (final identity in identities) {
-        if (identity.curve25519PkHex != null) {
-          if (identity.curve25519PkHex!.isNotEmpty) {
+        if (identity.signalIdentityKey != null) {
+          if (identity.signalIdentityKey!.isNotEmpty) {
             await getKeyPairByIdentity(identity);
           }
         }
@@ -310,12 +310,12 @@ class ChatxService extends GetxService {
   }
 
   Future<KeychatIdentityKeyPair?> _initRoomSignalStore(Room room) async {
-    if (room.signalIdPubkey == null) {
-      final identityPubkey = room.getIdentity().curve25519PkHex;
+    if (room.mySignalIdentityKey == null) {
+      final identityPubkey = room.getIdentity().signalIdentityKey;
       if (identityPubkey == null) return null;
       return _keypairs[identityPubkey];
     }
-    return setupSignalStoreBySignalId(room.signalIdPubkey!);
+    return setupSignalStoreBySignalId(room.mySignalIdentityKey!);
   }
 
   /// Returns (and caches) the keypair for a known [SignalId].
@@ -331,15 +331,15 @@ class ChatxService extends GetxService {
   /// Returns (and caches) the curve25519 keypair for [identity].
   ///
   /// Reads the private key from secure storage on first access.
-  /// Throws if [identity.curve25519PkHex] is null.
+  /// Throws if [identity.signalIdentityKey] is null.
   Future<KeychatIdentityKeyPair> getKeyPairByIdentity(Identity identity) async {
-    if (identity.curve25519PkHex == null) {
-      throw Exception('curve25519PkHex_is_null');
+    if (identity.signalIdentityKey == null) {
+      throw Exception('signalIdentityKey_is_null');
     }
     final prikey = await SecureStorage.instance.readCurve25519PrikeyOrFail(
-      identity.curve25519PkHex!,
+      identity.signalIdentityKey!,
     );
-    return _getKeyPair(identity.curve25519PkHex!, prikey);
+    return _getKeyPair(identity.signalIdentityKey!, prikey);
   }
 
   KeychatIdentityKeyPair _getKeyPair(String pubkey, String prikey) {
@@ -369,18 +369,18 @@ class ChatxService extends GetxService {
   ///
   /// Called when a room is deleted or when the session needs to be reset.
   Future<void> deleteSignalSessionKPA(Room room) async {
-    if (room.curve25519PkHex == null) return;
+    if (room.peerSignalIdentityKey == null) return;
     final identity = Get.find<HomeController>().allIdentities[room.identityId];
     if (identity == null) return;
     KeychatIdentityKeyPair keyPair;
-    if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
+    if (room.mySignalIdentityKey != null) {
+      keyPair = await getKeyPairBySignalIdPubkey(room.mySignalIdentityKey!);
     } else {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
 
     final remoteAddress = KeychatProtocolAddress(
-      name: room.curve25519PkHex!,
+      name: room.peerSignalIdentityKey!,
       deviceId: room.identityId,
     );
 
@@ -396,21 +396,21 @@ class ChatxService extends GetxService {
       address: remoteAddress.name,
     );
     room.signalDecodeError = false;
-    final key = '${room.identityId}:${room.curve25519PkHex}';
+    final key = '${room.identityId}:${room.peerSignalIdentityKey}';
     roomKPA.remove(key);
   }
 
-  // generate onetime pubkey to receive add new friends message
-  Future<List<Mykey>> _generateOneTimePubkeys(int identityId, int num) async {
-    final onetimekeys = <Mykey>[];
-    // create three one time keys
+  // generate inbox keys to receive add new friends message
+  Future<List<Mykey>> _generateInboxKeys(int identityId, int num) async {
+    final inboxKeys = <Mykey>[];
+    // create inbox keys
     for (var i = 0; i < num; i++) {
-      final onetimekey = await IdentityService.instance.createOneTimeKey(
+      final inboxKey = await IdentityService.instance.createInboxKey(
         identityId,
       );
-      onetimekeys.add(onetimekey);
+      inboxKeys.add(inboxKey);
     }
-    return onetimekeys;
+    return inboxKeys;
   }
 
   Future<List<SignalId>> _generateSignalIds(int identityId, int num) async {
@@ -443,8 +443,8 @@ class ChatxService extends GetxService {
   /// (per-room SignalId or identity-level keypair).
   Future<KeychatIdentityKeyPair> getAndSetupKeyPairByRoom(Room room) async {
     KeychatIdentityKeyPair? keyPair;
-    if (room.signalIdPubkey != null) {
-      keyPair = await setupSignalStoreBySignalId(room.signalIdPubkey!);
+    if (room.mySignalIdentityKey != null) {
+      keyPair = await setupSignalStoreBySignalId(room.mySignalIdentityKey!);
       return keyPair;
     }
     return getKeyPairByIdentity(room.getIdentity());

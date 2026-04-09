@@ -69,8 +69,8 @@ class RoomService extends BaseChatService {
     EncryptMode? encryptMode,
     String? name,
     Contact? contact,
-    String? curve25519PkHex,
-    String? onetimekey,
+    String? peerSignalIdentityKey,
+    String? receiveAddress,
     SignalId? signalId,
     RoomType? type,
   }) async {
@@ -86,18 +86,18 @@ class RoomService extends BaseChatService {
             status: status,
             npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
           )
-          ..onetimekey = onetimekey
+          ..receiveAddress = receiveAddress
           ..status = status
           ..type = type ?? RoomType.common
           ..encryptMode = encryptMode ?? EncryptMode.nip17
-          ..curve25519PkHex = curve25519PkHex
-          ..signalIdPubkey = signalId.pubkey;
+          ..peerSignalIdentityKey = peerSignalIdentityKey
+          ..mySignalIdentityKey = signalId.pubkey;
     // set bot room's name
     if (room.type == RoomType.bot) {
       room.name = name;
     }
     // chat with myself
-    if (toMainPubkey == identity.secp256k1PKHex) {
+    if (toMainPubkey == identity.nostrIdentityKey) {
       room.encryptMode = EncryptMode.nip04;
       name = KeychatGlobal.selfName;
     }
@@ -126,13 +126,13 @@ class RoomService extends BaseChatService {
     final roomType = room.type;
     final roomId = room.id;
     final toMainPubkey = room.toMainPubkey;
-    final mlsListenPubkey = room.onetimekey;
+    final mlsListenPubkey = room.receiveAddress;
     // delete room's signalId
-    final signalIdPubkey = room.signalIdPubkey;
+    final mySignalIdentityKey = room.mySignalIdentityKey;
     var sameSignalIdrooms = <Room>[];
-    if (signalIdPubkey != null) {
+    if (mySignalIdentityKey != null) {
       sameSignalIdrooms = await RoomService.instance.getRoomBySignalIdPubkey(
-        signalIdPubkey,
+        mySignalIdentityKey,
       );
     }
     await database.writeTxn(() async {
@@ -151,10 +151,10 @@ class RoomService extends BaseChatService {
               .deleteAll();
         }
       } else {
-        if (signalIdPubkey != null && sameSignalIdrooms.length <= 1) {
+        if (mySignalIdentityKey != null && sameSignalIdrooms.length <= 1) {
           await DBProvider.database.signalIds
               .filter()
-              .pubkeyEqualTo(signalIdPubkey)
+              .pubkeyEqualTo(mySignalIdentityKey)
               .identityIdEqualTo(room.identityId)
               .deleteAll();
         }
@@ -189,7 +189,7 @@ class RoomService extends BaseChatService {
       final identity = await IdentityService.instance.getIdentityById(
         room.identityId,
       );
-      final myIdPubkey = identity?.secp256k1PKHex;
+      final myIdPubkey = identity?.nostrIdentityKey;
       if (myIdPubkey != null) {
         try {
           await rust_mls.deleteGroup(
@@ -306,7 +306,7 @@ class RoomService extends BaseChatService {
       identity ??= await IdentityService.instance.getIdentityById(
         room.identityId,
       );
-      if (identity != null && identity.secp256k1PKHex == to) {
+      if (identity != null && identity.nostrIdentityKey == to) {
         return room;
       }
     }
@@ -334,7 +334,7 @@ class RoomService extends BaseChatService {
         .findFirst();
   }
 
-  Future<Room?> getRoomByOnetimeKey(String to) async {
+  Future<Room?> getRoomByReceiveAddress(String to) async {
     return DBProvider.database.rooms.filter().onetimekeyEqualTo(to).findFirst();
   }
 
@@ -345,7 +345,7 @@ class RoomService extends BaseChatService {
     return database.rooms.filter().idEqualTo(id).findFirst();
   }
 
-  /// Returns all rooms that share the same [signalIdPubkey].
+  /// Returns all rooms that share the same [mySignalIdentityKey].
   ///
   /// Used to determine whether a SignalId can be safely deleted when a room
   /// is removed.
@@ -375,7 +375,7 @@ class RoomService extends BaseChatService {
         .identityIdEqualTo(identityId)
         .findFirst();
     if (room == null) return null;
-    if (room.curve25519PkHex != null) {
+    if (room.peerSignalIdentityKey != null) {
       final res = await Get.find<ChatxService>().getRoomKPA(room);
       return res == null ? null : room;
     }
@@ -443,7 +443,7 @@ class RoomService extends BaseChatService {
         room.contact = await contactService.getOrCreateContact(
           identityId: room.identityId,
           pubkey: room.toMainPubkey,
-          curve25519PkHex: room.curve25519PkHex,
+          signalIdentityKey: room.peerSignalIdentityKey,
         );
       }
       if (room.status == RoomStatus.requesting) {
@@ -519,7 +519,7 @@ class RoomService extends BaseChatService {
       final identities = Utils.getGetxController<HomeController>()!
           .allIdentities
           .values
-          .where((element) => element.secp256k1PKHex == toAddress)
+          .where((element) => element.nostrIdentityKey == toAddress)
           .toList();
       if (identities.isNotEmpty) {
         identity = identities[0];
@@ -813,7 +813,7 @@ class RoomService extends BaseChatService {
       queue.add(() async {
         if (tasks.isEmpty) return;
         final room = tasks.removeFirst() as Room;
-        if (room.toMainPubkey == identity.secp256k1PKHex) return;
+        if (room.toMainPubkey == identity.nostrIdentityKey) return;
         await RoomService.instance.sendMessage(
           room,
           message,
@@ -947,7 +947,7 @@ class RoomService extends BaseChatService {
     try {
       late Room room;
       // add myself
-      if (identity.secp256k1PKHex == hexPubkey) {
+      if (identity.nostrIdentityKey == hexPubkey) {
         room = await RoomService.instance.getOrCreateRoomByIdentity(
           hexPubkey,
           identity,
@@ -955,7 +955,7 @@ class RoomService extends BaseChatService {
         );
       } else {
         for (final iden in hc.allIdentities.values) {
-          if (iden.secp256k1PKHex == hexPubkey) {
+          if (iden.nostrIdentityKey == hexPubkey) {
             throw Exception("Can not add other identity' pubkey");
           }
         }
@@ -1033,8 +1033,8 @@ class RoomService extends BaseChatService {
         final pubkeys = <String>[];
 
         if (room.type == RoomType.group) {
-          if (room.isMLSGroup && room.onetimekey != null) {
-            pubkeys.add(room.onetimekey!);
+          if (room.isMLSGroup && room.receiveAddress != null) {
+            pubkeys.add(room.receiveAddress!);
           } else if (room.mykey.value?.pubkey != null) {
             pubkeys.add(room.mykey.value!.pubkey);
           }
@@ -1071,7 +1071,7 @@ class RoomService extends BaseChatService {
     if (room != null) {
       return room;
     }
-    final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
+    final mlsRoom = await RoomService.instance.getRoomByReceiveAddress(pubkey);
     return mlsRoom;
   }
 

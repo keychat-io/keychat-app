@@ -99,13 +99,13 @@ class Nip4ChatService extends BaseChatService {
       final plaintext = message;
       final ciphertext = await SignerService.instance.nip04Encrypt(
         plaintext: plaintext,
-        currentUser: identity.secp256k1PKHex,
+        currentUser: identity.nostrIdentityKey,
         to: to,
       );
 
       final model = NostrEventModel.partial(
         id: generate64RandomHexChars(),
-        pubkey: identity.secp256k1PKHex,
+        pubkey: identity.nostrIdentityKey,
         kind: 4,
         content: ciphertext,
         tags: [
@@ -115,13 +115,13 @@ class Nip4ChatService extends BaseChatService {
       );
       final eventString = await SignerService.instance.signEvent(
         eventJson: jsonEncode(model.toJson()),
-        pubkey: identity.secp256k1PKHex,
+        pubkey: identity.nostrIdentityKey,
       );
       if (eventString == null) throw Exception('Sig is null');
       return NostrAPI.instance.sendAndSaveNostrEvent(
         to: room.toMainPubkey,
         plainContent: plaintext,
-        from: identity.secp256k1PKHex,
+        from: identity.nostrIdentityKey,
         encryptedEvent: eventString,
         room: room,
         mediaType: mediaType,
@@ -134,8 +134,8 @@ class Nip4ChatService extends BaseChatService {
       room: room,
       save: save,
       encryptType: MessageEncryptType.nip04,
-      prikey: await identity.getSecp256k1SKHex(),
-      from: identity.secp256k1PKHex,
+      prikey: await identity.getNostrPrivateKey(),
+      from: identity.nostrIdentityKey,
       realMessage: realMessage,
       mediaType: mediaType,
     );

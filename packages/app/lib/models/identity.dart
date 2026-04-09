@@ -9,7 +9,16 @@ import 'package:isar_community/isar.dart';
 
 part 'identity.g.dart';
 
-@Collection(ignore: {'props', 'displayName', 'mainMykey', 'displayAbout'})
+@Collection(
+  ignore: {
+    'props',
+    'displayName',
+    'mainMykey',
+    'displayAbout',
+    'signalIdentityKey',
+    'nostrIdentityKey',
+  },
+)
 // ignore: must_be_immutable
 class Identity extends Equatable {
   // fetch from relay
@@ -17,7 +26,7 @@ class Identity extends Equatable {
   Identity({
     required this.name,
     required this.npub,
-    required this.secp256k1PKHex,
+    required this.secp256k1PKHex, // Isar schema compat
     this.note,
   }) {
     createdAt = DateTime.now();
@@ -33,6 +42,7 @@ class Identity extends Equatable {
   String? curve25519SkHex;
 
   @Index(unique: true)
+  @Deprecated('Use nostrIdentityKey instead')
   late String secp256k1PKHex;
 
   @Deprecated('calculate by mnemonic and offset')
@@ -44,7 +54,22 @@ class Identity extends Equatable {
   String get displayName => name.trim();
   String? get displayAbout => about ?? aboutFromRelay;
 
+  @Deprecated('Use signalIdentityKey instead')
   String? curve25519PkHex;
+
+  // Semantic aliases (Isar fields kept for schema compat)
+
+  /// The Nostr identity public key (secp256k1 hex).
+  // ignore: deprecated_member_use_from_same_package
+  String get nostrIdentityKey => secp256k1PKHex;
+  // ignore: deprecated_member_use_from_same_package
+  set nostrIdentityKey(String v) => secp256k1PKHex = v;
+
+  /// The Signal protocol identity key (curve25519 hex, 33-byte with 0x05 prefix).
+  // ignore: deprecated_member_use_from_same_package
+  String? get signalIdentityKey => curve25519PkHex;
+  // ignore: deprecated_member_use_from_same_package
+  set signalIdentityKey(String? v) => curve25519PkHex = v;
 
   String? note;
   late DateTime createdAt;
@@ -77,13 +102,15 @@ class Identity extends Equatable {
     createdAt,
   ];
 
-  Future<String> getSecp256k1SKHex() async {
-    return SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
+  Future<String> getNostrPrivateKey() async {
+    return SecureStorage.instance.readPrikeyOrFail(nostrIdentityKey);
   }
 
-  Future<String?> getCurve25519SkHex() async {
-    if (curve25519PkHex == null) return null;
-    return SecureStorage.instance.readCurve25519PrikeyOrFail(curve25519PkHex!);
+  Future<String?> getSignalPrivateKey() async {
+    if (signalIdentityKey == null) return null;
+    return SecureStorage.instance.readCurve25519PrikeyOrFail(
+      signalIdentityKey!,
+    );
   }
 
   Future<String?> getMnemonic() async {

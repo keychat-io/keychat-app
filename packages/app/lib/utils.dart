@@ -1466,7 +1466,7 @@ Init File: $time \n
     final avatarPath =
         identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath;
     final cacheKey =
-        'avatar_dot_${identity.secp256k1PKHex}_${avatarPath}_$size';
+        'avatar_dot_${identity.nostrIdentityKey}_${avatarPath}_$size';
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       return _avatarWidgetCache[cacheKey]!;
     }
@@ -1484,7 +1484,7 @@ Init File: $time \n
 
     // Fallback to random avatar if no local file or file doesn't exist
     return Utils.getRandomAvatar(
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
       size: size,
     );
   }

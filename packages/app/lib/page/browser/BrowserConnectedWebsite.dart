@@ -21,7 +21,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   @override
   void initState() {
     unawaited(
-      loadData(pubkey: widget.identity.secp256k1PKHex, limit: 20, offset: 0),
+      loadData(pubkey: widget.identity.nostrIdentityKey, limit: 20, offset: 0),
     );
     super.initState();
   }
@@ -63,7 +63,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
           : CustomMaterialIndicator(
               onRefresh: () async {
                 await loadData(
-                  pubkey: widget.identity.secp256k1PKHex,
+                  pubkey: widget.identity.nostrIdentityKey,
                   limit: 20,
                   offset: urls.length,
                 );

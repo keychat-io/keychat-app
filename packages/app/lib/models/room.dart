@@ -62,6 +62,9 @@ enum RoomStatus {
     'isMLSGroup',
     'parentRoom',
     'keyPair',
+    'peerSignalIdentityKey',
+    'mySignalIdentityKey',
+    'receiveAddress',
   },
 )
 // ignore: must_be_immutable
@@ -83,10 +86,22 @@ class Room extends Equatable {
   late String toMainPubkey;
   late String npub;
 
-  // their(Bob) signal id pubkey
+  @Deprecated('Use peerSignalIdentityKey instead')
   String? curve25519PkHex;
-  // my(alice) signal id pubkey
+  @Deprecated('Use mySignalIdentityKey instead')
   String? signalIdPubkey;
+
+  /// Their (Bob's) Signal identity pubkey.
+  // ignore: deprecated_member_use_from_same_package
+  String? get peerSignalIdentityKey => curve25519PkHex;
+  // ignore: deprecated_member_use_from_same_package
+  set peerSignalIdentityKey(String? v) => curve25519PkHex = v;
+
+  /// My (Alice's) Signal identity pubkey for this room.
+  // ignore: deprecated_member_use_from_same_package
+  String? get mySignalIdentityKey => signalIdPubkey;
+  // ignore: deprecated_member_use_from_same_package
+  set mySignalIdentityKey(String? v) => signalIdPubkey = v;
 
   String? avatar;
 
@@ -128,7 +143,16 @@ class Room extends Equatable {
   Contact? contact; // room'contact info
   Room? parentRoom; // for group room
 
+  @Deprecated('Use receiveAddress instead')
   String? onetimekey;
+
+  /// Nostr temporary inbox pubkey: used as first-message delivery address
+  /// (Signal 1:1) or ongoing group listening key (MLS).
+  // ignore: deprecated_member_use_from_same_package
+  String? get receiveAddress => onetimekey;
+  // ignore: deprecated_member_use_from_same_package
+  set receiveAddress(String? v) => onetimekey = v;
+
   String? sharedSignalID; // a shared virtual signal id for group
 
   // bot
@@ -160,12 +184,12 @@ class Room extends Equatable {
     type,
   ];
 
-  String get myIdPubkey => getIdentity().secp256k1PKHex;
+  String get myIdPubkey => getIdentity().nostrIdentityKey;
 
-  // if exist signalIdPubkey return it ,else use identity's keypair
+  // if exist mySignalIdentityKey return it, else use identity's keypair
   Future<KeychatIdentityKeyPair> getKeyPair() async {
     final chatxService = Get.find<ChatxService>();
-    if (signalIdPubkey == null) {
+    if (mySignalIdentityKey == null) {
       return chatxService.getKeyPairByIdentity(getIdentity());
     }
     final si = getMySignalId();
@@ -191,11 +215,11 @@ class Room extends Equatable {
   }
 
   SignalId? getMySignalId() {
-    if (signalIdPubkey == null) return null;
+    if (mySignalIdentityKey == null) return null;
 
     final res = DBProvider.database.signalIds
         .filter()
-        .pubkeyEqualTo(signalIdPubkey!)
+        .pubkeyEqualTo(mySignalIdentityKey!)
         .identityIdEqualTo(identityId)
         .findFirstSync();
     return res;
@@ -316,7 +340,7 @@ class Room extends Equatable {
     required UserStatusType status,
     required DateTime updatedAt,
     required DateTime createdAt,
-    String? curve25519PkHex,
+    String? signalIdentityKey,
     bool isAdmin = false,
   }) async {
     final database = DBProvider.database;

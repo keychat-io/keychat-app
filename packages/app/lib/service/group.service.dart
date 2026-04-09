@@ -144,8 +144,8 @@ class GroupService extends BaseChatService {
     await room.addMember(
       name: identity.name,
       isAdmin: true,
-      idPubkey: identity.secp256k1PKHex,
-      curve25519PkHex: identity.curve25519PkHex,
+      idPubkey: identity.nostrIdentityKey,
+      signalIdentityKey: identity.signalIdentityKey,
       status: UserStatusType.invited,
       createdAt: now,
       updatedAt: now,
@@ -364,7 +364,7 @@ class GroupService extends BaseChatService {
     final senderIdPubkey = groupInviteMsg[1] as String;
     final identity = idRoom.getIdentity();
 
-    if (senderIdPubkey == identity.secp256k1PKHex) {
+    if (senderIdPubkey == identity.nostrIdentityKey) {
       return;
     }
     // check is in group?
@@ -375,9 +375,9 @@ class GroupService extends BaseChatService {
         throw Exception("You are not in the group, so can't invite me.");
       }
     }
-    // roomProfile.oldToRoomPubKey is room unique key
+    // roomProfile.groupId is room unique key
     var groupRoom = await roomService.getRoomByIdentity(
-      roomProfile.oldToRoomPubKey!,
+      roomProfile.groupId!,
       idRoom.identityId,
     );
 
@@ -791,8 +791,8 @@ class GroupService extends BaseChatService {
         room: room,
         content: message,
         realMessage: realMessage,
-        from: identity.secp256k1PKHex,
-        senderPubkey: identity.secp256k1PKHex,
+        from: identity.nostrIdentityKey,
+        senderPubkey: identity.nostrIdentityKey,
         to: room.toMainPubkey,
         isMeSend: true,
         encryptType: MessageEncryptType.signal,
@@ -863,14 +863,14 @@ class GroupService extends BaseChatService {
 
     if (groupType == GroupType.sendAll) {
       signalId ??= await SignalIdService.instance.createSignalId(identity.id);
-      room.signalIdPubkey = signalId.pubkey;
+      room.mySignalIdentityKey = signalId.pubkey;
     }
 
     room = await roomService.updateRoom(room);
 
     if (groupType == GroupType.sendAll) {
       await room.updateAllMember(members);
-      final me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+      final me = await room.getMemberByIdPubkey(identity.nostrIdentityKey);
 
       if (me != null && me.status != UserStatusType.invited) {
         me.status = UserStatusType.invited;
@@ -892,14 +892,14 @@ class GroupService extends BaseChatService {
     final enables = (await groupRoom.getEnableMembers()).values.toList();
     final invitings = await groupRoom.getInvitingMembers();
     final tasks = collection.Queue.from([...enables, ...invitings]);
-    km.name = jsonEncode([realMessage, identity.secp256k1PKHex]);
+    km.name = jsonEncode([realMessage, identity.nostrIdentityKey]);
     final events = <NostrEventModel>[];
     final membersLength = tasks.length;
 
     for (var i = 0; i < membersLength; i++) {
       // queue.add(() async {
       final rm = tasks.removeFirst() as RoomMember;
-      if (identity.secp256k1PKHex == rm.idPubkey) continue;
+      if (identity.nostrIdentityKey == rm.idPubkey) continue;
       try {
         final memberRoom = await RoomService.instance.getOrCreateRoomByIdentity(
           rm.idPubkey,
@@ -928,8 +928,8 @@ class GroupService extends BaseChatService {
       msgid: events[0].id,
       eventIds: events.map((e) => e.id).toList(),
       roomId: groupRoom.id,
-      from: identity.secp256k1PKHex,
-      idPubkey: identity.secp256k1PKHex,
+      from: identity.nostrIdentityKey,
+      idPubkey: identity.nostrIdentityKey,
       to: groupRoom.toMainPubkey,
       encryptType: groupRoom.isSendAllGroup
           ? MessageEncryptType.signal
@@ -975,7 +975,7 @@ class GroupService extends BaseChatService {
         if (tasks.isEmpty) return;
         final idPubkey = tasks.removeFirst() as String;
         final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: idPubkey);
-        if (identity.secp256k1PKHex == hexPubkey) return;
+        if (identity.nostrIdentityKey == hexPubkey) return;
         var room = await roomService.getRoomByIdentity(hexPubkey, identity.id);
         if (room == null) {
           room = await RoomService.instance.createRoomAndsendInvite(
@@ -1152,7 +1152,7 @@ ${rm.idPubkey}
 
     final adminRoom = await RoomService.instance.getOrCreateRoom(
       roomMember,
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
       RoomStatus.init,
     );
     Get.find<HomeController>().loadIdentityRoomList(adminRoom.identityId);
@@ -1204,7 +1204,7 @@ ${rm.idPubkey}
             groupRoom.groupType,
             DateTime.now().millisecondsSinceEpoch,
           )
-          ..oldToRoomPubKey = groupRoom.toMainPubkey
+          ..groupId = groupRoom.toMainPubkey
           ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
     if (mlsWelcome != null) {

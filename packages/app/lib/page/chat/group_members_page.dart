@@ -42,7 +42,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     }
     cc = controller;
     identity = cc.roomObs.value.getIdentity();
-    final myRoomMember = cc.getMemberByIdPubkey(identity.secp256k1PKHex);
+    final myRoomMember = cc.getMemberByIdPubkey(identity.nostrIdentityKey);
     isAdmin = myRoomMember?.isAdmin ?? false;
   }
 
@@ -104,7 +104,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
             itemBuilder: (context, index) {
               final rm = members[index];
               // Update self member avatar and name if needed
-              if (rm.idPubkey == identity.secp256k1PKHex) {
+              if (rm.idPubkey == identity.nostrIdentityKey) {
                 rm.contact?.avatarLocalPath = identity.avatarLocalPath;
                 rm.contact?.name = identity.displayName;
               }
@@ -134,7 +134,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
       key: Key(rm.idPubkey),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       onTap: () async {
-        if (identity.secp256k1PKHex == rm.idPubkey) {
+        if (identity.nostrIdentityKey == rm.idPubkey) {
           await EasyLoading.showToast("It's me");
           return;
         }
@@ -190,7 +190,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
           ),
         ),
       ),
-      trailing: identity.secp256k1PKHex == rm.idPubkey
+      trailing: identity.nostrIdentityKey == rm.idPubkey
           ? null
           : IconButton(
               icon: Icon(
@@ -199,7 +199,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                 size: 20,
               ),
               onPressed: () async {
-                if (identity.secp256k1PKHex == rm.idPubkey) {
+                if (identity.nostrIdentityKey == rm.idPubkey) {
                   return;
                 }
                 final contact = await ContactService.instance
@@ -222,7 +222,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     if (rm.isAdmin) {
       return RoomUtil.adminBadge(context);
     }
-    if (rm.idPubkey == identity.secp256k1PKHex) {
+    if (rm.idPubkey == identity.nostrIdentityKey) {
       return RoomUtil.meBadge(context);
     }
     if (rm.status == UserStatusType.inviting) {

@@ -21,7 +21,6 @@ import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/expired_members_dialog.dart';
-import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
@@ -473,7 +472,6 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
-    AudioMessageService.instance.stop();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();

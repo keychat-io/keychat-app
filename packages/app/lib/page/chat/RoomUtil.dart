@@ -21,7 +21,6 @@ import 'package:keychat/page/chat/contact_page.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
 import 'package:keychat/page/chat/widgets/url_preview_widget.dart';
-import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
@@ -1209,7 +1208,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
         case MessageMediaType.audio:
-          return VoiceMessageBubble(message, errorCallback);
+          return errorCallback(text: '[Voice message not supported]');
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(

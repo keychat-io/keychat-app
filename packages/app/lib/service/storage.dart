@@ -57,6 +57,8 @@ class StorageKeyString {
   static const String recentEmojis = 'recentEmojis';
   static const String keyboardEnterAction = 'keyboardEnterAction';
 
+  static const String enableUrlPreview = 'enableUrlPreview';
+
   // Push notification type: 'fcm' or 'unifiedpush'
   static const String pushNotificationType = 'pushNotificationType';
 }

@@ -1563,6 +1563,17 @@ Init File: $time \n
     return buffer.toString();
   }
 
+  /// Returns the URL if the message text is a single URL (http/https only), null otherwise.
+  static String? extractSingleUrl(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return null;
+    final urlPattern = RegExp(r'^https?://[^\s]+$');
+    if (urlPattern.hasMatch(trimmed)) {
+      return trimmed;
+    }
+    return null;
+  }
+
   static Future<T> withRetry<T>(
     Future<T> Function() fn, {
     int maxAttempts = 3,

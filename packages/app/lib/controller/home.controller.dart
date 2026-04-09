@@ -63,6 +63,7 @@ class HomeController extends GetxController
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;
   RxBool enableDMFromNostrApp = true.obs;
+  RxBool enableUrlPreview = true.obs;
   Rx<TextInputAction> keyboardEnterAction = TextInputAction.newline.obs;
 
   //debug mode
@@ -626,6 +627,7 @@ class HomeController extends GetxController
     await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
     await initEnableDMFromNostrApp();
     initKeyboardEnterAction();
+    initEnableUrlPreview();
 
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription = Connectivity().onConnectivityChanged.listen(
@@ -1005,6 +1007,11 @@ ${file.message}
     keyboardEnterAction.value = stored == TextInputAction.send.name
         ? TextInputAction.send
         : TextInputAction.newline;
+  }
+
+  void initEnableUrlPreview() {
+    enableUrlPreview.value =
+        Storage.getBool(StorageKeyString.enableUrlPreview) ?? true;
   }
 
   int _notificationState = NotifySettingStatus.enable;

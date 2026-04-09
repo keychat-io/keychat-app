@@ -96,6 +96,21 @@ class MoreChatSetting extends GetView<HomeController> {
                     },
                   ),
                 SettingsTile.switchTile(
+                  leading: const Icon(Icons.preview),
+                  title: const Text('URL Preview'),
+                  description: const Text(
+                    'Show a preview card when a message contains only a link',
+                  ),
+                  initialValue: controller.enableUrlPreview.value,
+                  onToggle: (value) async {
+                    await Storage.setBool(
+                      StorageKeyString.enableUrlPreview,
+                      value,
+                    );
+                    controller.enableUrlPreview.value = value;
+                  },
+                ),
+                SettingsTile.switchTile(
                   leading: const Icon(Icons.message),
                   title: const Text('Direct Messages'),
                   description: const Text(

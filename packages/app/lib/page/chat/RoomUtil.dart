@@ -20,6 +20,7 @@ import 'package:keychat/page/chat/add_member_to_group.dart';
 import 'package:keychat/page/chat/contact_page.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
+import 'package:keychat/page/chat/widgets/url_preview_widget.dart';
 import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
@@ -1187,11 +1188,19 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
+          final textContent = message.realMessage ?? message.content;
+          final singleUrl = Utils.extractSingleUrl(textContent);
+          if (singleUrl != null &&
+              Get.find<HomeController>().enableUrlPreview.value) {
+            return errorCallback(
+              child: UrlPreviewWidget(
+                url: singleUrl,
+                messageId: message.id,
+              ),
+            );
+          }
           return errorCallback(
-            child: getMarkdownView(
-              message.realMessage ?? message.content,
-              id: message.id,
-            ),
+            child: getMarkdownView(textContent, id: message.id),
           );
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);

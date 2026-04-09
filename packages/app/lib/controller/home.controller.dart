@@ -74,6 +74,7 @@ class HomeController extends GetxController
   RxList recommendBots = [].obs;
   RxMap recommendWebstore = {}.obs;
   RxMap remoteAppConfig = {}.obs;
+  RxnString latestRemoteVersion = RxnString();
 
   DateTime? pausedTime;
 
@@ -332,7 +333,70 @@ class HomeController extends GetxController
         remoteAppConfig[key] = config[key];
       }
     }
+    // Auto-check for updates once per day
+    unawaited(checkAppUpdate());
     return;
+  }
+
+  /// Checks for app updates. Fetches from App Store (iOS) or GitHub (others).
+  ///
+  /// Skips if last check was within 24 hours, unless [force] is true.
+  Future<void> checkAppUpdate({bool force = false}) async {
+    try {
+      if (!force) {
+        final lastCheck =
+            Storage.getInt(StorageKeyString.lastUpdateCheckTime) ?? 0;
+        final elapsed =
+            DateTime.now().millisecondsSinceEpoch - lastCheck;
+        if (elapsed < const Duration(hours: 24).inMilliseconds) {
+          // Use cached version
+          latestRemoteVersion.value =
+              Storage.getString(StorageKeyString.cachedLatestVersion);
+          return;
+        }
+      }
+
+      String? version;
+      if (GetPlatform.isIOS) {
+        final response = await Dio().get<Map<String, dynamic>>(
+          'https://itunes.apple.com/lookup?id=6447493752',
+          options: Options(
+            sendTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+          ),
+        );
+        final results = response.data?['results'] as List<dynamic>?;
+        if (results != null && results.isNotEmpty) {
+          version = results[0]['version'] as String?;
+        }
+      } else {
+        final response = await Dio().get<Map<String, dynamic>>(
+          'https://api.github.com/repos/keychat-io/keychat-app/releases/latest',
+          options: Options(
+            sendTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+          ),
+        );
+        final tagName = response.data?['tag_name'] as String?;
+        if (tagName != null) {
+          version = tagName.startsWith('v') ? tagName.substring(1) : tagName;
+        }
+      }
+
+      if (version != null) {
+        latestRemoteVersion.value = version;
+        await Storage.setString(
+          StorageKeyString.cachedLatestVersion,
+          version,
+        );
+      }
+      await Storage.setInt(
+        StorageKeyString.lastUpdateCheckTime,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    } catch (e) {
+      logger.e('checkAppUpdate failed', error: e);
+    }
   }
 
   Identity getSelectedIdentity() {

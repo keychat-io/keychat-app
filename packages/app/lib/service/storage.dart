@@ -58,6 +58,8 @@ class StorageKeyString {
   static const String keyboardEnterAction = 'keyboardEnterAction';
 
   static const String enableUrlPreview = 'enableUrlPreview';
+  static const String lastUpdateCheckTime = 'lastUpdateCheckTime';
+  static const String cachedLatestVersion = 'cachedLatestVersion';
 
   // Push notification type: 'fcm' or 'unifiedpush'
   static const String pushNotificationType = 'pushNotificationType';

@@ -60,7 +60,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
     final mfi = msgFileInfo;
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
       final isTimeout = DateTime.now()
-          .subtract(const Duration(seconds: 120))
+          .subtract(FileDownloadManager.staleTimeout)
           .isAfter(mfi.updateAt!);
       if (isTimeout) {
         mfi.status = FileStatus.failed;
@@ -108,9 +108,8 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
     final notifier = _progressNotifier;
     if (notifier == null) return;
 
-    setState(() => downloadProgress = notifier.value);
-
-    if (!FileDownloadManager.instance.isDownloading(widget.message.id)) {
+    // 1.0 = completed, -1.0 = failed — reload from persisted message state
+    if (notifier.value >= 1.0 || notifier.value < 0) {
       _detachProgress();
       // Re-read mfi from message for final state
       try {
@@ -119,7 +118,9 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
         );
       } catch (_) {}
       _loadState();
+      return;
     }
+    setState(() => downloadProgress = notifier.value);
   }
 
   @override

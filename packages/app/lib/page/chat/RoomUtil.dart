@@ -27,6 +27,7 @@ import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/relay.service.dart';
@@ -1117,7 +1118,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     if (fileInfo.updateAt != null &&
         fileInfo.status == FileStatus.downloading) {
       final isTimeout = DateTime.now()
-          .subtract(const Duration(seconds: 60))
+          .subtract(FileDownloadManager.staleTimeout)
           .isAfter(fileInfo.updateAt!);
       if (isTimeout) {
         fileInfo.status = FileStatus.failed;
@@ -1150,7 +1151,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
               onPressed: () {
                 EasyLoading.showToast('Start downloading');
                 message.isRead = true;
-                FileService.instance.downloadForMessage(message, fileInfo);
+                FileDownloadManager.instance.startDownload(message, fileInfo);
               },
               icon: const Icon(Icons.refresh),
             ),

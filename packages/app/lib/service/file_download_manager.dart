@@ -8,9 +8,16 @@ import 'package:keychat/service/file.service.dart';
 /// a ValueNotifier per download so widgets can listen for progress.
 /// Progress is transient (memory only) — persisted state lives in
 /// Message.realMessage via FileService.downloadForMessage.
+///
+/// Notifier values: 0.0–1.0 = progress, -1.0 = failed.
+/// After completion/failure, the notifier fires one last time before
+/// being removed from the active map, so listeners always get notified.
 class FileDownloadManager {
   FileDownloadManager._();
   static final FileDownloadManager instance = FileDownloadManager._();
+
+  /// Timeout for stale "downloading" states in widgets.
+  static const staleTimeout = Duration(seconds: 120);
 
   final Map<int, ValueNotifier<double>> _active = {};
 
@@ -51,6 +58,11 @@ class FileDownloadManager {
           }
         },
       );
+      // Signal completion — listeners detect this before _active.remove
+      notifier.value = 1.0;
+    } catch (_) {
+      // Signal failure
+      notifier.value = -1.0;
     } finally {
       _active.remove(message.id);
     }

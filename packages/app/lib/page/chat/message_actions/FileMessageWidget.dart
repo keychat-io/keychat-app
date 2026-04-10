@@ -47,15 +47,6 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
         msgFileInfo = mfi;
         decodeError = false;
       });
-
-      // Auto-download small files for received messages
-      if (mfi.status == FileStatus.init &&
-          !widget.message.isMeSend &&
-          mfi.size > 0 &&
-          mfi.size <= 20 * 1024 * 1024 &&
-          !FileDownloadManager.instance.isDownloading(widget.message.id)) {
-        FileDownloadManager.instance.startDownload(widget.message, mfi);
-      }
     } catch (e) {
       setState(() => decodeError = true);
     }

@@ -69,7 +69,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
       // Handle stale downloading state
       if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
         final isTimeout = DateTime.now()
-            .subtract(const Duration(seconds: 120))
+            .subtract(FileDownloadManager.staleTimeout)
             .isAfter(mfi.updateAt!);
         if (isTimeout) {
           mfi.status = FileStatus.failed;
@@ -83,12 +83,6 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
           fileStatus = mfi.status;
           downloadProgress = null;
         });
-        // Auto-download small videos for received messages
-        if (mfi.status == FileStatus.init && !widget.message.isMeSend) {
-          if (mfi.size > 0 && mfi.size <= 20 * 1024 * 1024) {
-            _startDownload();
-          }
-        }
       }
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
@@ -143,13 +137,13 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     final notifier = _progressNotifier;
     if (notifier == null) return;
 
-    setState(() => downloadProgress = notifier.value);
-
-    // When manager removes the entry, download is done — reload from message
-    if (!FileDownloadManager.instance.isDownloading(widget.message.id)) {
+    // 1.0 = completed, -1.0 = failed — reload from persisted message state
+    if (notifier.value >= 1.0 || notifier.value < 0) {
       _detachProgress();
       _loadState();
+      return;
     }
+    setState(() => downloadProgress = notifier.value);
   }
 
   @override

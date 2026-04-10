@@ -1,5 +1,6 @@
 import 'dart:convert' show jsonDecode;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -26,6 +27,7 @@ class ImageMessageWidget extends StatefulWidget {
 class _ImageMessageWidgetState extends State<ImageMessageWidget> {
   MsgFileInfo? fileInfo;
   FileStatus fileStatus = FileStatus.init;
+  ValueNotifier<double>? _progressNotifier;
 
   @override
   void initState() {
@@ -41,6 +43,12 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
     }
   }
 
+  @override
+  void dispose() {
+    _detachProgress();
+    super.dispose();
+  }
+
   void _loadState() {
     if (widget.message.realMessage == null) {
       setState(() => fileStatus = FileStatus.failed);
@@ -53,15 +61,18 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
       fileInfo = mfi;
 
       // Check manager for active download
-      if (FileDownloadManager.instance.isDownloading(widget.message.id)) {
-        setState(() => fileStatus = FileStatus.downloading);
+      final existing = FileDownloadManager.instance.getProgress(
+        widget.message.id,
+      );
+      if (existing != null) {
+        _attachProgress(existing);
         return;
       }
 
       // Handle stale downloading
       if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
         final isTimeout = DateTime.now()
-            .subtract(const Duration(seconds: 60))
+            .subtract(FileDownloadManager.staleTimeout)
             .isAfter(mfi.updateAt!);
         if (isTimeout) {
           mfi.status = FileStatus.failed;
@@ -70,6 +81,30 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
       setState(() => fileStatus = mfi.status);
     } catch (e) {
       setState(() => fileStatus = FileStatus.failed);
+    }
+  }
+
+  void _attachProgress(ValueNotifier<double> notifier) {
+    _detachProgress();
+    _progressNotifier = notifier;
+    _progressNotifier!.addListener(_onProgressChanged);
+    setState(() => fileStatus = FileStatus.downloading);
+  }
+
+  void _detachProgress() {
+    _progressNotifier?.removeListener(_onProgressChanged);
+    _progressNotifier = null;
+  }
+
+  void _onProgressChanged() {
+    if (!mounted) return;
+    final notifier = _progressNotifier;
+    if (notifier == null) return;
+
+    // 1.0 = completed, -1.0 = failed — reload from persisted message state
+    if (notifier.value >= 1.0 || notifier.value < 0) {
+      _detachProgress();
+      _loadState();
     }
   }
 
@@ -111,11 +146,14 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
     }
   }
 
-  Future<void> _retryDownload() async {
+  void _retryDownload() {
     if (fileInfo == null) return;
-    await EasyLoading.showToast('Start downloading');
+    EasyLoading.showToast('Start downloading');
     widget.message.isRead = true;
-    FileDownloadManager.instance.startDownload(widget.message, fileInfo!);
-    setState(() => fileStatus = FileStatus.downloading);
+    final notifier = FileDownloadManager.instance.startDownload(
+      widget.message,
+      fileInfo!,
+    );
+    _attachProgress(notifier);
   }
 }

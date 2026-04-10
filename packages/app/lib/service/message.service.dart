@@ -7,7 +7,7 @@ import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/routes.dart';
 import 'package:keychat/rust_api.dart';
-import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
@@ -72,7 +72,30 @@ class MessageService {
       '[message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ',
     );
     _messageNotifyToPage(isCurrentPage, model, room);
+
+    // Auto-download media files after message is persisted
+    if (!model.isMeSend) {
+      _autoDownloadMedia(model);
+    }
+
     return model;
+  }
+
+  /// Triggers auto-download for media messages after they are saved.
+  ///
+  /// Images are always downloaded. Video and file are downloaded when size <= 20 MB.
+  /// All downloads go through FileDownloadManager for deduplication and progress.
+  void _autoDownloadMedia(Message model) {
+    final mfi = model.convertToMsgFileInfo();
+    if (mfi == null) return;
+    if (mfi.status != FileStatus.init) return;
+
+    final isImage = model.mediaType == MessageMediaType.image;
+    final isSmallEnough = mfi.size > 0 && mfi.size <= 20 * 1024 * 1024;
+
+    if (isImage || isSmallEnough) {
+      FileDownloadManager.instance.startDownload(model, mfi);
+    }
   }
 
   Future<void> _messageNotifyToPage(
@@ -602,11 +625,7 @@ $content'''
       m.realMessage = mfi.toString();
       if (mfi.type == MessageMediaType.image.name) {
         m.mediaType = MessageMediaType.image;
-        await FileService.instance.downloadForMessage(m, mfi);
-        return m;
-      }
-
-      if (mfi.type == MessageMediaType.video.name) {
+      } else if (mfi.type == MessageMediaType.video.name) {
         m.mediaType = MessageMediaType.video;
       } else if (mfi.type == MessageMediaType.file.name) {
         m.mediaType = MessageMediaType.file;

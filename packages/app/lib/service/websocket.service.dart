@@ -481,7 +481,7 @@ class WebsocketService extends GetxService {
   void onReady() {
     super.onReady();
     localFeesConfigFromLocalStorage();
-    RelayService.instance.initRelayFeeInfo();
+    RelayService.instance.refreshRelayInfo();
   }
 
   /// Recomputes and updates [mainRelayStatus] and [relayConnectedCount] based on current connections.

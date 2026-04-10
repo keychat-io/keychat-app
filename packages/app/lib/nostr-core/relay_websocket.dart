@@ -31,13 +31,9 @@ class RelayWebsocket {
 
   /// Returns true if this relay supports writing events of [kind].
   ///
-  /// Kind 4 requires NIP-4, kind 1059 requires NIP-17.
-  /// All other kinds are always allowed.
-  /// When [supportedNips] is empty (no NIP-11 info), all kinds are assumed supported.
+  /// Currently always returns true because many relays do not correctly
+  /// configure their supported_nips field in NIP-11 responses.
   bool supportsKind(int kind) {
-    if (supportedNips.isEmpty) return true;
-    if (kind == 4) return supportedNips.contains(4);
-    if (kind == 1059) return supportedNips.contains(17);
     return true;
   }
 

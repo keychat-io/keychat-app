@@ -59,6 +59,7 @@ class StorageKeyString {
 
   static const String enableUrlPreview = 'enableUrlPreview';
   static const String lastUpdateCheckTime = 'lastUpdateCheckTime';
+  static const String lastRelayInfoFetchTime = 'lastRelayInfoFetchTime';
   static const String cachedLatestVersion = 'cachedLatestVersion';
 
   // Push notification type: 'fcm' or 'unifiedpush'

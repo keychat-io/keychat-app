@@ -45,7 +45,7 @@ class RelayService {
       relay,
       connectedCallback: () async {
         unawaited(NotifyService.instance.syncPubkeysToServer());
-        unawaited(RelayService.instance.initRelayFeeInfo([relay]));
+        unawaited(RelayService.instance.refreshRelayInfo(relays: [relay]));
         final identities = Get.find<HomeController>().allIdentities.values
             .toList();
         await MlsGroupService.instance.uploadKeyPackages(
@@ -294,27 +294,76 @@ class RelayService {
     return null;
   }
 
-  /// Fetches and caches fee info (message fee + file fee) for the given [relays].
+  /// Fetches NIP-11 relay info for [relays], caches supported_nips and fee config.
   ///
+  /// Returns a map of relay URL → NIP-11 JSON data (null if fetch failed).
   /// Skips silently if [WebsocketService] is not yet initialized.
-  Future<void> initRelayFeeInfo([List<Relay>? relays]) async {
+  /// Throttled to at most once per day; pass [force] = true to bypass.
+  Future<Map<String, Map<String, dynamic>?>> refreshRelayInfo({
+    List<Relay>? relays,
+    bool force = false,
+  }) async {
+    final result = <String, Map<String, dynamic>?>{};
     try {
+      final WebsocketService ws;
       try {
-        Get.find<WebsocketService>();
+        ws = Get.find<WebsocketService>();
       } catch (e) {
-        // skip if websocket not init
-        return;
+        return result;
       }
-      await RelayService.instance.fetchRelayMessageFee(relays);
-      if (relays != null &&
-          relays
-              .map((item) => item.url)
-              .contains(KeychatGlobal.defaultFileServer)) {
-        await RelayService.instance.fetchRelayFileFee();
+
+      // Throttle: at most once per day
+      if (!force) {
+        final lastFetch =
+            Storage.getInt(StorageKeyString.lastRelayInfoFetchTime);
+        if (lastFetch != null) {
+          final elapsed = DateTime.now().millisecondsSinceEpoch - lastFetch;
+          if (elapsed < const Duration(days: 1).inMilliseconds) {
+            return result;
+          }
+        }
       }
+
+      relays ??= await getEnableRelays();
+      for (final relay in relays) {
+        try {
+          if (relay.errorMessage != null) {
+            relay.errorMessage = null;
+            update(relay);
+          }
+
+          final data = await fetchRelayNostrInfo(relay);
+          result[relay.url] = data;
+          _cacheRelaySupportedNips(ws, relay.url, data);
+          final payInfo = _parseCashuPayInfo(data);
+          if (payInfo != null) {
+            ws.relayMessageFeeModels[relay.url] = payInfo;
+            ws.relayMessageFeeModels.refresh();
+          }
+        } catch (e, s) {
+          logger.e(e.toString(), error: e, stackTrace: s);
+        }
+      }
+
+      await Storage.setLocalStorageMap(
+        StorageKeyString.relayMessageFeeConfig,
+        ws.relayMessageFeeModels,
+      );
+
+      if (relays
+          .map((item) => item.url)
+          .contains(KeychatGlobal.defaultFileServer)) {
+        await fetchRelayFileFee();
+      }
+
+      await Storage.setInt(
+        StorageKeyString.lastRelayInfoFetchTime,
+        DateTime.now().millisecondsSinceEpoch,
+      );
     } catch (e, s) {
-      logger.e('fee: $e', stackTrace: s);
+      logger.e('refreshRelayInfo: $e', stackTrace: s);
     }
+    return result;
   }
 
   /// Returns the relay currently marked as default, or null if none is set.
@@ -345,37 +394,6 @@ class RelayService {
     }
     // list = await checkDefaultRelay(list);
     return list;
-  }
-
-  /// Fetches Cashu payment requirements for each relay and updates [WebsocketService.relayMessageFeeModels].
-  ///
-  /// Persists the updated fee models to local storage for offline access.
-  Future<void> fetchRelayMessageFee([List<Relay>? relays]) async {
-    final ws = Get.find<WebsocketService>();
-    relays ??= await getEnableRelays();
-    for (final relay in relays) {
-      try {
-        if (relay.errorMessage != null) {
-          relay.errorMessage = null;
-          update(relay);
-        }
-
-        final data = await fetchRelayNostrInfo(relay);
-        _cacheRelaySupportedNips(ws, relay.url, data);
-        final payInfo = _parseCashuPayInfo(data);
-        if (payInfo != null) {
-          ws.relayMessageFeeModels[relay.url] = payInfo;
-          ws.relayMessageFeeModels.refresh();
-        }
-      } catch (e, s) {
-        logger.e(e.toString(), error: e, stackTrace: s);
-      }
-    }
-    // store to local
-    await Storage.setLocalStorageMap(
-      StorageKeyString.relayMessageFeeConfig,
-      ws.relayMessageFeeModels,
-    );
   }
 
   /// Fetches file upload fee configuration from the default file server and caches it locally.

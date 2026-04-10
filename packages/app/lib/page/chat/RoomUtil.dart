@@ -18,6 +18,7 @@ import 'package:keychat/page/chat/ChatMediaFilesPage.dart';
 import 'package:keychat/page/chat/ForwardSelectRoom.dart';
 import 'package:keychat/page/chat/add_member_to_group.dart';
 import 'package:keychat/page/chat/contact_page.dart';
+import 'package:keychat/page/chat/message_actions/ImageMessageWidget.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
 import 'package:keychat/page/chat/widgets/url_preview_widget.dart';
@@ -1107,24 +1108,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     );
   }
 
-  static Widget _imageTextView(
-    Message message,
-    ChatController cc,
-    Widget Function({Widget? child, String? text}) errorCallback,
-  ) {
-    if (message.realMessage != null) {
-      try {
-        final mfi = MsgFileInfo.fromJson(
-          jsonDecode(message.realMessage!) as Map<String, dynamic>,
-        );
-        return getImageViewWidget(message, cc, mfi, errorCallback);
-        // ignore: empty_catches
-      } catch (e) {}
-    }
-
-    return errorCallback(text: '[Image Crashed]');
-  }
-
   static Widget getImageViewWidget(
     Message message,
     ChatController cc,
@@ -1204,7 +1187,11 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);
         case MessageMediaType.image:
-          return _imageTextView(message, cc, errorCallback);
+          return ImageMessageWidget(
+            message: message,
+            cc: cc,
+            errorCallback: errorCallback,
+          );
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
         case MessageMediaType.audio:

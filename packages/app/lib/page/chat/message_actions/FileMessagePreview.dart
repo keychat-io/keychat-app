@@ -1,12 +1,15 @@
+import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
 import 'package:keychat/models/embedded/msg_file_info.dart';
 import 'package:keychat/models/message.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 import 'package:keychat/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -27,18 +30,34 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
   FileStatus fileStatus = FileStatus.init;
   late MsgFileInfo msgFileInfo;
   late String fileSize;
-  double downloadProgress = 100;
+  double downloadProgress = 0;
+  ValueNotifier<double>? _progressNotifier;
 
   @override
   void initState() {
     msgFileInfo = widget.mfi;
     fileSize = FileService.instance.getFileSizeDisplay(msgFileInfo.size);
     super.initState();
-
-    _init(widget.mfi);
+    _loadState();
   }
 
-  void _init(MsgFileInfo mfi) {
+  @override
+  void dispose() {
+    _detachProgress();
+    super.dispose();
+  }
+
+  void _loadState() {
+    // Check manager first
+    final existing = FileDownloadManager.instance.getProgress(
+      widget.message.id,
+    );
+    if (existing != null) {
+      _attachProgress(existing);
+      return;
+    }
+
+    final mfi = msgFileInfo;
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
       final isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))
@@ -47,31 +66,59 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
         mfi.status = FileStatus.failed;
       }
     }
-    // other status
-    if (mfi.status != FileStatus.decryptSuccess) {
-      setState(() {
-        fileStatus = mfi.status;
-        msgFileInfo = mfi;
-      });
-      return;
-    }
-    // decryptSuccess
     if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
       final filePath = '${Utils.appFolder.path}${mfi.localPath!}';
-      final fileExists = File(filePath).existsSync();
-
-      if (!fileExists) {
+      if (!File(filePath).existsSync()) {
         setState(() {
           fileStatus = FileStatus.init;
-          msgFileInfo = mfi;
         });
         return;
       }
+    }
+    setState(() {
+      fileStatus = mfi.status;
+    });
+  }
 
-      setState(() {
-        fileStatus = FileStatus.decryptSuccess;
-        msgFileInfo = mfi;
-      });
+  void _startDownload() {
+    final notifier = FileDownloadManager.instance.startDownload(
+      widget.message,
+      msgFileInfo,
+    );
+    _attachProgress(notifier);
+  }
+
+  void _attachProgress(ValueNotifier<double> notifier) {
+    _detachProgress();
+    _progressNotifier = notifier;
+    _progressNotifier!.addListener(_onProgressChanged);
+    setState(() {
+      fileStatus = FileStatus.downloading;
+      downloadProgress = notifier.value;
+    });
+  }
+
+  void _detachProgress() {
+    _progressNotifier?.removeListener(_onProgressChanged);
+    _progressNotifier = null;
+  }
+
+  void _onProgressChanged() {
+    if (!mounted) return;
+    final notifier = _progressNotifier;
+    if (notifier == null) return;
+
+    setState(() => downloadProgress = notifier.value);
+
+    if (!FileDownloadManager.instance.isDownloading(widget.message.id)) {
+      _detachProgress();
+      // Re-read mfi from message for final state
+      try {
+        msgFileInfo = MsgFileInfo.fromJson(
+          jsonDecode(widget.message.realMessage!) as Map<String, dynamic>,
+        );
+      } catch (_) {}
+      _loadState();
     }
   }
 
@@ -88,12 +135,11 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                 final filePath =
                     '${Utils.appFolder.path}${msgFileInfo.localPath!}';
                 final fileExists = File(filePath).existsSync();
-
                 if (fileExists) {
                   await File(filePath).delete();
                 }
                 EasyLoading.showToast('File deleted');
-                _init(msgFileInfo);
+                _loadState();
               },
               icon: const Icon(CupertinoIcons.delete),
             ),
@@ -117,12 +163,10 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                 context,
                 'Encrypted by AES-256-CTR with one-time key',
               ),
-              if (downloadProgress > 0 && downloadProgress < 100)
+              if (fileStatus == FileStatus.downloading && downloadProgress > 0)
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: LinearProgressIndicator(
-                    value: downloadProgress / 100,
-                  ),
+                  child: LinearProgressIndicator(value: downloadProgress),
                 ),
               const SizedBox(height: 16),
               getStatusButton(),
@@ -135,7 +179,6 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                       final filePath =
                           '${Utils.appFolder.path}${msgFileInfo.localPath!}';
                       final box = context.findRenderObject() as RenderBox?;
-
                       SharePlus.instance.share(
                         ShareParams(
                           previewThumbnail: XFile(filePath),
@@ -194,7 +237,6 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                   fileName: fileName,
                   bytes: await File(filePath).readAsBytes(),
                 );
-
                 if (outputFile == null) {
                   EasyLoading.showSuccess('Save to Disk successfully');
                 }
@@ -205,28 +247,14 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
         );
       case FileStatus.downloading:
         return FilledButton(
-          onPressed: () {
-            EasyLoading.showToast('Downloading');
-          },
+          onPressed: () => EasyLoading.showToast('Downloading'),
           child: const Text('Downloading'),
         );
       default:
         return FilledButton(
           onPressed: () {
             EasyLoading.showToast('Start downloading');
-            FileService.instance.downloadForMessage(
-              widget.message,
-              msgFileInfo,
-              callback: _init,
-              onReceiveProgress: (int count, int total) {
-                if (count == total) {
-                  EasyLoading.showToast('Download successfully');
-                }
-                setState(() {
-                  downloadProgress = (count / total) * 100;
-                });
-              },
-            );
+            _startDownload();
           },
           child: const Text('Download File'),
         );

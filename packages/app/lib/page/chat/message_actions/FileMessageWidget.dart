@@ -1,12 +1,12 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:keychat/app.dart';
-import 'package:keychat/page/components.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:keychat/app.dart';
 import 'package:keychat/page/chat/message_actions/FileMessagePreview.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 
 class FileMessageWidget extends StatefulWidget {
   const FileMessageWidget(this.message, this.errorCallback, {super.key});
@@ -14,17 +14,28 @@ class FileMessageWidget extends StatefulWidget {
   final Widget Function({Widget? child, String? text}) errorCallback;
 
   @override
-  _FileMessageWidgetState createState() => _FileMessageWidgetState();
+  State<FileMessageWidget> createState() => _FileMessageWidgetState();
 }
 
 class _FileMessageWidgetState extends State<FileMessageWidget> {
-  bool? decodeError;
+  bool decodeError = false;
   MsgFileInfo? msgFileInfo;
 
   @override
   void initState() {
     super.initState();
+    _loadState();
+  }
 
+  @override
+  void didUpdateWidget(FileMessageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.realMessage != widget.message.realMessage) {
+      _loadState();
+    }
+  }
+
+  void _loadState() {
     try {
       if (widget.message.realMessage == null) {
         throw Exception('realMessage is null');
@@ -34,21 +45,34 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
       );
       setState(() {
         msgFileInfo = mfi;
+        decodeError = false;
       });
+
+      // Auto-download small files for received messages
+      if (mfi.status == FileStatus.init &&
+          !widget.message.isMeSend &&
+          mfi.size > 0 &&
+          mfi.size <= 20 * 1024 * 1024 &&
+          !FileDownloadManager.instance.isDownloading(widget.message.id)) {
+        FileDownloadManager.instance.startDownload(widget.message, mfi);
+      }
     } catch (e) {
-      setState(() {
-        decodeError = true;
-      });
+      setState(() => decodeError = true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (decodeError ?? (msgFileInfo == null)) {
+    if (decodeError || msgFileInfo == null) {
       return widget.errorCallback(
         text: '[File Decode Error]: ${widget.message.content}',
       );
     }
+    final isDownloaded = msgFileInfo!.localPath != null &&
+        msgFileInfo!.status == FileStatus.decryptSuccess;
+    final isDownloading = FileDownloadManager.instance.isDownloading(
+      widget.message.id,
+    );
     return Container(
       constraints: const BoxConstraints(maxWidth: 350),
       decoration: BoxDecoration(
@@ -64,29 +88,38 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
         ),
         subtitle: textSmallGray(
           context,
-          'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
+          isDownloading
+              ? 'Downloading...'
+              : 'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
         ),
-        trailing: IconButton(
-          onPressed: handleOnTap,
-          icon: SizedBox(
-            width: 36,
-            height: 36,
-            child: msgFileInfo?.localPath == null
-                ? Image.asset(
-                    'assets/images/file-download.png',
+        trailing: SizedBox(
+          width: 36,
+          height: 36,
+          child: isDownloading
+              ? const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : IconButton(
+                  onPressed: _handleOnTap,
+                  padding: EdgeInsets.zero,
+                  icon: Image.asset(
+                    isDownloaded
+                        ? 'assets/images/file.png'
+                        : 'assets/images/file-download.png',
                     fit: BoxFit.contain,
-                  )
-                : Image.asset('assets/images/file.png', fit: BoxFit.contain),
-          ),
+                  ),
+                ),
         ),
-        onTap: handleOnTap,
+        onTap: _handleOnTap,
       ),
     );
   }
 
-  void handleOnTap() {
+  void _handleOnTap() {
     if (msgFileInfo != null) {
-      Get.bottomSheet(FileMessagePreview(widget.message, msgFileInfo!));
+      // ignore: discarded_futures -- bottomSheet future is not needed here
+      Get.bottomSheet<void>(FileMessagePreview(widget.message, msgFileInfo!));
     }
   }
 }

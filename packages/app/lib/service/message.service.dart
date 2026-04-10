@@ -223,7 +223,11 @@ $content'''
     refreshMessageInPage(message);
   }
 
-  /// Updates the message in the open [ChatController]'s list (debounced 100 ms).
+  /// Updates the message in the open [ChatController]'s list.
+  ///
+  /// The actual `messages.refresh()` is debounced per-room (not per-message)
+  /// so that multiple rapid updates (e.g. several files downloading) batch
+  /// into a single list rebuild instead of flickering the page.
   void refreshMessageInPage(Message message) {
     try {
       final cc = RoomService.getController(message.roomId);
@@ -232,8 +236,8 @@ $content'''
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
           EasyDebounce.debounce(
-            'refreshMessageInPage${message.id}',
-            const Duration(milliseconds: 100),
+            'refreshMessageInPage:${message.roomId}',
+            const Duration(milliseconds: 200),
             () {
               cc.messages.refresh();
             },

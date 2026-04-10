@@ -27,6 +27,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
   double? downloadProgress;
   late String appFolder;
   ValueNotifier<double>? _progressNotifier;
+  Widget? _cachedVideoWidget;
 
   @override
   void initState() {
@@ -92,6 +93,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
   void _loadCompletedVideo(MsgFileInfo mfi) {
     final filePath = '$appFolder${mfi.localPath!}';
     if (!File(filePath).existsSync()) {
+      _cachedVideoWidget = null;
       setState(() {
         fileStatus = FileStatus.init;
       });
@@ -103,7 +105,10 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     });
     unawaited(
       FileService.instance.getOrCreateThumbForVideo(filePath).then((value) {
-        if (mounted) setState(() => thumbnailFile = value);
+        if (mounted) {
+          _cachedVideoWidget = null;
+          setState(() => thumbnailFile = value);
+        }
       }),
     );
   }
@@ -189,9 +194,11 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
       );
     }
 
-    return thumbnailFile == null
-        ? FileMessageWidget(widget.message, widget.errorCallback)
-        : Stack(
+    if (thumbnailFile == null) {
+      return FileMessageWidget(widget.message, widget.errorCallback);
+    }
+    // Cache the video widget to avoid rebuilding on unrelated list refreshes
+    return _cachedVideoWidget ??= Stack(
             alignment: Alignment.center,
             children: <Widget>[
               ClipRRect(

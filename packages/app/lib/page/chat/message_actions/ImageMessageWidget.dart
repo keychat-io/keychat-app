@@ -28,6 +28,7 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
   MsgFileInfo? fileInfo;
   FileStatus fileStatus = FileStatus.init;
   ValueNotifier<double>? _progressNotifier;
+  Widget? _cachedImageWidget;
 
   @override
   void initState() {
@@ -78,8 +79,12 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
           mfi.status = FileStatus.failed;
         }
       }
+      if (mfi.status != FileStatus.decryptSuccess) {
+        _cachedImageWidget = null;
+      }
       setState(() => fileStatus = mfi.status);
     } catch (e) {
+      _cachedImageWidget = null;
       setState(() => fileStatus = FileStatus.failed);
     }
   }
@@ -123,7 +128,8 @@ class _ImageMessageWidgetState extends State<ImageMessageWidget> {
         if (fileInfo?.localPath == null) {
           return widget.errorCallback(text: '[Image Loading]');
         }
-        return ImagePreviewWidget(
+        // Cache the image widget to avoid rebuilding on unrelated list refreshes
+        return _cachedImageWidget ??= ImagePreviewWidget(
           localPath: fileInfo!.localPath!,
           cc: widget.cc,
           errorCallback: widget.errorCallback,

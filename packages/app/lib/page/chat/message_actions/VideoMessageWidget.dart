@@ -1,13 +1,14 @@
+import 'dart:async' show unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
-import 'package:keychat/app.dart';
-import 'package:keychat/page/widgets/image_slide_widget.dart';
-import 'package:keychat/service/file.service.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat/app.dart';
+import 'package:keychat/page/widgets/image_slide_widget.dart';
+import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 
 class VideoMessageWidget extends StatefulWidget {
   const VideoMessageWidget(this.message, this.errorCallback, {super.key});
@@ -15,7 +16,7 @@ class VideoMessageWidget extends StatefulWidget {
   final Widget Function({Widget? child, String? text}) errorCallback;
 
   @override
-  _VideoMessageWidgetState createState() => _VideoMessageWidgetState();
+  State<VideoMessageWidget> createState() => _VideoMessageWidgetState();
 }
 
 class _VideoMessageWidgetState extends State<VideoMessageWidget> {
@@ -23,62 +24,131 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
   String? videoPath;
   FileStatus fileStatus = FileStatus.init;
   MsgFileInfo? msgFileInfo;
-  String downloadProgress = '0.00';
+  double? downloadProgress;
   late String appFolder;
+  ValueNotifier<double>? _progressNotifier;
 
   @override
   void initState() {
     super.initState();
     appFolder = Utils.appFolder.path;
+    _loadState();
+  }
+
+  @override
+  void didUpdateWidget(VideoMessageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.realMessage != widget.message.realMessage) {
+      _loadState();
+    }
+  }
+
+  @override
+  void dispose() {
+    _detachProgress();
+    super.dispose();
+  }
+
+  void _loadState() {
     try {
+      if (widget.message.realMessage == null) return;
       final mfi = MsgFileInfo.fromJson(
         jsonDecode(widget.message.realMessage!) as Map<String, dynamic>,
       );
-      _init(mfi);
+      msgFileInfo = mfi;
+
+      // Check for active download in manager first
+      final existing = FileDownloadManager.instance.getProgress(
+        widget.message.id,
+      );
+      if (existing != null) {
+        _attachProgress(existing);
+        return;
+      }
+
+      // Handle stale downloading state
+      if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
+        final isTimeout = DateTime.now()
+            .subtract(const Duration(seconds: 120))
+            .isAfter(mfi.updateAt!);
+        if (isTimeout) {
+          mfi.status = FileStatus.failed;
+        }
+      }
+
+      if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
+        _loadCompletedVideo(mfi);
+      } else {
+        setState(() {
+          fileStatus = mfi.status;
+          downloadProgress = null;
+        });
+        // Auto-download small videos for received messages
+        if (mfi.status == FileStatus.init && !widget.message.isMeSend) {
+          if (mfi.size > 0 && mfi.size <= 20 * 1024 * 1024) {
+            _startDownload();
+          }
+        }
+      }
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
   }
 
-  Future<void> _init(MsgFileInfo mfi) async {
-    if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
-      final isTimeout = DateTime.now()
-          .subtract(const Duration(seconds: 120))
-          .isAfter(mfi.updateAt!);
-      if (isTimeout) {
-        mfi.status = FileStatus.failed;
-      }
-    }
-    // other status
-    if (mfi.status != FileStatus.decryptSuccess) {
+  void _loadCompletedVideo(MsgFileInfo mfi) {
+    final filePath = '$appFolder${mfi.localPath!}';
+    if (!File(filePath).existsSync()) {
       setState(() {
-        fileStatus = mfi.status;
-        msgFileInfo = mfi;
+        fileStatus = FileStatus.init;
       });
       return;
     }
-    // decryptSuccess
-    if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
-      final filePath = '$appFolder${mfi.localPath!}';
-      final fileExists = File(filePath).existsSync();
-      if (!fileExists) {
-        setState(() {
-          fileStatus = FileStatus.init;
-          msgFileInfo = mfi;
-        });
-        return;
-      }
-      setState(() {
-        fileStatus = FileStatus.decryptSuccess;
-        msgFileInfo = mfi;
-        videoPath = filePath;
-      });
-
+    setState(() {
+      fileStatus = FileStatus.decryptSuccess;
+      videoPath = filePath;
+    });
+    unawaited(
       FileService.instance.getOrCreateThumbForVideo(filePath).then((value) {
-        setState(() {
-          thumbnailFile = value;
-        });
-      });
+        if (mounted) setState(() => thumbnailFile = value);
+      }),
+    );
+  }
+
+  void _startDownload() {
+    if (msgFileInfo == null) return;
+    final notifier = FileDownloadManager.instance.startDownload(
+      widget.message,
+      msgFileInfo!,
+    );
+    _attachProgress(notifier);
+  }
+
+  void _attachProgress(ValueNotifier<double> notifier) {
+    _detachProgress();
+    _progressNotifier = notifier;
+    _progressNotifier!.addListener(_onProgressChanged);
+    setState(() {
+      fileStatus = FileStatus.downloading;
+      downloadProgress = notifier.value;
+    });
+  }
+
+  void _detachProgress() {
+    _progressNotifier?.removeListener(_onProgressChanged);
+    _progressNotifier = null;
+  }
+
+  void _onProgressChanged() {
+    if (!mounted) return;
+    final notifier = _progressNotifier;
+    if (notifier == null) return;
+
+    setState(() => downloadProgress = notifier.value);
+
+    // When manager removes the entry, download is done — reload from message
+    if (!FileDownloadManager.instance.isDownloading(widget.message.id)) {
+      _detachProgress();
+      _loadState();
     }
   }
 
@@ -94,27 +164,11 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
           IconButton(
             onPressed: () {
               if (msgFileInfo == null) return;
-              EasyLoading.showToast('Start downloading');
-              FileService.instance.downloadForMessage(
-                widget.message,
-                msgFileInfo!,
-                callback: _init,
-                onReceiveProgress: (int count, int total) {
-                  EasyDebounce.debounce(
-                    'downloadProgress',
-                    const Duration(milliseconds: 300),
-                    () {
-                      setState(() {
-                        downloadProgress = (count / total * 100)
-                            .toStringAsFixed(2);
-                      });
-                    },
-                  );
-                },
-              );
+              unawaited(EasyLoading.showToast('Start downloading'));
+              _startDownload();
             },
             icon: Icon(
-              Icons.download_sharp,
+              fileStatus == FileStatus.failed ? Icons.refresh : Icons.download_sharp,
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -123,14 +177,18 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
 
     if (fileStatus == FileStatus.downloading) {
+      final pct = downloadProgress ?? 0;
       return Wrap(
         children: [
-          widget.errorCallback(text: '[Downloading]- $downloadProgress%'),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.downloading_rounded,
-              color: Theme.of(context).colorScheme.primary,
+          widget.errorCallback(
+            text: '[Downloading] ${(pct * 100).toStringAsFixed(1)}%',
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
         ],
@@ -164,14 +222,16 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
                             cc.roomObs.value.identityId,
                             cc.roomObs.value.id,
                           );
-                      Get.to(
-                        () => SlidesImageViewWidget(
-                          files: files.reversed.toList(),
-                          selected: File(videoPath!),
-                          file: thumbnailFile,
+                      unawaited(
+                        Get.to<void>(
+                          () => SlidesImageViewWidget(
+                            files: files.reversed.toList(),
+                            selected: File(videoPath!),
+                            file: thumbnailFile,
+                          ),
+                          transition: Transition.zoom,
+                          fullscreenDialog: true,
                         ),
-                        transition: Transition.zoom,
-                        fullscreenDialog: true,
                       );
                     },
                     icon: const Icon(

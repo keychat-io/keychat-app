@@ -481,7 +481,10 @@ class WebsocketService extends GetxService {
   void onReady() {
     super.onReady();
     localFeesConfigFromLocalStorage();
-    RelayService.instance.refreshRelayInfo();
+    // Force on cold start: the 1/day throttle would otherwise lock out
+    // users whose previous run failed to fetch a paid relay's fee info,
+    // leaving them unable to send messages through that relay.
+    unawaited(RelayService.instance.refreshRelayInfo(force: true));
   }
 
   /// Recomputes and updates [mainRelayStatus] and [relayConnectedCount] based on current connections.

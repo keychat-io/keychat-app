@@ -17,6 +17,7 @@ class UrlPreviewWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Get.isDarkMode;
 
+    final fallback = _buildFallback(isDark);
     return GestureDetector(
       onTap: () => RoomUtil.tapLink(url),
       child: AnyLinkPreview(
@@ -34,9 +35,13 @@ class UrlPreviewWidget extends StatelessWidget {
           color: isDark ? Colors.grey[300] : Colors.grey[700],
           fontSize: 13,
         ),
+        // Show the URL immediately instead of any_link_preview's default
+        // "Fetching data..." placeholder. If the fetch succeeds the real
+        // preview replaces this; if it fails, errorWidget shows the same.
+        placeholderWidget: fallback,
         errorBody: '',
         errorTitle: '',
-        errorWidget: _buildFallback(isDark),
+        errorWidget: fallback,
         errorImage: '',
         borderRadius: 8,
         boxShadow: const [],

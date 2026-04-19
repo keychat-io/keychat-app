@@ -1,6 +1,6 @@
+import 'package:get/get.dart';
 import 'package:keychat/models/relay.dart';
 import 'package:keychat/service/relay.service.dart';
-import 'package:get/get.dart';
 
 class RelayInfoController extends GetxController {
   RelayInfoController(this.relay0);
@@ -11,11 +11,14 @@ class RelayInfoController extends GetxController {
   @override
   Future<void> onInit() async {
     relay.value = relay0;
-    final res = await RelayService.instance.fetchRelayNostrInfo(relay.value);
-    if (res != null) {
-      info.value = res;
+    final result = await RelayService.instance.refreshRelayInfo(
+      relays: [relay.value],
+      force: true,
+    );
+    final data = result[relay.value.url];
+    if (data != null) {
+      info.value = data;
     }
     super.onInit();
-    RelayService.instance.initRelayFeeInfo([relay.value]);
   }
 }

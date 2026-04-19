@@ -842,6 +842,7 @@ class _WebviewTabState extends State<WebviewTab> {
           // Open blob URLs and download requests in the external browser
           if (uri.toString().startsWith('blob:') ||
               (navigationAction.shouldPerformDownload ?? false)) {
+            await EasyLoading.showInfo('Opening in external browser...');
             await launchUrl(uri, mode: LaunchMode.externalApplication);
             return NavigationActionPolicy.CANCEL;
           }
@@ -1330,10 +1331,10 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    logger.i('selected: ${identity.secp256k1PKHex}');
+    logger.i('selected: ${identity.nostrIdentityKey}');
     switch (method) {
       case 'getPublicKey':
-        return identity.secp256k1PKHex;
+        return identity.nostrIdentityKey;
       case 'onAccountChanged':
         await switchAccountFromMiniApp(host, data[1] as String);
         return null;
@@ -1385,13 +1386,13 @@ class _WebviewTabState extends State<WebviewTab> {
         if (identity.isFromSigner) {
           final ciphertext = await SignerService.instance.nip04Encrypt(
             plaintext: plaintext,
-            currentUser: identity.secp256k1PKHex,
+            currentUser: identity.nostrIdentityKey,
             to: to,
           );
           return ciphertext;
         }
         final encryptedEvent = await rust_nostr.getEncryptEvent(
-          senderKeys: await identity.getSecp256k1SKHex(),
+          senderKeys: await identity.getNostrPrivateKey(),
           receiverPubkey: to,
           content: plaintext,
         );
@@ -1405,13 +1406,13 @@ class _WebviewTabState extends State<WebviewTab> {
         if (identity.isFromSigner) {
           final plaintext = await SignerService.instance.nip04Decrypt(
             ciphertext: ciphertext,
-            currentUser: identity.secp256k1PKHex,
+            currentUser: identity.nostrIdentityKey,
             from: from,
           );
           return plaintext;
         }
         final content = await rust_nostr.decrypt(
-          senderKeys: await identity.getSecp256k1SKHex(),
+          senderKeys: await identity.getNostrPrivateKey(),
           receiverPubkey: from,
           content: ciphertext,
         );
@@ -1424,11 +1425,11 @@ class _WebviewTabState extends State<WebviewTab> {
           ciphertext = await SignerService.instance.nip44Encrypt(
             plaintext,
             to,
-            identity.secp256k1PKHex,
+            identity.nostrIdentityKey,
           );
         } else {
           ciphertext = await rust_nostr.encryptNip44(
-            senderKeys: await identity.getSecp256k1SKHex(),
+            senderKeys: await identity.getNostrPrivateKey(),
             receiverPubkey: to,
             content: plaintext,
           );
@@ -1441,12 +1442,12 @@ class _WebviewTabState extends State<WebviewTab> {
           final plaintext = await SignerService.instance.nip44Decrypt(
             ciphertext,
             to,
-            identity.secp256k1PKHex,
+            identity.nostrIdentityKey,
           );
           return plaintext;
         }
         return rust_nostr.decryptNip44(
-          secretKey: await identity.getSecp256k1SKHex(),
+          secretKey: await identity.getNostrPrivateKey(),
           publicKey: to,
           content: ciphertext,
         );
@@ -1517,11 +1518,11 @@ class _WebviewTabState extends State<WebviewTab> {
 
         bc ??= BrowserConnect(
           host: host,
-          pubkey: selected.secp256k1PKHex,
+          pubkey: selected.nostrIdentityKey,
         );
 
         bc
-          ..pubkey = selected.secp256k1PKHex
+          ..pubkey = selected.nostrIdentityKey
           ..favicon = favicon;
         final id = await BrowserConnect.save(bc);
         bc.id = id;
@@ -1764,7 +1765,7 @@ img {
         return {
           'node': {
             'alias': identity.displayName,
-            'pubkey': identity.secp256k1PKHex,
+            'pubkey': identity.nostrIdentityKey,
           },
         };
       case 'signMessage':
@@ -1773,7 +1774,7 @@ img {
 
         final message = data[1] as String;
         final signature = await rust_nostr.signSchnorr(
-          privateKey: await identity.getSecp256k1SKHex(),
+          privateKey: await identity.getNostrPrivateKey(),
           content: message,
         );
         return {
@@ -1788,7 +1789,7 @@ img {
         final message = data[2] as String;
         try {
           final isValid = await rust_nostr.verifySchnorr(
-            pubkey: identity.secp256k1PKHex,
+            pubkey: identity.nostrIdentityKey,
             content: message,
             sig: signature,
             hash: true,

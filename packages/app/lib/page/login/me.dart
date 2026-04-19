@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/global.dart';
@@ -145,8 +146,8 @@ class _MinePageState extends State<MinePage> {
                 SettingsTile(
                   leading: const Icon(Icons.verified_outlined),
                   title: const Text('App Version'),
-                  value: getVersionCode(homeController),
-                  onPressed: (context) {},
+                  value: _buildVersionWidget(homeController),
+                  onPressed: (_) => _checkForUpdates(homeController),
                 ),
               ],
             ),
@@ -156,56 +157,96 @@ class _MinePageState extends State<MinePage> {
     );
   }
 
-  Widget getVersionCode(HomeController homeController) {
-    final platform = GetPlatform.isAndroid
-        ? 'android'
-        : GetPlatform.isIOS
-        ? 'ios'
-        : GetPlatform.isMacOS
-        ? 'macos'
-        : GetPlatform.isWindows
-        ? 'windows'
-        : GetPlatform.isLinux
-        ? 'linux'
-        : 'ios';
-
-    final newVersion =
-        homeController.remoteAppConfig['${platform}Version'] as String? ??
-        '0.0.0+0';
-
+  Widget _buildVersionWidget(HomeController homeController) {
     final localVersion =
         homeController.remoteAppConfig['appVersion'] as String? ?? '0.0.0+0';
-
-    final n = Version.parse(newVersion);
-    final l = Version.parse(localVersion);
-    final isNewVersionAvailable = n.compareTo(l) > 0;
-    return GestureDetector(
-      onTap: () async {
-        if (GetPlatform.isIOS) {
-          const url = 'https://apps.apple.com/app/keychat-io/id6447493752';
-          await launchUrl(Uri.parse(url));
-          return;
-        }
-        const url = 'https://github.com/keychat-io/keychat-app/releases';
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      },
-      child: Wrap(
+    return Obx(() {
+      final remote = homeController.latestRemoteVersion.value;
+      final hasUpdate = _hasNewVersion(localVersion, remote);
+      return Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(localVersion),
-          if (isNewVersionAvailable)
+          if (hasUpdate)
             Container(
-              margin: const EdgeInsets.only(left: 5),
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
                 color: Colors.red,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'NEW',
+                style: TextStyle(color: Colors.white, fontSize: 10),
               ),
             ),
         ],
+      );
+    });
+  }
+
+  bool _hasNewVersion(String localVersion, String? remoteVersion) {
+    if (remoteVersion == null) return false;
+    try {
+      final local = Version.parse(localVersion.split('+').first);
+      final remote = Version.parse(remoteVersion.split('+').first);
+      return remote.compareTo(local) > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _checkForUpdates(HomeController homeController) async {
+    EasyLoading.show(status: 'Checking...');
+    try {
+      await homeController.checkAppUpdate(force: true);
+      EasyLoading.dismiss();
+
+      final localVersion =
+          homeController.remoteAppConfig['appVersion'] as String? ?? '0.0.0+0';
+      final remote = homeController.latestRemoteVersion.value;
+
+      if (_hasNewVersion(localVersion, remote)) {
+        _showUpdateDialog(localVersion.split('+').first, remote!);
+      } else {
+        EasyLoading.showSuccess('Already up to date');
+      }
+    } catch (e) {
+      EasyLoading.showError('Failed to check for updates');
+    }
+  }
+
+  void _showUpdateDialog(String currentVersion, String newVersion) {
+    Get.dialog<void>(
+      CupertinoAlertDialog(
+        title: const Text('New Version Available'),
+        content: Text('$currentVersion → $newVersion'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: Get.back<void>,
+            child: const Text('Later'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              Get.back<void>();
+              _openUpdatePage();
+            },
+            child: const Text('Update'),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _openUpdatePage() async {
+    if (GetPlatform.isIOS) {
+      const url = 'https://apps.apple.com/us/app/keychat-io/id6447493752';
+      await launchUrl(Uri.parse(url));
+    } else {
+      const url = 'https://github.com/keychat-io/keychat-app/releases';
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
   }
 
   List<SettingsTile> getIDList(

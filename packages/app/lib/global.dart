@@ -26,9 +26,9 @@ class KeychatGlobal {
   static const String defaultFileServer = 'https://relay.keychat.io';
   static const String defaultRelay = 'wss://relay.keychat.io';
 
-  static const int oneTimePubkeysPoolLength = 1;
+  static const int inboxKeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
-  static const int oneTimePubkeysLifetime = 24; // hours
+  static const int inboxKeysLifetime = 24; // hours
   static const int signalIdLifetime = 168; // hours
   static const int defaultOpenTabIndex = 2; // 0: chat, 1: browser, 2: me
   static const List<String> keychatIntros = [

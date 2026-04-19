@@ -63,6 +63,7 @@ class HomeController extends GetxController
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;
   RxBool enableDMFromNostrApp = true.obs;
+  RxBool enableUrlPreview = true.obs;
   Rx<TextInputAction> keyboardEnterAction = TextInputAction.newline.obs;
 
   //debug mode
@@ -73,6 +74,7 @@ class HomeController extends GetxController
   RxList recommendBots = [].obs;
   RxMap recommendWebstore = {}.obs;
   RxMap remoteAppConfig = {}.obs;
+  RxnString latestRemoteVersion = RxnString();
 
   DateTime? pausedTime;
 
@@ -331,7 +333,75 @@ class HomeController extends GetxController
         remoteAppConfig[key] = config[key];
       }
     }
+    // Auto-check for updates once per day
+    unawaited(checkAppUpdate());
     return;
+  }
+
+  /// Checks for app updates. Fetches from App Store (iOS) or GitHub (others).
+  ///
+  /// Skips if last check was within 24 hours, unless [force] is true.
+  Future<void> checkAppUpdate({bool force = false}) async {
+    try {
+      if (!force) {
+        final lastCheck =
+            Storage.getInt(StorageKeyString.lastUpdateCheckTime) ?? 0;
+        final elapsed =
+            DateTime.now().millisecondsSinceEpoch - lastCheck;
+        if (elapsed < const Duration(hours: 24).inMilliseconds) {
+          // Use cached version
+          latestRemoteVersion.value =
+              Storage.getString(StorageKeyString.cachedLatestVersion);
+          return;
+        }
+      }
+
+      String? version;
+      if (GetPlatform.isIOS) {
+        final response = await Dio().get<Map<String, dynamic>>(
+          'https://itunes.apple.com/lookup?id=6447493752',
+          options: Options(
+            sendTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+          ),
+        );
+        final results = response.data?['results'] as List<dynamic>?;
+        if (results != null && results.isNotEmpty) {
+          version = results[0]['version'] as String?;
+        }
+      } else {
+        final response = await Dio().get<Map<String, dynamic>>(
+          'https://api.github.com/repos/keychat-io/keychat-app/releases/latest',
+          options: Options(
+            sendTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+          ),
+        );
+        final tagName = response.data?['tag_name'] as String?;
+        if (tagName != null) {
+          version = tagName.startsWith('v') ? tagName.substring(1) : tagName;
+        }
+      }
+
+      if (version != null) {
+        latestRemoteVersion.value = version;
+        await Storage.setString(
+          StorageKeyString.cachedLatestVersion,
+          version,
+        );
+        // Only stamp the throttle timestamp on a successful parse. A
+        // malformed response (empty results / missing tag_name) should NOT
+        // lock out retries for 24h — the next call can try again.
+        await Storage.setInt(
+          StorageKeyString.lastUpdateCheckTime,
+          DateTime.now().millisecondsSinceEpoch,
+        );
+      } else {
+        logger.w('checkAppUpdate: no version parsed from response');
+      }
+    } catch (e) {
+      logger.e('checkAppUpdate failed', error: e);
+    }
   }
 
   Identity getSelectedIdentity() {
@@ -340,7 +410,7 @@ class HomeController extends GetxController
 
   Identity? getIdentityByPubkey(String pubkey) {
     for (final identity in allIdentities.values) {
-      if (identity.secp256k1PKHex == pubkey) {
+      if (identity.nostrIdentityKey == pubkey) {
         return identity;
       }
     }
@@ -626,6 +696,7 @@ class HomeController extends GetxController
     await initTips(StorageKeyString.tipsAddFriends, addFriendTips);
     await initEnableDMFromNostrApp();
     initKeyboardEnterAction();
+    initEnableUrlPreview();
 
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription = Connectivity().onConnectivityChanged.listen(
@@ -1005,6 +1076,11 @@ ${file.message}
     keyboardEnterAction.value = stored == TextInputAction.send.name
         ? TextInputAction.send
         : TextInputAction.newline;
+  }
+
+  void initEnableUrlPreview() {
+    enableUrlPreview.value =
+        Storage.getBool(StorageKeyString.enableUrlPreview) ?? true;
   }
 
   int _notificationState = NotifySettingStatus.enable;

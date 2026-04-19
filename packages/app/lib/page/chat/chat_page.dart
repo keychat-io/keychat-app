@@ -16,9 +16,6 @@ import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/chat/widgets/voice_record_button.dart';
-import 'package:keychat/page/chat/widgets/voice_record_indicator.dart';
-import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/routes.dart';
@@ -336,11 +333,7 @@ class _ChatPage2State extends State<ChatPage> {
                   },
                   icon: const Icon(Icons.emoji_emotions_outlined),
                 ),
-                Obx(() {
-                  if (AudioMessageService.instance.isRecording.value) {
-                    return const Expanded(child: VoiceRecordIndicator());
-                  }
-                  return Expanded(
+                Expanded(
                     child: KeyboardListener(
                     focusNode: controller.keyboardFocus,
                     onKeyEvent: !GetPlatform.isDesktop
@@ -531,9 +524,7 @@ class _ChatPage2State extends State<ChatPage> {
                       ),
                     ),
                   ),
-                  );
-                }),
-                VoiceRecordButton(room: controller.roomObs.value),
+                ),
                 IconButton(
                   iconSize: 28,
                   padding: EdgeInsets.zero,
@@ -1197,7 +1188,7 @@ class _ChatPage2State extends State<ChatPage> {
             );
 
             while (true) {
-              final receivingKey = room.onetimekey!;
+              final receivingKey = room.receiveAddress!;
               EasyLoading.show(status: 'Receiving from: $receivingKey');
               await MlsGroupService.instance.waitingForEose(
                 receivingKey: receivingKey,
@@ -1208,7 +1199,7 @@ class _ChatPage2State extends State<ChatPage> {
                 controller.roomObs.value.id,
               );
 
-              if (receivingKey == room.onetimekey &&
+              if (receivingKey == room.receiveAddress &&
                   DateTime.now()
                           .difference(controller.lastMessageAddedAt)
                           .inSeconds >

@@ -59,7 +59,6 @@ class GroupTx {
     int? roomUpdateAt,
     Mykey? sharedKey,
     List<String> sendingRelays = const [],
-    String? sharedSignalID,
   }) async {
     var room =
         Room(
@@ -72,12 +71,11 @@ class GroupTx {
           ..name = groupName
           ..groupType = groupType
           ..sendingRelays = sendingRelays
-          ..version = version
-          ..sharedSignalID = sharedSignalID;
+          ..version = version;
 
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
-    final me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+    final me = await room.getMemberByIdPubkey(identity.nostrIdentityKey);
 
     if (me != null && me.status != UserStatusType.invited) {
       me.status = UserStatusType.invited;
@@ -114,7 +112,7 @@ class GroupTx {
     Identity identity, [
     Message? message,
   ]) async {
-    final toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
+    final toMainPubkey = roomProfile.groupId ?? roomProfile.pubkey;
     final toRoomPriKey = roomProfile.prikey;
     final version = roomProfile.updatedAt;
     final users = roomProfile.users;
@@ -126,7 +124,7 @@ class GroupTx {
       );
     }
 
-    final groupRoom = await _createGroupToDB(
+    return _createGroupToDB(
       toMainPubkey,
       roomProfile.name,
       sharedKey: roomKey,
@@ -134,21 +132,7 @@ class GroupTx {
       identity: identity,
       groupType: roomProfile.groupType,
       version: version,
-      sharedSignalID: roomProfile.signalPubkey,
       roomUpdateAt: roomProfile.updatedAt,
     );
-
-    // import signalId for kdf group
-    if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
-      if (message != null) {
-        message.content = '******';
-        await DBProvider.database.messages.put(message);
-      }
-      await SignalIdService.instance.importOrGetSignalId(
-        groupRoom.identityId,
-        roomProfile,
-      );
-    }
-    return groupRoom;
   }
 }

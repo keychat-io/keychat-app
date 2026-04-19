@@ -25,6 +25,18 @@ class RelayWebsocket {
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
 
+  /// Cached NIP-11 supported_nips from relay info document.
+  /// Empty means no info yet (allow all).
+  Set<int> supportedNips = {};
+
+  /// Returns true if this relay supports writing events of [kind].
+  ///
+  /// Currently always returns true because many relays do not correctly
+  /// configure their supported_nips field in NIP-11 responses.
+  bool supportsKind(int kind) {
+    return true;
+  }
+
   // Stream subscriptions to prevent memory leaks
   StreamSubscription<ConnectionState>? connectionStateSubscription;
   StreamSubscription<dynamic>? messagesSubscription;

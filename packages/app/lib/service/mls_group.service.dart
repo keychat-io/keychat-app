@@ -70,7 +70,7 @@ class MlsGroupService extends BaseChatService {
     }
     await RoomService.instance.checkWebsocketConnect();
     final data = await rust_mls.addMembers(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: groupRoom.toMainPubkey,
       keyPackages: keyPackages,
     );
@@ -84,7 +84,7 @@ class MlsGroupService extends BaseChatService {
           '[System] Invite [${userNameMap.values.join(', ')}] to join group',
     );
     await rust_mls.selfCommit(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: groupRoom.toMainPubkey,
     );
     groupRoom = await _proccessUpdateKeys(groupRoom);
@@ -131,17 +131,17 @@ class MlsGroupService extends BaseChatService {
     room = await RoomService.instance.updateRoom(room);
 
     await rust_mls.createMlsGroup(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       groupName: groupName,
-      adminPubkeysHex: [identity.secp256k1PKHex],
+      adminPubkeysHex: [identity.nostrIdentityKey],
       description: description ?? '',
       groupRelays: groupRelays,
       status: RoomStatus.enabled.name,
     );
     await _selfUpdateKeyLocal(room);
     await rust_mls.selfCommit(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
     );
 
@@ -154,12 +154,12 @@ class MlsGroupService extends BaseChatService {
       throw Exception('keyPackages is empty');
     }
     final welcome = await rust_mls.addMembers(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       keyPackages: keyPackages,
     );
     await rust_mls.selfCommit(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
     );
     room = await replaceListenPubkey(room);
@@ -209,7 +209,7 @@ class MlsGroupService extends BaseChatService {
     });
     final welcome = base64Decode(event.content).toList();
     await rust_mls.joinMlsGroup(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       welcome: welcome,
     );
@@ -568,7 +568,7 @@ class MlsGroupService extends BaseChatService {
       encryptMode: EncryptMode.nip17,
     );
     final identity = idRoom.getIdentity();
-    if (senderIdPubkey == identity.secp256k1PKHex) {
+    if (senderIdPubkey == identity.nostrIdentityKey) {
       loggerNoLine.i('Event sent by me: ${subEvent.id}');
       return;
     }
@@ -618,12 +618,12 @@ class MlsGroupService extends BaseChatService {
       try {
         await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
-          nostrId: identity.secp256k1PKHex,
+          nostrId: identity.nostrIdentityKey,
         );
-        loggerNoLine.i('MLS init for identity: ${identity.secp256k1PKHex}');
+        loggerNoLine.i('MLS init for identity: ${identity.nostrIdentityKey}');
       } catch (e, s) {
         logger.e(
-          'Init MLS Failed: ${identity.secp256k1PKHex} $e',
+          'Init MLS Failed: ${identity.nostrIdentityKey} $e',
           error: e,
           stackTrace: s,
         );
@@ -668,7 +668,7 @@ class MlsGroupService extends BaseChatService {
   /// Only the group admin should call this method.
   Future<void> removeMembers(Room room, List<RoomMember> list) async {
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -680,14 +680,14 @@ class MlsGroupService extends BaseChatService {
       idPubkeys.add(rm.idPubkey);
       names.add(rm.displayName);
       final bLeafNode = await rust_mls.getLeadNodeIndex(
-        nostrIdAdmin: identity.secp256k1PKHex,
+        nostrIdAdmin: identity.nostrIdentityKey,
         nostrIdCommon: rm.idPubkey,
         groupId: room.toMainPubkey,
       );
       bLeafNodes.add(bLeafNode);
     }
     final queuedMsg = await rust_mls.removeMembers(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       members: bLeafNodes,
     );
@@ -698,7 +698,7 @@ class MlsGroupService extends BaseChatService {
     room = await RoomService.instance.getRoomByIdOrFail(room.id);
     await sendEncryptedMessage(room, queuedMsg, realMessage: realMessage);
     await rust_mls.selfCommit(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
     );
     room = await replaceListenPubkey(room);
@@ -714,10 +714,10 @@ class MlsGroupService extends BaseChatService {
   /// updates the WebSocket subscription, and removes the old key.
   ///
   /// Must be called after every successful commit (add/remove/update/dissolve).
-  /// Returns the updated [Room] with the new [Room.onetimekey].
+  /// Returns the updated [Room] with the new [Room.receiveAddress].
   Future<Room> replaceListenPubkey(Room room) async {
     loggerNoLine.i(
-      '[MLS] replaceListenPubkey START - roomId: ${room.id}, currentKey: ${room.onetimekey}',
+      '[MLS] replaceListenPubkey START - roomId: ${room.id}, currentKey: ${room.receiveAddress}',
     );
     final newPubkey = await rust_mls
         .getListenKeyFromExportSecret(
@@ -726,7 +726,7 @@ class MlsGroupService extends BaseChatService {
         )
         .timeout(const Duration(seconds: 2));
 
-    if (newPubkey == room.onetimekey) {
+    if (newPubkey == room.receiveAddress) {
       loggerNoLine.i(
         '[MLS] replaceListenPubkey END - no change for room: ${room.id}',
       );
@@ -736,14 +736,14 @@ class MlsGroupService extends BaseChatService {
 
     loggerNoLine.i(
       '[MLS] new pubkey for room: ${room.toMainPubkey}, '
-      'old: ${room.onetimekey}, new: $newPubkey',
+      'old: ${room.receiveAddress}, new: $newPubkey',
     );
-    final toDeletePubkey = room.onetimekey;
+    final toDeletePubkey = room.receiveAddress;
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
-    room.onetimekey = newPubkey;
+    room.receiveAddress = newPubkey;
     loggerNoLine.i(
       '[MLS] Updating room with new key $newPubkey for room: ${room.id}',
     );
@@ -807,7 +807,7 @@ class MlsGroupService extends BaseChatService {
   }) async {
     // waiting for the old pubkey to be Eosed. means that all events proccessed
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -815,7 +815,7 @@ class MlsGroupService extends BaseChatService {
     final identity = room.getIdentity();
     await sendEncryptedMessage(room, queuedMsg, realMessage: msg);
     await rust_mls.selfCommit(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
     );
     final room0 = await replaceListenPubkey(room);
@@ -830,7 +830,7 @@ class MlsGroupService extends BaseChatService {
   /// anonymity. The payload is sent as NIP-17 (kind 1059 wrapping kind 445).
   /// Used for system messages like commit notifications and group state changes.
   ///
-  /// Throws [Exception] if the group's [Room.onetimekey] is null.
+  /// Throws [Exception] if the group's [Room.receiveAddress] is null.
   Future<SendMessageResponse> sendEncryptedMessage(
     Room room,
     String message, {
@@ -839,13 +839,13 @@ class MlsGroupService extends BaseChatService {
     String? realMessage,
     List<List<String>>? additionalTags,
   }) async {
-    if (room.onetimekey == null) {
+    if (room.receiveAddress == null) {
       throw Exception('Receiving pubkey is null');
     }
 
     final randomAccount = await rust_nostr.generateSimple();
     final smr = await NostrAPI.instance.sendEventMessage(
-      room.onetimekey!,
+      room.receiveAddress!,
       message,
       prikey: randomAccount.prikey,
       from: randomAccount.pubkey,
@@ -861,7 +861,7 @@ class MlsGroupService extends BaseChatService {
       additionalTags:
           additionalTags ??
           [
-            [EventKindTags.pubkey, room.onetimekey!],
+            [EventKindTags.pubkey, room.receiveAddress!],
           ],
     );
     return smr;
@@ -878,13 +878,13 @@ class MlsGroupService extends BaseChatService {
     GroupInvitationModel gim,
     Identity identity,
   ) async {
-    if (gim.pubkey == identity.secp256k1PKHex) {
+    if (gim.pubkey == identity.nostrIdentityKey) {
       throw Exception('You are already in this group');
     }
     final girm = GroupInvitationRequestModel(
       name: gim.name,
       roomPubkey: gim.pubkey,
-      myPubkey: identity.secp256k1PKHex,
+      myPubkey: identity.nostrIdentityKey,
       myName: identity.displayName,
       time: DateTime.now().millisecondsSinceEpoch,
       mlsPK: '',
@@ -925,7 +925,7 @@ class MlsGroupService extends BaseChatService {
   /// publishes it as a NIP-17 kind 1059 event to the group's one-time key.
   /// Supports optional [reply] threading and custom [mediaType].
   ///
-  /// Throws [Exception] if [room.onetimekey] is null.
+  /// Throws [Exception] if [room.receiveAddress] is null.
   @override
   Future<SendMessageResponse> sendMessage(
     Room room,
@@ -938,23 +938,23 @@ class MlsGroupService extends BaseChatService {
     if (reply != null) {
       message = KeychatMessage.getTextMessage(MessageType.mls, message, reply);
     }
-    if (room.onetimekey == null) {
+    if (room.receiveAddress == null) {
       throw Exception('Receiving pubkey is null');
     }
     final identity = room.getIdentity();
     final enctypted = await rust_mls.createMessage(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       msg: message,
     );
 
-    // refresh onetime key
+    // refresh receive address
     if (realMessage != null) {
       room = await RoomService.instance.getRoomByIdOrFail(room.id);
     }
     final randomAccount = await rust_nostr.generateSimple();
     final smr = await NostrAPI.instance.sendEventMessage(
-      room.onetimekey!,
+      room.receiveAddress!,
       enctypted.encryptMsg,
       prikey: randomAccount.prikey,
       from: randomAccount.pubkey,
@@ -962,7 +962,7 @@ class MlsGroupService extends BaseChatService {
       encryptType: MessageEncryptType.mls,
       kind: EventKinds.nip17,
       additionalTags: [
-        [EventKindTags.pubkey, room.onetimekey!],
+        [EventKindTags.pubkey, room.receiveAddress!],
       ],
       save: save,
       mediaType: mediaType,
@@ -1015,7 +1015,7 @@ class MlsGroupService extends BaseChatService {
   /// Returns the updated [Room] with the new listening key.
   Future<Room> updateGroupName(Room room, String newName) async {
     await waitingForEose(
-      receivingKey: room.onetimekey,
+      receivingKey: room.receiveAddress,
       relays: room.sendingRelays,
     );
     await RoomService.instance.checkWebsocketConnect();
@@ -1061,7 +1061,7 @@ class MlsGroupService extends BaseChatService {
       if (!forceUpload) {
         // Check from relay if key package exists and is not expired
         final existingPK = await getKeyPackageFromRelay(
-          pubkey: identity.secp256k1PKHex,
+          pubkey: identity.nostrIdentityKey,
           toRelay: toRelay,
         );
 
@@ -1069,14 +1069,14 @@ class MlsGroupService extends BaseChatService {
           // No key package found on relay, need to upload
           needsUpload = true;
           loggerNoLine.i(
-            'No key package found on relay for identity: ${identity.secp256k1PKHex}',
+            'No key package found on relay for identity: ${identity.nostrIdentityKey}',
           );
         } else {
           // Query the event from relay to check creation time
           final ws = Get.find<WebsocketService>();
           final req = NostrReqModel(
             reqId: generate64RandomHexChars(16),
-            authors: [identity.secp256k1PKHex],
+            authors: [identity.nostrIdentityKey],
             kinds: [EventKinds.mlsNipKeypackages],
             limit: 1,
             since: DateTime.now().subtract(const Duration(days: 90)),
@@ -1098,11 +1098,11 @@ class MlsGroupService extends BaseChatService {
             if (eventAge >= thirtyDays) {
               needsUpload = true;
               loggerNoLine.i(
-                'Key package expired (>30 days) for identity: ${identity.secp256k1PKHex}',
+                'Key package expired (>30 days) for identity: ${identity.nostrIdentityKey}',
               );
             } else {
               loggerNoLine.i(
-                'Key package still valid for identity: ${identity.secp256k1PKHex}',
+                'Key package still valid for identity: ${identity.nostrIdentityKey}',
               );
               continue;
             }
@@ -1117,7 +1117,7 @@ class MlsGroupService extends BaseChatService {
       }
 
       loggerNoLine.i(
-        'Uploading key package for identity: ${identity.secp256k1PKHex}',
+        'Uploading key package for identity: ${identity.nostrIdentityKey}',
       );
       final event = await _createKeyPackageEvent(identity, onlineRelays);
 
@@ -1134,11 +1134,11 @@ class MlsGroupService extends BaseChatService {
                   errorMessage?.toLowerCase().startsWith('duplicate') ?? false;
               if (status || isDuplicate) {
                 loggerNoLine.i(
-                  'Key package uploaded successfully to $relay: ${identity.secp256k1PKHex}',
+                  'Key package uploaded successfully to $relay: ${identity.nostrIdentityKey}',
                 );
               } else {
                 logger.w(
-                  'Key package upload failed to $relay: ${identity.secp256k1PKHex}, error: $errorMessage',
+                  'Key package upload failed to $relay: ${identity.nostrIdentityKey}, error: $errorMessage',
                 );
               }
               NostrAPI.instance.removeOKCallback(eventId);
@@ -1363,7 +1363,7 @@ class MlsGroupService extends BaseChatService {
       };
     }
     return rust_mls.selfUpdate(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       groupId: room.toMainPubkey,
       extensions: utf8.encode(jsonEncode(map)),
     );
@@ -1406,7 +1406,7 @@ class MlsGroupService extends BaseChatService {
     final identity = groupRoom.getIdentity();
     String? errorMessage;
     for (final user in users.entries) {
-      if (identity.secp256k1PKHex == user.key) continue;
+      if (identity.nostrIdentityKey == user.key) continue;
       try {
         final smr = await NostrAPI.instance.sendNip17Message(
           groupRoom,
@@ -1436,8 +1436,8 @@ class MlsGroupService extends BaseChatService {
       msgid: events[0].id,
       eventIds: events.map((e) => e.id).toList(),
       roomId: groupRoom.id,
-      from: identity.secp256k1PKHex,
-      idPubkey: identity.secp256k1PKHex,
+      from: identity.nostrIdentityKey,
+      idPubkey: identity.nostrIdentityKey,
       to: groupRoom.toMainPubkey,
       encryptType: MessageEncryptType.nip17,
       sent: SendStatusType.sending,
@@ -1541,7 +1541,7 @@ class MlsGroupService extends BaseChatService {
     List<String> onlineRelays,
   ) async {
     final pkRes = await rust_mls.createKeyPackage(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
     );
 
     final event = await NostrAPI.instance.signEventByIdentity(
@@ -1560,14 +1560,14 @@ class MlsGroupService extends BaseChatService {
     return event;
   }
 
-  /// Repairs the one-time listening key for MLS group rooms after app restart.
+  /// Repairs the receive address for MLS group rooms after app restart.
   ///
-  /// Compares each room's stored [Room.onetimekey] against the value derived
+  /// Compares each room's stored [Room.receiveAddress] against the value derived
   /// from the current MLS export secret. Updates the room and re-subscribes
   /// to the correct key if they differ.
   ///
   /// Called during app initialization to recover from interrupted epoch rotations.
-  Future<void> fixMlsOnetimeKey(List<Room> rooms) async {
+  Future<void> fixMlsReceiveAddress(List<Room> rooms) async {
     await Utils.waitRelayOnline();
     for (final room in rooms) {
       try {
@@ -1589,9 +1589,9 @@ class MlsGroupService extends BaseChatService {
             )
             .timeout(const Duration(seconds: 2));
         logger.i('[MLS] Fetched new pubkey for room ${room.id}: $newPubkey');
-        if (room.onetimekey == null || room.onetimekey != newPubkey) {
-          loggerNoLine.i('[MLS] Room ${room.id} update onetime key $newPubkey');
-          room.onetimekey = newPubkey;
+        if (room.receiveAddress == null || room.receiveAddress != newPubkey) {
+          loggerNoLine.i('[MLS] Room ${room.id} update receive address $newPubkey');
+          room.receiveAddress = newPubkey;
           await RoomService.instance.updateRoomAndRefresh(room);
           Get.find<WebsocketService>().listenPubkeyNip17(
             [newPubkey],
@@ -1619,7 +1619,7 @@ class MlsGroupService extends BaseChatService {
   ///
   /// Returns true if the key package has not expired, false otherwise.
   Future<bool> checkPkIsValid(Room room, String pk) async {
-    final nostrId = room.getIdentity().secp256k1PKHex;
+    final nostrId = room.getIdentity().nostrIdentityKey;
     final lifetime = await rust_mls.parseLifetimeFromKeyPackage(
       nostrId: nostrId,
       keyPackageHex: pk,

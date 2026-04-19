@@ -528,7 +528,9 @@ jobs:
         working-directory: ./packages/app/
         run: |
           export PROTOC=$(which protoc)
-          flutter build apk --release
+          flutter build apk --release \
+            --target-platform android-arm64,android-x64 \
+            --split-per-abi
           mkdir -p ../../dist
           find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
           rm -rf build/

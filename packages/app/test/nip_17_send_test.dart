@@ -10,7 +10,8 @@ import 'package:web_socket_client/web_socket_client.dart';
 const String relay = 'wss://backup.keychat.io';
 
 void main() {
-  test('NIP17-send', () async {
+  test('NIP17-send', skip: 'Requires local relay at ws://localhost:8080',
+      () async {
     Future task(WebSocket textSocketHandler) async {
       final nip17Event = NostrEventModel.partial(
         id: '2886780f7349afc1344047524540ee716f7bdc1b64191699855662330bf235d8',
@@ -37,7 +38,8 @@ void main() {
     await Future.delayed(const Duration(seconds: 10));
   });
 
-  test('NIP17-receive', () async {
+  test('NIP17-receive', skip: 'Requires local relay at ws://localhost:8080',
+      () async {
     Future task(WebSocket textSocketHandler) async {
       final req = NostrReqModel(
         reqId: 'a${Random().nextInt(900000)}',

@@ -35,9 +35,9 @@ class SignalIdService {
     final keychain = await rust_signal.generateSignalIds();
     final signalId =
         SignalId(
-            prikey: hex.encode(keychain.$1),
+            prikey: hex.encode(keychain.privateKey),
             identityId: identityId,
-            pubkey: hex.encode(keychain.$2),
+            pubkey: hex.encode(keychain.publicKey),
           )
           ..isGroupSharedKey = isGroupSharedKey
           ..isUsed = false;
@@ -47,23 +47,23 @@ class SignalIdService {
       signalId,
     );
     final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
-    final signKeyResult = await rust_signal.generateSignedKeyApi(
+    final signKeyResult = await rust_signal.generateSignedPreKeyApi(
       keyPair: keypair,
       signalIdentityPrivateKey: signalPrivateKey,
     );
 
-    signalId.signalKeyId = signKeyResult.$1;
+    signalId.signalKeyId = signKeyResult.signedPreKeyId;
     final data = <String, dynamic>{};
-    data['signedId'] = signKeyResult.$1;
-    data['signedPublic'] = hex.encode(signKeyResult.$2);
-    data['signedSignature'] = hex.encode(signKeyResult.$3);
+    data['signedId'] = signKeyResult.signedPreKeyId;
+    data['signedPublic'] = hex.encode(signKeyResult.signedPreKeyPublic);
+    data['signedSignature'] = hex.encode(signKeyResult.signedPreKeySignature);
 
     final prekeyResult = await rust_signal.generatePrekeyApi(keyPair: keypair);
-    data['prekeyId'] = prekeyResult.$1;
-    data['prekeyPubkey'] = hex.encode(prekeyResult.$2);
+    data['prekeyId'] = prekeyResult.preKeyId;
+    data['prekeyPubkey'] = hex.encode(prekeyResult.preKeyPublic);
     if (isGroupSharedKey) {
-      data['signedRecord'] = hex.encode(signKeyResult.$4);
-      data['prekeyRecord'] = hex.encode(prekeyResult.$3);
+      data['signedRecord'] = hex.encode(signKeyResult.signedPreKeyRecord);
+      data['prekeyRecord'] = hex.encode(prekeyResult.preKeyRecord);
     }
     signalId.keys = jsonEncode(data);
 
@@ -182,21 +182,21 @@ class SignalIdService {
     final keypair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
 
     final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
-    final res = await rust_signal.generateSignedKeyApi(
+    final res = await rust_signal.generateSignedPreKeyApi(
       keyPair: keypair,
       signalIdentityPrivateKey: signalPrivateKey,
     );
 
-    signalId.signalKeyId = res.$1;
+    signalId.signalKeyId = res.signedPreKeyId;
     await SignalIdService.instance.updateSignalId(signalId);
     final data = <String, dynamic>{};
-    data['signedId'] = res.$1;
-    data['signedPublic'] = hex.encode(res.$2);
-    data['signedSignature'] = hex.encode(res.$3);
+    data['signedId'] = res.signedPreKeyId;
+    data['signedPublic'] = hex.encode(res.signedPreKeyPublic);
+    data['signedSignature'] = hex.encode(res.signedPreKeySignature);
 
     final res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
-    data['prekeyId'] = res2.$1;
-    data['prekeyPubkey'] = hex.encode(res2.$2);
+    data['prekeyId'] = res2.preKeyId;
+    data['prekeyPubkey'] = hex.encode(res2.preKeyPublic);
     data['time'] = time;
     return data;
   }
@@ -238,15 +238,15 @@ class SignalIdService {
       signalId,
     );
 
-    await rust_signal.storePrekeyApi(
+    await rust_signal.storePreKeyApi(
       keyPair: keyPair,
-      prekeyId: keys['prekeyId'] as int,
-      record: hex.decode(keys['prekeyRecord'] as String),
+      preKeyId: keys['prekeyId'] as int,
+      preKeyRecord: hex.decode(keys['prekeyRecord'] as String),
     );
-    await rust_signal.storeSignedKeyApi(
+    await rust_signal.storeSignedPreKeyApi(
       keyPair: keyPair,
-      signedKeyId: keys['signedId'] as int,
-      record: hex.decode(keys['signedRecord'] as String),
+      signedPreKeyId: keys['signedId'] as int,
+      signedPreKeyRecord: hex.decode(keys['signedRecord'] as String),
     );
 
     return signalId;

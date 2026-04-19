@@ -162,7 +162,8 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
   );
-  const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
+  const env =
+      kReleaseMode ? 'prod' : String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
   logStep('config done');

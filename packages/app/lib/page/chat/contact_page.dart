@@ -162,8 +162,8 @@ class ContactPage extends StatelessWidget {
                           identity: identity,
                           name: contact.displayName,
                           status: RoomStatus.enabled,
-                          curve25519PkHex: model?.curve25519PkHex,
-                          onetimekey: model?.onetimekey,
+                          peerSignalIdentityKey: model?.signalIdentityKey,
+                          receiveAddress: model?.receiveAddress,
                           encryptMode: EncryptMode.signal,
                           contact: contact,
                         );
@@ -173,12 +173,12 @@ class ContactPage extends StatelessWidget {
                           await Get.find<ChatxService>().deleteSignalSessionKPA(
                             room,
                           );
-                          if (model?.curve25519PkHex != null) {
-                            room.curve25519PkHex = model?.curve25519PkHex;
+                          if (model?.signalIdentityKey != null) {
+                            room.peerSignalIdentityKey = model?.signalIdentityKey;
                           }
                         }
-                        if (room0.curve25519PkHex != null &&
-                            model?.signedId != null) {
+                        if (room0.peerSignalIdentityKey != null &&
+                            model?.signalSignedPrekeyId != null) {
                           if (model == null) {
                             EasyLoading.showError(
                               'Signal Session create failed. Please generate a new QR Code',
@@ -187,16 +187,16 @@ class ContactPage extends StatelessWidget {
                           }
                           final res = await Get.find<ChatxService>().addRoomKPA(
                             room: room0,
-                            bobSignedId: model!.signedId,
+                            bobSignedId: model!.signalSignedPrekeyId,
                             bobSignedPublic: Uint8List.fromList(
-                              hex.decode(model!.signedPublic),
+                              hex.decode(model!.signalSignedPrekey),
                             ),
                             bobSignedSignature: Uint8List.fromList(
-                              hex.decode(model!.signedSignature),
+                              hex.decode(model!.signalSignedPrekeySignature),
                             ),
-                            bobPrekeyId: model!.prekeyId,
+                            bobPrekeyId: model!.signalOneTimePrekeyId,
                             bobPrekeyPublic: Uint8List.fromList(
-                              hex.decode(model!.prekeyPubkey),
+                              hex.decode(model!.signalOneTimePrekey),
                             ),
                           );
                           if (!res) {

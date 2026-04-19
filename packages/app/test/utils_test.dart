@@ -768,5 +768,51 @@ Chat with me: [https://link.keychat.io/abc123](https://link.keychat.io/abc123)
         expect(result, isEmpty);
       });
     });
+
+    group('extractSingleUrl', () {
+      test('returns URL for valid http URL', () {
+        expect(
+          Utils.extractSingleUrl('http://example.com'),
+          equals('http://example.com'),
+        );
+      });
+
+      test('returns URL for valid https URL', () {
+        expect(
+          Utils.extractSingleUrl('https://example.com/path?q=1'),
+          equals('https://example.com/path?q=1'),
+        );
+      });
+
+      test('trims whitespace around URL', () {
+        expect(
+          Utils.extractSingleUrl('  https://example.com  '),
+          equals('https://example.com'),
+        );
+      });
+
+      test('returns null for plain text', () {
+        expect(Utils.extractSingleUrl('hello world'), isNull);
+      });
+
+      test('returns null for text with embedded URL', () {
+        expect(
+          Utils.extractSingleUrl('check https://example.com out'),
+          isNull,
+        );
+      });
+
+      test('returns null for empty string', () {
+        expect(Utils.extractSingleUrl(''), isNull);
+      });
+
+      test('returns null for whitespace only', () {
+        expect(Utils.extractSingleUrl('   '), isNull);
+      });
+
+      test('returns null for non-http URL', () {
+        expect(Utils.extractSingleUrl('ftp://example.com'), isNull);
+      });
+    });
   });
 }

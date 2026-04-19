@@ -66,20 +66,21 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
-        ndk {
-            // abiFilters 'x86','armeabi-v7a','arm64-v8a','x86_64'
-            abiFilters 'x86','x86_64','arm64-v8a'
-            // abiFilters 'ARCH_X86','ARCH_ARM32','ARCH_ARM64'
-        }
+        // ABIs are controlled via:
+        //   - splits.abi (for APK tasks)
+        //   - Flutter's --target-platform (for AAB tasks)
+        //   - packaging.jniLibs.excludes (drops stray 3rd-party .so)
+        // Setting ndk.abiFilters here conflicts with splits.abi on AGP 8+.
     }
     splits {
         abi {
-            // Disable ABI splits when building AAB (App Bundle handles this automatically)
-            enable gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") } ? false : true
+            // Only enable when user explicitly passes --split-per-abi.
+            // Without that flag, Flutter injects ndk.abiFilters itself, which
+            // conflicts with splits.abi on AGP 8+ (cannot coexist).
+            enable project.hasProperty("split-per-abi")
             reset()
-            include 'arm64-v8a', 'x86_64', 'x86'
-            // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk  true
+            include 'arm64-v8a', 'x86_64'
+            universalApk false
         }
     }
 
@@ -94,6 +95,20 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            ndk {
+                // 'SYMBOL_TABLE' produces compact native symbols (.sym) for
+                // Play Console crash symbolication. 'NONE' would fail Flutter's
+                // post-build check (gradle.dart:_isAabStrippedOfDebugSymbols).
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
+        }
+    }
+
+    // Drop stray prebuilt .so files that ship inside 3rd-party AARs for
+    // ABIs we don't target. Keep arm64-v8a and x86_64.
+    packaging {
+        jniLibs {
+            excludes += ['lib/armeabi-v7a/**', 'lib/x86/**']
         }
     }
     

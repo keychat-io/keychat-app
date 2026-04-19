@@ -223,7 +223,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         try {
           final room = await RoomService.instance.getOrCreateRoom(
             hexPubkey,
-            selectedIdentity.secp256k1PKHex,
+            selectedIdentity.nostrIdentityKey,
             RoomStatus.enabled,
             contactName: bot['name'] as String?,
             type: RoomType.bot,

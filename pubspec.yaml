@@ -91,6 +91,10 @@ melos:
       run: melos run test:dart --no-select && melos run test:flutter --no-select
       description: Run all Dart & Flutter tests in this project.
 
+    test:unit:
+      run: cd packages/app && fvm flutter test test/models/ test/unit/ test/service/ test/utils_test.dart --reporter expanded
+      description: Run unit tests only (no widget/integration tests).
+
     test:dart:
       run: melos exec -c 1 --fail-fast -- "flutter test --coverage"
       description: Run Dart tests for a specific package in this project.
@@ -107,15 +111,12 @@ melos:
 
     clean:flutter:
       steps:
-        - melos exec -c 4 --fail-fast -- "flutter clean"
-        - melos exec -c 4 --fail-fast -- "flutter pub run build_runner clean"
-        - melos exec -c 4 --fail-fast -- "melos bootstrap"
-        - melos exec -c 1 --fail-fast -- "flutter pub run build_runner build --delete-conflicting-outputs"
-        - cd packages/app/ios && rm -rf Podfile.lock && pod repo update && pod install --repo-update
-        - cd packages/app/macos && rm -rf Podfile.lock && pod repo update && pod install --repo-update
-      description: Run Flutter clean for a specific package in this project.
-      packageFilters:
-        flutter: true
+        - melos exec -c 1 -- "flutter clean"
+        - melos exec -c 1 --depends-on="build_runner" -- "dart run build_runner clean"
+        - melos bootstrap
+        - melos exec -c 1 --depends-on="build_runner" -- "dart run build_runner build --delete-conflicting-outputs"
+        - melos run pod:install
+      description: Clean all Flutter packages, reinstall dependencies, regenerate code, and reinstall pods.
 
     intl:generate:
       name: app_intl

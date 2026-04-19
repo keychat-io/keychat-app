@@ -65,7 +65,7 @@ class RecommendBots extends StatelessWidget {
 
                       final room = await RoomService.instance.getOrCreateRoom(
                         hexPubkey,
-                        identity.secp256k1PKHex,
+                        identity.nostrIdentityKey,
                         RoomStatus.enabled,
                         contactName: bot['name'] as String,
                         type: RoomType.bot,

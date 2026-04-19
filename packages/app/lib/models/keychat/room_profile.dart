@@ -21,8 +21,10 @@ class RoomProfile {
   /// To accept data from both old and new clients, we read 'groupId' first
   /// and fall back to 'oldToRoomPubKey' if absent.
   factory RoomProfile.fromJson(Map<String, dynamic> json) {
-    json['groupId'] ??= json['oldToRoomPubKey'];
-    return _$RoomProfileFromJson(json);
+    // Clone so we don't mutate the caller's map with the legacy-key fallback.
+    final data = {...json};
+    data['groupId'] ??= data['oldToRoomPubKey'];
+    return _$RoomProfileFromJson(data);
   }
 
   final String pubkey;

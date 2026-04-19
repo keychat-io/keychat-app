@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:keychat/app.dart';
 import 'package:keychat/service/file.service.dart';
@@ -39,7 +41,11 @@ class FileDownloadManager {
 
     final notifier = ValueNotifier<double>(0);
     _active[message.id] = notifier;
-    _execute(message, mfi, notifier);
+    // Schedule on a microtask so the caller receives the notifier first and
+    // can attach listeners before any terminal value (1.0 / -1.0) is set —
+    // matters when _execute would otherwise throw synchronously before its
+    // first await.
+    unawaited(Future.microtask(() => _execute(message, mfi, notifier)));
     return notifier;
   }
 
@@ -65,6 +71,11 @@ class FileDownloadManager {
       notifier.value = -1.0;
     } finally {
       _active.remove(message.id);
+      // Intentionally NOT calling notifier.dispose(): widget lifetimes may
+      // outlive the download (e.g. a list rebuild running after the terminal
+      // value fires). Disposing here would crash a widget's later
+      // removeListener call. The notifier is GC-collected once every listener
+      // detaches, so widgets MUST removeListener in their own dispose().
     }
   }
 }

@@ -11,14 +11,16 @@ class MsgReply {
   MsgReply();
 
   factory MsgReply.fromJson(Map<String, dynamic> json) {
+    // Clone so we don't mutate the caller's map with legacy-key fallbacks.
+    final data = {...json};
     // Support legacy field names: id -> eventId, user -> userId
-    if (json.containsKey('id') && !json.containsKey('eventId')) {
-      json['eventId'] = json['id'];
+    if (data.containsKey('id') && !data.containsKey('eventId')) {
+      data['eventId'] = data['id'];
     }
-    if (json.containsKey('user') && !json.containsKey('userId')) {
-      json['userId'] = json['user'];
+    if (data.containsKey('user') && !data.containsKey('userId')) {
+      data['userId'] = data['user'];
     }
-    return _$MsgReplyFromJson(json);
+    return _$MsgReplyFromJson(data);
   }
 
   String? eventId;

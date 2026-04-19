@@ -45,7 +45,12 @@ class RelayService {
       relay,
       connectedCallback: () async {
         unawaited(NotifyService.instance.syncPubkeysToServer());
-        unawaited(RelayService.instance.refreshRelayInfo(relays: [relay]));
+        // force: true — bypass the 1/day throttle for a freshly-added relay
+        // so its fee/mint info is cached right away instead of waiting until
+        // the next daily window.
+        unawaited(
+          RelayService.instance.refreshRelayInfo(relays: [relay], force: true),
+        );
         final identities = Get.find<HomeController>().allIdentities.values
             .toList();
         await MlsGroupService.instance.uploadKeyPackages(

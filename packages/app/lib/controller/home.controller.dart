@@ -389,11 +389,16 @@ class HomeController extends GetxController
           StorageKeyString.cachedLatestVersion,
           version,
         );
+        // Only stamp the throttle timestamp on a successful parse. A
+        // malformed response (empty results / missing tag_name) should NOT
+        // lock out retries for 24h — the next call can try again.
+        await Storage.setInt(
+          StorageKeyString.lastUpdateCheckTime,
+          DateTime.now().millisecondsSinceEpoch,
+        );
+      } else {
+        logger.w('checkAppUpdate: no version parsed from response');
       }
-      await Storage.setInt(
-        StorageKeyString.lastUpdateCheckTime,
-        DateTime.now().millisecondsSinceEpoch,
-      );
     } catch (e) {
       logger.e('checkAppUpdate failed', error: e);
     }

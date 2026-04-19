@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File;
 
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -472,6 +473,9 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    // Cancel pending debounced list refresh so it can't fire into a
+    // disposed controller. Key must match message.service.dart.
+    EasyDebounce.cancel('refreshMessageInPage:${roomObs.value.id}');
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();

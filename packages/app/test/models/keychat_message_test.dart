@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:keychat/constants.dart';
 import 'package:keychat/models/embedded/msg_reply.dart';
 import 'package:keychat/models/keychat/keychat_message.dart';
+import 'package:keychat/models/keychat/qrcode_user_model.dart';
 import 'package:keychat/models/room.dart';
 
 void main() {
@@ -104,28 +105,58 @@ void main() {
     });
   });
 
-  group('setHelloMessage field names', () {
+  group('setHelloMessage backward-compat wire format', () {
     // setHelloMessagge depends on services (GetX, SignalIdService, etc.)
-    // so we verify the field names used in the data map indirectly
-    // through the QRUserModel serialization tests.
-    // The key contract: hello message data map must use these keys:
-    test('expected hello message field names are documented', () {
-      // These are the canonical field names that setHelloMessagge must produce
-      const expectedKeys = [
-        'name',
-        'nostrIdentityKey',
-        'signalIdentityKey',
-        'receiveAddress',
-        'time',
-        'relay',
-        'lightning',
-        'avatar',
-        'globalSign',
-      ];
-      // Verify they exist as string constants (compile-time check)
-      for (final key in expectedKeys) {
-        expect(key, isNotEmpty);
-      }
+    // that cannot run in a pure unit test. Instead, we simulate the exact
+    // `data` map it assembles at keychat_message.dart (identity fields +
+    // SignalIdService.getQRCodeData legacy-keyed output) and verify that
+    // QRUserModel.toString() still emits every legacy key old clients
+    // need to decode the hello message.
+    Map<String, dynamic> assembleHelloData() => {
+          // Identity fields — new names (keychat_message.dart:92-101)
+          'name': 'Alice',
+          'nostrIdentityKey': 'nostr_identity_key_hex',
+          'signalIdentityKey': 'signal_identity_key_hex',
+          'receiveAddress': 'receive_address_hex',
+          'time': 1700000000,
+          'relay': 'wss://relay.example.com',
+          'lightning': '',
+          'avatar': '',
+          'globalSign': 'global_sign_value',
+          // Signal prekey fields — legacy names
+          // (SignalIdService.getQRCodeData still emits legacy keys)
+          'signedId': 42,
+          'signedPublic': 'signed_prekey_hex',
+          'signedSignature': 'signed_prekey_sig_hex',
+          'prekeyId': 7,
+          'prekeyPubkey': 'one_time_prekey_hex',
+        };
+
+    test('hello data parses via QRUserModel', () {
+      final model = QRUserModel.fromJson(assembleHelloData());
+      expect(model.name, 'Alice');
+      expect(model.nostrIdentityKey, 'nostr_identity_key_hex');
+      expect(model.signalIdentityKey, 'signal_identity_key_hex');
+      expect(model.receiveAddress, 'receive_address_hex');
+      expect(model.signalSignedPrekeyId, 42);
+      expect(model.signalOneTimePrekeyId, 7);
+    });
+
+    test('hello message JSON contains every legacy key old clients expect',
+        () {
+      // Mirrors keychat_message.dart: name = QRUserModel.fromJson(data).toString()
+      final helloJson = QRUserModel.fromJson(assembleHelloData()).toJson();
+
+      // Identity legacy aliases
+      expect(helloJson['pubkey'], 'nostr_identity_key_hex');
+      expect(helloJson['curve25519PkHex'], 'signal_identity_key_hex');
+      expect(helloJson['onetimekey'], 'receive_address_hex');
+      // Signal prekey legacy aliases
+      expect(helloJson['signedId'], 42);
+      expect(helloJson['signedPublic'], 'signed_prekey_hex');
+      expect(helloJson['signedSignature'], 'signed_prekey_sig_hex');
+      expect(helloJson['prekeyId'], 7);
+      expect(helloJson['prekeyPubkey'], 'one_time_prekey_hex');
     });
   });
 }

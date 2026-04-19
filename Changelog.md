@@ -3,6 +3,22 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.41.0+6512
+
+- feat: URL preview for link-only chat messages
+- feat: auto-check for updates via App Store / GitHub Releases
+- feat: FileDownloadManager centralises progress; auto-download media under 20MB
+- refactor: rename model fields to semantic names, keep JSON backward-compatible with older clients
+- refactor: rewrite image / video / file widgets; fix flicker on message list refresh
+- refactor: consolidate NIP-11 relay info fetching; force refresh on cold start so paid relays (e.g. relay.keychat.io) always load fee config
+- refactor: remove voice message feature (record / just_audio)
+- build(android): arm64-v8a + x86_64 only, native symbol table for Play Console symbolication, smaller APK / AAB
+- test: add ~270 unit tests for models, serialization, and utilities
+- fix: MsgReply / RoomProfile fromJson no longer mutate caller's map
+- fix: URL preview shows the URL itself instead of "Fetching data…" while loading
+- fix: file-download dedup race and debounce cleanup on chat dispose
+- fix: version-check throttle no longer locks out retries after a malformed response
+
 ## 1.40.9+6510
 
 Enhance clipboard handling, and adjust message retrieval duration for nip17

@@ -4,10 +4,7 @@
 # Required environment variables:
 #   ASC_API_KEY      App Store Connect API Key ID (e.g. 8Y6J352PMA)
 #   ASC_API_ISSUER   App Store Connect API Issuer ID (UUID)
-#
-# Optional:
-#   ASC_API_KEY_PATH Directory holding AuthKey_<ASC_API_KEY>.p8
-#                    (altool searches the default locations if unset)
+#   ASC_TEAM_ID      Apple Developer Team ID (10-char alphanumeric)
 #
 # The .p8 key file must live in one of:
 #   ./private_keys
@@ -17,17 +14,45 @@
 #
 set -e
 
-if [ -z "$ASC_API_KEY" ] || [ -z "$ASC_API_ISSUER" ]; then
-    echo "ERROR: ASC_API_KEY and ASC_API_ISSUER must be set in the environment."
+missing=""
+[ -z "$ASC_API_KEY" ]    && missing="$missing ASC_API_KEY"
+[ -z "$ASC_API_ISSUER" ] && missing="$missing ASC_API_ISSUER"
+[ -z "$ASC_TEAM_ID" ]    && missing="$missing ASC_TEAM_ID"
+if [ -n "$missing" ]; then
+    echo "ERROR: missing required env var(s):$missing"
     echo "Add to your shell rc (~/.zshrc):"
     echo "  export ASC_API_KEY=<your-key-id>"
     echo "  export ASC_API_ISSUER=<your-issuer-uuid>"
+    echo "  export ASC_TEAM_ID=<your-team-id>"
     exit 1
 fi
 
 start_ts=$(date +%s)
 current_path=$(pwd)
-export_options="$current_path/scripts/ExportOptions.ios.plist"
+
+# Generate ExportOptions.plist at build time so teamID stays out of git.
+export_options="$current_path/build/ExportOptions.ios.plist"
+mkdir -p "$(dirname "$export_options")"
+cat > "$export_options" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>teamID</key>
+	<string>${ASC_TEAM_ID}</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>uploadSymbols</key>
+	<true/>
+	<key>destination</key>
+	<string>export</string>
+	<key>stripSwiftSymbols</key>
+	<true/>
+</dict>
+</plist>
+EOF
 
 echo "Update app starting..."
 cd packages/app/

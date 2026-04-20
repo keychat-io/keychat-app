@@ -25,6 +25,18 @@ class RelayWebsocket {
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
 
+  /// Cached NIP-11 supported_nips from relay info document.
+  /// Empty means no info yet (allow all).
+  Set<int> supportedNips = {};
+
+  /// Returns true if this relay supports writing events of [kind].
+  ///
+  /// Currently always returns true because many relays do not correctly
+  /// configure their supported_nips field in NIP-11 responses.
+  bool supportsKind(int kind) {
+    return true;
+  }
+
   // Stream subscriptions to prevent memory leaks
   StreamSubscription<ConnectionState>? connectionStateSubscription;
   StreamSubscription<dynamic>? messagesSubscription;
@@ -33,15 +45,15 @@ class RelayWebsocket {
     // id keys
     final pubkeys = await IdentityService.instance.getListenPubkeys();
 
-    listenPubkeys(
-      pubkeys,
-      DateTime.now().subtract(const Duration(days: 2)),
-      [EventKinds.nip17],
-    );
-
     // mls group room
     final since = await MessageService.instance.getNostrListenStartAt(
       relay.url,
+    );
+
+    listenPubkeys(
+      pubkeys,
+      since.subtract(const Duration(days: 2)),
+      [EventKinds.nip17],
     );
     final mlsRoomKeys = await IdentityService.instance.getMlsRoomPubkeys();
     listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);

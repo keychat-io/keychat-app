@@ -16,7 +16,7 @@ RoomProfile _$RoomProfileFromJson(Map<String, dynamic> json) =>
       )
       ..prikey = json['prikey'] as String?
       ..avatar = json['avatar'] as String?
-      ..oldToRoomPubKey = json['oldToRoomPubKey'] as String?
+      ..groupId = json['groupId'] as String?
       ..ext = json['ext'] as String?
       ..groupRelay = json['groupRelay'] as String?
       ..signalKeys = json['signalKeys'] as String?
@@ -29,7 +29,7 @@ Map<String, dynamic> _$RoomProfileToJson(RoomProfile instance) =>
       'pubkey': instance.pubkey,
       'prikey': ?instance.prikey,
       'avatar': ?instance.avatar,
-      'oldToRoomPubKey': ?instance.oldToRoomPubKey,
+      'groupId': ?instance.groupId,
       'groupType': _$GroupTypeEnumMap[instance.groupType]!,
       'ext': ?instance.ext,
       'groupRelay': ?instance.groupRelay,

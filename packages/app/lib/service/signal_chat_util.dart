@@ -33,14 +33,14 @@ class SignalChatUtil {
   }) async {
     if (!identity.isFromSigner) {
       return rust_nostr.signSchnorr(
-        privateKey: await identity.getSecp256k1SKHex(),
+        privateKey: await identity.getNostrPrivateKey(),
         content: content,
       );
     }
 
     return SignerService.instance.signMessage(
       content: content,
-      pubkey: identity.secp256k1PKHex,
+      pubkey: identity.nostrIdentityKey,
       id: id,
     );
   }
@@ -87,7 +87,7 @@ class SignalChatUtil {
     final identity = room.getIdentity();
 
     final content = SignalChatUtil.getToSignMessage(
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       signalId: signalPubkey,
       time: time,
     );
@@ -100,7 +100,7 @@ class SignalChatUtil {
     if (sig == null) throw Exception('Sign failed or User denied');
     return PrekeyMessageModel(
       signalId: signalPubkey,
-      nostrId: identity.secp256k1PKHex,
+      nostrId: identity.nostrIdentityKey,
       time: time,
       name: identity.displayName,
       sig: sig,

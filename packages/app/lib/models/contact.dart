@@ -15,6 +15,7 @@ part 'contact.g.dart';
     'imageAssets',
     'mlsPK',
     'displayAbout',
+    'signalIdentityKey',
   },
 )
 // ignore: must_be_immutable
@@ -30,7 +31,15 @@ class Contact extends Equatable {
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
   late String pubkey;
+  @Deprecated('Use signalIdentityKey instead')
   String? curve25519PkHex;
+
+  /// The peer's Signal identity key (curve25519 hex).
+  // ignore: deprecated_member_use_from_same_package
+  String? get signalIdentityKey => curve25519PkHex;
+  // ignore: deprecated_member_use_from_same_package
+  set signalIdentityKey(String? v) => curve25519PkHex = v;
+
   late String npubkey;
   late int identityId;
   String? metadata;

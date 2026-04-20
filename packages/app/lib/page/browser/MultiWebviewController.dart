@@ -54,7 +54,6 @@ class MultiWebviewController extends GetxController {
   RxMap<String, dynamic> get config => browserConfig.rawConfig;
 
   Map<String, InAppWebViewKeepAlive?> mobileKeepAlive = {};
-  Set<String> bottomSafeHosts = {'chachi.chat'};
   late void Function(String url) urlChangeCallBack;
 
   WebViewEnvironment? webViewEnvironment;
@@ -703,7 +702,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     var hosts = Storage.getStringList(StorageKeyString.mobileKeepAlive);
     // for init
     if (isInit && hosts.isEmpty) {
-      hosts = ['jumble.social'];
+      hosts = [];
       await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
     }
     for (final item in hosts) {

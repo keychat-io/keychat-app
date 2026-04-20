@@ -44,7 +44,7 @@ class ExpiredMembersDialog extends StatelessWidget {
         FutureBuilder(
           future: () {
             final identity = room.getIdentity();
-            return room.checkAdminByIdPubkey(identity.secp256k1PKHex);
+            return room.checkAdminByIdPubkey(identity.nostrIdentityKey);
           }(),
           builder: (context, snapshot) {
             final isAdmin = snapshot.data ?? false;

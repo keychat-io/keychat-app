@@ -18,14 +18,16 @@ import 'package:keychat/page/chat/ChatMediaFilesPage.dart';
 import 'package:keychat/page/chat/ForwardSelectRoom.dart';
 import 'package:keychat/page/chat/add_member_to_group.dart';
 import 'package:keychat/page/chat/contact_page.dart';
+import 'package:keychat/page/chat/message_actions/ImageMessageWidget.dart';
 import 'package:keychat/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:keychat/page/chat/message_widget.dart' show MessageWidget;
-import 'package:keychat/page/chat/widgets/voice_message_bubble.dart';
+import 'package:keychat/page/chat/widgets/url_preview_widget.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/widgets/image_min_preview_widget.dart';
 import 'package:keychat/page/widgets/image_preview_widget.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 import 'package:keychat/service/group.service.dart';
 import 'package:keychat/service/message.service.dart';
 import 'package:keychat/service/relay.service.dart';
@@ -222,7 +224,7 @@ class RoomUtil {
     var memberPubkeys = <String>{};
     if (room.isMLSGroup) {
       final existedPubkeys = await rust_mls.getGroupMembers(
-        nostrId: room.getIdentity().secp256k1PKHex,
+        nostrId: room.getIdentity().nostrIdentityKey,
         groupId: room.toMainPubkey,
       );
       memberPubkeys = Set.from(existedPubkeys);
@@ -242,7 +244,7 @@ class RoomUtil {
     contactList = contactList.reversed.toList();
     for (var i = 0; i < contactList.length; i++) {
       final c = contactList[i];
-      if (c.pubkey == identity.secp256k1PKHex) continue;
+      if (c.pubkey == identity.nostrIdentityKey) continue;
       var exist = false;
       if (memberPubkeys.contains(c.pubkey)) {
         exist = true;
@@ -927,19 +929,19 @@ Let's start an encrypted chat.''';
     bool fromAddPage = false,
     Identity? identity,
   }) async {
-    if (model.time + 1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime <
+    if (model.time + 1000 * 3600 * KeychatGlobal.inboxKeysLifetime <
         DateTime.now().millisecondsSinceEpoch) {
       EasyLoading.showToast('QR Code expired');
       return;
     }
     identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
+    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.nostrIdentityKey);
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.nostrIdentityKey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
-      signalId: model.curve25519PkHex,
-      nostrId: model.pubkey,
+      signalId: model.signalIdentityKey,
+      nostrId: model.nostrIdentityKey,
       time: model.time,
       name: model.name,
       sig: globalSign,
@@ -950,12 +952,12 @@ Let's start an encrypted chat.''';
 
     await SignalChatUtil.verifySignedMessage(
       pmm: pmm,
-      signalIdPubkey: model.curve25519PkHex,
+      signalIdPubkey: model.signalIdentityKey,
     );
 
     final contact = Contact(pubkey: pubkey, identityId: identity.id)
       ..npubkey = npub
-      ..curve25519PkHex = model.curve25519PkHex
+      ..signalIdentityKey = model.signalIdentityKey
       ..name = model.name
       ..avatarRemoteUrl = model.avatar
       ..lightning = model.lightning;
@@ -1107,24 +1109,6 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     );
   }
 
-  static Widget _imageTextView(
-    Message message,
-    ChatController cc,
-    Widget Function({Widget? child, String? text}) errorCallback,
-  ) {
-    if (message.realMessage != null) {
-      try {
-        final mfi = MsgFileInfo.fromJson(
-          jsonDecode(message.realMessage!) as Map<String, dynamic>,
-        );
-        return getImageViewWidget(message, cc, mfi, errorCallback);
-        // ignore: empty_catches
-      } catch (e) {}
-    }
-
-    return errorCallback(text: '[Image Crashed]');
-  }
-
   static Widget getImageViewWidget(
     Message message,
     ChatController cc,
@@ -1134,7 +1118,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     if (fileInfo.updateAt != null &&
         fileInfo.status == FileStatus.downloading) {
       final isTimeout = DateTime.now()
-          .subtract(const Duration(seconds: 60))
+          .subtract(FileDownloadManager.staleTimeout)
           .isAfter(fileInfo.updateAt!);
       if (isTimeout) {
         fileInfo.status = FileStatus.failed;
@@ -1167,7 +1151,7 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
               onPressed: () {
                 EasyLoading.showToast('Start downloading');
                 message.isRead = true;
-                FileService.instance.downloadForMessage(message, fileInfo);
+                FileDownloadManager.instance.startDownload(message, fileInfo);
               },
               icon: const Icon(Icons.refresh),
             ),
@@ -1187,20 +1171,32 @@ ${getDescByNipType(EncryptMode.signal, showDescription: false)}
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
+          final textContent = message.realMessage ?? message.content;
+          final singleUrl = Utils.extractSingleUrl(textContent);
+          if (singleUrl != null &&
+              Get.find<HomeController>().enableUrlPreview.value) {
+            return errorCallback(
+              child: UrlPreviewWidget(
+                url: singleUrl,
+                messageId: message.id,
+              ),
+            );
+          }
           return errorCallback(
-            child: getMarkdownView(
-              message.realMessage ?? message.content,
-              id: message.id,
-            ),
+            child: getMarkdownView(textContent, id: message.id),
           );
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);
         case MessageMediaType.image:
-          return _imageTextView(message, cc, errorCallback);
+          return ImageMessageWidget(
+            message: message,
+            cc: cc,
+            errorCallback: errorCallback,
+          );
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
         case MessageMediaType.audio:
-          return VoiceMessageBubble(message, errorCallback);
+          return errorCallback(text: '[Voice message not supported]');
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(

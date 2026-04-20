@@ -434,6 +434,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'Password',
+                  helperText: '8+ chars: A-Z, a-z, 0-9',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -458,8 +459,15 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
           CupertinoActionSheetAction(
             isDefaultAction: true,
             onPressed: () async {
-              if (passwordController.text.isNotEmpty &&
-                  passwordController.text != confirmPasswordController.text) {
+              final password = passwordController.text;
+              final strengthError = DbSetting.validatePasswordStrength(
+                password,
+              );
+              if (strengthError != null) {
+                EasyLoading.showError(strengthError);
+                return;
+              }
+              if (password != confirmPasswordController.text) {
                 EasyLoading.showError('Passwords do not match');
                 return;
               }

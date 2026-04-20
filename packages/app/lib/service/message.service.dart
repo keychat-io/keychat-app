@@ -7,7 +7,7 @@ import 'package:keychat/models/models.dart';
 import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/routes.dart';
 import 'package:keychat/rust_api.dart';
-import 'package:keychat/service/file.service.dart';
+import 'package:keychat/service/file_download_manager.dart';
 import 'package:keychat/service/room.service.dart';
 import 'package:keychat/service/storage.dart';
 import 'package:keychat/utils.dart';
@@ -44,11 +44,10 @@ class MessageService {
     // none text type: media, file, cashu...
     model = await _fillTypeForMessage(model, room.type == RoomType.bot);
 
-    var isCurrentPage = dbProvider.isCurrentPage(model.roomId);
+    final isCurrentPage = dbProvider.isCurrentPage(model.roomId);
     if (!model.isRead) {
       if (isCurrentPage) {
-        if ((GetPlatform.isDesktop &&
-                Get.find<HomeController>().resumed == true) ||
+        if ((GetPlatform.isDesktop && Get.find<HomeController>().resumed) ||
             GetPlatform.isMobile) {
           model.isRead = true;
         }
@@ -73,7 +72,30 @@ class MessageService {
       '[message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ',
     );
     _messageNotifyToPage(isCurrentPage, model, room);
+
+    // Auto-download media files after message is persisted
+    if (!model.isMeSend) {
+      _autoDownloadMedia(model);
+    }
+
     return model;
+  }
+
+  /// Triggers auto-download for media messages after they are saved.
+  ///
+  /// Images are always downloaded. Video and file are downloaded when size <= 20 MB.
+  /// All downloads go through FileDownloadManager for deduplication and progress.
+  void _autoDownloadMedia(Message model) {
+    final mfi = model.convertToMsgFileInfo();
+    if (mfi == null) return;
+    if (mfi.status != FileStatus.init) return;
+
+    final isImage = model.mediaType == MessageMediaType.image;
+    final isSmallEnough = mfi.size > 0 && mfi.size <= 20 * 1024 * 1024;
+
+    if (isImage || isSmallEnough) {
+      FileDownloadManager.instance.startDownload(model, mfi);
+    }
   }
 
   Future<void> _messageNotifyToPage(
@@ -174,11 +196,11 @@ class MessageService {
     await saveMessageModel(
       Message(
         msgid: Utils.randomString(16),
-        idPubkey: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
+        idPubkey: isMeSend ? identity.nostrIdentityKey : room.toMainPubkey,
         identityId: room.identityId,
         roomId: room.id,
-        from: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
-        to: isMeSend ? room.toMainPubkey : identity.secp256k1PKHex,
+        from: isMeSend ? identity.nostrIdentityKey : room.toMainPubkey,
+        to: isMeSend ? room.toMainPubkey : identity.nostrIdentityKey,
         content: suffix.isNotEmpty
             ? '''[$suffix]
 $content'''
@@ -201,7 +223,11 @@ $content'''
     refreshMessageInPage(message);
   }
 
-  /// Updates the message in the open [ChatController]'s list (debounced 100 ms).
+  /// Updates the message in the open [ChatController]'s list.
+  ///
+  /// The actual `messages.refresh()` is debounced per-room (not per-message)
+  /// so that multiple rapid updates (e.g. several files downloading) batch
+  /// into a single list rebuild instead of flickering the page.
   void refreshMessageInPage(Message message) {
     try {
       final cc = RoomService.getController(message.roomId);
@@ -210,8 +236,8 @@ $content'''
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
           EasyDebounce.debounce(
-            'refreshMessageInPage${message.id}',
-            const Duration(milliseconds: 100),
+            'refreshMessageInPage:${message.roomId}',
+            const Duration(milliseconds: 200),
             () {
               cc.messages.refresh();
             },
@@ -392,7 +418,7 @@ $content'''
     final time = await MessageService.instance.getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
 
-    return DateTime.now().subtract(const Duration(days: 14));
+    return DateTime.now().subtract(const Duration(days: 30));
   }
 
   /// Returns up to [limit] messages for [roomId], paginated by [offset], newest first.
@@ -603,11 +629,7 @@ $content'''
       m.realMessage = mfi.toString();
       if (mfi.type == MessageMediaType.image.name) {
         m.mediaType = MessageMediaType.image;
-        await FileService.instance.downloadForMessage(m, mfi);
-        return m;
-      }
-
-      if (mfi.type == MessageMediaType.video.name) {
+      } else if (mfi.type == MessageMediaType.video.name) {
         m.mediaType = MessageMediaType.video;
       } else if (mfi.type == MessageMediaType.file.name) {
         m.mediaType = MessageMediaType.file;

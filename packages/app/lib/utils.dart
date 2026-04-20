@@ -947,22 +947,6 @@ Init File: $time \n
     }
   }
 
-  static Future<List<dynamic>> getWebRTCServers() async {
-    final config = Storage.getString(StorageKeyString.defaultWebRTCServers);
-    if (config != null) {
-      try {
-        return jsonDecode(config) as List<dynamic>;
-      } catch (e) {
-        // logger.i(e, error: e);
-      }
-    }
-    await Storage.setString(
-      StorageKeyString.defaultWebRTCServers,
-      jsonEncode(KeychatGlobal.webrtcIceServers),
-    );
-    return KeychatGlobal.webrtcIceServers;
-  }
-
   static Future<Identity?> handleAmberLogin() async {
     final controller = TextEditingController();
     final focusNode = FocusNode();
@@ -1482,7 +1466,7 @@ Init File: $time \n
     final avatarPath =
         identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath;
     final cacheKey =
-        'avatar_dot_${identity.secp256k1PKHex}_${avatarPath}_$size';
+        'avatar_dot_${identity.nostrIdentityKey}_${avatarPath}_$size';
     if (_avatarWidgetCache.containsKey(cacheKey)) {
       return _avatarWidgetCache[cacheKey]!;
     }
@@ -1500,7 +1484,7 @@ Init File: $time \n
 
     // Fallback to random avatar if no local file or file doesn't exist
     return Utils.getRandomAvatar(
-      identity.secp256k1PKHex,
+      identity.nostrIdentityKey,
       size: size,
     );
   }
@@ -1577,6 +1561,17 @@ Init File: $time \n
 
     buffer.write(text.substring(lastIndex));
     return buffer.toString();
+  }
+
+  /// Returns the URL if the message text is a single URL (http/https only), null otherwise.
+  static String? extractSingleUrl(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return null;
+    final urlPattern = RegExp(r'^https?://[^\s]+$');
+    if (urlPattern.hasMatch(trimmed)) {
+      return trimmed;
+    }
+    return null;
   }
 
   static Future<T> withRetry<T>(

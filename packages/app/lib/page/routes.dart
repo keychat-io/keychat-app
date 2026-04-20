@@ -7,9 +7,6 @@ abstract class Routes {
 
   static const createIdentity = '/create_identity';
 
-  // webrtc
-  static const webrtcSetting = '/webrtc/setting';
-
   static const home = '/home';
   static const roomList = '/rooms';
   static const roomEmpty = '/room';

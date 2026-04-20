@@ -388,7 +388,7 @@ class NostrAPI {
       encryptedEvent = await SignerService.instance.getNip59EventString(
         content: sourceContent,
         nip17Kind: nip17Kind,
-        from: identity.secp256k1PKHex,
+        from: identity.nostrIdentityKey,
         additionalTags: additionalTags,
         to: toPubkey ?? room.toMainPubkey,
       );
@@ -396,7 +396,7 @@ class NostrAPI {
       // Rust FFI path - creates single event for receiver
       encryptedEvent = await rust_nostr.createGiftJson(
         kind: nip17Kind,
-        senderKeys: await identity.getSecp256k1SKHex(),
+        senderKeys: await identity.getNostrPrivateKey(),
         receiverPubkey: toPubkey ?? room.toMainPubkey,
         timestampTweaked: timestampTweaked,
         content: sourceContent,
@@ -413,7 +413,7 @@ class NostrAPI {
       to: toPubkey ?? room.toMainPubkey,
       plainContent: sourceContent,
       encryptedEvent: encryptedEvent,
-      from: identity.secp256k1PKHex,
+      from: identity.nostrIdentityKey,
       room: room,
       save: save,
       mediaType: mediaType,
@@ -795,7 +795,7 @@ class NostrAPI {
   ) async {
     // mls group room. receive address is one-time-key field
     final to = event.getTagByKey(EventKindTags.pubkey)!;
-    final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
+    final mlsRoom = await RoomService.instance.getRoomByReceiveAddress(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
       await MlsGroupService.instance.decryptMessage(mlsRoom, event, (
         String msg,
@@ -900,7 +900,7 @@ class NostrAPI {
         return SignerService.instance.nip44DecryptEvent(event);
       }
       myPrivateKey = await SecureStorage.instance.readPrikeyOrFail(
-        identity.secp256k1PKHex,
+        identity.nostrIdentityKey,
       );
     } else {
       final mykey = await IdentityService.instance.getMykeyByPubkey(to);
@@ -979,7 +979,7 @@ class NostrAPI {
   }) async {
     if (!identity.isFromSigner) {
       return rust_nostr.signEvent(
-        senderKeys: await identity.getSecp256k1SKHex(),
+        senderKeys: await identity.getNostrPrivateKey(),
         tags: tags,
         createdAt: BigInt.from(createdAt),
         content: content,
@@ -989,7 +989,7 @@ class NostrAPI {
 
     final event = {
       'id': id ?? generate64RandomHexChars(16),
-      'pubkey': identity.secp256k1PKHex,
+      'pubkey': identity.nostrIdentityKey,
       'created_at': createdAt,
       'kind': kind,
       'tags': tags,
@@ -997,7 +997,7 @@ class NostrAPI {
       'sig': '',
     };
     final res = await SignerService.instance.signEvent(
-      pubkey: identity.secp256k1PKHex,
+      pubkey: identity.nostrIdentityKey,
       eventJson: jsonEncode(event),
     );
     if (res == null) {

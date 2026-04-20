@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:collection' show UnmodifiableListView;
-import 'dart:convert' show base64, jsonDecode;
-import 'dart:io';
+import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,20 +23,17 @@ import 'package:keychat/nostr-core/nostr_event.dart';
 import 'package:keychat/page/browser/BookmarkEdit.dart';
 import 'package:keychat/page/browser/BrowserNewTab.dart';
 import 'package:keychat/page/browser/BrowserTabController.dart';
-import 'package:keychat/page/browser/DownloadManager_page.dart';
 import 'package:keychat/page/browser/FavoriteEdit.dart';
 import 'package:keychat/page/browser/MultiWebviewController.dart';
 import 'package:keychat/page/browser/SelectIdentityForBrowser.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/service/SignerService.dart';
-import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/identity.service.dart';
 import 'package:keychat/service/qrscan.service.dart';
 import 'package:keychat/service/relay.service.dart';
 import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -76,6 +70,13 @@ class _WebviewTabState extends State<WebviewTab> {
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
 
+  // Whether to disable SafeArea because page handles safe area itself
+  bool _disableBottomSafeArea = false;
+
+  // Whether the device uses gesture navigation
+  bool _isGestureNavigation = false;
+  static bool? _cachedIsGestureNavigation;
+
   // Add tooltip key
   final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
 
@@ -95,6 +96,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
     initBrowserConnect(WebUri(widget.initUrl));
     initPullToRefreshController();
+    _detectNavigationMode();
 
     // Show tooltip after widget is built
     if (GetPlatform.isMobile && multiWebviewController.browserConfig.showFAB) {
@@ -110,12 +112,30 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void dispose() {
-    // Cancel pending debounce/throttle operations for this tab
-    EasyDebounce.cancel('saveScroll:${tabController.url.value}');
-    EasyDebounce.cancel('onUpdateVisitedHistory:${tabController.url.value}');
-    EasyThrottle.cancel('refreshPage${tabController.hashCode}');
-    urlScrollPositions.clear();
     super.dispose();
+  }
+
+  Future<void> _detectNavigationMode() async {
+    if (!GetPlatform.isAndroid) return;
+    if (_cachedIsGestureNavigation != null) {
+      _isGestureNavigation = _cachedIsGestureNavigation!;
+      return;
+    }
+    try {
+      const channel = MethodChannel('com.keychat.io/system');
+      final mode = await channel.invokeMethod<int>('getNavigationMode');
+      // 0 = 3-button, 1 = 2-button, 2 = gesture
+      final isGesture = mode == 2;
+      _cachedIsGestureNavigation = isGesture;
+      logger.d('navigationMode: $mode, isGestureNavigation: $isGesture');
+      if (mounted && isGesture != _isGestureNavigation) {
+        setState(() {
+          _isGestureNavigation = isGesture;
+        });
+      }
+    } catch (e) {
+      logger.e('Failed to detect navigation mode', error: e);
+    }
   }
 
   void initBrowserConnect(WebUri uri) {
@@ -317,14 +337,10 @@ class _WebviewTabState extends State<WebviewTab> {
               ? FloatingActionButtonLocation.miniStartFloat
               : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
-            // Android with traditional navigation bar (not gesture navigation)
-            // needs bottom safe area to avoid content being obscured
             bottom:
-                (GetPlatform.isAndroid &&
-                    MediaQuery.of(context).systemGestureInsets.bottom == 0) ||
-                multiWebviewController.bottomSafeHosts.contains(
-                  WebUri(widget.initUrl).host,
-                ),
+                GetPlatform.isAndroid &&
+                !_isGestureNavigation &&
+                !_disableBottomSafeArea,
             child: Column(
               children: [
                 Expanded(
@@ -714,6 +730,7 @@ class _WebviewTabState extends State<WebviewTab> {
         initialUserScripts: UnmodifiableListView([
           multiWebviewController.textSizeUserScript,
         ]),
+
         onScrollChanged: (controller, x, y) async {
           // Save scroll position by current URL
           if (GetPlatform.isAndroid) {
@@ -822,13 +839,12 @@ class _WebviewTabState extends State<WebviewTab> {
           logger.i('shouldOverrideUrlLoading: $uri');
           if (uri == null) return NavigationActionPolicy.ALLOW;
 
-          // download file
-          if (uri.toString().startsWith('blob:')) {
-            await EasyLoading.showError('Blob files are not supported');
+          // Open blob URLs and download requests in the external browser
+          if (uri.toString().startsWith('blob:') ||
+              (navigationAction.shouldPerformDownload ?? false)) {
+            await EasyLoading.showInfo('Opening in external browser...');
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
             return NavigationActionPolicy.CANCEL;
-          }
-          if (navigationAction.shouldPerformDownload ?? false) {
-            return NavigationActionPolicy.DOWNLOAD;
           }
 
           try {
@@ -882,6 +898,23 @@ class _WebviewTabState extends State<WebviewTab> {
           if (url == null) return;
           logger.d('onLoadStop: $url');
           await _checkGoBackState(url.toString());
+
+          // Check if page has viewport-fit=cover in viewport meta tag.
+          // Pages with viewport-fit=cover handle safe area via CSS env(),
+          // so disable Flutter SafeArea to avoid double padding.
+          if (GetPlatform.isAndroid) {
+            final result = await controller.evaluateJavascript(
+              source:
+                  "(function(){var m=document.querySelector('meta[name=\"viewport\"]');return m&&/viewport-fit\\s*=\\s*cover/i.test(m.content);})()",
+            );
+            final shouldDisable = result == true;
+            if (shouldDisable != _disableBottomSafeArea) {
+              setState(() {
+                _disableBottomSafeArea = shouldDisable;
+              });
+            }
+          }
+
           await controller.injectJavascriptFileFromAsset(
             assetFilePath: 'assets/js/nostr.js',
           );
@@ -1043,7 +1076,11 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         onDownloadStarting: (controller, request) async {
           logger.d('onDownloadStart $request');
-          await downloadFile(request);
+          // Open download URL in external browser instead of handling internally
+          final url = request.url;
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          }
           return DownloadStartResponse(handled: true);
         },
       ),
@@ -1202,15 +1239,6 @@ class _WebviewTabState extends State<WebviewTab> {
                   await SharePlus.instance.share(ShareParams(uri: uri));
                 },
               ),
-              _buildToolButton(
-                icon: Icons.file_download,
-                label: 'Download',
-                color: Colors.purple,
-                onPressed: () async {
-                  closeMenu();
-                  await Get.to<void>(() => const DownloadManagerPage());
-                },
-              ),
               if (GetPlatform.isMobile)
                 _buildToolButton(
                   icon: Icons.exit_to_app,
@@ -1296,11 +1324,6 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    if (method == 'blobFileDownload') {
-      _downloadBlob(data[1] as String, data[2] as String);
-      return null;
-    }
-
     final host = (await getCurrentUrl()).host;
     final skipCache = method == 'getPublicKey';
     final identity = await getOrSelectIdentity(host, skipCache: skipCache);
@@ -1308,10 +1331,10 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    logger.i('selected: ${identity.secp256k1PKHex}');
+    logger.i('selected: ${identity.nostrIdentityKey}');
     switch (method) {
       case 'getPublicKey':
-        return identity.secp256k1PKHex;
+        return identity.nostrIdentityKey;
       case 'onAccountChanged':
         await switchAccountFromMiniApp(host, data[1] as String);
         return null;
@@ -1363,13 +1386,13 @@ class _WebviewTabState extends State<WebviewTab> {
         if (identity.isFromSigner) {
           final ciphertext = await SignerService.instance.nip04Encrypt(
             plaintext: plaintext,
-            currentUser: identity.secp256k1PKHex,
+            currentUser: identity.nostrIdentityKey,
             to: to,
           );
           return ciphertext;
         }
         final encryptedEvent = await rust_nostr.getEncryptEvent(
-          senderKeys: await identity.getSecp256k1SKHex(),
+          senderKeys: await identity.getNostrPrivateKey(),
           receiverPubkey: to,
           content: plaintext,
         );
@@ -1383,13 +1406,13 @@ class _WebviewTabState extends State<WebviewTab> {
         if (identity.isFromSigner) {
           final plaintext = await SignerService.instance.nip04Decrypt(
             ciphertext: ciphertext,
-            currentUser: identity.secp256k1PKHex,
+            currentUser: identity.nostrIdentityKey,
             from: from,
           );
           return plaintext;
         }
         final content = await rust_nostr.decrypt(
-          senderKeys: await identity.getSecp256k1SKHex(),
+          senderKeys: await identity.getNostrPrivateKey(),
           receiverPubkey: from,
           content: ciphertext,
         );
@@ -1402,11 +1425,11 @@ class _WebviewTabState extends State<WebviewTab> {
           ciphertext = await SignerService.instance.nip44Encrypt(
             plaintext,
             to,
-            identity.secp256k1PKHex,
+            identity.nostrIdentityKey,
           );
         } else {
           ciphertext = await rust_nostr.encryptNip44(
-            senderKeys: await identity.getSecp256k1SKHex(),
+            senderKeys: await identity.getNostrPrivateKey(),
             receiverPubkey: to,
             content: plaintext,
           );
@@ -1419,12 +1442,12 @@ class _WebviewTabState extends State<WebviewTab> {
           final plaintext = await SignerService.instance.nip44Decrypt(
             ciphertext,
             to,
-            identity.secp256k1PKHex,
+            identity.nostrIdentityKey,
           );
           return plaintext;
         }
         return rust_nostr.decryptNip44(
-          secretKey: await identity.getSecp256k1SKHex(),
+          secretKey: await identity.getNostrPrivateKey(),
           publicKey: to,
           content: ciphertext,
         );
@@ -1495,11 +1518,11 @@ class _WebviewTabState extends State<WebviewTab> {
 
         bc ??= BrowserConnect(
           host: host,
-          pubkey: selected.secp256k1PKHex,
+          pubkey: selected.nostrIdentityKey,
         );
 
         bc
-          ..pubkey = selected.secp256k1PKHex
+          ..pubkey = selected.nostrIdentityKey
           ..favicon = favicon;
         final id = await BrowserConnect.save(bc);
         bc.id = id;
@@ -1600,8 +1623,6 @@ class _WebviewTabState extends State<WebviewTab> {
         await refreshPage();
       case 'close':
         await closeTab();
-      case 'downloads':
-        await Get.to<void>(() => const DownloadManagerPage());
       case 'zoom':
         Get.bottomSheet(
           clipBehavior: Clip.antiAlias,
@@ -1686,175 +1707,6 @@ class _WebviewTabState extends State<WebviewTab> {
     tabController.url.value = url0;
   }
 
-  Future<bool> downloadFile(DownloadStartRequest request) async {
-    final url = request.url.toString();
-    final filename = request.suggestedFilename ?? path.basename(url);
-
-    final shouldDownload = await Get.dialog<bool>(
-      CupertinoAlertDialog(
-        title: const Text('Download File'),
-        content: Text(
-          '$filename\n\nSize: ${FileService.instance.getFileSizeDisplay(request.contentLength)}',
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => Get.back(result: true),
-            child: const Text('Download'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldDownload != true) {
-      return false;
-    }
-
-    final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectory == null) {
-      await EasyLoading.showToast('No directory selected');
-      return false;
-    }
-
-    logger.i(
-      'start to download $url, save to: $selectedDirectory filename: $filename ',
-    );
-    await EasyLoading.showToast('Downloading...');
-    final (baseDirectory, directory, filename2) = await Task.split(
-      filePath: '$selectedDirectory/$filename',
-    );
-    final task = DownloadTask(
-      url: url,
-      filename: filename,
-      baseDirectory: baseDirectory,
-      directory: directory,
-    );
-
-    FileDownloader().download(
-      task,
-      onProgress: (progress) {},
-      onStatus: (status) async {
-        logger.i('Status: $status');
-        if (status == TaskStatus.complete) {
-          final shouldOpen = await Get.dialog<bool>(
-            CupertinoAlertDialog(
-              title: const Text('Download Complete'),
-              content: Text('File saved to:\n$selectedDirectory/$filename'),
-              actions: [
-                CupertinoActionSheetAction(
-                  onPressed: () => Get.back(result: false),
-                  child: const Text('Close'),
-                ),
-                CupertinoActionSheetAction(
-                  isDefaultAction: true,
-                  onPressed: () => Get.back(result: true),
-                  child: const Text('Open Folder'),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldOpen ?? false) {
-            try {
-              await launchUrl(Uri.file(selectedDirectory));
-            } catch (e) {
-              logger.e('Failed to open directory: $e');
-              await EasyLoading.showError('Failed to open directory');
-            }
-          }
-        }
-      },
-    );
-    return true;
-  }
-
-  Future<void> _saveBlobFile(String base64String, String mimeType) async {
-    try {
-      if (GetPlatform.isMobile) {
-        final storagePermission = await Permission.storage.request();
-        if (!storagePermission.isGranted) {
-          EasyLoading.showError('Storage permission not granted');
-          return;
-        }
-      }
-
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null) {
-        EasyLoading.dismiss();
-        return;
-      }
-
-      // Decode base64 to bytes
-      final bytes = base64.decode(base64String);
-
-      // Determine file extension from MIME type
-      final extension = _getExtensionFromMimeType(mimeType);
-      final filename =
-          'download_${DateTime.now().millisecondsSinceEpoch}$extension';
-
-      final filePath = path.join(selectedDirectory, filename);
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
-
-      EasyLoading.dismiss();
-
-      final shouldOpen = await Get.dialog<bool>(
-        CupertinoAlertDialog(
-          title: const Text('Download Complete'),
-          content: Text('File saved to:\n$filePath'),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () => Get.back(result: false),
-              child: const Text('Close'),
-            ),
-            CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Get.back(result: true),
-              child: const Text('Open Folder'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldOpen ?? false) {
-        try {
-          await launchUrl(Uri.file(selectedDirectory));
-        } catch (e) {
-          logger.e('Failed to open directory: $e');
-        }
-      }
-    } catch (e, s) {
-      logger.e('Failed to save blob file: $e', stackTrace: s);
-      EasyLoading.showError('Failed to save file');
-    }
-  }
-
-  String _getExtensionFromMimeType(String mimeType) {
-    final mimeMap = {
-      'image/png': '.png',
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/gif': '.gif',
-      'image/webp': '.webp',
-      'image/svg+xml': '.svg',
-      'application/pdf': '.pdf',
-      'application/zip': '.zip',
-      'application/x-zip-compressed': '.zip',
-      'text/plain': '.txt',
-      'text/html': '.html',
-      'application/json': '.json',
-      'video/mp4': '.mp4',
-      'video/webm': '.webm',
-      'audio/mpeg': '.mp3',
-      'audio/wav': '.wav',
-      'application/octet-stream': '.bin',
-    };
-    return mimeMap[mimeType.toLowerCase()] ?? '.bin';
-  }
-
   Future<void> renderAssetAsHtml(
     InAppWebViewController controller,
     WebResourceRequest request,
@@ -1913,7 +1765,7 @@ img {
         return {
           'node': {
             'alias': identity.displayName,
-            'pubkey': identity.secp256k1PKHex,
+            'pubkey': identity.nostrIdentityKey,
           },
         };
       case 'signMessage':
@@ -1922,7 +1774,7 @@ img {
 
         final message = data[1] as String;
         final signature = await rust_nostr.signSchnorr(
-          privateKey: await identity.getSecp256k1SKHex(),
+          privateKey: await identity.getNostrPrivateKey(),
           content: message,
         );
         return {
@@ -1937,7 +1789,7 @@ img {
         final message = data[2] as String;
         try {
           final isValid = await rust_nostr.verifySchnorr(
-            pubkey: identity.secp256k1PKHex,
+            pubkey: identity.nostrIdentityKey,
             content: message,
             sig: signature,
             hash: true,
@@ -2260,9 +2112,5 @@ img {
       logger.i(e.toString(), error: e);
     }
     return false;
-  }
-
-  void _downloadBlob(String base64content, String ext) {
-    logger.d('base64content: $base64content, ext $ext');
   }
 }

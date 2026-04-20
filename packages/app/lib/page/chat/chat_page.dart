@@ -16,9 +16,6 @@ import 'package:keychat/controller/chat.controller.dart';
 import 'package:keychat/controller/home.controller.dart';
 import 'package:keychat/exceptions/signal_session_not_created_exception.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/chat/widgets/voice_record_button.dart';
-import 'package:keychat/page/chat/widgets/voice_record_indicator.dart';
-import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/page/chat/message_widget.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/routes.dart';
@@ -336,64 +333,75 @@ class _ChatPage2State extends State<ChatPage> {
                   },
                   icon: const Icon(Icons.emoji_emotions_outlined),
                 ),
-                Obx(() {
-                  if (AudioMessageService.instance.isRecording.value) {
-                    return const Expanded(child: VoiceRecordIndicator());
-                  }
-                  return Expanded(
+                Expanded(
                     child: KeyboardListener(
                     focusNode: controller.keyboardFocus,
-                    onKeyEvent: (KeyEvent event) async {
-                      if (event is KeyDownEvent) {
-                        if (event.logicalKey == LogicalKeyboardKey.enter &&
-                            !HardwareKeyboard.instance.isControlPressed &&
-                            !HardwareKeyboard.instance.isMetaPressed &&
-                            !HardwareKeyboard.instance.isShiftPressed &&
-                            !HardwareKeyboard.instance.isAltPressed) {
-                          await controller.handleSubmitted();
-                          return;
-                        }
+                    onKeyEvent: !GetPlatform.isDesktop
+                        ? null
+                        : (event) async {
+                            if (event is KeyDownEvent) {
+                              // Plain Enter → send message
+                              if (event.logicalKey ==
+                                      LogicalKeyboardKey.enter &&
+                                  !HardwareKeyboard
+                                      .instance.isControlPressed &&
+                                  !HardwareKeyboard.instance.isMetaPressed &&
+                                  !HardwareKeyboard
+                                      .instance.isShiftPressed &&
+                                  !HardwareKeyboard
+                                      .instance.isAltPressed) {
+                                await controller.handleSubmitted();
+                                return;
+                              }
 
-                        final isCmdPressed =
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.metaLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.metaRight);
-                        if (event.logicalKey == LogicalKeyboardKey.keyV &&
-                            isCmdPressed) {
-                          await controller.handlePasteboardFile();
-                          return;
-                        }
-                        final isShiftPressed =
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.shiftLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.altLeft) ||
-                            HardwareKeyboard.instance.logicalKeysPressed
-                                .contains(LogicalKeyboardKey.controlLeft);
+                              // Cmd+V → paste file
+                              final isCmdPressed = HardwareKeyboard
+                                      .instance.logicalKeysPressed
+                                      .contains(
+                                        LogicalKeyboardKey.metaLeft,
+                                      ) ||
+                                  HardwareKeyboard
+                                      .instance.logicalKeysPressed
+                                      .contains(
+                                        LogicalKeyboardKey.metaRight,
+                                      );
+                              if (event.logicalKey ==
+                                      LogicalKeyboardKey.keyV &&
+                                  isCmdPressed) {
+                                await controller.handlePasteboardFile();
+                                return;
+                              }
 
-                        if (event.logicalKey == LogicalKeyboardKey.enter &&
-                            isShiftPressed) {
-                          final text = controller.textEditingController.text;
-                          final selection =
-                              controller.textEditingController.selection;
+                              // Shift/Alt/Ctrl + Enter → insert newline
+                              final hasModifierPressed = HardwareKeyboard
+                                      .instance.isShiftPressed ||
+                                  HardwareKeyboard.instance.isAltPressed ||
+                                  HardwareKeyboard
+                                      .instance.isControlPressed;
 
-                          controller.textEditingController.value = controller
-                              .textEditingController
-                              .value
-                              .copyWith(
-                                text: text.replaceRange(
-                                  selection.start,
-                                  selection.end,
-                                  '\n',
-                                ),
-                                selection: TextSelection.collapsed(
-                                  offset: selection.start + 1,
-                                ),
-                              );
-                        }
-                      }
-                    },
+                              if (event.logicalKey ==
+                                      LogicalKeyboardKey.enter &&
+                                  hasModifierPressed) {
+                                final text =
+                                    controller.textEditingController.text;
+                                final selection = controller
+                                    .textEditingController.selection;
+
+                                controller.textEditingController.value =
+                                    controller.textEditingController.value
+                                        .copyWith(
+                                          text: text.replaceRange(
+                                            selection.start,
+                                            selection.end,
+                                            '\n',
+                                          ),
+                                          selection: TextSelection.collapsed(
+                                            offset: selection.start + 1,
+                                          ),
+                                        );
+                              }
+                            }
+                          },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -516,9 +524,7 @@ class _ChatPage2State extends State<ChatPage> {
                       ),
                     ),
                   ),
-                  );
-                }),
-                VoiceRecordButton(room: controller.roomObs.value),
+                ),
                 IconButton(
                   iconSize: 28,
                   padding: EdgeInsets.zero,
@@ -1182,7 +1188,7 @@ class _ChatPage2State extends State<ChatPage> {
             );
 
             while (true) {
-              final receivingKey = room.onetimekey!;
+              final receivingKey = room.receiveAddress!;
               EasyLoading.show(status: 'Receiving from: $receivingKey');
               await MlsGroupService.instance.waitingForEose(
                 receivingKey: receivingKey,
@@ -1193,7 +1199,7 @@ class _ChatPage2State extends State<ChatPage> {
                 controller.roomObs.value.id,
               );
 
-              if (receivingKey == room.onetimekey &&
+              if (receivingKey == room.receiveAddress &&
                   DateTime.now()
                           .difference(controller.lastMessageAddedAt)
                           .inSeconds >

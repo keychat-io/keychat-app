@@ -157,7 +157,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     ),
                   if (!controller.identity.value.isFromSigner)
                     FutureBuilder(
-                      future: controller.identity.value.getSecp256k1SKHex(),
+                      future: controller.identity.value.getNostrPrivateKey(),
                       builder: (context, snapshot) {
                         if (snapshot.data == null) {
                           return Padding(
@@ -437,7 +437,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             }
 
                             await BrowserConnect.deleteByPubkey(
-                              controller.identity.value.secp256k1PKHex,
+                              controller.identity.value.nostrIdentityKey,
                             );
                           }
                           controller.identity.value.enableBrowser = value;
@@ -476,12 +476,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text('Hex'),
                             onPressed: (c) {
                               debugPrint(
-                                controller.identity.value.secp256k1PKHex,
+                                controller.identity.value.nostrIdentityKey,
                               );
                             },
                             value: Text(
                               getPublicKeyDisplay(
-                                controller.identity.value.secp256k1PKHex,
+                                controller.identity.value.nostrIdentityKey,
                               ),
                             ),
                           ),
@@ -518,12 +518,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                         CupertinoDialogAction(
                                           isDefaultAction: true,
                                           onPressed: () {
-                                            Clipboard.setData(
-                                              ClipboardData(
-                                                text: mnemonic ?? '',
-                                              ),
+                                            _copyAndScheduleClear(
+                                              mnemonic ?? '',
                                             );
-                                            EasyLoading.showSuccess('Copied');
                                             Get.back<void>();
                                           },
                                           child: const Text('Copy'),
@@ -570,7 +567,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         await Get.find<SettingController>().biometricAuthThen(() async {
           late String nsec;
           try {
-            final sk = await controller.identity.value.getSecp256k1SKHex();
+            final sk = await controller.identity.value.getNostrPrivateKey();
             nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
           } catch (e) {
             logger.e('Failed to get Nsec: ${Utils.getErrorMessage(e)}');
@@ -585,8 +582,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 CupertinoDialogAction(
                   isDefaultAction: true,
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: nsec));
-                    EasyLoading.showSuccess('Copied');
+                    _copyAndScheduleClear(nsec);
                     Get.back<void>();
                   },
                   child: const Text('Copy'),
@@ -738,6 +734,15 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         ],
       ),
     );
+  }
+
+  /// Copies sensitive text to clipboard and clears it after 30 seconds.
+  void _copyAndScheduleClear(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    EasyLoading.showSuccess('Copied, clipboard will be cleared in 30s');
+    Timer(const Duration(seconds: 30), () {
+      Clipboard.setData(const ClipboardData(text: ''));
+    });
   }
 
   Future<void> _pickAndSaveAvatar(ImageSource source) async {

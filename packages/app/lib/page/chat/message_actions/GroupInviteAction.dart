@@ -90,7 +90,7 @@ class GroupInviteAction extends StatelessWidget {
         return;
       }
       final accept = await Get.bottomSheet<bool>(
-        GroupInfoWidget(subEvent, identity.secp256k1PKHex, groupId),
+        GroupInfoWidget(subEvent, identity.nostrIdentityKey, groupId),
       );
       if (accept == null) return;
       message.requestConfrim = accept

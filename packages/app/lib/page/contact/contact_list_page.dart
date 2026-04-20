@@ -38,7 +38,7 @@ class _ContactsPageState extends State<ContactsPage> {
     final contactStartNum = <Contact>[];
     final restContacts = <Contact>[];
     for (final element in contactList) {
-      if (element.pubkey == widget.identity.secp256k1PKHex) continue;
+      if (element.pubkey == widget.identity.nostrIdentityKey) continue;
       if (element.displayName.startsWith(RegExp('[0-9]'))) {
         contactStartNum.add(element);
       } else {

@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File;
 
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -21,7 +22,6 @@ import 'package:keychat/nostr-core/nostr.dart';
 import 'package:keychat/page/chat/RoomDraft.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/expired_members_dialog.dart';
-import 'package:keychat/service/audio_message.service.dart';
 import 'package:keychat/service/chatx.service.dart';
 import 'package:keychat/service/contact.service.dart';
 import 'package:keychat/service/file.service.dart';
@@ -276,10 +276,10 @@ class ChatController extends GetxController {
       if (sourceMessage != null) {
         reply = MsgReply()
           ..content = sourceMessage.realMessage ?? sourceMessage.content
-          ..user = sourceMessage.fromContact?.name ?? '';
+          ..userId = sourceMessage.fromContact?.name ?? '';
         // if it is not text, show media type name
         if (sourceMessage.mediaType != MessageMediaType.text) {
-          reply.id = sourceMessage.msgid;
+          reply.eventId = sourceMessage.msgid;
         }
       }
       if (GetPlatform.isMobile) {
@@ -310,16 +310,6 @@ class ChatController extends GetxController {
       _handleSendLightning,
       _handleSendProfile,
     ];
-    // disable webrtc
-    // bool isCommonRoom = roomObs.value.type == RoomType.common;
-    // if (isCommonRoom) {
-    //   featuresIcons.addAll(
-    //       [CupertinoIcons.video_camera_solid, CupertinoIcons.phone_fill]);
-    //   featuresTitles.add('Video Call');
-    //   featuresTitles.add('Audio Call');
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.video));
-    //   featuresOnTaps.add(() => webRTCCall(CallingType.audio));
-    // }
   }
 
   void jumpToBottom(int milliseconds) {
@@ -483,7 +473,9 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
-    AudioMessageService.instance.stop();
+    // Cancel pending debounced list refresh so it can't fire into a
+    // disposed controller. Key must match message.service.dart.
+    EasyDebounce.cancel('refreshMessageInPage:${roomObs.value.id}');
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
@@ -689,7 +681,7 @@ class ChatController extends GetxController {
       newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
-    roomObs.value.curve25519PkHex = newRoom.curve25519PkHex; // force refresh
+    roomObs.value.peerSignalIdentityKey = newRoom.peerSignalIdentityKey; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();
@@ -793,7 +785,7 @@ class ChatController extends GetxController {
       try {
         final identity = roomObs.value.getIdentity();
         final prm = ProfileRequestModel(
-          pubkey: identity.secp256k1PKHex,
+          pubkey: identity.nostrIdentityKey,
           name: identity.name,
           avatar: await identity.getRemoteAvatarUrl(),
           bio: identity.displayAbout,
@@ -910,9 +902,9 @@ class ChatController extends GetxController {
         unawaited(
           Future.delayed(const Duration(seconds: 3)).then(
             (value) async {
-              await MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]);
+              await MlsGroupService.instance.fixMlsReceiveAddress([roomObs.value]);
               final isAdmin = await roomObs.value.checkAdminByIdPubkey(
-                roomObs.value.getIdentity().secp256k1PKHex,
+                roomObs.value.getIdentity().nostrIdentityKey,
               );
               // Check if there are any users in expired status
               if (isAdmin) {
@@ -956,8 +948,7 @@ class ChatController extends GetxController {
         fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
-        ).then((Contact? item) {
-          if (item == null) return;
+        ).then((item) {
           roomContact.value = item;
           roomObs.value.contact = item;
           roomObs.refresh();
@@ -1047,6 +1038,15 @@ class ChatController extends GetxController {
               );
 
               if (shouldDownload != true) {
+                // Mark as checked so we don't ask again until a new version
+                contact
+                  ..avatarFromRelay = avatarFromRelay
+                  ..nameFromRelay = nameFromRelay
+                  ..aboutFromRelay = description
+                  ..metadataFromRelay = res.content
+                  ..fetchFromRelayAt = DateTime.now()
+                  ..versionFromRelay = res.createdAt;
+                await ContactService.instance.saveContact(contact);
                 return contact;
               }
               final localPath = await FileService.instance
@@ -1246,7 +1246,7 @@ class ChatController extends GetxController {
     bool compress = true,
   ]) async {
     /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
+    reader.getFile(format, (file) async {
       var suggestedName = await reader.getSuggestedName();
       final mimeType = format.mimeTypes?.first;
 
@@ -1371,7 +1371,7 @@ class ChatController extends GetxController {
         gifUrl,
         filePath,
         options: Options(responseType: ResponseType.bytes),
-        onReceiveProgress: (int received, int total) {
+        onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
             EasyLoading.showProgress(
@@ -1430,10 +1430,10 @@ class ChatController extends GetxController {
     }
     final reply = MsgReply()
       ..content = message.realMessage ?? message.content
-      ..user = message.fromContact?.name ?? '';
+      ..userId = message.fromContact?.name ?? '';
     // if it is not text, show media type name
     if (message.mediaType != MessageMediaType.text) {
-      reply.id = message.msgid;
+      reply.eventId = message.msgid;
     }
     return RoomService.instance.sendMessage(
       roomObs.value,
@@ -1457,8 +1457,8 @@ class ChatController extends GetxController {
     //       ? roomObs.value.getIdentity().displayName
     //       : getContactByPubkey(message.idPubkey).displayName;
     //   final reply = MsgReply()
-    //     ..id = message.msgid
-    //     ..user = myDisplayName
+    //     ..eventId = message.msgid
+    //     ..userId = myDisplayName
     //     ..content = emoji;
     //   final result = await RoomService.instance.sendMessage(
     //     roomObs.value,

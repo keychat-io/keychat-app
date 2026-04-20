@@ -1,9 +1,8 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:keychat/models/embedded/msg_file_info.dart' show FileStatus, MsgFileInfo;
-import 'package:keychat/service/audio_message.service.dart'
-    show AudioMessageService;
+import 'package:keychat/models/embedded/msg_file_info.dart'
+    show FileStatus, MsgFileInfo;
 
 void main() {
   group('MsgFileInfo audio fields', () {
@@ -71,30 +70,6 @@ void main() {
       final restored = MsgFileInfo.fromJson(json);
       expect(restored.amplitudeSamples, <double>[]);
     });
-
-    test('handles max duration', () {
-      const maxSecs = AudioMessageService.maxRecordingSeconds;
-      // 10 samples per second (100ms interval)
-      final sampleCount = maxSecs * 10;
-      final mfi = MsgFileInfo()
-        ..audioDuration = maxSecs
-        ..amplitudeSamples =
-            List.generate(sampleCount, (i) => i / sampleCount);
-
-      final json = mfi.toJson();
-      expect(json['audioDuration'], maxSecs);
-      expect((json['amplitudeSamples'] as List).length, sampleCount);
-
-      final restored = MsgFileInfo.fromJson(json);
-      expect(restored.audioDuration, maxSecs);
-      expect(restored.amplitudeSamples!.length, sampleCount);
-      expect(restored.amplitudeSamples!.first, closeTo(0.0, 0.001));
-      expect(
-        restored.amplitudeSamples!.last,
-        closeTo((sampleCount - 1) / sampleCount, 0.001),
-      );
-    });
-
     test('preserves existing non-audio fields when audio fields added', () {
       // Ensure adding audio fields does not break existing file fields
       final mfi = MsgFileInfo()

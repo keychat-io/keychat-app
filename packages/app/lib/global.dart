@@ -26,29 +26,11 @@ class KeychatGlobal {
   static const String defaultFileServer = 'https://relay.keychat.io';
   static const String defaultRelay = 'wss://relay.keychat.io';
 
-  static const int oneTimePubkeysPoolLength = 1;
+  static const int inboxKeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
-  static const int oneTimePubkeysLifetime = 24; // hours
+  static const int inboxKeysLifetime = 24; // hours
   static const int signalIdLifetime = 168; // hours
   static const int defaultOpenTabIndex = 2; // 0: chat, 1: browser, 2: me
-  static const webrtcIceServers = [
-    {'url': 'stun:stun.l.google.com:19302'},
-    {'url': 'stun:stun1.l.google.com:19302'},
-    {'url': 'stun:stun.keychat.io:3478'},
-    {
-      'url': 'turn:stun.keychat.io:3478',
-      'username': 'keychat',
-      'credential': 'nostrecash',
-    },
-    {'url': 'stun:freeturn.net:3478'},
-    {'url': 'turn:freeturn.net:3478', 'username': 'free', 'credential': 'free'},
-    {'urls': 'stun:freeturn.net:5349'},
-    {
-      'urls': 'turns:freeturn.tel:5349',
-      'username': 'free',
-      'credential': 'free',
-    },
-  ];
   static const List<String> keychatIntros = [
     'Keychat is the super app for Bitcoiners.',
     'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.',

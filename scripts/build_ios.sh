@@ -2,7 +2,7 @@
 # Script Name: iOS build + upload to App Store Connect
 #
 # Required environment variables:
-#   ASC_API_KEY      App Store Connect API Key ID (e.g. 8Y6J352PMA)
+#   ASC_API_KEY      App Store Connect API Key ID (10-char alphanumeric)
 #   ASC_API_ISSUER   App Store Connect API Issuer ID (UUID)
 #   ASC_TEAM_ID      Apple Developer Team ID (10-char alphanumeric)
 #

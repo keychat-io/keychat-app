@@ -206,6 +206,13 @@ class SignalChatService extends BaseChatService {
         );
         decodeString = utf8.decode(decryptResult.plaintext);
         await setRoomSignalDecodeStatus(room, false);
+        unawaited(
+          ContactService.instance.deleteReceiveKey(
+            room.identityId,
+            room.toMainPubkey,
+            event.tags[0][1],
+          ),
+        );
       } catch (e, s) {
         final msg = Utils.getErrorMessage(e);
         if (msg != ErrorMessages.signalDecryptError) {
@@ -218,7 +225,8 @@ class SignalChatService extends BaseChatService {
       // if receive address is signalAddress, then remove room.receiveAddress
       if (room.receiveAddress != null) {
         final toAddress = (sourceEvent ?? event).tags[0][1];
-        if (toAddress != room.toMainPubkey && toAddress != room.receiveAddress!) {
+        if (toAddress != room.toMainPubkey &&
+            toAddress != room.receiveAddress!) {
           room.receiveAddress = null;
           await RoomService.instance.updateRoom(room);
         }
@@ -432,7 +440,9 @@ class SignalChatService extends BaseChatService {
         hex.decode(model.signalSignedPrekeySignature),
       ),
       bobPrekeyId: model.signalOneTimePrekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.signalOneTimePrekey)),
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(model.signalOneTimePrekey),
+      ),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;

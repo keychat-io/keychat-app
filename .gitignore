@@ -61,3 +61,4 @@ scripts/ExportOptions.plist
 # Added by code-review-graph
 .code-review-graph/
 .claude/skills/
+.claude/settings.json

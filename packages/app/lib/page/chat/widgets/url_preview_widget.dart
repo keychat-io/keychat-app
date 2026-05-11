@@ -22,10 +22,12 @@ class UrlPreviewWidget extends StatelessWidget {
       onTap: () => RoomUtil.tapLink(url),
       child: AnyLinkPreview(
         link: url,
+        showMultimedia: false,
         displayDirection: UIDirection.uiDirectionHorizontal,
         cache: const Duration(days: 7),
-        backgroundColor:
-            isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+        backgroundColor: isDark
+            ? const Color(0xFF2C2C2E)
+            : const Color(0xFFF2F2F7),
         titleStyle: TextStyle(
           color: isDark ? Colors.white : Colors.black,
           fontWeight: FontWeight.bold,

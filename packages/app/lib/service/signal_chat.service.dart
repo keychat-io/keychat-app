@@ -26,9 +26,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
-    show DecryptResult, KeychatIdentityKeyPair, KeychatProtocolAddress;
+    show KeychatIdentityKeyPair, KeychatProtocolAddress;
 import 'package:keychat_rust_ffi_plugin/index.dart' show AnyhowException;
 
 class SignalChatService extends BaseChatService {

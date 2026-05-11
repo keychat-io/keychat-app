@@ -299,7 +299,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
   Future<void> _showPushTypePicker() async {
     final result = await showCupertinoModalPopup<PushType>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.9,
           decoration: BoxDecoration(
@@ -666,7 +666,7 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return SimpleDialog(
           title: const Text('Select Distributor'),
           children: _availableDistributors.map((distributor) {
@@ -795,10 +795,36 @@ class _NotificationSettingPageState extends State<NotificationSettingPage> {
         final hasPermission = await NotifyService.instance
             .isNotifyPermissionGrant();
         if (!hasPermission) {
-          await EasyLoading.showError(
-            'Please enable notification permission in system settings',
-          );
-          await openAppSettings();
+          await EasyLoading.dismiss();
+          final status = await Permission.notification.status;
+          if (status.isPermanentlyDenied) {
+            await Get.dialog<void>(
+              CupertinoAlertDialog(
+                title: const Text('Notification Permission Required'),
+                content: const Text(
+                  'Notification permission is needed to receive messages. You can enable it in Settings.',
+                ),
+                actions: [
+                  CupertinoDialogAction(
+                    onPressed: () => Get.back<void>(),
+                    child: const Text('Cancel'),
+                  ),
+                  CupertinoDialogAction(
+                    isDefaultAction: true,
+                    onPressed: () {
+                      Get.back<void>();
+                      openAppSettings();
+                    },
+                    child: const Text('Go to Settings'),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            EasyLoading.showError(
+              'Notification permission not granted',
+            );
+          }
           return;
         }
 

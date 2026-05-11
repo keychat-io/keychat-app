@@ -3,6 +3,11 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.41.1+6513
+
+- fix: delete Signal one-time prekey immediately after successful decryption to enforce forward secrecy
+- bump: version 1.41.0+6512 → 1.41.1+6513
+
 ## 1.41.0+6512
 
 - feat: URL preview for link-only chat messages

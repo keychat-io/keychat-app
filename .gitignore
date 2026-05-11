@@ -62,3 +62,4 @@ scripts/ExportOptions.plist
 .code-review-graph/
 .claude/skills/
 .claude/settings.json
+.mcp.json

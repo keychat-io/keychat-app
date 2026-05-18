@@ -63,3 +63,5 @@ scripts/ExportOptions.plist
 .claude/skills/
 .claude/settings.json
 .mcp.json
+.codex/
+.agents/

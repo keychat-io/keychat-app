@@ -61,7 +61,8 @@ flutter build ipa \
     --dart-define=dart.vm.product=true \
     --release \
     --analyze-size \
-    --export-options-plist="$export_options"
+    --export-options-plist="$export_options" \
+    --no-pub
     # --obfuscate --split-debug-info=./build/obfuscate/ios/
 
 ipa="$current_path/packages/app/build/ios/ipa/keychat.ipa"

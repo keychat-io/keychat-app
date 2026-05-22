@@ -1654,7 +1654,7 @@ class MessageWidget extends StatelessWidget {
                   SettingsSection(
                     title: Text(
                       '「${message.content}」',
-                      maxLines: 5,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     tiles: [

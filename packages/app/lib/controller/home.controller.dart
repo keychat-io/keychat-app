@@ -417,16 +417,17 @@ class HomeController extends GetxController
     return null;
   }
 
-  void initTabController([int index = 0]) {
+  void initTabController([int index = 0, int? length]) {
     tabController.dispose();
+    final tabLength = length ?? tabBodyDatas.length;
     var initialIndex = index;
-    if (initialIndex > tabBodyDatas.length) {
+    if (tabLength == 0 || initialIndex >= tabLength) {
       initialIndex = 0;
     }
     tabController = TabController(
       vsync: this,
       initialIndex: initialIndex,
-      length: tabBodyDatas.length,
+      length: tabLength,
     );
 
     tabController.addListener(() {
@@ -599,9 +600,6 @@ class HomeController extends GetxController
         ..rooms = datas;
     }
 
-    tabBodyDatas.value = thisTabBodyDatas;
-    await setUnreadCount(unReadSum);
-
     var initialIndex = 0;
     if (firstUnreadIndex == -1) {
       final saved = Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
@@ -612,8 +610,14 @@ class HomeController extends GetxController
       initialIndex = firstUnreadIndex;
     }
 
-    if (!init) return mys;
-    initTabController(initialIndex);
+    if (init) {
+      initTabController(initialIndex, thisTabBodyDatas.length);
+    } else if (tabController.length != thisTabBodyDatas.length) {
+      initTabController(tabController.index, thisTabBodyDatas.length);
+    }
+    tabBodyDatas.value = thisTabBodyDatas;
+    await setUnreadCount(unReadSum);
+
     return mys;
   }
 

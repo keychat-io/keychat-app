@@ -28,266 +28,245 @@ class RoomList extends GetView<HomeController> {
         titleSpacing: 0,
         centerTitle: true,
         leadingWidth: 0,
-        actions: const [RelayStatus()],
+        actions: [
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(CupertinoIcons.search),
+            onPressed: () async {
+              await Get.to<void>(() => const SearchPage());
+            },
+          ),
+          const RelayStatus(),
+        ],
         title: PreferredSize(
           preferredSize: const Size.fromHeight(0),
           child: SizedBox(
             height: kToolbarHeight,
             child: Obx(
-              () => Stack(
-                alignment: controller.tabBodyDatas.length == 1
-                    ? Alignment.center
-                    : Alignment.bottomCenter,
-                children: <Widget>[
-                  TabBar(
-                    indicatorColor: KeychatGlobal.primaryColor,
-                    indicatorWeight: 1,
-                    isScrollable: true,
-                    controller: controller.tabController,
-                    tabAlignment: TabAlignment.start,
-                    labelStyle: const TextStyle(
-                      color: KeychatGlobal.primaryColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    dividerColor: Colors.transparent,
-                    tabs: controller.tabBodyDatas.values.map((e) {
-                      final identity = e.identity;
-                      final title = identity.displayName.length > 15
-                          ? '${identity.displayName.substring(0, 15)}...'
-                          : identity.displayName;
-                      return Tab(
-                        child: badges.Badge(
-                          showBadge:
-                              (e.unReadCount + e.anonymousUnReadCount) > 0,
-                          position: badges.BadgePosition.topEnd(
-                            top: -10,
-                            end: -15,
-                          ),
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              overflow: TextOverflow.ellipsis,
+              () {
+                final tabBodyDatas = controller.tabBodyDatas;
+                if (controller.tabController.length != tabBodyDatas.length) {
+                  return const SizedBox.shrink();
+                }
+                return Stack(
+                  alignment: tabBodyDatas.length == 1
+                      ? Alignment.center
+                      : Alignment.bottomCenter,
+                  children: <Widget>[
+                    TabBar(
+                      indicatorColor: KeychatGlobal.primaryColor,
+                      indicatorWeight: 1,
+                      isScrollable: true,
+                      controller: controller.tabController,
+                      tabAlignment: TabAlignment.start,
+                      labelStyle: const TextStyle(
+                        color: KeychatGlobal.primaryColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      dividerColor: Colors.transparent,
+                      tabs: tabBodyDatas.values.map((e) {
+                        final identity = e.identity;
+                        final title = identity.displayName.length > 15
+                            ? '${identity.displayName.substring(0, 15)}...'
+                            : identity.displayName;
+                        return Tab(
+                          child: badges.Badge(
+                            showBadge:
+                                (e.unReadCount + e.anonymousUnReadCount) > 0,
+                            position: badges.BadgePosition.topEnd(
+                              top: -10,
+                              end: -15,
+                            ),
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
       ),
       body: Obx(
-        () => TabBarView(
-          key: const GlobalObjectKey('roomlist_tabview'),
-          controller: controller.tabController,
-          children: controller.tabBodyDatas.keys.map((identityId) {
-            final data = controller.tabBodyDatas[identityId]!;
-            final rooms = data.rooms;
-            return CustomMaterialIndicator(
-              key: GlobalObjectKey('roomlist_tab_indicator_$identityId'),
-              onRefresh: () async => Get.find<WebsocketService>().start(),
-              displacement: 20,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              triggerMode: IndicatorTriggerMode.anywhere,
-              child: ListView.separated(
-                key: ObjectKey('roomlist_tab_$identityId'),
-                padding: const EdgeInsets.only(
-                  bottom: kMinInteractiveDimension * 2,
-                ),
-                separatorBuilder: (context2, index) {
-                  if (rooms[index] is Room) {
-                    if ((rooms[index] as Room).pin) {
-                      return Container();
-                    }
-                    return Divider(
-                      height: 0.1,
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.1),
-                      indent: 80,
-                    );
-                  }
-                  return Container();
-                },
-                itemCount: data.rooms.length,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    if (data.rooms.length > 4) {
-                      return GestureDetector(
-                        onTap: () {
-                          Get.to(() => const SearchPage());
-                        },
-                        child: Container(
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                          ),
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                child: Icon(
-                                  Icons.search,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.4),
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  'Search',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+        () {
+          final tabBodyDatas = controller.tabBodyDatas;
+          if (controller.tabController.length != tabBodyDatas.length) {
+            return const SizedBox.shrink();
+          }
+          return TabBarView(
+            key: const GlobalObjectKey('roomlist_tabview'),
+            controller: controller.tabController,
+            children: tabBodyDatas.keys.map((identityId) {
+              final data = controller.tabBodyDatas[identityId]!;
+              final rooms = data.rooms;
+              return CustomMaterialIndicator(
+                key: GlobalObjectKey('roomlist_tab_indicator_$identityId'),
+                onRefresh: () async => Get.find<WebsocketService>().start(),
+                displacement: 20,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                triggerMode: IndicatorTriggerMode.anywhere,
+                child: ListView.separated(
+                  key: ObjectKey('roomlist_tab_$identityId'),
+                  padding: const EdgeInsets.only(
+                    bottom: kMinInteractiveDimension * 2,
+                  ),
+                  separatorBuilder: (context2, index) {
+                    if (rooms[index] is Room) {
+                      if ((rooms[index] as Room).pin) {
+                        return Container();
+                      }
+                      return Divider(
+                        height: 0.1,
+                        color: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: 0.1),
+                        indent: 80,
                       );
                     }
-                    return const SizedBox();
-                  }
-                  if (index == 1) {
                     return Container();
-                    // return RecommendBots(
-                    //   data.identity,
-                    //   List<Room>.from(rooms.sublist(4)),
-                    // );
-                  }
-                  if (index == 2) {
-                    return getNewFriendsWidget(
-                      data,
-                      rooms[2] as List<Room>,
-                      Get.isDarkMode
-                          ? const Color(0xFF202020)
-                          : const Color(0xFFEDEDED),
-                      context,
-                    );
-                  }
-                  if (index == 3) {
-                    return getRequestingWidget(
-                      data,
-                      rooms[3] as List<Room>,
-                      Get.isDarkMode
-                          ? const Color(0xFF202020)
-                          : const Color(0xFFEDEDED),
-                      context,
-                    );
-                  }
-                  final room = rooms[index] as Room;
-                  return GestureDetector(
-                    key: ObjectKey('${index}_room${room.id}'),
-                    onTap: () async {
-                      await Utils.toNamedRoom(room);
-                      await RoomService.instance.markAllRead(room);
-                      if (GetPlatform.isMobile) {
-                        Utils.hideKeyboard(Get.context!);
-                      }
-                    },
-                    onSecondaryTapDown: (e) {
-                      onSecondaryTapDown(e, room, context);
-                    },
-                    onLongPress: () =>
-                        RoomUtil.showRoomActionSheet(context, room),
-                    child: Obx(
-                      () {
-                        final isSelected =
-                            desktopController?.selectedRoom.value.id == room.id;
-                        return ColoredBox(
-                          color: isSelected
-                              ? KeychatGlobal.primaryColor.withAlpha(50)
-                              : (room.pin
-                                    ? Get.isDarkMode
-                                          ? const Color(0xFF202020)
-                                          : const Color(0xFFEDEDED)
-                                    : Colors.transparent),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                            ),
-                            leading: Utils.getAvatarByRoom(room),
-                            key: Key('room:${room.id}'),
-                            selected: isSelected,
-                            selectedTileColor: KeychatGlobal.primaryColor
-                                .withAlpha(50),
-                            title: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: AutoSizeText(
-                                    room.getRoomName(),
-                                    minFontSize: 10,
-                                    maxFontSize: 18,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                ),
-                                if (controller.roomLastMessage[room.id] != null)
-                                  Wrap(
-                                    children: [
-                                      textSmallGray(
+                  },
+                  itemCount: data.rooms.length,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return const SizedBox();
+                    }
+                    if (index == 1) {
+                      return Container();
+                      // return RecommendBots(
+                      //   data.identity,
+                      //   List<Room>.from(rooms.sublist(4)),
+                      // );
+                    }
+                    if (index == 2) {
+                      return getNewFriendsWidget(
+                        data,
+                        rooms[2] as List<Room>,
+                        Get.isDarkMode
+                            ? const Color(0xFF202020)
+                            : const Color(0xFFEDEDED),
+                        context,
+                      );
+                    }
+                    if (index == 3) {
+                      return getRequestingWidget(
+                        data,
+                        rooms[3] as List<Room>,
+                        Get.isDarkMode
+                            ? const Color(0xFF202020)
+                            : const Color(0xFFEDEDED),
+                        context,
+                      );
+                    }
+                    final room = rooms[index] as Room;
+                    return GestureDetector(
+                      key: ObjectKey('${index}_room${room.id}'),
+                      onTap: () async {
+                        await Utils.toNamedRoom(room);
+                        await RoomService.instance.markAllRead(room);
+                        if (GetPlatform.isMobile) {
+                          Utils.hideKeyboard(Get.context!);
+                        }
+                      },
+                      onSecondaryTapDown: (e) {
+                        onSecondaryTapDown(e, room, context);
+                      },
+                      onLongPress: () =>
+                          RoomUtil.showRoomActionSheet(context, room),
+                      child: Obx(
+                        () {
+                          final isSelected =
+                              desktopController?.selectedRoom.value.id ==
+                              room.id;
+                          return ColoredBox(
+                            color: isSelected
+                                ? KeychatGlobal.primaryColor.withAlpha(50)
+                                : (room.pin
+                                      ? Get.isDarkMode
+                                            ? const Color(0xFF202020)
+                                            : const Color(0xFFEDEDED)
+                                      : Colors.transparent),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                              ),
+                              leading: Utils.getAvatarByRoom(room),
+                              key: Key('room:${room.id}'),
+                              selected: isSelected,
+                              selectedTileColor: KeychatGlobal.primaryColor
+                                  .withAlpha(50),
+                              title: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: AutoSizeText(
+                                      room.getRoomName(),
+                                      minFontSize: 10,
+                                      maxFontSize: 18,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(
                                         context,
-                                        Utils.formatTimeMsg(
-                                          controller
-                                              .roomLastMessage[room.id]!
-                                              .createdAt,
-                                        ),
-                                      ),
-                                      if (room.isMute)
-                                        Icon(
-                                          Icons.notifications_off_outlined,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.6),
-                                          size: 16,
-                                        )
-                                      else
-                                        Container(),
-                                    ],
+                                      ).textTheme.titleMedium,
+                                    ),
                                   ),
-                              ],
-                            ),
-                            subtitle: Obx(
-                              () => RoomUtil.getSubtitleDisplay(
-                                context,
-                                room,
-                                DateTime.now().subtract(
-                                  const Duration(seconds: 5),
+                                  if (controller.roomLastMessage[room.id] !=
+                                      null)
+                                    Wrap(
+                                      children: [
+                                        textSmallGray(
+                                          context,
+                                          Utils.formatTimeMsg(
+                                            controller
+                                                .roomLastMessage[room.id]!
+                                                .createdAt,
+                                          ),
+                                        ),
+                                        if (room.isMute)
+                                          Icon(
+                                            Icons.notifications_off_outlined,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6),
+                                            size: 16,
+                                          )
+                                        else
+                                          Container(),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                              subtitle: Obx(
+                                () => RoomUtil.getSubtitleDisplay(
+                                  context,
+                                  room,
+                                  DateTime.now().subtract(
+                                    const Duration(seconds: 5),
+                                  ),
+                                  controller.roomLastMessage[room.id],
                                 ),
-                                controller.roomLastMessage[room.id],
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList(),
-        ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }

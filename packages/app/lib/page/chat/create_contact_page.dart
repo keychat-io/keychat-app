@@ -14,6 +14,31 @@ import 'package:keychat/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:share_plus/share_plus.dart';
 
+const _invalidContactPubkeyMessage = 'Please input a valid npub or hex pubkey';
+final _hexPubkeyPattern = RegExp(r'^[0-9a-fA-F]{64}$');
+final _npubPattern = RegExp(
+  r'^npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}$',
+);
+
+/// Normalizes the Add Contact text field into the actual contact key input.
+String normalizeAddContactInput(String rawInput) {
+  var input = rawInput.trim();
+  if (input.startsWith('https://www.keychat.io/u/')) {
+    final uri = Uri.tryParse(input);
+    if (uri?.queryParameters['k'] != null) {
+      input = Uri.decodeComponent(uri!.queryParameters['k']!).trim();
+    }
+  }
+  return input;
+}
+
+/// Returns true when [input] can safely be passed to Nostr pubkey FFI conversion.
+bool isValidAddContactPubkeyInput(String input) {
+  final normalizedInput = input.trim();
+  return _hexPubkeyPattern.hasMatch(normalizedInput) ||
+      _npubPattern.hasMatch(normalizedInput);
+}
+
 class AddtoContactsPage extends StatefulWidget {
   const AddtoContactsPage(this.defaultInput, {super.key});
   final String defaultInput;
@@ -179,14 +204,8 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   }
 
   Future<void> _createContact() async {
-    var input = _controller.text.trim();
-    if (input.startsWith('https://www.keychat.io/u/')) {
-      final uri = Uri.tryParse(input);
-      if (uri?.queryParameters['k'] != null) {
-        input = Uri.decodeComponent(uri!.queryParameters['k']!);
-        logger.i('Parsed input: $input');
-      }
-    }
+    final input = normalizeAddContactInput(_controller.text);
+
     // chat key
     if (input.length > 70) {
       final isBase = isBase64(input);
@@ -212,10 +231,16 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
       return;
     }
     // common private chat
+    if (!isValidAddContactPubkeyInput(input)) {
+      await EasyLoading.showError(_invalidContactPubkeyMessage);
+      return;
+    }
+
     try {
       // check if input is a bot npub
-      final npub = rust_nostr.getBech32PubkeyByHex(hex: input);
-      final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
+      final (hexPubkey, npub) = input.startsWith('npub')
+          ? (rust_nostr.getHexPubkeyByBech32(bech32: input), input)
+          : (input.toLowerCase(), rust_nostr.getBech32PubkeyByHex(hex: input));
       for (final bot in homeController.recommendBots) {
         if (bot['npub'] != npub) {
           continue;
@@ -256,7 +281,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
       // not exist rooms
       if (exitRoom == null) {
         await RoomService.instance.createRoomAndsendInvite(
-          input,
+          hexPubkey,
           greeting: _helloController.text.trim(),
           identity: selectedIdentity,
         );

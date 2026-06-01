@@ -12,4 +12,9 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
   }
+
+  override func performClose(_ sender: Any?) {
+    /// Minimize the window instead of closing it when clicking the close button
+    self.miniaturize(sender)
+  }
 }

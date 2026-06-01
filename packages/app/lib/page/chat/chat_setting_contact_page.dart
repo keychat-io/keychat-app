@@ -1,23 +1,23 @@
-import 'package:keychat/controller/chat.controller.dart';
-import 'package:keychat/controller/home.controller.dart';
-import 'package:keychat/global.dart';
-import 'package:keychat/models/models.dart';
-import 'package:keychat/page/chat/RoomUtil.dart';
-import 'package:keychat/page/chat/search_messages_page.dart';
-import 'package:keychat/page/components.dart';
-import 'package:keychat/page/routes.dart';
-import 'package:keychat/page/widgets/notice_text_widget.dart';
-import 'package:keychat/service/contact.service.dart';
-import 'package:keychat/service/relay.service.dart';
-import 'package:keychat/service/room.service.dart';
-import 'package:keychat/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat/controller/chat.controller.dart';
+import 'package:keychat/global.dart';
+import 'package:keychat/models/models.dart';
+import 'package:keychat/page/chat/RoomUtil.dart';
+import 'package:keychat/page/chat/report_page.dart';
+import 'package:keychat/page/chat/search_messages_page.dart';
+import 'package:keychat/page/components.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/page/widgets/notice_text_widget.dart';
+import 'package:keychat/service/contact.service.dart';
+import 'package:keychat/service/relay.service.dart';
+import 'package:keychat/service/report.service.dart';
+import 'package:keychat/service/room.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -190,7 +190,8 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                   child: TextField(
                                     controller: usernameController,
                                     autofocus: true,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization:
+                                        TextCapitalization.words,
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: (value) => handleUpdateName(
                                       usernameController.text.trim(),
@@ -268,8 +269,8 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                       SettingsTile.navigation(
                         title: const Text('Security Settings'),
                         leading: const Icon(CupertinoIcons.lock_shield),
-                        onPressed: (context) {
-                          Get.toNamed(
+                        onPressed: (context) async {
+                          await Get.toNamed<void>(
                             Routes.roomSettingContactSecurity.replaceFirst(
                               ':id',
                               cc.roomObs.value.id.toString(),
@@ -303,6 +304,23 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                           );
                         },
                       ),
+                      if (cc.roomObs.value.type == RoomType.common)
+                        SettingsTile.navigation(
+                          leading: const Icon(Icons.report_gmailerrorred),
+                          title: const Text('Report User'),
+                          onPressed: (context) async {
+                            await Get.to<void>(
+                              () => ReportPage(
+                                room: cc.roomObs.value,
+                                reportType: ReportType.user,
+                                canBlockUser: true,
+                              ),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.room
+                                  : null,
+                            );
+                          },
+                        ),
                     ],
                   ),
                   SettingsSection(

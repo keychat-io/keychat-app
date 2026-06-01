@@ -18,10 +18,12 @@ import 'package:keychat/page/chat/LongTextPreviewPage.dart';
 import 'package:keychat/page/chat/RoomUtil.dart';
 import 'package:keychat/page/chat/chat_bubble.dart';
 import 'package:keychat/page/chat/chat_bubble_clipper_4.dart';
+import 'package:keychat/page/chat/report_page.dart';
 import 'package:keychat/page/components.dart';
 import 'package:keychat/page/routes.dart';
 import 'package:keychat/service/file.service.dart';
 import 'package:keychat/service/message.service.dart';
+import 'package:keychat/service/report.service.dart';
 import 'package:keychat/service/websocket.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:open_filex/open_filex.dart';
@@ -1288,6 +1290,26 @@ class MessageWidget extends StatelessWidget {
     FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
+  Future<void> _handleReportMessage() async {
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
+    await Get.to<void>(
+      () => ReportPage(
+        room: cc.roomObs.value,
+        message: message,
+        reportType: ReportType.message,
+        canBlockUser: _canBlockReportedUser,
+      ),
+      id: GetPlatform.isDesktop ? GetXNestKey.room : null,
+    );
+  }
+
+  bool get _canReportMessage => !message.isMeSend && !message.isSystem;
+
+  bool get _canBlockReportedUser =>
+      _canReportMessage && cc.roomObs.value.type == RoomType.common;
+
   /// Builds context menu button items for text selection right-click.
   ///
   /// Used by [SelectionArea.contextMenuBuilder] when text is selected,
@@ -1432,6 +1454,18 @@ class MessageWidget extends StatelessWidget {
           ),
           onTap: () => _handleForward(Get.context!),
         ),
+        if (_canReportMessage)
+          PopupMenuItem<void>(
+            mouseCursor: SystemMouseCursors.click,
+            onTap: _handleReportMessage,
+            child: const Row(
+              children: [
+                Icon(Icons.report_gmailerrorred, color: Colors.red, size: 18),
+                SizedBox(width: 8),
+                Text('Report Message'),
+              ],
+            ),
+          ),
         PopupMenuItem<void>(
           mouseCursor: SystemMouseCursors.click,
           onTap: _handleShowRawdata,
@@ -1620,7 +1654,7 @@ class MessageWidget extends StatelessWidget {
                   SettingsSection(
                     title: Text(
                       '「${message.content}」',
-                      maxLines: 5,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     tiles: [
@@ -1663,6 +1697,22 @@ class MessageWidget extends StatelessWidget {
                         },
                         title: const Text('Raw Data'),
                       ),
+                      if (_canReportMessage)
+                        SettingsTile.navigation(
+                          leading: const Icon(
+                            Icons.report_gmailerrorred,
+                            color: Colors.red,
+                          ),
+                          onPressed: (_) async {
+                            await _handleReportMessage();
+                          },
+                          title: Text(
+                            'Report Message',
+                            style: Theme.of(
+                              Get.context!,
+                            ).textTheme.bodyLarge?.copyWith(color: Colors.red),
+                          ),
+                        ),
                       SettingsTile.navigation(
                         leading: const Icon(
                           Icons.delete,

@@ -1,17 +1,29 @@
-import 'package:keychat/models/identity.dart';
-import 'package:keychat/page/login/CreateAccount.dart';
-import 'package:keychat/page/login/import_nsec.dart';
-import 'package:keychat/page/login/import_seed_phrase.dart';
-import 'package:keychat/page/routes.dart';
-import 'package:keychat/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:keychat/page/login/CreateAccount.dart';
+import 'package:keychat/page/login/import_nsec.dart';
+import 'package:keychat/page/login/import_seed_phrase.dart';
+import 'package:keychat/page/routes.dart';
+import 'package:keychat/page/widgets/legal_consent_widget.dart';
+import 'package:keychat/service/legal_consent.service.dart';
+import 'package:keychat/utils.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-class Login extends StatelessWidget {
+class Login extends StatefulWidget {
   const Login({super.key});
+
+  @override
+  State<Login> createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+  bool _acceptedLegal = false;
+
+  bool get _requiresLegalConsent {
+    return LegalConsentService.shouldRequestConsent(hasIdentity: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,13 +101,20 @@ class Login extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () async {
+                        if (!await _canContinueWithLegalConsent()) return;
                         try {
-                          final res = await Get.to(() => const CreateAccount());
+                          final res = await Get.to<Object?>(
+                            () => const CreateAccount(),
+                          );
                           if (res != null) {
-                            Get.offAllNamed(Routes.root, arguments: true);
+                            await _saveLegalConsentIfNeeded();
+                            await Get.offAllNamed<void>(
+                              Routes.root,
+                              arguments: true,
+                            );
                           }
                         } catch (e, s) {
-                          EasyLoading.showError(e.toString());
+                          await EasyLoading.showError(e.toString());
                           logger.e(e.toString(), stackTrace: s);
                         }
                       },
@@ -110,7 +129,8 @@ class Login extends StatelessWidget {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () async {
-                        Get.bottomSheet(
+                        if (!await _canContinueWithLegalConsent()) return;
+                        await Get.bottomSheet<void>(
                           clipBehavior: Clip.antiAlias,
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
@@ -124,6 +144,22 @@ class Login extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (_requiresLegalConsent) const SizedBox(height: 10),
+                if (_requiresLegalConsent)
+                  Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      width: double.infinity,
+                      child: LegalConsentWidget(
+                        value: _acceptedLegal,
+                        onChanged: (value) {
+                          setState(() {
+                            _acceptedLegal = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -142,7 +178,8 @@ class Login extends StatelessWidget {
             SettingsTile.navigation(
               leading: const Icon(Icons.file_open),
               title: const Text('From Backup File'),
-              onPressed: (context) {
+              onPressed: (context) async {
+                if (!await _canContinueWithLegalConsent()) return;
                 Utils.enableImportDB();
               },
             ),
@@ -150,9 +187,13 @@ class Login extends StatelessWidget {
               leading: const Icon(Icons.local_activity),
               title: const Text('From Seed Phrase'),
               onPressed: (context) async {
-                final res = await Get.to(() => const ImportSeedPhrase());
+                if (!await _canContinueWithLegalConsent()) return;
+                final res = await Get.to<Object?>(
+                  () => const ImportSeedPhrase(),
+                );
                 if (res != null) {
-                  Get.offAllNamed(Routes.root, arguments: true);
+                  await _saveLegalConsentIfNeeded();
+                  await Get.offAllNamed<void>(Routes.root, arguments: true);
                 }
               },
             ),
@@ -160,9 +201,11 @@ class Login extends StatelessWidget {
               leading: const Icon(Icons.vpn_key),
               title: const Text('From Nsec'),
               onPressed: (context) async {
-                final res = await Get.to(() => const ImportNsec());
+                if (!await _canContinueWithLegalConsent()) return;
+                final res = await Get.to<Object?>(() => const ImportNsec());
                 if (res != null) {
-                  Get.offAllNamed(Routes.root, arguments: true);
+                  await _saveLegalConsentIfNeeded();
+                  await Get.offAllNamed<void>(Routes.root, arguments: true);
                 }
               },
             ),
@@ -179,13 +222,18 @@ class Login extends StatelessWidget {
                 ),
                 title: const Text('Login with Amber App'),
                 onPressed: (context) async {
+                  if (!await _canContinueWithLegalConsent()) return;
                   try {
                     final identity = await Utils.handleAmberLogin();
                     if (identity != null) {
-                      Get.offAllNamed(Routes.root, arguments: true);
+                      await _saveLegalConsentIfNeeded();
+                      await Get.offAllNamed<void>(
+                        Routes.root,
+                        arguments: true,
+                      );
                     }
                   } catch (e, s) {
-                    EasyLoading.showError(e.toString());
+                    await EasyLoading.showError(e.toString());
                     logger.e(e.toString(), stackTrace: s);
                   }
                 },
@@ -194,5 +242,16 @@ class Login extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  Future<bool> _canContinueWithLegalConsent() async {
+    return LegalConsentService.canContinue(
+      hasIdentity: false,
+      acceptedLegal: _acceptedLegal,
+    );
+  }
+
+  Future<void> _saveLegalConsentIfNeeded() async {
+    await LegalConsentService.saveAcceptedVersionIfNeeded(hasIdentity: false);
   }
 }

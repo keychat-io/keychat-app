@@ -39,11 +39,37 @@ class QrScanService {
       return null;
     }
     if (GetPlatform.isMobile) {
-      final isGranted = await Permission.camera.request().isGranted;
-      if (!isGranted) {
-        EasyLoading.showToast('Camera permission not grant');
-        await Future.delayed(const Duration(milliseconds: 1000), () => {});
-        openAppSettings();
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        // Only show settings link when permanently denied; do not auto-redirect
+        // per Apple guideline 5.1.1(iv).
+        if (status.isPermanentlyDenied) {
+          await Get.dialog<void>(
+            CupertinoAlertDialog(
+              title: const Text('Camera Access Required'),
+              content: const Text(
+                'Camera access is needed to scan QR codes. '
+                'You can enable it in Settings.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Get.back<void>(),
+                  child: const Text('Cancel'),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () {
+                    Get.back<void>();
+                    openAppSettings();
+                  },
+                  child: const Text('Go to Settings'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          EasyLoading.showToast('Camera permission not granted');
+        }
         return null;
       }
     }
@@ -56,7 +82,7 @@ class QrScanService {
         validator: (value) {
           return true;
         },
-        onDetect: (BarcodeCapture capture) async {
+        onDetect: (capture) async {
           if (capture.barcodes.isNotEmpty) {
             EasyThrottle.throttle(
               'qr_scan',

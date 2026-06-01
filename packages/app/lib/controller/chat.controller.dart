@@ -681,7 +681,8 @@ class ChatController extends GetxController {
       newRoom.contact = roomObs.value.contact;
     }
     roomObs(newRoom);
-    roomObs.value.peerSignalIdentityKey = newRoom.peerSignalIdentityKey; // force refresh
+    roomObs.value.peerSignalIdentityKey =
+        newRoom.peerSignalIdentityKey; // force refresh
     roomObs.refresh();
 
     nipChatType.value = loadWeakEncryptionTips();
@@ -827,18 +828,43 @@ class ChatController extends GetxController {
       return;
     }
 
-    var isGranted = true;
     if (GetPlatform.isMobile || GetPlatform.isWindows) {
-      isGranted = await Permission.camera.request().isGranted;
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        // Only show settings link when permanently denied; do not auto-redirect
+        // per Apple guideline 5.1.1(iv).
+        if (status.isPermanentlyDenied) {
+          await Get.dialog<void>(
+            CupertinoAlertDialog(
+              title: const Text('Camera Access Required'),
+              content: const Text(
+                'Camera access is needed to take photos. '
+                'You can enable it in Settings.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Get.back<void>(),
+                  child: const Text('Cancel'),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () {
+                    Get.back<void>();
+                    openAppSettings();
+                  },
+                  child: const Text('Go to Settings'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          EasyLoading.showToast('Camera permission not granted');
+        }
+        return;
+      }
     }
-    if (isGranted) {
-      await pickAndUploadImage(ImageSource.camera);
-      hideAdd.value = true; // close features section
-    } else {
-      EasyLoading.showToast('Camera permission not grant');
-      await Future.delayed(const Duration(milliseconds: 1000), () => {});
-      openAppSettings();
-    }
+    await pickAndUploadImage(ImageSource.camera);
+    hideAdd.value = true; // close features section
   }
 
   Future<void> _initBotInfo() async {
@@ -902,7 +928,9 @@ class ChatController extends GetxController {
         unawaited(
           Future.delayed(const Duration(seconds: 3)).then(
             (value) async {
-              await MlsGroupService.instance.fixMlsReceiveAddress([roomObs.value]);
+              await MlsGroupService.instance.fixMlsReceiveAddress([
+                roomObs.value,
+              ]);
               final isAdmin = await roomObs.value.checkAdminByIdPubkey(
                 roomObs.value.getIdentity().nostrIdentityKey,
               );

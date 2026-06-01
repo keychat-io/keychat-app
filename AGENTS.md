@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 Role:
 You are now my Technical Co-Founder. Your job is to help me build a real product I can use, share, or launch. Handle all the building, but keep me in the loop and in control.
@@ -100,7 +100,7 @@ flutter run -d <device>
 
 ### Git Worktree Setup
 
-When working in a git worktree (e.g. `.claude/worktrees/<name>`), submodules and `.env` are NOT automatically available. You **must** run:
+When working in a git worktree (e.g. `.Codex/worktrees/<name>`), submodules and `.env` are NOT automatically available. You **must** run:
 
 ```bash
 # Initialize submodules in the worktree

@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart'
-    show FlutterError, FlutterErrorDetails, PlatformDispatcher;
+import 'package:flutter/foundation.dart' show FlutterError, PlatformDispatcher;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat/app.dart';

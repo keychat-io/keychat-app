@@ -26,9 +26,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal/types.dart'
-    show DecryptResult, KeychatIdentityKeyPair, KeychatProtocolAddress;
+    show KeychatIdentityKeyPair, KeychatProtocolAddress;
 import 'package:keychat_rust_ffi_plugin/index.dart' show AnyhowException;
 
 class SignalChatService extends BaseChatService {
@@ -206,6 +205,13 @@ class SignalChatService extends BaseChatService {
         );
         decodeString = utf8.decode(decryptResult.plaintext);
         await setRoomSignalDecodeStatus(room, false);
+        unawaited(
+          ContactService.instance.deleteReceiveKey(
+            room.identityId,
+            room.toMainPubkey,
+            event.tags[0][1],
+          ),
+        );
       } catch (e, s) {
         final msg = Utils.getErrorMessage(e);
         if (msg != ErrorMessages.signalDecryptError) {
@@ -218,7 +224,8 @@ class SignalChatService extends BaseChatService {
       // if receive address is signalAddress, then remove room.receiveAddress
       if (room.receiveAddress != null) {
         final toAddress = (sourceEvent ?? event).tags[0][1];
-        if (toAddress != room.toMainPubkey && toAddress != room.receiveAddress!) {
+        if (toAddress != room.toMainPubkey &&
+            toAddress != room.receiveAddress!) {
           room.receiveAddress = null;
           await RoomService.instance.updateRoom(room);
         }
@@ -432,7 +439,9 @@ class SignalChatService extends BaseChatService {
         hex.decode(model.signalSignedPrekeySignature),
       ),
       bobPrekeyId: model.signalOneTimePrekeyId,
-      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.signalOneTimePrekey)),
+      bobPrekeyPublic: Uint8List.fromList(
+        hex.decode(model.signalOneTimePrekey),
+      ),
     );
     if (res) {
       room.encryptMode = EncryptMode.signal;

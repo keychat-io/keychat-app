@@ -2,6 +2,7 @@
 
 # Files and directories created by pub
 .dart_tool/
+.kotlin/
 .packages
 build/
 .idea/
@@ -58,3 +59,10 @@ docs_local/
 logs/
 *.log
 scripts/ExportOptions.plist
+# Added by code-review-graph
+.code-review-graph/
+.claude/skills/
+.claude/settings.json
+.mcp.json
+.codex/
+.agents/

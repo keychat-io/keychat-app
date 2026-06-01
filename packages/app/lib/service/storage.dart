@@ -61,6 +61,8 @@ class StorageKeyString {
   static const String lastUpdateCheckTime = 'lastUpdateCheckTime';
   static const String lastRelayInfoFetchTime = 'lastRelayInfoFetchTime';
   static const String cachedLatestVersion = 'cachedLatestVersion';
+  static const String acceptedLegalVersion = 'acceptedLegalVersion';
+  static const String acceptedLegalAt = 'acceptedLegalAt';
 
   // Push notification type: 'fcm' or 'unifiedpush'
   static const String pushNotificationType = 'pushNotificationType';

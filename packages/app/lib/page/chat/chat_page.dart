@@ -1,4 +1,4 @@
-import 'dart:async' show Timer;
+import 'dart:async' show Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
 import 'dart:ui' show ImageFilter;
@@ -27,6 +27,25 @@ import 'package:keychat/service/mls_group.service.dart';
 import 'package:keychat/service/signal_chat.service.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 import 'package:settings_ui/settings_ui.dart';
+
+Action<PasteTextIntent> buildChatPasteTextAction(
+  Future<void> Function() handlePasteboard,
+) {
+  return CallbackAction<PasteTextIntent>(
+    onInvoke: (intent) {
+      unawaited(
+        handlePasteboard().catchError((Object error, StackTrace stackTrace) {
+          logger.e(
+            'Failed to handle pasteboard',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }),
+      );
+      return null;
+    },
+  );
+}
 
 class ChatPage extends StatefulWidget {
   const ChatPage({this.room, super.key});
@@ -334,7 +353,7 @@ class _ChatPage2State extends State<ChatPage> {
                   icon: const Icon(Icons.emoji_emotions_outlined),
                 ),
                 Expanded(
-                    child: KeyboardListener(
+                  child: KeyboardListener(
                     focusNode: controller.keyboardFocus,
                     onKeyEvent: !GetPlatform.isDesktop
                         ? null
@@ -343,49 +362,27 @@ class _ChatPage2State extends State<ChatPage> {
                               // Plain Enter → send message
                               if (event.logicalKey ==
                                       LogicalKeyboardKey.enter &&
-                                  !HardwareKeyboard
-                                      .instance.isControlPressed &&
+                                  !HardwareKeyboard.instance.isControlPressed &&
                                   !HardwareKeyboard.instance.isMetaPressed &&
-                                  !HardwareKeyboard
-                                      .instance.isShiftPressed &&
-                                  !HardwareKeyboard
-                                      .instance.isAltPressed) {
+                                  !HardwareKeyboard.instance.isShiftPressed &&
+                                  !HardwareKeyboard.instance.isAltPressed) {
                                 await controller.handleSubmitted();
                                 return;
                               }
 
-                              // Cmd+V → paste file
-                              final isCmdPressed = HardwareKeyboard
-                                      .instance.logicalKeysPressed
-                                      .contains(
-                                        LogicalKeyboardKey.metaLeft,
-                                      ) ||
-                                  HardwareKeyboard
-                                      .instance.logicalKeysPressed
-                                      .contains(
-                                        LogicalKeyboardKey.metaRight,
-                                      );
-                              if (event.logicalKey ==
-                                      LogicalKeyboardKey.keyV &&
-                                  isCmdPressed) {
-                                await controller.handlePasteboardFile();
-                                return;
-                              }
-
                               // Shift/Alt/Ctrl + Enter → insert newline
-                              final hasModifierPressed = HardwareKeyboard
-                                      .instance.isShiftPressed ||
+                              final hasModifierPressed =
+                                  HardwareKeyboard.instance.isShiftPressed ||
                                   HardwareKeyboard.instance.isAltPressed ||
-                                  HardwareKeyboard
-                                      .instance.isControlPressed;
+                                  HardwareKeyboard.instance.isControlPressed;
 
                               if (event.logicalKey ==
                                       LogicalKeyboardKey.enter &&
                                   hasModifierPressed) {
                                 final text =
                                     controller.textEditingController.text;
-                                final selection = controller
-                                    .textEditingController.selection;
+                                final selection =
+                                    controller.textEditingController.selection;
 
                                 controller.textEditingController.value =
                                     controller.textEditingController.value
@@ -415,112 +412,121 @@ class _ChatPage2State extends State<ChatPage> {
                             ? Colors.grey.shade800
                             : Colors.grey.shade100,
                       ),
-                      child: TextFormField(
-                        controller: controller.textEditingController,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.sentences,
-                        focusNode: controller.chatContentFocus,
-                        autofocus: GetPlatform.isDesktop,
-                        decoration: const InputDecoration(
-                          isCollapsed: true,
-                          hintText: 'Write a message...',
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        textInputAction: GetPlatform.isDesktop
-                            ? TextInputAction.send
-                            : hc.keyboardEnterAction.value,
-                        onEditingComplete: GetPlatform.isDesktop ||
-                                hc.keyboardEnterAction.value ==
-                                    TextInputAction.send
-                            ? controller.handleSubmitted
-                            : null,
-                        contextMenuBuilder: (context, editableTextState) {
-                          final selection = editableTextState
-                              .currentTextEditingValue
-                              .selection;
-                          final text =
-                              editableTextState.currentTextEditingValue.text;
-                          final hasSelection = !selection.isCollapsed;
-                          final hasText = text.isNotEmpty;
-                          final canSelectAll =
-                              hasText &&
-                              (selection.start != 0 ||
-                                  selection.end != text.length);
+                      child: Actions(
+                        actions: <Type, Action<Intent>>{
+                          PasteTextIntent: buildChatPasteTextAction(
+                            controller.handlePasteboard,
+                          ),
+                        },
+                        child: TextFormField(
+                          controller: controller.textEditingController,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.sentences,
+                          focusNode: controller.chatContentFocus,
+                          autofocus: GetPlatform.isDesktop,
+                          decoration: const InputDecoration(
+                            isCollapsed: true,
+                            hintText: 'Write a message...',
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          textInputAction: GetPlatform.isDesktop
+                              ? TextInputAction.send
+                              : hc.keyboardEnterAction.value,
+                          onEditingComplete:
+                              GetPlatform.isDesktop ||
+                                  hc.keyboardEnterAction.value ==
+                                      TextInputAction.send
+                              ? controller.handleSubmitted
+                              : null,
+                          contextMenuBuilder: (context, editableTextState) {
+                            final selection = editableTextState
+                                .currentTextEditingValue
+                                .selection;
+                            final text =
+                                editableTextState.currentTextEditingValue.text;
+                            final hasSelection = !selection.isCollapsed;
+                            final hasText = text.isNotEmpty;
+                            final canSelectAll =
+                                hasText &&
+                                (selection.start != 0 ||
+                                    selection.end != text.length);
 
-                          final buttonItems = <ContextMenuButtonItem>[];
+                            final buttonItems = <ContextMenuButtonItem>[];
 
-                          if (hasSelection) {
-                            buttonItems
-                              ..add(
-                                ContextMenuButtonItem(
-                                  onPressed: () {
-                                    editableTextState.cutSelection(
-                                      SelectionChangedCause.toolbar,
-                                    );
-                                  },
-                                  type: ContextMenuButtonType.cut,
-                                ),
-                              )
-                              ..add(
-                                ContextMenuButtonItem(
-                                  onPressed: () {
-                                    editableTextState.copySelection(
-                                      SelectionChangedCause.toolbar,
-                                    );
-                                  },
-                                  type: ContextMenuButtonType.copy,
-                                ),
-                              );
-                          }
+                            if (hasSelection) {
+                              buttonItems
+                                ..add(
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.cutSelection(
+                                        SelectionChangedCause.toolbar,
+                                      );
+                                    },
+                                    type: ContextMenuButtonType.cut,
+                                  ),
+                                )
+                                ..add(
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.copySelection(
+                                        SelectionChangedCause.toolbar,
+                                      );
+                                    },
+                                    type: ContextMenuButtonType.copy,
+                                  ),
+                                );
+                            }
 
-                          buttonItems.add(
-                            ContextMenuButtonItem(
-                              onPressed: () async {
-                                await controller.handlePasteboard();
-                                editableTextState.hideToolbar();
-                              },
-                              type: ContextMenuButtonType.paste,
-                            ),
-                          );
-
-                          if (canSelectAll) {
                             buttonItems.add(
                               ContextMenuButtonItem(
-                                onPressed: () {
-                                  editableTextState.selectAll(
-                                    SelectionChangedCause.toolbar,
-                                  );
+                                onPressed: () async {
+                                  await controller.handlePasteboard();
+                                  editableTextState.hideToolbar();
                                 },
-                                type: ContextMenuButtonType.selectAll,
+                                type: ContextMenuButtonType.paste,
                               ),
                             );
-                          }
 
-                          return AdaptiveTextSelectionToolbar.buttonItems(
-                            anchors: editableTextState.contextMenuAnchors,
-                            buttonItems: buttonItems,
-                          );
-                        },
-                        enableInteractiveSelection: true,
-                        maxLines: 8,
-                        minLines: 1,
-                        scrollController: controller.textFieldScrollController,
-                        textAlign: TextAlign.left,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(fontSize: 16),
-                        cursorColor: Colors.green,
-                        onTap: () {
-                          controller.hideEmoji.value = true;
-                          controller.hideAdd.value = true;
-                        },
-                        onChanged: handleOnChanged,
-                        onFieldSubmitted: (c) async {
-                          await controller.handleSubmitted();
-                        },
-                        enabled: true,
+                            if (canSelectAll) {
+                              buttonItems.add(
+                                ContextMenuButtonItem(
+                                  onPressed: () {
+                                    editableTextState.selectAll(
+                                      SelectionChangedCause.toolbar,
+                                    );
+                                  },
+                                  type: ContextMenuButtonType.selectAll,
+                                ),
+                              );
+                            }
+
+                            return AdaptiveTextSelectionToolbar.buttonItems(
+                              anchors: editableTextState.contextMenuAnchors,
+                              buttonItems: buttonItems,
+                            );
+                          },
+                          enableInteractiveSelection: true,
+                          maxLines: 8,
+                          minLines: 1,
+                          scrollController:
+                              controller.textFieldScrollController,
+                          textAlign: TextAlign.left,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(fontSize: 16),
+                          cursorColor: Colors.green,
+                          onTap: () {
+                            controller.hideEmoji.value = true;
+                            controller.hideAdd.value = true;
+                          },
+                          onChanged: handleOnChanged,
+                          onFieldSubmitted: (c) async {
+                            await controller.handleSubmitted();
+                          },
+                          enabled: true,
+                        ),
                       ),
                     ),
                   ),

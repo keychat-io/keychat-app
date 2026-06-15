@@ -1,4 +1,4 @@
-import 'dart:async' show Future, Timer, unawaited;
+import 'dart:async' show Completer, Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 
@@ -34,7 +34,8 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show Transaction, TransactionStatus;
-import 'package:mime/mime.dart' show extensionFromMime;
+import 'package:mime/mime.dart' show extensionFromMime, lookupMimeType;
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -42,6 +43,206 @@ import 'package:super_clipboard/super_clipboard.dart';
 const int maxMessageId = 999999999999;
 
 String newlineChar = String.fromCharCode(13);
+
+const _pasteboardImageExtensions = {
+  '.gif',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.svg',
+  '.tiff',
+  '.tif',
+  '.bmp',
+  '.ico',
+  '.heic',
+  '.heif',
+};
+
+const _pasteboardVideoExtensions = {
+  '.mp4',
+  '.mov',
+  '.m4v',
+  '.avi',
+  '.mpeg',
+  '.mpg',
+  '.webm',
+  '.ogg',
+  '.ogv',
+  '.wmv',
+  '.flv',
+  '.mkv',
+};
+
+@visibleForTesting
+class PasteboardFileNameResult {
+  const PasteboardFileNameResult({
+    required this.fileName,
+    required this.shouldClearText,
+  });
+
+  final String fileName;
+  final bool shouldClearText;
+}
+
+@visibleForTesting
+List<({SimpleFileFormat format, MessageMediaType mediaType})>
+buildPasteboardFileFormats() {
+  return const [
+    (format: Formats.gif, mediaType: MessageMediaType.image),
+    (format: Formats.png, mediaType: MessageMediaType.image),
+    (format: Formats.jpeg, mediaType: MessageMediaType.image),
+    (format: Formats.webp, mediaType: MessageMediaType.image),
+    (format: Formats.svg, mediaType: MessageMediaType.image),
+    (format: Formats.tiff, mediaType: MessageMediaType.image),
+    (format: Formats.bmp, mediaType: MessageMediaType.image),
+    (format: Formats.ico, mediaType: MessageMediaType.image),
+    (format: Formats.heic, mediaType: MessageMediaType.image),
+    (format: Formats.heif, mediaType: MessageMediaType.image),
+    (format: Formats.mp4, mediaType: MessageMediaType.video),
+    (format: Formats.mov, mediaType: MessageMediaType.video),
+    (format: Formats.m4v, mediaType: MessageMediaType.video),
+    (format: Formats.avi, mediaType: MessageMediaType.video),
+    (format: Formats.mpeg, mediaType: MessageMediaType.video),
+    (format: Formats.webm, mediaType: MessageMediaType.video),
+    (format: Formats.ogg, mediaType: MessageMediaType.video),
+    (format: Formats.wmv, mediaType: MessageMediaType.video),
+    (format: Formats.flv, mediaType: MessageMediaType.video),
+    (format: Formats.mkv, mediaType: MessageMediaType.video),
+    (format: Formats.mp3, mediaType: MessageMediaType.file),
+    (format: Formats.oga, mediaType: MessageMediaType.file),
+    (format: Formats.aac, mediaType: MessageMediaType.file),
+    (format: Formats.wav, mediaType: MessageMediaType.file),
+    (format: Formats.opus, mediaType: MessageMediaType.file),
+    (format: Formats.flac, mediaType: MessageMediaType.file),
+    (format: Formats.pdf, mediaType: MessageMediaType.file),
+    (format: Formats.doc, mediaType: MessageMediaType.file),
+    (format: Formats.docx, mediaType: MessageMediaType.file),
+    (format: Formats.epub, mediaType: MessageMediaType.file),
+    (format: Formats.md, mediaType: MessageMediaType.file),
+    (format: Formats.csv, mediaType: MessageMediaType.file),
+    (format: Formats.xls, mediaType: MessageMediaType.file),
+    (format: Formats.xlsx, mediaType: MessageMediaType.file),
+    (format: Formats.ppt, mediaType: MessageMediaType.file),
+    (format: Formats.pptx, mediaType: MessageMediaType.file),
+    (format: Formats.json, mediaType: MessageMediaType.file),
+    (format: Formats.zip, mediaType: MessageMediaType.file),
+    (format: Formats.tar, mediaType: MessageMediaType.file),
+    (format: Formats.gzip, mediaType: MessageMediaType.file),
+    (format: Formats.bzip2, mediaType: MessageMediaType.file),
+    (format: Formats.rar, mediaType: MessageMediaType.file),
+    (format: Formats.dmg, mediaType: MessageMediaType.file),
+    (format: Formats.iso, mediaType: MessageMediaType.file),
+    (format: Formats.deb, mediaType: MessageMediaType.file),
+    (format: Formats.rpm, mediaType: MessageMediaType.file),
+    (format: Formats.apk, mediaType: MessageMediaType.file),
+    (format: Formats.exe, mediaType: MessageMediaType.file),
+    (format: Formats.msi, mediaType: MessageMediaType.file),
+    (format: Formats.dll, mediaType: MessageMediaType.file),
+    (format: Formats.plainTextFile, mediaType: MessageMediaType.file),
+    (format: Formats.htmlFile, mediaType: MessageMediaType.file),
+    (format: Formats.webUnknown, mediaType: MessageMediaType.file),
+  ];
+}
+
+@visibleForTesting
+String? localPasteboardFilePathFromUri(Uri? uri) {
+  if (uri == null) return null;
+  if (uri.scheme == 'file') {
+    try {
+      return uri.toFilePath();
+    } catch (_) {
+      return null;
+    }
+  }
+  if (uri.scheme.isEmpty && uri.path.isNotEmpty) {
+    return uri.path;
+  }
+  return null;
+}
+
+@visibleForTesting
+MessageMediaType pasteboardMediaTypeForFilePath(String filePath) {
+  final extension = path.extension(filePath).toLowerCase();
+  if (_pasteboardImageExtensions.contains(extension)) {
+    return MessageMediaType.image;
+  }
+  if (_pasteboardVideoExtensions.contains(extension)) {
+    return MessageMediaType.video;
+  }
+  return MessageMediaType.file;
+}
+
+@visibleForTesting
+PasteboardFileNameResult buildPasteboardFileName({
+  required String? suggestedName,
+  required String sourceFileName,
+  required String? mimeType,
+  required int timestamp,
+}) {
+  final mimeSuffix = _fileExtensionFromMime(mimeType);
+  final sourceName = sourceFileName.trim();
+  final sourceSuffix = _fileExtensionFromName(sourceName);
+  final suffix = mimeSuffix ?? sourceSuffix ?? 'bin';
+  final safeSuggestedName = _safeBaseName(suggestedName);
+
+  if (safeSuggestedName != null) {
+    if (_hasFileExtension(safeSuggestedName)) {
+      return PasteboardFileNameResult(
+        fileName: safeSuggestedName,
+        shouldClearText: false,
+      );
+    }
+    return PasteboardFileNameResult(
+      fileName: '$safeSuggestedName.$suffix',
+      shouldClearText: false,
+    );
+  }
+
+  if (sourceName.isNotEmpty && _hasFileExtension(sourceName)) {
+    final safeSourceName = _safeBaseName(sourceName)!;
+    final inputName = path.basenameWithoutExtension(safeSourceName);
+    return PasteboardFileNameResult(
+      fileName: '$inputName.$suffix',
+      shouldClearText: true,
+    );
+  }
+
+  return PasteboardFileNameResult(
+    fileName: 'pasteboard_$timestamp.$suffix',
+    shouldClearText: false,
+  );
+}
+
+String? _safeBaseName(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return path.basename(trimmed);
+}
+
+String? _fileExtensionFromMime(String? mimeType) {
+  if (mimeType == null || mimeType.isEmpty) return null;
+  return _normalizeFileExtension(extensionFromMime(mimeType));
+}
+
+String? _fileExtensionFromName(String fileName) {
+  if (!_hasFileExtension(fileName)) return null;
+  return _normalizeFileExtension(path.extension(fileName));
+}
+
+String? _normalizeFileExtension(String? extension) {
+  if (extension == null || extension.isEmpty) return null;
+  final normalized = extension.startsWith('.')
+      ? extension.substring(1)
+      : extension;
+  if (normalized.isEmpty) return null;
+  return normalized.toLowerCase();
+}
+
+bool _hasFileExtension(String fileName) {
+  final extension = path.extension(fileName);
+  return extension.length > 1;
+}
 
 class ChatController extends GetxController {
   ChatController(Room room, {this.searchMessageId = -1}) {
@@ -1115,88 +1316,34 @@ class ChatController extends GetxController {
   Future<bool> handlePasteboardFile() async {
     // Clipboard API is not supported on this platform.
     if (SystemClipboard.instance == null) return false;
-    final reader = await SystemClipboard.instance!.read();
+    late final ClipboardReader reader;
+    try {
+      reader = await SystemClipboard.instance!.read();
+    } catch (e) {
+      logger.w('System clipboard file read failed: $e');
+      return false;
+    }
     if (reader.items.isEmpty) {
       return false;
     }
 
-    final fileFormats = [
-      (Formats.gif, MessageMediaType.image),
-      (Formats.png, MessageMediaType.image),
-      (Formats.jpeg, MessageMediaType.image),
-      (Formats.webp, MessageMediaType.image),
-      (Formats.svg, MessageMediaType.image),
-      (Formats.tiff, MessageMediaType.image),
-      (Formats.bmp, MessageMediaType.image),
-      (Formats.ico, MessageMediaType.image),
-      (Formats.heic, MessageMediaType.image),
-      (Formats.heif, MessageMediaType.image),
-      (Formats.mp4, MessageMediaType.video),
-      (Formats.pdf, MessageMediaType.file),
-      (Formats.mov, MessageMediaType.video),
-      (Formats.m4v, MessageMediaType.video),
-      (Formats.avi, MessageMediaType.video),
-      (Formats.mpeg, MessageMediaType.video),
-      (Formats.webm, MessageMediaType.video),
-      (Formats.ogg, MessageMediaType.video),
-      (Formats.wmv, MessageMediaType.video),
-      (Formats.flv, MessageMediaType.video),
-      (Formats.mkv, MessageMediaType.video),
-      (Formats.mp3, MessageMediaType.file),
-      (Formats.oga, MessageMediaType.file),
-      (Formats.aac, MessageMediaType.file),
-      (Formats.wav, MessageMediaType.file),
-      (Formats.doc, MessageMediaType.file),
-      (Formats.docx, MessageMediaType.file),
-      (Formats.csv, MessageMediaType.file),
-      (Formats.xls, MessageMediaType.file),
-      (Formats.xlsx, MessageMediaType.file),
-      (Formats.ppt, MessageMediaType.file),
-      (Formats.pptx, MessageMediaType.file),
-      (Formats.json, MessageMediaType.file),
-      (Formats.zip, MessageMediaType.file),
-      (Formats.tar, MessageMediaType.file),
-      (Formats.gzip, MessageMediaType.file),
-      (Formats.bzip2, MessageMediaType.file),
-      (Formats.rar, MessageMediaType.file),
-      (Formats.dmg, MessageMediaType.file),
-      (Formats.iso, MessageMediaType.file),
-      (Formats.deb, MessageMediaType.file),
-      (Formats.rpm, MessageMediaType.file),
-      (Formats.apk, MessageMediaType.file),
-      (Formats.exe, MessageMediaType.file),
-      (Formats.msi, MessageMediaType.file),
-      (Formats.plainTextFile, MessageMediaType.file),
-      (Formats.htmlFile, MessageMediaType.file),
-      (Formats.webUnknown, MessageMediaType.file),
-    ];
+    final fileFormats = buildPasteboardFileFormats();
     if (reader.canProvide(Formats.fileUri)) {
-      for (var i = 0; i < fileFormats.length; i++) {
-        final format = fileFormats[i].$1;
-        final mediaType = fileFormats[i].$2;
-        final canProcess = reader.canProvide(format);
-        if (canProcess) {
-          logger.d('Clipboard can provide: $format, $mediaType');
-          await _readFromStream(
-            reader,
-            format,
-            mediaType,
-            mediaType == MessageMediaType.video,
-          );
-          return true;
-        }
+      final handled = await _readFromFileUri(reader);
+      if (handled) {
+        return true;
       }
     }
 
     // _pasteFallinImage
     for (final format in fileFormats) {
       // skip plain text
-      if (format.$1 == Formats.plainTextFile) continue;
-      if (format.$1 == Formats.htmlFile) continue;
-      final canProcess = reader.canProvide(format.$1);
+      if (format.format == Formats.plainTextFile) continue;
+      if (format.format == Formats.htmlFile) continue;
+      final canProcess = reader.canProvide(format.format);
       if (canProcess) {
         logger.d('_pasteFallinImage Clipboard can provide: $format');
-        await _readFromStream(reader, format.$1, format.$2, false);
+        await _readFromStream(reader, format.format, format.mediaType, false);
         return true;
       }
     }
@@ -1204,28 +1351,43 @@ class ChatController extends GetxController {
   }
 
   Future<void> handlePasteboard() async {
-    // Clipboard API is not supported on this platform.
-    if (SystemClipboard.instance == null) return;
+    if (SystemClipboard.instance == null) {
+      await _handlePasteboardPlainTextFromFlutterClipboard();
+      return;
+    }
 
-    final reader = await SystemClipboard.instance!.read();
+    late final ClipboardReader reader;
+    try {
+      reader = await SystemClipboard.instance!.read();
+    } catch (e) {
+      logger.w('System clipboard read failed: $e');
+      await _handlePasteboardPlainTextFromFlutterClipboard();
+      return;
+    }
     if (reader.items.isEmpty) {
+      await _handlePasteboardPlainTextFromFlutterClipboard();
       return;
     }
 
     final isFile = reader.canProvide(Formats.fileUri);
     loggerNoLine.i('Clipboard can provide file: $isFile');
-    if (isFile) {
-      await handlePasteboardFile();
+    if (isFile && await handlePasteboardFile()) {
       return;
     }
+    final handledText = await _handlePasteboardPlainTextFromFlutterClipboard();
+    if (!handledText) {
+      await handlePasteboardFile();
+    }
+  }
+
+  Future<bool> _handlePasteboardPlainTextFromFlutterClipboard() async {
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clipboardData?.text;
     if (text == null || text.isEmpty) {
-      await handlePasteboardFile();
-      return;
+      return false;
     }
-    // plain text
     await _handlePastePlainText(text);
+    return true;
   }
 
   Future<void> _handlePastePlainText(String text) async {
@@ -1273,103 +1435,150 @@ class ChatController extends GetxController {
     MessageMediaType type, [
     bool compress = true,
   ]) async {
-    /// Binary formats need to be read as streams
-    reader.getFile(format, (file) async {
-      var suggestedName = await reader.getSuggestedName();
-      final mimeType = format.mimeTypes?.first;
+    final completer = Completer<void>();
+    final progress = reader.getFile(
+      format,
+      (file) async {
+        final suggestedName = file.fileName ?? await reader.getSuggestedName();
+        final mimeType = format.mimeTypes?.first;
 
-      try {
-        final imageBytes = await file.readAll();
-        final sourceFileName = textEditingController.text.trim();
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        if (suggestedName == null) {
-          String? suffix;
-          if (mimeType != null) {
-            suffix = extensionFromMime(mimeType);
-          }
-          if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
-            final inputName = sourceFileName.split('.').first;
-            final inputSuffix = sourceFileName.split('.').last;
-            suggestedName = '$inputName.${suffix ?? inputSuffix}';
+        try {
+          final imageBytes = await file.readAll();
+          final sourceFileName = textEditingController.text.trim();
+          final tempDir = await getTemporaryDirectory();
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final pasteboardFileName = buildPasteboardFileName(
+            suggestedName: suggestedName,
+            sourceFileName: sourceFileName,
+            mimeType: mimeType,
+            timestamp: timestamp,
+          );
+          if (pasteboardFileName.shouldClearText &&
+              textEditingController.text.trim() == sourceFileName) {
             textEditingController.clear();
           }
-          suffix ??= 'bin';
-          suggestedName ??= 'pasteboard_$timestamp.$suffix';
-        } else if (textEditingController.text.trim() == sourceFileName) {
-          textEditingController.clear();
-        }
-        final path = '${tempDir.path}/$suggestedName';
-        final teampFile = File(path);
-        await teampFile.writeAsBytes(imageBytes);
+          final suggestedFileName = pasteboardFileName.fileName;
+          final filePath = path.join(tempDir.path, suggestedFileName);
+          final tempFile = File(filePath);
+          await tempFile.writeAsBytes(imageBytes);
 
-        final xfile = XFile(
-          path,
-          bytes: imageBytes,
-          mimeType: mimeType,
-          name: suggestedName,
-        );
-        final isImage = FileService.instance.isImageFile(xfile.path);
-        if (!isImage) {
-          if (_isUploading) {
-            EasyLoading.showToast('File uploading, please wait...');
-            return;
+          final xfile = XFile(
+            filePath,
+            bytes: imageBytes,
+            mimeType: mimeType,
+            name: suggestedFileName,
+          );
+          await _handlePasteboardXFile(xfile, type, compress: compress);
+        } catch (e, s) {
+          logger.e('_readFromStream: $e', stackTrace: s);
+        } finally {
+          unawaited(
+            Future<void>.delayed(const Duration(seconds: 3)).then((_) async {
+              await EasyLoading.dismiss();
+            }),
+          );
+          if (!completer.isCompleted) {
+            completer.complete();
           }
-          _isUploading = true;
-          try {
-            await FileService.instance.handleSendMediaFile(
-              roomObs.value,
-              xfile,
-              type,
-            );
-          } finally {
-            _isUploading = false;
-          }
-          return;
         }
-        await Get.dialog(
-          CupertinoAlertDialog(
-            content: SizedBox(
-              width: 300,
-              child: FileService.instance.getImageView(File(xfile.path)),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () async {
-                  if (_isUploading) {
-                    EasyLoading.showToast('File uploading, please wait...');
-                    return;
-                  }
-                  _isUploading = true;
-                  try {
-                    await FileService.instance.handleSendMediaFile(
-                      roomObs.value,
-                      xfile,
-                      MessageMediaType.image,
-                    );
-                    Get.back<void>();
-                  } finally {
-                    _isUploading = false;
-                  }
-                },
-                child: const Text('Send'),
-              ),
-            ],
+      },
+      onError: (error) {
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+      },
+    );
+    if (progress == null) {
+      return;
+    }
+    await completer.future;
+  }
+
+  Future<bool> _readFromFileUri(ClipboardReader reader) async {
+    final fileUri = await reader.readValue(Formats.fileUri);
+    final filePath = localPasteboardFilePathFromUri(fileUri);
+    if (filePath == null || filePath.isEmpty) {
+      return false;
+    }
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      logger.w('Clipboard file URI does not exist: $fileUri');
+      return false;
+    }
+
+    final mediaType = pasteboardMediaTypeForFilePath(filePath);
+    final xfile = XFile(
+      filePath,
+      mimeType: lookupMimeType(filePath),
+      name: path.basename(filePath),
+    );
+    await _handlePasteboardXFile(
+      xfile,
+      mediaType,
+      compress: mediaType == MessageMediaType.video,
+    );
+    return true;
+  }
+
+  Future<void> _handlePasteboardXFile(
+    XFile xfile,
+    MessageMediaType type, {
+    bool compress = false,
+  }) async {
+    final isImage = FileService.instance.isImageFile(xfile.path);
+    if (!isImage) {
+      await _sendPasteboardMediaFile(xfile, type, compress: compress);
+      return;
+    }
+
+    await Get.dialog<void>(
+      CupertinoAlertDialog(
+        content: SizedBox(
+          width: 300,
+          child: FileService.instance.getImageView(File(xfile.path)),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back<void>(),
+            child: const Text('Cancel'),
           ),
-        );
-      } catch (e, s) {
-        logger.e('_readFromStream: $e', stackTrace: s);
-      } finally {
-        Future.delayed(const Duration(seconds: 3)).then((_) {
-          EasyLoading.dismiss();
-        });
-      }
-    });
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              await _sendPasteboardMediaFile(
+                xfile,
+                MessageMediaType.image,
+              );
+              Get.back<void>();
+            },
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendPasteboardMediaFile(
+    XFile xfile,
+    MessageMediaType type, {
+    bool compress = false,
+  }) async {
+    if (_isUploading) {
+      unawaited(EasyLoading.showToast('File uploading, please wait...'));
+      return;
+    }
+    _isUploading = true;
+    try {
+      await FileService.instance.handleSendMediaFile(
+        roomObs.value,
+        xfile,
+        type,
+        compress: compress,
+      );
+    } finally {
+      _isUploading = false;
+    }
   }
 
   // from search page

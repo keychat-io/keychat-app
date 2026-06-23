@@ -174,13 +174,14 @@ class LndWalletTransaction extends WalletTransactionBase {
   String? get invoice => _invoice?.paymentRequest ?? _payment?.paymentRequest;
 
   @override
-  void navigateToTransactionDetail({String? walletId}) {
-    Get.to<void>(
-      () => UnifiedTransactionPage(
-        lndTransaction: this,
-        walletId: walletId,
-      ),
-      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-    );
+  Future<void> navigateToTransactionDetail({String? walletId}) {
+    return Get.to<void>(
+          () => UnifiedTransactionPage(
+            lndTransaction: this,
+            walletId: walletId,
+          ),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        ) ??
+        Future<void>.value();
   }
 }

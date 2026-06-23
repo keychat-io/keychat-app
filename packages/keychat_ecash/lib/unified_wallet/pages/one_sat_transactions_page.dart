@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -58,14 +60,104 @@ class _OneSatTransactionsList extends StatefulWidget {
 }
 
 class _OneSatTransactionsListState extends State<_OneSatTransactionsList> {
+  static const _pendingPollInterval = Duration(seconds: 3);
+  static const _pendingPollMaxDuration = Duration(minutes: 3);
+
   final _indicatorController = IndicatorController();
+  Timer? _pendingPollTimer;
+  Worker? _oneSatTransactionsWorker;
+  DateTime? _pendingPollStartedAt;
+  bool _isReconcilingPending = false;
 
   UnifiedWalletController get controller => widget.controller;
 
   @override
+  void initState() {
+    super.initState();
+    _oneSatTransactionsWorker = ever(
+      controller.oneSatTransactions,
+      (_) => _startPendingWatcherIfNeeded(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startPendingWatcherIfNeeded();
+    });
+  }
+
+  @override
   void dispose() {
+    _pendingPollTimer?.cancel();
+    _oneSatTransactionsWorker?.dispose();
     _indicatorController.dispose();
     super.dispose();
+  }
+
+  void _startPendingWatcherIfNeeded() {
+    if (!mounted || _isReconcilingPending) return;
+    if (!_hasPendingOneSatTransactions()) {
+      _stopPendingWatcher();
+      return;
+    }
+
+    _pendingPollStartedAt ??= DateTime.now();
+    unawaited(_reconcilePendingAndScheduleNext());
+  }
+
+  Future<void> _reconcilePendingAndScheduleNext() async {
+    if (!mounted || _isReconcilingPending) return;
+    if (!_hasPendingOneSatTransactions()) {
+      _stopPendingWatcher();
+      return;
+    }
+    if (_hasPendingWatcherExpired()) {
+      _stopPendingWatcher();
+      return;
+    }
+
+    _isReconcilingPending = true;
+    var hasPending = true;
+    try {
+      hasPending = await controller.reconcileOneSatPendingTransactions();
+    } catch (e, s) {
+      logger.e(
+        'Failed to reconcile 1sat pending transactions',
+        error: e,
+        stackTrace: s,
+      );
+    } finally {
+      _isReconcilingPending = false;
+    }
+
+    if (!mounted) return;
+    if (hasPending && !_hasPendingWatcherExpired()) {
+      _schedulePendingPoll();
+    } else {
+      _stopPendingWatcher();
+    }
+  }
+
+  bool _hasPendingOneSatTransactions() {
+    return controller.oneSatTransactions.any(
+      (tx) => tx.status == WalletTransactionStatus.pending,
+    );
+  }
+
+  bool _hasPendingWatcherExpired() {
+    final startedAt = _pendingPollStartedAt;
+    if (startedAt == null) return false;
+    return DateTime.now().difference(startedAt) >= _pendingPollMaxDuration;
+  }
+
+  void _schedulePendingPoll() {
+    _pendingPollTimer?.cancel();
+    _pendingPollTimer = Timer(_pendingPollInterval, () {
+      unawaited(_reconcilePendingAndScheduleNext());
+    });
+  }
+
+  void _stopPendingWatcher() {
+    _pendingPollTimer?.cancel();
+    _pendingPollTimer = null;
+    _pendingPollStartedAt = null;
   }
 
   @override
@@ -108,6 +200,7 @@ class _OneSatTransactionsListState extends State<_OneSatTransactionsList> {
           if (_indicatorController.side == IndicatorSide.top) {
             // Pull down - refresh
             await controller.loadOneSatTransactions(forceRefresh: true);
+            await _reconcilePendingAndScheduleNext();
           } else if (_indicatorController.side == IndicatorSide.bottom) {
             // Pull up - load more
             await controller.loadMoreOneSatTransactions();
@@ -268,9 +361,12 @@ class _OneSatTransactionsListState extends State<_OneSatTransactionsList> {
         ],
       ),
       trailing: _buildStatusIcon(transaction.status),
-      onTap: () => transaction.navigateToTransactionDetail(
-        walletId: controller.selectedWallet.id,
-      ),
+      onTap: () async {
+        await transaction.navigateToTransactionDetail(
+          walletId: controller.selectedWallet.id,
+        );
+        await controller.loadOneSatTransactions(forceRefresh: true);
+      },
     );
   }
 

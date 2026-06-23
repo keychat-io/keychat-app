@@ -138,13 +138,14 @@ class NwcWalletTransaction extends WalletTransactionBase {
   String? get invoice => transaction.invoice;
 
   @override
-  void navigateToTransactionDetail({String? walletId}) {
-    Get.to<void>(
-      () => UnifiedTransactionPage(
-        nwcTransaction: transaction,
-        walletId: walletId,
-      ),
-      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-    );
+  Future<void> navigateToTransactionDetail({String? walletId}) {
+    return Get.to<void>(
+          () => UnifiedTransactionPage(
+            nwcTransaction: transaction,
+            walletId: walletId,
+          ),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        ) ??
+        Future<void>.value();
   }
 }

@@ -162,8 +162,9 @@ Future<SettingController> initServices(WidgetsBinding widgetsBinding) async {
   await SystemChrome.setPreferredOrientations(
     [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
   );
-  const env =
-      kReleaseMode ? 'prod' : String.fromEnvironment('MYENV', defaultValue: 'prod');
+  const env = kReleaseMode
+      ? 'prod'
+      : String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
   logStep('config done');
@@ -233,8 +234,6 @@ void _updateSystemUIOverlay() {
 
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: isDarkMode
           ? Brightness.light
           : Brightness.dark,

@@ -39,7 +39,7 @@ cargokit {
 }
 
 android {
-    compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion','35').toInteger()
+    compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion','36').toInteger()
     namespace "com.keychat.io"
     ndkVersion flutterNDKVersion
     compileOptions {
@@ -63,6 +63,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion localProperties.getProperty('flutter.minSdkVersion','31').toInteger()
+        targetSdkVersion localProperties.getProperty('flutter.targetSdkVersion','36').toInteger()
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -129,5 +130,5 @@ android {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.material:material:1.14.0'
 }

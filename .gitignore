@@ -61,8 +61,10 @@ logs/
 scripts/ExportOptions.plist
 # Added by code-review-graph
 .code-review-graph/
-.claude/skills/
-.claude/settings.json
+.claude/
 .mcp.json
 .codex/
 .agents/
+.claire/
+
+packages/app/coverage/lcov.info

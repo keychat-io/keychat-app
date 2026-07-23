@@ -250,7 +250,7 @@ class WebsocketService extends GetxService {
   Future<void> createChannels([List<Relay> list = const []]) async {
     final ws = this;
     await Future.wait(
-      list.map((Relay relay) async {
+      list.map((relay) async {
         final rw = RelayWebsocket(relay, ws);
         channels[relay.url] = rw;
         await _startConnectRelay(rw);
@@ -872,7 +872,7 @@ class WebsocketService extends GetxService {
     /// Store connection state subscription to enable proper cleanup.
     /// Prevents zombie subscribers in long-running sessions.
     rw.connectionStateSubscription = rw.channel!.connection.listen(
-      (ConnectionState state) {
+      (state) {
         final backoff = getBackoffState(rw.relay.url);
 
         if (state is Connected || state is Reconnected) {

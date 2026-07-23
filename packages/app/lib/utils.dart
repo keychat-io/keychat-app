@@ -275,8 +275,6 @@ class Utils {
       const SystemUiOverlayStyle(
         statusBarBrightness: Brightness.light,
         statusBarIconBrightness: Brightness.dark,
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
       ),
     );
   }

@@ -18,13 +18,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   share_plus
   super_native_extensions
   url_launcher_windows
-  webcrypto
   window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   flutter_local_notifications_windows
-  jni
   keychat_rust_ffi_plugin
 )
 

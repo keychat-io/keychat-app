@@ -209,7 +209,9 @@ abstract class WalletTransactionBase {
   String? get invoice;
 
   /// Navigates to the appropriate transaction detail page.
-  void navigateToTransactionDetail({String? walletId});
+  ///
+  /// Completes when the detail page is closed.
+  Future<void> navigateToTransactionDetail({String? walletId});
 }
 
 /// Unified transaction status

@@ -133,21 +133,22 @@ class CashuWalletTransaction extends WalletTransactionBase {
   String? get invoice => transaction.token;
 
   @override
-  void navigateToTransactionDetail({String? walletId}) {
+  Future<void> navigateToTransactionDetail({String? walletId}) {
     final isLightning = transaction.kind == TransactionKind.ln;
     if (isLightning) {
-      Get.to<void>(
-        () => UnifiedTransactionPage(
-          cashuTransaction: transaction,
-          walletId: transaction.mintUrl,
-        ),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
-    } else {
-      Get.to<void>(
-        () => CashuTransactionPage(transaction: transaction),
-        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-      );
+      return Get.to<void>(
+            () => UnifiedTransactionPage(
+              cashuTransaction: transaction,
+              walletId: transaction.mintUrl,
+            ),
+            id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+          ) ??
+          Future<void>.value();
     }
+    return Get.to<void>(
+          () => CashuTransactionPage(transaction: transaction),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+        ) ??
+        Future<void>.value();
   }
 }

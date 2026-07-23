@@ -988,7 +988,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final tx = await Get.find<EcashController>().dialogToPayInvoice();
     if (tx == null) return;
 
-    tx.navigateToTransactionDetail(
+    await tx.navigateToTransactionDetail(
       walletId: tx.walletId ?? controller.selectedWallet.id,
     );
   }
@@ -1034,7 +1034,7 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
     final tx = await controller.dialogToMakeInvoice();
     if (tx == null) return;
 
-    tx.navigateToTransactionDetail(
+    await tx.navigateToTransactionDetail(
       walletId: tx.walletId ?? controller.selectedWallet.id,
     );
   }
@@ -1048,8 +1048,8 @@ class BitcoinWalletMain extends GetView<UnifiedWalletController> {
   }
 
   /// Handle transaction tap - navigate to transaction details
-  void _onTransactionTap(WalletTransactionBase transaction) {
-    transaction.navigateToTransactionDetail(
+  Future<void> _onTransactionTap(WalletTransactionBase transaction) async {
+    await transaction.navigateToTransactionDetail(
       walletId: controller.selectedWallet.id,
     );
   }

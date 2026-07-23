@@ -11,6 +11,7 @@ import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart' show MintBalanceClass;
 import 'package:keychat_ecash/unified_wallet/index.dart';
 import 'package:keychat_ecash/wallet_selection_storage.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 /// Unified controller for managing multiple wallet types
 class UnifiedWalletController extends GetxController {
@@ -89,6 +90,12 @@ class UnifiedWalletController extends GetxController {
   /// coalesces rapid-fire balance updates (e.g. initial load + pending check)
   /// into a single transaction fetch.
   Timer? _txReloadDebounce;
+
+  /// In-flight 1sat pending reconciliation.
+  ///
+  /// Prevents page timers, pull-to-refresh, and navigation return handlers from
+  /// checking the same pending transactions concurrently.
+  Future<bool>? _oneSatPendingReconcileFuture;
 
   /// Get the currently selected wallet (null if none)
   WalletBase get selectedWallet {
@@ -607,6 +614,94 @@ class UnifiedWalletController extends GetxController {
         isOneSatTransactionsLoading.value = false;
       }
     }
+  }
+
+  /// Checks visible pending 1sat transactions and refreshes the list afterward.
+  ///
+  /// Returns whether the refreshed visible list still contains pending
+  /// transactions. Concurrent callers share the same in-flight reconciliation.
+  Future<bool> reconcileOneSatPendingTransactions({WalletBase? wallet}) async {
+    final existing = _oneSatPendingReconcileFuture;
+    if (existing != null) return existing;
+
+    final future = _reconcileOneSatPendingTransactions(wallet: wallet);
+    _oneSatPendingReconcileFuture = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_oneSatPendingReconcileFuture, future)) {
+        _oneSatPendingReconcileFuture = null;
+      }
+    }
+  }
+
+  Future<bool> _reconcileOneSatPendingTransactions({WalletBase? wallet}) async {
+    final targetWallet = wallet ?? selectedWallet;
+    final isSelectedWallet =
+        wallet == null || targetWallet.id == selectedWallet.id;
+    final visibleTransactions = isSelectedWallet
+        ? oneSatTransactions.toList()
+        : (_oneSatTransactionCache[targetWallet.id] ??
+            const <WalletTransactionBase>[]);
+    final pendingTransactions = visibleTransactions
+        .where(
+          (tx) =>
+              tx.status == WalletTransactionStatus.pending &&
+              tx.protocol == WalletProtocol.cashu,
+        )
+        .toList();
+
+    if (pendingTransactions.isEmpty) return false;
+
+    var checkedAny = false;
+    for (final transaction in pendingTransactions) {
+      try {
+        final checked = await checkOneSatTransactionStatus(transaction);
+        checkedAny = checkedAny || checked != null;
+      } catch (e, s) {
+        logger.e(
+          'Failed to check 1sat transaction ${transaction.id}',
+          error: e,
+          stackTrace: s,
+        );
+      }
+    }
+
+    if (checkedAny) {
+      _oneSatTransactionCache.remove(targetWallet.id);
+      await loadOneSatTransactions(
+        wallet: targetWallet,
+        forceRefresh: true,
+      );
+    }
+
+    final latestTransactions = isSelectedWallet
+        ? oneSatTransactions
+        : (_oneSatTransactionCache[targetWallet.id] ??
+            const <WalletTransactionBase>[]);
+    return latestTransactions.any(
+      (tx) => tx.status == WalletTransactionStatus.pending,
+    );
+  }
+
+  /// Checks one pending 1sat transaction through the underlying Cashu API.
+  ///
+  /// Exposed as an overridable method so widget/controller tests can exercise
+  /// page polling without invoking the Rust FFI layer.
+  Future<WalletTransactionBase?> checkOneSatTransactionStatus(
+    WalletTransactionBase transaction,
+  ) async {
+    if (transaction.status != WalletTransactionStatus.pending ||
+        transaction.protocol != WalletProtocol.cashu) {
+      return null;
+    }
+
+    final checkedTransaction =
+        await rust_cashu.checkTransaction(id: transaction.id);
+    return CashuWalletTransaction(
+      transaction: checkedTransaction,
+      walletId: transaction.walletId,
+    );
   }
 
   /// Load more 1sat transactions (pagination)
